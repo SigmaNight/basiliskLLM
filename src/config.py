@@ -8,6 +8,7 @@ CFG_SPEC = """
 [general]
 language = string(default='auto')
 log_level = option("INFO", "WARNING", "ERROR", "CRITICAL", "DEBUG", default='DEBUG')
+advanced_mode = boolean(default=False)
 
 [services]
 [[open_ai]]
