@@ -2,6 +2,7 @@ import wx
 from config import conf
 from localization import _
 from logging import getLogger
+from accountdialog import AccountDialog
 
 log = getLogger(__name__)
 
@@ -62,6 +63,9 @@ class ConfigDialog(wx.Dialog):
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
 
+		accountsBtn = wx.Button(panel, label=_("Manage &accounts"))
+		accountsBtn.Bind(wx.EVT_BUTTON, self.onManageAccounts)
+
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK, _("Save"))
@@ -76,6 +80,11 @@ class ConfigDialog(wx.Dialog):
 
 		panel.Layout()
 		self.Layout()
+
+	def onManageAccounts(self, event):
+		dlg = AccountDialog(self, _("Manage accounts"))
+		dlg.ShowModal()
+		dlg.Destroy()
 
 	def onOK(self, event):
 		log.debug("Saving configuration")

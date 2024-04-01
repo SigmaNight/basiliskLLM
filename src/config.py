@@ -9,24 +9,40 @@ CFG_SPEC = """
 language = string(default='auto')
 log_level = option("INFO", "WARNING", "ERROR", "CRITICAL", "DEBUG", default='DEBUG')
 
-[services]
-[[open_ai]]
-api_key = string()
-use_org = boolean(default=False)
-org_api_key = string()
+[accounts]
+[[__many__]]
+name = string
+provider = string
+api_key = string
+organization_key = string
+use_organization_key = boolean(default=False)
 
-[[mistral]]
-api_key = string()
-use_org = boolean(default=False)
-org_api_key = string()
+[custom_providers]
+[[__many__]]
+name = string
+base_url = string
+api_type = string
+require_api_key = boolean(default=True)
+organization_mode_available = boolean(default=False)
 
-[[openrouter]]
-api_key = string()
-use_org = boolean(default=False)
-org_api_key = string()
 """
 
 conf = None
+
+def save_accounts(accounts):
+	from account import AccountSource
+	conf["accounts"] = {}
+	for account in accounts:
+		if account.source == AccountSource.ENV_VAR:
+			continue
+		conf["accounts"][account.id] = {
+			"name": account.name,
+			"provider": account.provider.name,
+			"api_key": account.api_key,
+			"organization_key": account.organization_key,
+			"use_organization_key": account.use_organization_key
+		}
+	conf.write()
 
 def initialize_config():
 	global conf
