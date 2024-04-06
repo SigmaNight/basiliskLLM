@@ -32,32 +32,26 @@ These shortcuts work only when the BasiliskLLM window is focused.
 ## 🛠 Setting Up Your Dev Palace 🏰
 
 Requirements: Python 3.12.2 (because only the best for us, obviously)
-The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/#ci-recommendations)
+The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/##installing-with-pipx).
 For short reference:
-
-shell
-```
-pip install pipx
+```shell
+pip3.12 install pipx
 pipx ensurepath
 pipx install poetry
 ```
 
 In the root of what may soon become your favorite project, install dependencies with poetry. It will create a special virtual environment for the project.
-
-shell
-```
+```shell
 poetry install
 ```
-Activate the virtual environment (because magic needs a little nudge):
 
-shell
-```
+Activate the virtual environment (because magic needs a little nudge):
+```shell
 poetry shell
 ```
 
 Ready to watch the code baby crawl, maybe even walk? Fire up the project:
-shell
-```
+```shell
 cd src
 python main.pyw
 ```
