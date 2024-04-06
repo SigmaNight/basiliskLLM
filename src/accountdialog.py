@@ -2,21 +2,20 @@ import wx
 from config import conf
 from localization import _
 from logging import getLogger
-from account import Account, accountManager, AccountSource, ACCOUNT_SOURCE_LABELS
+from account import (
+	Account,
+	accountManager,
+	AccountSource,
+	ACCOUNT_SOURCE_LABELS,
+)
 from config import save_accounts
 from provider import providers, Provider, get_provider
 
 log = getLogger(__name__)
 
-class EditAccountDialog(wx.Dialog):
 
-	def __init__(
-		self,
-		parent,
-		title,
-		size=(400, 400),
-		account: Account = None
-	):
+class EditAccountDialog(wx.Dialog):
+	def __init__(self, parent, title, size=(400, 400), account: Account = None):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.account = account
@@ -33,49 +32,37 @@ class EditAccountDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(
-			panel,
-			label=_("Name:"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("Name:"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.name = wx.TextCtrl(panel)
 		sizer.Add(self.name, 0, wx.EXPAND)
 
-		label = wx.StaticText(
-			panel,
-			label=_("Provider:"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("Provider:"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		choices = [provider.name for provider in providers]
 		self.provider = wx.ComboBox(
-			panel,
-			choices=choices,
-			style=wx.CB_READONLY
+			panel, choices=choices, style=wx.CB_READONLY
 		)
 		self.provider.Bind(wx.EVT_COMBOBOX, lambda e: self.update_ui())
 		sizer.Add(self.provider, 0, wx.EXPAND)
 
-		label = wx.StaticText(
-			panel,
-			label=_("API key:"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("API key:"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.api_key = wx.TextCtrl(panel)
 		self.api_key.Disable()
 		sizer.Add(self.api_key, 0, wx.EXPAND)
 
-		self.use_organization_key = wx.CheckBox(panel, label=_("Use organization key"))
-		self.use_organization_key.Bind(wx.EVT_CHECKBOX, lambda e: self.update_ui())
+		self.use_organization_key = wx.CheckBox(
+			panel, label=_("Use organization key")
+		)
+		self.use_organization_key.Bind(
+			wx.EVT_CHECKBOX, lambda e: self.update_ui()
+		)
 		self.use_organization_key.Disable()
 		sizer.Add(self.use_organization_key, 0, wx.EXPAND)
 
 		label = wx.StaticText(
-			panel,
-			label=_("Organization key"),
-			style=wx.ALIGN_LEFT
+			panel, label=_("Organization key"), style=wx.ALIGN_LEFT
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.organization_key = wx.TextCtrl(panel)
@@ -108,8 +95,12 @@ class EditAccountDialog(wx.Dialog):
 				self.api_key.SetValue(self.account.api_key)
 			if self.account.provider.organization_mode_available:
 				if self.account.organization_key:
-					self.organization_key.SetValue(self.account.organization_key)
-				self.use_organization_key.SetValue(self.account.use_organization_key)
+					self.organization_key.SetValue(
+						self.account.organization_key
+					)
+				self.use_organization_key.SetValue(
+					self.account.use_organization_key
+				)
 
 	def update_ui(self):
 		provider_index = self.provider.GetSelection()
@@ -122,9 +113,7 @@ class EditAccountDialog(wx.Dialog):
 			log.debug("Provider not found")
 			return
 		self.api_key.Enable(provider.require_api_key)
-		self.use_organization_key.Enable(
-			provider.organization_mode_available
-		)
+		self.use_organization_key.Enable(provider.organization_mode_available)
 		self.organization_key.Enable(
 			provider.organization_mode_available
 			and self.use_organization_key.GetValue()
@@ -159,7 +148,7 @@ class EditAccountDialog(wx.Dialog):
 			api_key=self.api_key.GetValue(),
 			organization_key=self.organization_key.GetValue(),
 			use_organization_key=self.use_organization_key.GetValue(),
-			source=AccountSource.CONFIG
+			source=AccountSource.CONFIG,
 		)
 		self.EndModal(wx.ID_OK)
 
@@ -168,7 +157,6 @@ class EditAccountDialog(wx.Dialog):
 
 
 class AccountDialog(wx.Dialog):
-
 	"""Manage account settings"""
 
 	def __init__(self, parent, title, size=(400, 400)):
@@ -185,16 +173,9 @@ class AccountDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(
-			panel,
-			label=_("Accounts"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("Accounts"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
-		self.account_list = wx.ListCtrl(
-			panel,
-			style=wx.LC_REPORT
-		)
+		self.account_list = wx.ListCtrl(panel, style=wx.LC_REPORT)
 		self.account_list.InsertColumn(0, _("Name"))
 		self.account_list.InsertColumn(1, _("Provider"))
 		self.account_list.InsertColumn(2, _("Use organization key"))
@@ -237,7 +218,7 @@ class AccountDialog(wx.Dialog):
 					account.name,
 					account.provider.name,
 					_("Yes") if account.use_organization_key else _("No"),
-					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown"))
+					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
 				)
 			)
 
@@ -257,14 +238,14 @@ class AccountDialog(wx.Dialog):
 					account.name,
 					account.provider.name,
 					_("Yes") if account.use_organization_key else _("No"),
-					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown"))
+					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
 				)
 			)
 		dialog.Destroy()
 		self.account_list.SetItemState(
 			self.account_list.GetItemCount() - 1,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 		)
 
 	def on_edit(self, event):
@@ -280,27 +261,21 @@ class AccountDialog(wx.Dialog):
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
 			self.accountManager[index] = account
+			self.account_list.SetStringItem(index, 0, account.name)
+			self.account_list.SetStringItem(index, 1, account.provider.name)
 			self.account_list.SetStringItem(
-				index, 0, account.name
-			)
-			self.account_list.SetStringItem(
-				index, 1, account.provider.name
-			)
-			self.account_list.SetStringItem(
-				index,
-				2,
-				_("Yes") if account.use_organization_key else _("No")
+				index, 2, _("Yes") if account.use_organization_key else _("No")
 			)
 			self.account_list.SetStringItem(
 				index,
 				3,
-				ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown"))
+				ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
 			)
 		dialog.Destroy()
 		self.account_list.SetItemState(
 			index,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 		)
 
 	def on_remove(self, event):
@@ -324,4 +299,3 @@ class AccountDialog(wx.Dialog):
 
 	def onCancel(self, event):
 		self.EndModal(wx.ID_CANCEL)
-

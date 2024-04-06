@@ -11,7 +11,6 @@ accountManager = None
 
 
 class AccountSource(Enum):
-
 	ENV_VAR = "env_var"
 	CONFIG = "config"
 	UNKNOWN = "unknown"
@@ -26,23 +25,22 @@ class Account:
 		self,
 		provider: Union[str, Provider],
 		source: AccountSource = AccountSource.UNKNOWN,
-		**kwargs
+		**kwargs,
 	):
 		name = kwargs.get("name")
 		if isinstance(provider, str):
 			provider = get_provider(provider)
 		if not isinstance(provider, Provider):
-			raise TypeError(f"Provider must be an instance of Provider. Got: {provider}")
+			raise TypeError(
+				f"Provider must be an instance of Provider. Got: {provider}"
+			)
 		api_key = kwargs.get("api_key")
 		if provider.require_api_key and not api_key:
 			raise ValueError(f"API key for {provider.name} is required")
 		use_organization_key = kwargs.get("use_organization_key", False)
 		organization_key = kwargs.get("organization_key")
 
-		if (
-			not provider.organization_mode_available
-			and organization_key
-		):
+		if not provider.organization_mode_available and organization_key:
 			raise ValueError(
 				f"Organization mode is not available for {provider.name}"
 			)
@@ -86,7 +84,10 @@ class Account:
 
 	@property
 	def use_organization_key(self) -> bool:
-		return self._provider.organization_mode_available and self._use_organization_key
+		return (
+			self._provider.organization_mode_available
+			and self._use_organization_key
+		)
 
 	@property
 	def organization_key(self) -> str:
@@ -106,7 +107,7 @@ class Account:
 			"provider": self._provider.name,
 			"api_key": self._api_key,
 			"organization_key": self._organization_key,
-			"source": self._source.value
+			"source": self._source.value,
 		}
 
 
@@ -123,7 +124,9 @@ class AccountManager:
 		if not isinstance(account, Account):
 			raise ValueError("Account must be an instance of Account")
 		self._accounts.append(account)
-		log.debug(f"Added account for {account.provider.name} ({account.name}, source: {account.source})")
+		log.debug(
+			f"Added account for {account.provider.name} ({account.name}, source: {account.source})"
+		)
 
 	def get(self, provider_name: str = None) -> List[Account]:
 		if provider_name:
@@ -152,10 +155,7 @@ class AccountManager:
 	def __setitem__(self, index, value):
 		self._accounts[index] = value
 
-	def dump(
-			self,
-			source: AccountSource = None
-	) -> dict:
+	def dump(self, source: AccountSource = None) -> dict:
 		accounts = []
 		for account in self._accounts:
 			accounts.append(account.dump())
@@ -173,8 +173,8 @@ class AccountManager:
 				name=account_data["name"],
 				api_key=account_data["api_key"],
 				organization_key=account_data["organization_key"],
-				#custom_models=account_data["custom_models"],
-				source=account_data.get("source", AccountSource.UNKNOWN)
+				# custom_models=account_data["custom_models"],
+				source=account_data.get("source", AccountSource.UNKNOWN),
 			)
 			self.add(account)
 
@@ -187,7 +187,7 @@ class AccountManager:
 ACCOUNT_SOURCE_LABELS = {
 	AccountSource.ENV_VAR: "Environment variable",
 	AccountSource.CONFIG: "Configuration file",
-	AccountSource.UNKNOWN: "Unknown"
+	AccountSource.UNKNOWN: "Unknown",
 }
 
 
@@ -211,7 +211,7 @@ def initialize_accountManager():
 			provider=provider,
 			api_key=api_key,
 			organization_key=organization_key,
-			source=AccountSource.ENV_VAR
+			source=AccountSource.ENV_VAR,
 		)
 		accountManager.add(account)
 
@@ -224,7 +224,6 @@ def initialize_accountManager():
 			api_key=account_data["api_key"],
 			organization_key=account_data["organization_key"],
 			use_organization_key=account_data["use_organization_key"],
-			source=AccountSource.CONFIG
+			source=AccountSource.CONFIG,
 		)
 		accountManager.add(account)
-

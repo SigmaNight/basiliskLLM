@@ -29,10 +29,10 @@ organization_mode_available = boolean(default=False)
 
 conf = None
 
-def save_accounts(
-	accounts
-):
+
+def save_accounts(accounts):
 	from account import AccountSource, AccountManager, Account
+
 	if not isinstance(accounts, AccountManager):
 		raise ValueError("Invalid accounts object")
 	conf["accounts"] = {}
@@ -46,7 +46,7 @@ def save_accounts(
 			"provider": account.provider.name,
 			"api_key": account.api_key,
 			"organization_key": account.organization_key,
-			"use_organization_key": account.use_organization_key
+			"use_organization_key": account.use_organization_key,
 		}
 	conf.write()
 

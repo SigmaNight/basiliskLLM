@@ -36,22 +36,14 @@ class ConfigDialog(wx.Dialog):
 		sizer.Add(label, 0, wx.ALL, 5)
 
 		self.log_level = wx.ComboBox(
-			panel,
-			choices=LOG_LEVELS,
-			style=wx.CB_READONLY
+			panel, choices=LOG_LEVELS, style=wx.CB_READONLY
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
 
-		label = wx.StaticText(
-			panel,
-			label=_("Language"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("Language"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.language = wx.ComboBox(
-			panel,
-			choices=list(LANGUAGES.values()),
-			style=wx.CB_READONLY
+			panel, choices=list(LANGUAGES.values()), style=wx.CB_READONLY
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
 

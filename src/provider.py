@@ -6,8 +6,8 @@ from logging import getLogger
 
 log = getLogger(__name__)
 
-class ProviderAPIType(Enum):
 
+class ProviderAPIType(Enum):
 	OPENAI = "openai"
 	ANTHROPIC = "anthropic"
 	OLLAMA = "ollama"
