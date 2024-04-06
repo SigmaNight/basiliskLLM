@@ -1,13 +1,10 @@
-import os
 import re
-from typing import List
-from config import conf
 from logging import getLogger
 
 log = getLogger(__name__)
 
-class Provider:
 
+class Provider:
 	"""
 	Manage API key
 	"""
@@ -44,6 +41,7 @@ class Provider:
 		self.env_var_name_api_key = env_var_name_api_key
 		self.env_var_name_organization_key = env_var_name_organization_key
 
+
 providers = [
 	Provider(
 		name="OpenAI",
@@ -51,22 +49,22 @@ providers = [
 		organization_mode_available=True,
 		require_api_key=True,
 		env_var_name_api_key="OPENAI_API_KEY",
-		env_var_name_organization_key="OPENAI_ORG_KEY"
+		env_var_name_organization_key="OPENAI_ORG_KEY",
 	),
 	Provider(
 		name="MistralAI",
 		base_url="https://api.mistral.ai/v1",
 		organization_mode_available=False,
 		require_api_key=True,
-		env_var_name_api_key="MISTRAL_API_KEY"
+		env_var_name_api_key="MISTRAL_API_KEY",
 	),
 	Provider(
 		name="OpenRouter",
 		base_url="https://openrouter.ai/api/v1",
 		organization_mode_available=False,
 		require_api_key=True,
-		env_var_name_api_key="OPENROUTER_API_KEY"
-	)
+		env_var_name_api_key="OPENROUTER_API_KEY",
+	),
 ]
 
 

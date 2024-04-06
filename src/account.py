@@ -6,19 +6,16 @@ from provider import providers, Provider
 
 log = getLogger(__name__)
 accountManager = None
-class Account:
 
+
+class Account:
 	"""
 	Manage API key and organization key
 	"""
 
 	index = -1
 
-	def __init__(
-		self,
-		provider: Provider,
-		**kwargs
-	):
+	def __init__(self, provider: Provider, **kwargs):
 		self._provider = provider
 		self._api_key = kwargs.get("api_key")
 		self._organization_key = kwargs.get("organization_key")
@@ -75,7 +72,6 @@ class Account:
 
 
 class AccountManager:
-
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
@@ -92,7 +88,11 @@ class AccountManager:
 
 	def get(self, provider_name: str = None) -> List[Account]:
 		if provider_name:
-			return [account for account in self._accounts if account._provider.name == provider_name]
+			return [
+				account
+				for account in self._accounts
+				if account._provider.name == provider_name
+			]
 		return self._accounts
 
 	def remove(self, account: Account):
@@ -113,7 +113,12 @@ def initialize_accountManager():
 		if not api_key:
 			continue
 		organization_key = None
-		if provider.organization_mode_available and provider.env_var_name_organization_key:
+		if (
+			provider.organization_mode_available
+			and provider.env_var_name_organization_key
+		):
 			organization_key = os.getenv(provider.env_var_name_organization_key)
-		account = Account(provider, api_key=api_key, organization_key=organization_key)
+		account = Account(
+			provider, api_key=api_key, organization_key=organization_key
+		)
 		accountManager.add(account)
