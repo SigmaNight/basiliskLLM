@@ -32,7 +32,8 @@ These shortcuts work only when the BasiliskLLM window is focused.
 ## 🛠 Setting Up Your Dev Palace 🏰
 
 Requirements: Python 3.12.2 (because only the best for us, obviously)
-The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/##installing-with-pipx).
+
+The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/#installing-with-pipx).
 For short reference:
 ```shell
 pip3.12 install pipx
