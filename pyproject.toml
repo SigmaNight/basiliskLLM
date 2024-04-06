@@ -5,6 +5,9 @@ description = "Where LLMs Unite"
 authors = ["André-Abush Clause <dev@andreabc.net>"]
 license = "GPL-2.0"
 readme = "README.md"
+package-mode = false
+homepage = "https://github.com/aaclause/basiliskLLM"
+repository = "https://github.com/aaclause/basiliskLLM"
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -12,7 +15,7 @@ anthropic = "^0.21.3"
 configobj = "^5.0.8"
 cx-freeze = "^7.0.0rc0"
 openai = "^1.16.1"
-pywin32 = "^306"
+pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.1"
 
 [tool.poetry.group.dev.dependencies]
