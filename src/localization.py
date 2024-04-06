@@ -13,6 +13,7 @@ else:
 
 _ = trans.gettext
 
+
 def setup_locale(language=DEFAULT_LANG):
 	"""
 	Setup the locale for the application
