@@ -33,40 +33,26 @@ These shortcuts work only when the BasiliskLLM window is focused.
 
 Requirements: Python 3.12.2 (because only the best for us, obviously)
 
-In the root of what may soon become your favorite project, whip up a virtual environment:
-
-Windows:
-```
-py -3.12 -m venv .venv
-```
-
-Linux/Mac:
-```
-python3.12 -m venv .venv
+The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/#installing-with-pipx).
+For short reference:
+```shell
+pip3.12 install pipx
+pipx ensurepath
+pipx install poetry
 ```
 
-Activate it (because magic needs a little nudge):
-
-Windows:
-```
-.venv\Scripts\activate
+In the root of what may soon become your favorite project, install dependencies with poetry. It will create a special virtual environment for the project.
+```shell
+poetry install
 ```
 
-Linux/Mac:
-```
-source .venv/bin/activate
-```
-
-Got dependencies? Of course, we do. Install them like the pro you pretend to be:
-
-```
-python -m pip install pip --upgrade
-pip install -r requirements.txt
+Activate the virtual environment (because magic needs a little nudge):
+```shell
+poetry shell
 ```
 
 Ready to watch the code baby crawl, maybe even walk? Fire up the project:
-
-```
+```shell
 cd src
 python main.pyw
 ```
