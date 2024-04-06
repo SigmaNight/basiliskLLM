@@ -15,7 +15,7 @@ repos:
       - id: check-added-large-files
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: '^.+\.md$'
+        exclude: '^(.+\.md|LICENSE)$'
       - id: mixed-line-ending
         args:
           - "--fix=lf"
