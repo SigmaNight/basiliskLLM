@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "basiliskllm"
+version = "0.1.0"
+description = "Where LLMs Unite"
+authors = ["André-Abush Clause <dev@andreabc.net>"]
+license = "GPL-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+anthropic = "^0.21.3"
+configobj = "^5.0.8"
+cx-freeze = "^7.0.0rc0"
+openai = "^1.16.1"
+pywin32 = "^306"
+wxpython = "^4.2.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
