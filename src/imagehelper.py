@@ -10,7 +10,13 @@ def get_image_dimensions(path):
 	return img.size
 
 
-def resize_image(src: str, max_width: int = 0, max_height: int = 0, quality: int = 85, target: str = "Compressed.PNG"):
+def resize_image(
+	src: str,
+	max_width: int = 0,
+	max_height: int = 0,
+	quality: int = 85,
+	target: str = "Compressed.PNG",
+):
 	"""
 	Compress an image and save it to a specified file by resizing according to
 	given maximum dimensions and adjusting the quality.
@@ -54,5 +60,7 @@ def describeFromImageFileList(client, messages: list, max_tokens: int = 700):
 	"""
 	if not messages:
 		return None
-	response = client.chat.completions.create(model="gpt-4-vision-preview", messages=messages, max_tokens=max_tokens)
+	response = client.chat.completions.create(
+		model="gpt-4-vision-preview", messages=messages, max_tokens=max_tokens
+	)
 	return response.choices[0]

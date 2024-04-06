@@ -24,7 +24,7 @@ ruff = "^0.3.4"
 [tool.ruff]
 src = ["src"]
 respect-gitignore = true
-line-length = 120
+line-length = 80
 unsafe-fixes = false
 target-version = "py312"
 

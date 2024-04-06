@@ -5,7 +5,16 @@ from src.consts import APP_NAME, APP_VERSION
 sys.path.append("src")
 
 build_exe_options = {
-	"packages": ["os", "sys", "wx", "wx.adv", "winsound", "win32con", "openai", "anthropic"],
+	"packages": [
+		"os",
+		"sys",
+		"wx",
+		"wx.adv",
+		"winsound",
+		"win32con",
+		"openai",
+		"anthropic",
+	],
 	"excludes": ["tkinter"],
 	"include_files": ["src/res"],
 }
@@ -21,7 +30,11 @@ setup(
 	options={"build_exe": build_exe_options},
 	executables=[
 		Executable(
-			"src/main.pyw", base=base, target_name="basiliskLLM.exe" if sys.platform == "win32" else "basiliskLLM"
+			"src/main.pyw",
+			base=base,
+			target_name="basiliskLLM.exe"
+			if sys.platform == "win32"
+			else "basiliskLLM",
 		)
 	],
 )

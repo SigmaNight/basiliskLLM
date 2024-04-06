@@ -21,7 +21,11 @@ class Provider:
 	):
 		if not isinstance(name, str) or not name:
 			raise ValueError("Provider name is required")
-		if not isinstance(base_url, str) or not base_url or not re.match(r"^https?://", base_url):
+		if (
+			not isinstance(base_url, str)
+			or not base_url
+			or not re.match(r"^https?://", base_url)
+		):
 			raise ValueError("Base URL is required and must be a valid URL")
 		if not isinstance(organization_mode_available, bool):
 			raise ValueError("organization_mode_available must be a boolean")

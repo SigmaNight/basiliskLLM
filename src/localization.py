@@ -7,7 +7,9 @@ find_locale = gettext.find(DEFAULT_LANG, LOCALE_DIR)
 current_locale = find_locale if find_locale else None
 _ = gettext.gettext
 if current_locale:
-	trans = gettext.translation(DEFAULT_LANG, LOCALE_DIR, [current_locale], fallback=True)
+	trans = gettext.translation(
+		DEFAULT_LANG, LOCALE_DIR, [current_locale], fallback=True
+	)
 else:
 	trans = gettext.NullTranslations()
 
@@ -22,7 +24,9 @@ def setup_locale(language=DEFAULT_LANG):
 	global _
 	current_locale, _ = gettext.find(language, LOCALE_DIR)
 	if current_locale:
-		trans = gettext.translation(language, LOCALE_DIR, [current_locale], fallback=True)
+		trans = gettext.translation(
+			language, LOCALE_DIR, [current_locale], fallback=True
+		)
 	else:
 		trans = gettext.NullTranslations()
 	_ = trans.gettext

@@ -27,8 +27,13 @@ class Account:
 	def _validate(self):
 		if self._provider.require_api_key and not self._api_key:
 			raise ValueError(f"API key for {self._provider.name} is required")
-		if not self._provider.organization_mode_available and self._organization_key:
-			raise ValueError(f"Organization mode is not available for {self._provider.name}")
+		if (
+			not self._provider.organization_mode_available
+			and self._organization_key
+		):
+			raise ValueError(
+				f"Organization mode is not available for {self._provider.name}"
+			)
 
 	@property
 	def api_key(self) -> str:
@@ -83,7 +88,11 @@ class AccountManager:
 
 	def get(self, provider_name: str = None) -> List[Account]:
 		if provider_name:
-			return [account for account in self._accounts if account._provider.name == provider_name]
+			return [
+				account
+				for account in self._accounts
+				if account._provider.name == provider_name
+			]
 		return self._accounts
 
 	def remove(self, account: Account):
@@ -104,7 +113,12 @@ def initialize_accountManager():
 		if not api_key:
 			continue
 		organization_key = None
-		if provider.organization_mode_available and provider.env_var_name_organization_key:
+		if (
+			provider.organization_mode_available
+			and provider.env_var_name_organization_key
+		):
 			organization_key = os.getenv(provider.env_var_name_organization_key)
-		account = Account(provider, api_key=api_key, organization_key=organization_key)
+		account = Account(
+			provider, api_key=api_key, organization_key=organization_key
+		)
 		accountManager.add(account)
