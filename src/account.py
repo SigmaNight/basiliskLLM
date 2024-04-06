@@ -6,19 +6,16 @@ from provider import providers, Provider
 
 log = getLogger(__name__)
 accountManager = None
-class Account:
 
+
+class Account:
 	"""
 	Manage API key and organization key
 	"""
 
 	index = -1
 
-	def __init__(
-		self,
-		provider: Provider,
-		**kwargs
-	):
+	def __init__(self, provider: Provider, **kwargs):
 		self._provider = provider
 		self._api_key = kwargs.get("api_key")
 		self._organization_key = kwargs.get("organization_key")
@@ -30,13 +27,8 @@ class Account:
 	def _validate(self):
 		if self._provider.require_api_key and not self._api_key:
 			raise ValueError(f"API key for {self._provider.name} is required")
-		if (
-			not self._provider.organization_mode_available
-			and self._organization_key
-		):
-			raise ValueError(
-				f"Organization mode is not available for {self._provider.name}"
-			)
+		if not self._provider.organization_mode_available and self._organization_key:
+			raise ValueError(f"Organization mode is not available for {self._provider.name}")
 
 	@property
 	def api_key(self) -> str:
@@ -75,7 +67,6 @@ class Account:
 
 
 class AccountManager:
-
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts

@@ -28,6 +28,7 @@ org_api_key = string()
 
 conf = None
 
+
 def initialize_config():
 	global conf
 	config_spec = configobj.ConfigObj(CFG_SPEC.split('\n'), list_values=False, _inspec=True)
