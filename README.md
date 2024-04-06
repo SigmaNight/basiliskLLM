@@ -57,11 +57,12 @@ Linux/Mac:
 source .venv/bin/activate
 ```
 
-Got dependencies? Of course, we do. Install them like the pro you pretend to be:
+Got dependencies? Of course, we do. Install them like the pro you always were:
 
 ```
 python -m pip install pip --upgrade
-pip install -r requirements.txt
+pip install poetry
+poetry install
 ```
 
 Ready to watch the code baby crawl, maybe even walk? Fire up the project:
