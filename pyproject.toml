@@ -6,6 +6,8 @@ authors = ["André-Abush Clause <dev@andreabc.net>"]
 license = "GPL-2.0"
 readme = "README.md"
 package-mode = false
+homepage = "https://github.com/aaclause/basiliskLLM"
+repository = "https://github.com/aaclause/basiliskLLM"
 
 [tool.poetry.dependencies]
 python = "^3.12"
