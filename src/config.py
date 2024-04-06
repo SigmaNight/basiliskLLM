@@ -29,13 +29,19 @@ organization_mode_available = boolean(default=False)
 
 conf = None
 
-def save_accounts(accounts):
-	from account import AccountSource
+def save_accounts(
+	accounts
+):
+	from account import AccountSource, AccountManager, Account
+	if not isinstance(accounts, AccountManager):
+		raise ValueError("Invalid accounts object")
 	conf["accounts"] = {}
+	i = 0
 	for account in accounts:
 		if account.source == AccountSource.ENV_VAR:
 			continue
-		conf["accounts"][account.id] = {
+		i += 1
+		conf["accounts"][f"account_{i}"] = {
 			"name": account.name,
 			"provider": account.provider.name,
 			"api_key": account.api_key,

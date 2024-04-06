@@ -3,6 +3,7 @@ from config import conf
 from localization import _
 from logging import getLogger
 from account import Account, accountManager, AccountSource, ACCOUNT_SOURCE_LABELS
+from config import save_accounts
 from provider import providers, Provider, get_provider
 
 log = getLogger(__name__)
@@ -318,6 +319,7 @@ class AccountDialog(wx.Dialog):
 		accountManager.clear()
 		for account in self.accountManager:
 			accountManager.add(account)
+			save_accounts(accountManager)
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):

@@ -23,6 +23,7 @@ class ConfigDialog(wx.Dialog):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.initUI()
+		self.initData()
 		self.Centre()
 		self.Show()
 
@@ -37,18 +38,14 @@ class ConfigDialog(wx.Dialog):
 			style=wx.ALIGN_LEFT
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level = conf["general"]["log_level"]
-		value = log_level if log_level in LOG_LEVELS else LOG_LEVELS[0]
+
 		self.log_level = wx.ComboBox(
 			panel,
 			choices=LOG_LEVELS,
-			value=value,
 			style=wx.CB_READONLY
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
 
-		cur_lang = conf["general"]["language"]
-		value = LANGUAGES.get(cur_lang, LANGUAGES["auto"])
 		label = wx.StaticText(
 			panel,
 			label=_("Language"),
@@ -58,7 +55,6 @@ class ConfigDialog(wx.Dialog):
 		self.language = wx.ComboBox(
 			panel,
 			choices=list(LANGUAGES.values()),
-			value=value,
 			style=wx.CB_READONLY
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
@@ -80,6 +76,12 @@ class ConfigDialog(wx.Dialog):
 
 		panel.Layout()
 		self.Layout()
+
+	def initData(self):
+		self.log_level.SetValue(conf["general"]["log_level"])
+		cur_lang = conf["general"]["language"]
+		value = LANGUAGES.get(cur_lang, LANGUAGES["auto"])
+		self.language.SetValue(value)
 
 	def onManageAccounts(self, event):
 		dlg = AccountDialog(self, _("Manage accounts"))

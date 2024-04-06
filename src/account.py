@@ -206,3 +206,17 @@ def initialize_accountManager():
 			source=AccountSource.ENV_VAR
 		)
 		accountManager.add(account)
+
+	accounts = conf["accounts"]
+	for account_data in accounts.values():
+		provider = get_provider(account_data["provider"])
+		account = Account(
+			provider=provider,
+			name=account_data["name"],
+			api_key=account_data["api_key"],
+			organization_key=account_data["organization_key"],
+			use_organization_key=account_data["use_organization_key"],
+			source=AccountSource.CONFIG
+		)
+		accountManager.add(account)
+
