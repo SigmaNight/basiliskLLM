@@ -9,14 +9,15 @@ log = getLogger(__name__)
 
 accountManager = None
 
+
 class AccountSource(Enum):
 
 	ENV_VAR = "env_var"
 	CONFIG = "config"
 	UNKNOWN = "unknown"
 
-class Account:
 
+class Account:
 	"""
 	Manage API key and organization key
 	"""
@@ -37,6 +38,7 @@ class Account:
 			raise ValueError(f"API key for {provider.name} is required")
 		use_organization_key = kwargs.get("use_organization_key", False)
 		organization_key = kwargs.get("organization_key")
+
 		if (
 			not provider.organization_mode_available
 			and organization_key
@@ -109,7 +111,6 @@ class Account:
 
 
 class AccountManager:
-
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
@@ -126,7 +127,11 @@ class AccountManager:
 
 	def get(self, provider_name: str = None) -> List[Account]:
 		if provider_name:
-			return [account for account in self._accounts if account._provider.name == provider_name]
+			return [
+				account
+				for account in self._accounts
+				if account._provider.name == provider_name
+			]
 		return self._accounts
 
 	def remove(self, account: Account):
@@ -197,7 +202,10 @@ def initialize_accountManager():
 		if not api_key:
 			continue
 		organization_key = None
-		if provider.organization_mode_available and provider.env_var_name_organization_key:
+		if (
+			provider.organization_mode_available
+			and provider.env_var_name_organization_key
+		):
 			organization_key = os.getenv(provider.env_var_name_organization_key)
 		account = Account(
 			provider=provider,

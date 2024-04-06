@@ -50,9 +50,12 @@ def save_accounts(
 		}
 	conf.write()
 
+
 def initialize_config():
 	global conf
-	config_spec = configobj.ConfigObj(CFG_SPEC.split('\n'), list_values=False, _inspec=True)
+	config_spec = configobj.ConfigObj(
+		CFG_SPEC.split('\n'), list_values=False, _inspec=True
+	)
 	conf = configobj.ConfigObj(CFG_PATH, configspec=config_spec)
 
 	validator = configobj.validate.Validator()

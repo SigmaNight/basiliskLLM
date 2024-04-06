@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "basiliskllm"
+version = "0.1.0"
+description = "Where LLMs Unite"
+authors = ["André-Abush Clause <dev@andreabc.net>"]
+license = "GPL-2.0"
+readme = "README.md"
+package-mode = false
+homepage = "https://github.com/aaclause/basiliskLLM"
+repository = "https://github.com/aaclause/basiliskLLM"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+anthropic = "^0.21.3"
+configobj = "^5.0.8"
+cx-freeze = "^7.0.0rc0"
+openai = "^1.16.1"
+pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
+wxpython = "^4.2.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.3.4"
+
+[tool.ruff]
+src = ["src"]
+respect-gitignore = true
+line-length = 80
+unsafe-fixes = false
+target-version = "py312"
+
+[tool.ruff.format]
+indent-style = "tab"
+line-ending = "lf"
+quote-style = "preserve"
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint]
+ignore-init-module-imports = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

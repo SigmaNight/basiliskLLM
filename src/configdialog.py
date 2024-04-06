@@ -17,8 +17,8 @@ LANGUAGES = {
 	"tr": _("Turkish"),
 }
 
-class ConfigDialog(wx.Dialog):
 
+class ConfigDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
@@ -32,11 +32,7 @@ class ConfigDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(
-			panel,
-			label=_("Log level"),
-			style=wx.ALIGN_LEFT
-		)
+		label = wx.StaticText(panel, label=_("Log level"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 
 		self.log_level = wx.ComboBox(
@@ -102,6 +98,7 @@ class ConfigDialog(wx.Dialog):
 
 	def onCancel(self, event):
 		self.EndModal(wx.ID_CANCEL)
+
 
 if __name__ == "__main__":
 	app = wx.App()
