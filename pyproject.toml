@@ -17,6 +17,7 @@ cx-freeze = "^7.0.0rc0"
 openai = "^1.16.1"
 pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.1"
+pydantic-settings = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.4"
