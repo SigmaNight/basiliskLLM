@@ -1,7 +1,8 @@
 import os
 import sys
 import winsound
-import win32con
+if sys.platform == 'win32':
+	import win32con
 import wx
 import wx.adv
 import config
@@ -44,6 +45,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 	def __init__(self, frame):
 		super(TaskBarIcon, self).__init__()
 		self.frame = frame
+		# TODO: Set a proper icon
 		transparent_icon = wx.Icon()
 		transparent_icon.CopyFromBitmap(wx.Bitmap(16, 16))
 		self.SetIcon(
@@ -55,28 +57,19 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 		self.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN, self.OnRightDown)
 
 	def OnLeftDown(self, event):
-		self.frame.onHotKey(None)
+		self.frame.Show()
 
 	def OnRightDown(self, event):
 		menu = wx.Menu()
-		quit_menu = menu.Append(wx.ID_EXIT, _("Quit"))
-		self.Bind(wx.EVT_MENU, self.OnQuit, quit_menu)
-		menu.AppendSeparator()
+		label = _("Show") if not self.frame.IsShown() else _("Hide")
+		show_menu = menu.Append(wx.ID_ANY, label)
+		self.Bind(wx.EVT_MENU, self.frame.toggleVisibility, show_menu)
 		about_menu = menu.Append(wx.ID_ABOUT, _("About"))
-		self.Bind(wx.EVT_MENU, self.OnAbout, about_menu)
+		self.Bind(wx.EVT_MENU, self.frame.OnAbout, about_menu)
+		quit_menu = menu.Append(wx.ID_EXIT, _("Quit"))
+		self.Bind(wx.EVT_MENU, self.frame.OnQuit, quit_menu)
 		self.PopupMenu(menu)
 		menu.Destroy()
-
-	def OnQuit(self, event):
-		self.frame.Close()
-
-	def OnAbout(self, event):
-		wx.MessageBox(
-			f"{APP_NAME} v{APP_VERSION}\n\n"
-			"Developed by: {APP_AUTHORS}\n",
-			_("About"),
-			wx.OK | wx.ICON_INFORMATION
-		)
 
 
 class MainFrame(wx.Frame):
@@ -87,11 +80,12 @@ class MainFrame(wx.Frame):
 		self.ID_NEW_CONVERSATION = wx.NewIdRef()
 		self.ID_CLOSE_CONVERSATION = wx.NewIdRef()
 		self.InitAccelerators()
-		self.tray_icon = TaskBarIcon(self)
-		self.Bind(wx.EVT_ICONIZE, self.onMinimize)
 		self.Bind(wx.EVT_CLOSE, self.onClose)
-		self.registerHotKey()
-		self.Bind(wx.EVT_HOTKEY, self.toggleVisibility)
+		if sys.platform == "win32":
+			self.tray_icon = TaskBarIcon(self)
+			self.Bind(wx.EVT_ICONIZE, self.onMinimize)
+			self.registerHotKey()
+			self.Bind(wx.EVT_HOTKEY, self.toggleVisibility)
 
 	def registerHotKey(self):
 		self.RegisterHotKey(
@@ -289,18 +283,23 @@ class MainFrame(wx.Frame):
 		wx.LaunchDefaultBrowser(
 			APP_SOURCE_URL
 		)
+
 	def OnRokoBasilisk(self, event):
 		wx.LaunchDefaultBrowser("https://en.wikipedia.org/wiki/Roko%27s_basilisk")
 
 	def OnAbout(self, event):
 		wx.MessageBox(
 			f"{APP_NAME} v{APP_VERSION}\n\n"
-			"Developed by: Basilic\n",
+			f"Developed by: {APP_AUTHORS}\n\n"
+			f"Source code: {APP_SOURCE_URL}\n\n"
+			f"Licensed under the GNU GPL v2",
 			_("About"),
 			wx.OK | wx.ICON_INFORMATION
 		)
 
 	def OnQuit(self, event):
+		if sys.platform == "win32":
+			self.tray_icon.RemoveIcon()
 		self.Close()
 
 if __name__ == '__main__':
