@@ -10,14 +10,15 @@ build_exe_options = {
 		"sys",
 		"wx",
 		"wx.adv",
-		"winsound",
-		"win32con",
 		"openai",
 		"anthropic",
+		"configobj",
 	],
 	"excludes": ["tkinter"],
 	"include_files": ["src/res"],
 }
+if sys.platform == "win32":
+	build_exe_options["packages"].extend(["winsound", "win32con"])
 
 base = None
 if sys.platform == "win32":
