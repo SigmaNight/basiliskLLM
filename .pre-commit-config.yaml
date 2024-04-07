@@ -28,6 +28,8 @@ repos:
       - id: poetry-check
       - id: poetry-lock
       - id: poetry-install
+        files: "^(pyproject.toml|poetry.lock)$"
+        always_run: false
         stages:
           - "post-checkout"
           - "post-merge"
