@@ -14,7 +14,6 @@ env/
 *.swp
 *~
 *.json
-*.ini
 *.log
 .DS_Store
 Thumbs.db
@@ -24,3 +23,4 @@ Thumbs.db
 tests/
 *.tmp
 *.temp
+basilisk_config.yml
