@@ -1,3 +1,13 @@
+ci:
+    autofix_commit_msg: |
+        style(pre-commit.ci): auto fixes from pre-commit hooks
+
+        for more information, see https://pre-commit.ci
+    autoupdate_branch: ''
+    autoupdate_commit_msg: 'ci(deps): pre-commit autoupdate'
+    autoupdate_schedule: weekly
+    skip: [ruff]
+
 default_language_version:
   python: python3.12
 default_stages:
