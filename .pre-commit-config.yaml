@@ -1,0 +1,66 @@
+ci:
+    autofix_commit_msg: |
+        style(pre-commit.ci): auto fixes from pre-commit hooks
+
+        for more information, see https://pre-commit.ci
+    autoupdate_branch: ''
+    autoupdate_commit_msg: 'ci(deps): pre-commit autoupdate'
+    autoupdate_schedule: weekly
+    skip:
+      - "ruff"
+      - "poetry-lock"
+      - "poetry-install"
+default_language_version:
+  python: python3.12
+default_stages:
+  - "pre-commit"
+default_install_hook_types:
+  - "pre-commit"
+  - "commit-msg"
+  - "post-checkout"
+  - "post-merge"
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: '^(.+\.md|LICENSE)$'
+      - id: mixed-line-ending
+        args:
+          - "--fix=lf"
+      - id: check-toml
+      - id: check-yaml
+      - id: check-ast
+-   repo: https://github.com/python-poetry/poetry
+    rev: "1.8.2"
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+        files: "^(pyproject.toml|poetry.lock)$"
+        always_run: false
+      - id: poetry-install
+        files: "^(pyproject.toml|poetry.lock)$"
+        always_run: false
+        stages:
+          - "post-checkout"
+          - "post-merge"
+-   repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.21.3
+    hooks:
+      - id: commitizen
+        stages:
+          - "commit-msg"
+-   repo: https://github.com/executablebooks/mdformat
+    rev: "0.7.17"
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - "mdformat-gfm"
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.3.5"
+    hooks:
+      - id: ruff-format
+      - id: ruff

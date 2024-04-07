@@ -6,15 +6,19 @@ sys.path.append("src")
 
 build_exe_options = {
 	"packages": [
-		"os", "sys",
-		"wx", "wx.adv", "winsound", "win32con",
-		"openai", "anthropic"
+		"os",
+		"sys",
+		"wx",
+		"wx.adv",
+		"openai",
+		"anthropic",
+		"configobj",
 	],
 	"excludes": ["tkinter"],
-	"include_files": [
-		"src/res"
-	]
+	"include_files": ["src/res"],
 }
+if sys.platform == "win32":
+	build_exe_options["packages"].extend(["winsound", "win32con"])
 
 base = None
 if sys.platform == "win32":
@@ -29,7 +33,9 @@ setup(
 		Executable(
 			"src/main.pyw",
 			base=base,
-			target_name="basiliskLLM.exe" if sys.platform == "win32" else "basiliskLLM",
+			target_name="basiliskLLM.exe"
+			if sys.platform == "win32"
+			else "basiliskLLM",
 		)
-	]
+	],
 )

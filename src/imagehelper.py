@@ -1,10 +1,6 @@
 import base64
-import os
-import sys
-from logHandler import log
-from openai import OpenAI
 from PIL import Image
-import fractions
+
 
 def get_image_dimensions(path):
 	"""
@@ -19,7 +15,7 @@ def resize_image(
 	max_width: int = 0,
 	max_height: int = 0,
 	quality: int = 85,
-	target: str = "Compressed.PNG"
+	target: str = "Compressed.PNG",
 ):
 	"""
 	Compress an image and save it to a specified file by resizing according to
@@ -54,11 +50,7 @@ def encode_image(image_path):
 		return base64.b64encode(image_file.read()).decode('utf-8')
 
 
-def describeFromImageFileList(
-	client,
-	messages: list,
-	max_tokens: int = 700,
-):
+def describeFromImageFileList(client, messages: list, max_tokens: int = 700):
 	"""
 	Describe a list of images from a list of file paths.
 	@param client: OpenAI client
@@ -69,8 +61,6 @@ def describeFromImageFileList(
 	if not messages:
 		return None
 	response = client.chat.completions.create(
-		model="gpt-4-vision-preview",
-		messages=messages,
-		max_tokens=max_tokens
+		model="gpt-4-vision-preview", messages=messages, max_tokens=max_tokens
 	)
 	return response.choices[0]
