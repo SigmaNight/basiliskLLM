@@ -3,7 +3,7 @@ from config import conf
 
 logging.basicConfig(
 	filename="basiliskLLM.log",
-	level=conf["general"]["log_level"],
+	level=conf.general.log_level.name,
 	filemode='w',
 	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )

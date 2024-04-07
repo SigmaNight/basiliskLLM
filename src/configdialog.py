@@ -1,11 +1,11 @@
 import wx
-from config import conf
+from config import conf, LogLevelEnum
 from localization import _
 from logging import getLogger
 
 log = getLogger(__name__)
 
-LOG_LEVELS = ["INFO", "WARNING", "ERROR", "CRITICAL", "DEBUG"]
+
 LANGUAGES = {
 	"auto": _("Auto"),
 	"en": _("English"),
@@ -32,14 +32,17 @@ class ConfigDialog(wx.Dialog):
 
 		label = wx.StaticText(panel, label=_("Log level"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level = conf["general"]["log_level"]
-		value = log_level if log_level in LOG_LEVELS else LOG_LEVELS[0]
+		log_level_value = conf.general.log_level.value
+		log_level_choices = [e.value for e in LogLevelEnum]
 		self.log_level = wx.ComboBox(
-			panel, choices=LOG_LEVELS, value=value, style=wx.CB_READONLY
+			panel,
+			choices=log_level_choices,
+			value=log_level_value,
+			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
 
-		cur_lang = conf["general"]["language"]
+		cur_lang = conf.general.language
 		value = LANGUAGES.get(cur_lang, LANGUAGES["auto"])
 		label = wx.StaticText(panel, label=_("Language"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
@@ -68,14 +71,14 @@ class ConfigDialog(wx.Dialog):
 
 	def onOK(self, event):
 		log.debug("Saving configuration")
-		conf["general"]["log_level"] = self.log_level.GetValue()
+		conf.general.log_level = LogLevelEnum(self.log_level.GetValue())
 		language = self.language.GetValue()
 		for key, value in LANGUAGES.items():
 			if language == value:
-				conf["general"]["language"] = key
+				conf.general.language = key
 				break
 		log.debug("New configuration: %s", conf)
-		conf.write()
+		conf.save()
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):
