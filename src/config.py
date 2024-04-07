@@ -1,5 +1,4 @@
 import yaml
-from logging import getLevelNamesMapping
 from pathlib import Path
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict, AliasGenerator
@@ -11,9 +10,16 @@ from pydantic_settings import (
 	YamlConfigSettingsSource,
 )
 
-LogLevelEnum = Enum(
-	"LogLevelEnum", {k: k.lower() for k in getLevelNamesMapping()}
-)
+
+class LogLevelEnum(Enum):
+	NOTSET = "off"
+	DEBUG = "debug"
+	INFO = "info"
+	WARNING = "warning"
+	ERROR = "error"
+	CRITICAL = "critical"
+
+
 search_config_paths = [Path(__file__).parent / Path("basilisk_confif.yml")]
 
 
