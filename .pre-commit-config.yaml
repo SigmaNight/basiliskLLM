@@ -6,8 +6,10 @@ ci:
     autoupdate_branch: ''
     autoupdate_commit_msg: 'ci(deps): pre-commit autoupdate'
     autoupdate_schedule: weekly
-    skip: [ruff]
-
+    skip:
+      - "ruff"
+      - "poetry-lock"
+      - "poetry-install"
 default_language_version:
   python: python3.12
 default_stages:
@@ -37,6 +39,8 @@ repos:
     hooks:
       - id: poetry-check
       - id: poetry-lock
+        files: "^(pyproject.toml|poetry.lock)$"
+        always_run: false
       - id: poetry-install
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
