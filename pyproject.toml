@@ -20,6 +20,8 @@ wxpython = "^4.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.4"
+pre-commit = "^3.7.0"
+commitizen = "^3.21.3"
 
 [tool.ruff]
 src = ["src"]
@@ -36,6 +38,12 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 ignore-init-module-imports = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "poetry"
 
 [build-system]
 requires = ["poetry-core"]
