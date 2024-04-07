@@ -1,15 +1,9 @@
 import wx
-from config import conf
 from localization import _
 from logging import getLogger
-from account import (
-	Account,
-	accountManager,
-	AccountSource,
-	ACCOUNT_SOURCE_LABELS,
-)
-from config import save_accounts
-from provider import providers, Provider, get_provider
+from account import Account, AccountSource, ACCOUNT_SOURCE_LABELS
+from config import conf
+from provider import providers, get_providers
 
 log = getLogger(__name__)
 
@@ -19,7 +13,7 @@ class EditAccountDialog(wx.Dialog):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.account = account
-		self.initUI()
+		self.init_ui()
 		if account:
 			self.init_data()
 			self.update_ui()
@@ -27,7 +21,7 @@ class EditAccountDialog(wx.Dialog):
 		self.Show()
 		self.name.SetFocus()
 
-	def initUI(self):
+	def init_ui(self):
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -92,11 +86,11 @@ class EditAccountDialog(wx.Dialog):
 					break
 			self.provider.SetSelection(index)
 			if self.account.api_key:
-				self.api_key.SetValue(self.account.api_key)
+				self.api_key.SetValue(self.account.api_key.get_secret_value())
 			if self.account.provider.organization_mode_available:
 				if self.account.organization_key:
 					self.organization_key.SetValue(
-						self.account.organization_key
+						self.account.organization_key.get_secret_value()
 					)
 				self.use_organization_key.SetValue(
 					self.account.use_organization_key
@@ -108,10 +102,11 @@ class EditAccountDialog(wx.Dialog):
 			log.debug("No provider selected")
 			return
 		provider_name = self.provider.GetValue()
-		provider = get_provider(provider_name)
-		if not provider:
-			log.debug("Provider not found")
+		provider = list(get_providers(name=provider_name))
+		if len(provider) != 1:
+			log.debug("zero or multiple Provider found")
 			return
+		provider = provider[0]
 		self.api_key.Enable(provider.require_api_key)
 		self.use_organization_key.Enable(provider.organization_mode_available)
 		self.organization_key.Enable(
@@ -132,11 +127,12 @@ class EditAccountDialog(wx.Dialog):
 			self.provider.SetFocus()
 			return
 		provider_name = self.provider.GetValue()
-		provider = get_provider(provider_name)
-		if not provider:
-			msg = _("Provider not found")
+		provider = list(get_providers(name=provider_name))
+		if len(provider) != 1:
+			msg = _("zero provider or multiple provider found")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
+		provider = provider[0]
 		if provider.require_api_key and not self.api_key.GetValue():
 			msg = _("Please enter an API key. It is required for this provider")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
@@ -209,10 +205,10 @@ class AccountDialog(wx.Dialog):
 		sizer.Add(bSizer, 0, wx.ALL, 5)
 
 	def init_data(self):
-		self.accountManager = accountManager.copy()
+		self.account_manager = conf.accounts.model_copy(deep=True)
 
 	def update_data(self):
-		for account in self.accountManager:
+		for account in self.account_manager:
 			self.account_list.Append(
 				(
 					account.name,
@@ -223,7 +219,7 @@ class AccountDialog(wx.Dialog):
 			)
 
 	def on_item_selected(self, event):
-		account = self.accountManager[self.account_list.GetFirstSelected()]
+		account = self.account_manager[self.account_list.GetFirstSelected()]
 		editable = account.source != AccountSource.ENV_VAR
 		self.edit_btn.Enable(editable)
 		self.remove_btn.Enable(editable)
@@ -232,7 +228,7 @@ class AccountDialog(wx.Dialog):
 		dialog = EditAccountDialog(self, _("Add account"))
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
-			self.accountManager.add(account)
+			self.account_manager.add(account)
 			self.account_list.Append(
 				(
 					account.name,
@@ -252,7 +248,7 @@ class AccountDialog(wx.Dialog):
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
-		account = self.accountManager[index]
+		account = self.account_manager[index]
 		if account.source == AccountSource.ENV_VAR:
 			msg = _("Cannot edit account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
@@ -260,7 +256,7 @@ class AccountDialog(wx.Dialog):
 		dialog = EditAccountDialog(self, _("Edit account"), account=account)
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
-			self.accountManager[index] = account
+			self.account_manager[index] = account
 			self.account_list.SetStringItem(index, 0, account.name)
 			self.account_list.SetStringItem(index, 1, account.provider.name)
 			self.account_list.SetStringItem(
@@ -282,19 +278,18 @@ class AccountDialog(wx.Dialog):
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
-		account = self.accountManager[index]
+		account = self.account_manager[index]
 		if account.source == AccountSource.ENV_VAR:
 			msg = _("Cannot remove account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
-		self.accountManager.remove(account)
+		self.account_manager.remove(account)
 		self.account_list.DeleteItem(index)
 
 	def onOK(self, event):
-		accountManager.clear()
-		for account in self.accountManager:
-			accountManager.add(account)
-			save_accounts(accountManager)
+		conf.accounts.clear()
+		for account in self.account_manager:
+			conf.accounts.add(account)
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):

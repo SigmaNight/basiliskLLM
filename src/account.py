@@ -1,13 +1,21 @@
-import os
+from __future__ import annotations
 from enum import Enum
-from typing import List, Union
-from config import conf
 from logging import getLogger
-from provider import providers, Provider, get_provider
+from typing import Any, Iterable, Optional
+from pydantic import (
+	BaseModel,
+	RootModel,
+	Field,
+	field_serializer,
+	field_validator,
+	model_validator,
+	SecretStr,
+	model_serializer,
+	ConfigDict,
+)
+from provider import Provider, get_providers
 
 log = getLogger(__name__)
-
-accountManager = None
 
 
 class AccountSource(Enum):
@@ -16,172 +24,96 @@ class AccountSource(Enum):
 	UNKNOWN = "unknown"
 
 
-class Account:
+class Account(BaseModel):
 	"""
 	Manage API key and organization key
 	"""
 
-	def __init__(
-		self,
-		provider: Union[str, Provider],
-		source: AccountSource = AccountSource.UNKNOWN,
-		**kwargs,
-	):
-		name = kwargs.get("name")
-		if isinstance(provider, str):
-			provider = get_provider(provider)
-		if not isinstance(provider, Provider):
-			raise TypeError(
-				f"Provider must be an instance of Provider. Got: {provider}"
-			)
-		api_key = kwargs.get("api_key")
-		if provider.require_api_key and not api_key:
-			raise ValueError(f"API key for {provider.name} is required")
-		use_organization_key = kwargs.get("use_organization_key", False)
-		organization_key = kwargs.get("organization_key")
+	model_config = ConfigDict(populate_by_name=True)
+	name: str
+	use_organization_key: bool = Field(default=False)
+	api_key: Optional[SecretStr] = Field(default=None)
+	organization_key: Optional[SecretStr] = Field(default=None)
+	source: AccountSource = Field(default=AccountSource.UNKNOWN)
+	provider: Provider = Field(
+		validation_alias="providerID", serialization_alias="providerId"
+	)
 
-		if not provider.organization_mode_available and organization_key:
+	@field_serializer("provider", when_used="always")
+	def serialize_provider(value: Provider) -> str:
+		return value.id
+
+	@field_serializer("api_key", "organization_key", when_used="json")
+	def dump_secret(self, value: SecretStr) -> str:
+		return value.get_secret_value()
+
+	@field_validator("provider", mode="plain")
+	@classmethod
+	def validate_provider(cls, value: Any) -> Provider:
+		if isinstance(value, Provider):
+			return value
+		if isinstance(value, str):
+			return get_providers(id=value)[0]
+		raise ValueError("the value must be a string or a provider instance")
+
+	@model_validator(mode="after")
+	def require_keys(self) -> Account:
+		if self.provider.require_api_key and not self.api_key:
+			raise ValueError(f"API key for {self.provider.name} is required")
+		if (
+			not self.provider.organization_mode_available
+			and not self.use_organization_key
+			and self.organization_key
+		):
 			raise ValueError(
-				f"Organization mode is not available for {provider.name}"
+				f"Organization mode is not available for {self.provider.name}"
 			)
-		if isinstance(source, str):
-			try:
-				source = AccountSource(source)
-			except ValueError:
-				raise ValueError(f"Invalid source: {source}")
-
-		self._name = name
-		self._provider = provider
-		self._api_key = api_key
-		self._use_organization_key = use_organization_key
-		self._organization_key = organization_key
-		self._source = source
-		# TODO: Implement custom models
-
-	@property
-	def name(self) -> str:
-		return self._name or f"{self._provider.name} account"
-
-	@property
-	def provider(self) -> Provider:
-		return self._provider
-
-	@provider.setter
-	def provider(self, value: Provider):
-		raise ValueError("Provider cannot be changed")
-
-	@property
-	def api_key(self) -> str:
-		if self._api_key:
-			return self._api_key
-		else:
-			self._api_key = conf["services"][self._provider.name]["api_key"]
-		return self._api_key
-
-	@api_key.setter
-	def api_key(self, value: str):
-		self._api_key = value
-
-	@property
-	def use_organization_key(self) -> bool:
-		return (
-			self._provider.organization_mode_available
-			and self._use_organization_key
-		)
-
-	@property
-	def organization_key(self) -> str:
-		return self._organization_key
-
-	@organization_key.setter
-	def organization_key(self, value: str):
-		self._organization_key = value
-
-	@property
-	def source(self) -> AccountSource:
-		return self._source
-
-	def dump(self):
-		return {
-			"name": self._name,
-			"provider": self._provider.name,
-			"api_key": self._api_key,
-			"organization_key": self._organization_key,
-			"source": self._source.value,
-		}
+		return self
 
 
-class AccountManager:
+class AccountManager(RootModel[list[Account]]):
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
 	"""
 
-	def __init__(self):
-		self._accounts = []
+	@model_serializer(mode="plain", when_used="json")
+	def serialize_account_config(self) -> list[dict[str, Any]]:
+		accounts_config = filter(
+			lambda x: x.source == AccountSource.CONFIG, self.root
+		)
+		return [acc.model_dump(mode="json") for acc in accounts_config]
 
 	def add(self, account: Account):
 		if not isinstance(account, Account):
 			raise ValueError("Account must be an instance of Account")
-		self._accounts.append(account)
+		self.root.append(account)
 		log.debug(
 			f"Added account for {account.provider.name} ({account.name}, source: {account.source})"
 		)
 
-	def get(self, provider_name: str = None) -> List[Account]:
-		if provider_name:
-			return [
-				account
-				for account in self._accounts
-				if account._provider.name == provider_name
-			]
-		return self._accounts
+	def get_accounts_by_provider(
+		self, provider_name: Optional[str] = None
+	) -> Iterable[Account]:
+		return filter(lambda x: x.provider.name == provider_name, self.root)
 
 	def remove(self, account: Account):
-		self._accounts.remove(account)
+		self.root.remove(account)
 
 	def clear(self):
-		self._accounts.clear()
+		self.root.clear()
 
 	def __len__(self):
-		return len(self._accounts)
+		return len(self.root)
 
 	def __iter__(self):
-		return iter(self._accounts)
+		return iter(self.root)
 
 	def __getitem__(self, index):
-		return self._accounts[index]
+		return self.root[index]
 
 	def __setitem__(self, index, value):
-		self._accounts[index] = value
-
-	def dump(self, source: AccountSource = None) -> dict:
-		accounts = []
-		for account in self._accounts:
-			accounts.append(account.dump())
-		if source:
-			accounts = filter(lambda x: x["source"] == source.value, accounts)
-		return accounts
-
-	def load(self, accounts):
-		self.clear()
-		for account_data in accounts:
-			log.debug(f"Loading account: {account_data}")
-			provider = get_provider(account_data["provider"])
-			account = Account(
-				provider=provider,
-				name=account_data["name"],
-				api_key=account_data["api_key"],
-				organization_key=account_data["organization_key"],
-				# custom_models=account_data["custom_models"],
-				source=account_data.get("source", AccountSource.UNKNOWN),
-			)
-			self.add(account)
-
-	def copy(self):
-		newAccountManager = AccountManager()
-		newAccountManager.load(self.dump())
-		return newAccountManager
+		self.root[index] = value
 
 
 ACCOUNT_SOURCE_LABELS = {
@@ -190,7 +122,7 @@ ACCOUNT_SOURCE_LABELS = {
 	AccountSource.UNKNOWN: "Unknown",
 }
 
-
+"""
 def initialize_accountManager():
 	global accountManager
 	accountManager = AccountManager()
@@ -227,3 +159,4 @@ def initialize_accountManager():
 			source=AccountSource.CONFIG,
 		)
 		accountManager.add(account)
+"""

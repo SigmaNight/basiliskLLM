@@ -16,7 +16,6 @@ from consts import (
 	APP_AUTHORS,
 	APP_SOURCE_URL
 )
-from account import initialize_accountManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
 
@@ -26,7 +25,7 @@ class MainApp(wx.App):
 
 	def OnInit(self):
 		log.info("Application started")
-		initialize_accountManager()
+		log.debug(f"setting received -> {conf}")
 		self.frame = MainFrame(
 			None,
 			title=APP_NAME,

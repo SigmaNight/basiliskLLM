@@ -1,14 +1,18 @@
-import configobj
-import configobj.validate
-import os
-import sys
+import yaml
+from pathlib import Path
+from enum import Enum
+from pydantic import BaseModel, Field, ConfigDict, AliasGenerator
+from pydantic.alias_generators import to_camel
+from pydantic_settings import (
+	BaseSettings,
+	PydanticBaseSettingsSource,
+	SettingsConfigDict,
+	YamlConfigSettingsSource,
+)
 
-CFG_PATH = os.path.join(os.path.dirname(__file__), "config.ini")
-CFG_SPEC = """
-[general]
-language = string(default='auto')
-log_level = option("INFO", "WARNING", "ERROR", "CRITICAL", "DEBUG", default='DEBUG')
+from account import AccountManager
 
+"""
 [accounts]
 [[__many__]]
 name = string
@@ -24,43 +28,69 @@ base_url = string
 api_type = string
 require_api_key = boolean(default=True)
 organization_mode_available = boolean(default=False)
-
 """
+
+
+class LogLevelEnum(Enum):
+	NOTSET = "off"
+	DEBUG = "debug"
+	INFO = "info"
+	WARNING = "warning"
+	ERROR = "error"
+	CRITICAL = "critical"
+
+
+search_config_paths = [Path(__file__).parent / Path("basilisk_confif.yml")]
+
+
+class GeneralSettings(BaseModel):
+	model_config = ConfigDict(alias_generator=AliasGenerator(to_camel))
+	language: str = Field(default="auto")
+	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
+
+
+class BasiliskConfig(BaseSettings):
+	model_config = SettingsConfigDict(
+		env_prefix="BASILISK_",
+		yaml_file=search_config_paths,
+		yaml_file_encoding="UTF-8",
+		alias_generator=AliasGenerator(alias=to_camel),
+	)
+	general: GeneralSettings = Field(default_factory=GeneralSettings)
+	accounts: AccountManager = Field(default=AccountManager(list()))
+
+	@classmethod
+	def settings_customise_sources(
+		cls,
+		settings_cls: BaseSettings,
+		init_settings: PydanticBaseSettingsSource,
+		env_settings: PydanticBaseSettingsSource,
+		dotenv_settings: PydanticBaseSettingsSource,
+		file_secret_settings: PydanticBaseSettingsSource,
+	) -> tuple[PydanticBaseSettingsSource, ...]:
+		return (
+			YamlConfigSettingsSource(settings_cls),
+			env_settings,
+			init_settings,
+		)
+
+	def save(self) -> None:
+		basilisk_dict = self.model_dump(mode="json", by_alias=True)
+		conf_save_path = searcb_existing_path(search_config_paths)
+		with conf_save_path.open(mode='w', encoding="UTF-8") as config_file:
+			yaml.dump(basilisk_dict, config_file)
+
 
 conf = None
 
 
-def save_accounts(accounts):
-	from account import AccountSource, AccountManager, Account
-
-	if not isinstance(accounts, AccountManager):
-		raise ValueError("Invalid accounts object")
-	conf["accounts"] = {}
-	i = 0
-	for account in accounts:
-		if account.source == AccountSource.ENV_VAR:
-			continue
-		i += 1
-		conf["accounts"][f"account_{i}"] = {
-			"name": account.name,
-			"provider": account.provider.name,
-			"api_key": account.api_key,
-			"organization_key": account.organization_key,
-			"use_organization_key": account.use_organization_key,
-		}
-	conf.write()
+def searcb_existing_path(paths: list[Path]) -> Path:
+	for p in paths:
+		if p.exists():
+			return p
+	return paths[0]
 
 
 def initialize_config():
 	global conf
-	config_spec = configobj.ConfigObj(
-		CFG_SPEC.split('\n'), list_values=False, _inspec=True
-	)
-	conf = configobj.ConfigObj(CFG_PATH, configspec=config_spec)
-
-	validator = configobj.validate.Validator()
-	result = conf.validate(validator, preserve_errors=True)
-
-	if not result:
-		raise ValueError("Invalid configuration file")
-		sys.exit(1)
+	conf = BasiliskConfig()

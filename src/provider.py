@@ -1,7 +1,6 @@
-import re
 from enum import Enum
-from typing import List
-from config import conf
+from typing import Optional, Iterable, Any
+from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
 
 log = getLogger(__name__)
@@ -13,50 +12,25 @@ class ProviderAPIType(Enum):
 	OLLAMA = "ollama"
 
 
-class Provider:
+class Provider(BaseModel):
 	"""
 	Manage API key
 	"""
 
-	def __init__(
-		self,
-		name: str,
-		base_url: str,
-		api_type: ProviderAPIType,
-		organization_mode_available: bool = False,
-		require_api_key: bool = True,
-		custom: bool = False,
-		env_var_name_api_key: str = None,
-		env_var_name_organization_key: str = None,
-	):
-		if not isinstance(name, str) or not name:
-			raise ValueError("Provider name is required")
-		if (
-			not isinstance(base_url, str)
-			or not base_url
-			or not re.match(r"^https?://", base_url)
-		):
-			raise ValueError("Base URL is required and must be a valid URL")
-		if not isinstance(api_type, ProviderAPIType):
-			raise ValueError("api_type must be an instance of ProviderAPIType")
-		if not isinstance(organization_mode_available, bool):
-			raise ValueError("organization_mode_available must be a boolean")
-		if not isinstance(custom, bool):
-			raise ValueError("custom must be a boolean")
-		if not isinstance(require_api_key, bool):
-			raise ValueError("require_api_key must be a boolean")
-		self.name = name
-		self.base_url = base_url
-		self.api_type = api_type
-		self.organization_mode_available = organization_mode_available
-		self.require_api_key = require_api_key
-		self.custom = custom
-		self.env_var_name_api_key = env_var_name_api_key
-		self.env_var_name_organization_key = env_var_name_organization_key
+	id: str
+	name: str
+	base_url: HttpUrl
+	api_type: ProviderAPIType
+	organization_mode_available: bool = Field(default=False)
+	require_api_key: bool = Field(default=True)
+	custom: bool = Field(default=True)
+	env_var_name_api_key: Optional[str] = Field(default=None)
+	env_var_name_organization_key: Optional[str] = Field(default=None)
 
 
 providers = [
 	Provider(
+		id="openai",
 		name="OpenAI",
 		base_url="https://api.openai.com/v1",
 		api_type=ProviderAPIType.OPENAI,
@@ -66,6 +40,7 @@ providers = [
 		env_var_name_organization_key="OPENAI_ORG_KEY",
 	),
 	Provider(
+		id="mistralai",
 		name="MistralAI",
 		base_url="https://api.mistral.ai/v1",
 		api_type=ProviderAPIType.OPENAI,
@@ -74,6 +49,7 @@ providers = [
 		env_var_name_api_key="MISTRAL_API_KEY",
 	),
 	Provider(
+		id="openrouter",
 		name="OpenRouter",
 		base_url="https://openrouter.ai/api/v1",
 		api_type=ProviderAPIType.OPENAI,
@@ -84,13 +60,13 @@ providers = [
 ]
 
 
-def get_provider(provider_name: str) -> Provider:
+def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 	"""
 	Get provider by name
 	"""
-	if not isinstance(provider_name, str) or not provider_name:
-		raise ValueError("Provider name is required and must be a string")
-	for provider in providers:
-		if provider.name == provider_name:
-			return provider
-	raise ValueError(f"Provider {provider_name} not found")
+	match_providers = providers
+	for k, v in kwargs.items():
+		match_providers = list(
+			filter(lambda x: getattr(x, k, None) == v, match_providers)
+		)
+	return match_providers
