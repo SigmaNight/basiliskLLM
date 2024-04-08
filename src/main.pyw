@@ -225,7 +225,7 @@ class MainFrame(wx.Frame):
 		self.model_list.InsertColumn(4, _("Max tokens"))
 		tab_sizer.Add(self.model_list, proportion=2, flag=wx.EXPAND)
 
-		if conf["general"]["advanced_mode"]:
+		if conf.general.advanced_mode:
 			label = wx.StaticText(tab_panel, label=_("&Temperature:"))
 			tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
 			self.temp_spinner = wx.SpinCtrl(

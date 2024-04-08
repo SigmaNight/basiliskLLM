@@ -76,7 +76,7 @@ class ConfigDialog(wx.Dialog):
 		self.advanced_mode = wx.CheckBox(
 			panel, label=_("Advanced mode"), style=wx.ALIGN_LEFT
 		)
-		self.advanced_mode.SetValue(conf["general"]["advanced_mode"])
+		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
