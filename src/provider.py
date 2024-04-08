@@ -66,8 +66,8 @@ def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 	"""
 	match_providers = providers
 	for k, v in kwargs.items():
-		match_providers = list(
-			filter(lambda x: getattr(x, k, None) == v, match_providers)
+		match_providers = filter(
+			lambda x: getattr(x, k, None) == v, match_providers
 		)
 	return match_providers
 
