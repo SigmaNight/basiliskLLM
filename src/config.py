@@ -10,6 +10,7 @@ from pydantic_settings import (
 	YamlConfigSettingsSource,
 )
 
+
 class LogLevelEnum(Enum):
 	NOTSET = "off"
 	DEBUG = "debug"
