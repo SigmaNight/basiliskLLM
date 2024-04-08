@@ -40,7 +40,7 @@ class LogLevelEnum(Enum):
 	CRITICAL = "critical"
 
 
-search_config_paths = [Path(__file__).parent / Path("basilisk_confif.yml")]
+search_config_paths = [Path(__file__).parent / Path("basilisk_config.yml")]
 
 
 class GeneralSettings(BaseModel):
