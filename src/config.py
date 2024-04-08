@@ -12,24 +12,6 @@ from pydantic_settings import (
 
 from account import AccountManager
 
-"""
-[accounts]
-[[__many__]]
-name = string
-provider = string
-api_key = string
-organization_key = string
-use_organization_key = boolean(default=False)
-
-[custom_providers]
-[[__many__]]
-name = string
-base_url = string
-api_type = string
-require_api_key = boolean(default=True)
-organization_mode_available = boolean(default=False)
-"""
-
 
 class LogLevelEnum(Enum):
 	NOTSET = "off"
@@ -60,7 +42,7 @@ class BasiliskConfig(BaseSettings):
 	accounts: AccountManager = Field(default=AccountManager(list()))
 
 	@classmethod
-	def settings_customise_sources(
+	def settings_customize_sources(
 		cls,
 		settings_cls: BaseSettings,
 		init_settings: PydanticBaseSettingsSource,
@@ -76,7 +58,7 @@ class BasiliskConfig(BaseSettings):
 
 	def save(self) -> None:
 		basilisk_dict = self.model_dump(mode="json", by_alias=True)
-		conf_save_path = searcb_existing_path(search_config_paths)
+		conf_save_path = search_existing_path(search_config_paths)
 		with conf_save_path.open(mode='w', encoding="UTF-8") as config_file:
 			yaml.dump(basilisk_dict, config_file)
 
@@ -84,7 +66,7 @@ class BasiliskConfig(BaseSettings):
 conf = None
 
 
-def searcb_existing_path(paths: list[Path]) -> Path:
+def search_existing_path(paths: list[Path]) -> Path:
 	for p in paths:
 		if p.exists():
 			return p

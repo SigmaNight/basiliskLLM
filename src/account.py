@@ -13,7 +13,7 @@ from pydantic import (
 	model_serializer,
 	ConfigDict,
 )
-from provider import Provider, get_providers
+from provider import Provider, get_provider
 
 log = getLogger(__name__)
 
@@ -53,7 +53,7 @@ class Account(BaseModel):
 		if isinstance(value, Provider):
 			return value
 		if isinstance(value, str):
-			return get_providers(id=value)[0]
+			return get_provider(id=value)
 		raise ValueError("the value must be a string or a provider instance")
 
 	@model_validator(mode="after")
@@ -121,42 +121,3 @@ ACCOUNT_SOURCE_LABELS = {
 	AccountSource.CONFIG: "Configuration file",
 	AccountSource.UNKNOWN: "Unknown",
 }
-
-"""
-def initialize_accountManager():
-	global accountManager
-	accountManager = AccountManager()
-	for provider in providers:
-		api_key = None
-		if not provider.env_var_name_api_key:
-			continue
-		api_key = os.getenv(provider.env_var_name_api_key)
-		if not api_key:
-			continue
-		organization_key = None
-		if (
-			provider.organization_mode_available
-			and provider.env_var_name_organization_key
-		):
-			organization_key = os.getenv(provider.env_var_name_organization_key)
-		account = Account(
-			provider=provider,
-			api_key=api_key,
-			organization_key=organization_key,
-			source=AccountSource.ENV_VAR,
-		)
-		accountManager.add(account)
-
-	accounts = conf["accounts"]
-	for account_data in accounts.values():
-		provider = get_provider(account_data["provider"])
-		account = Account(
-			provider=provider,
-			name=account_data["name"],
-			api_key=account_data["api_key"],
-			organization_key=account_data["organization_key"],
-			use_organization_key=account_data["use_organization_key"],
-			source=AccountSource.CONFIG,
-		)
-		accountManager.add(account)
-"""

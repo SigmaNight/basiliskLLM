@@ -62,7 +62,7 @@ providers = [
 
 def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 	"""
-	Get provider by name
+	Get provider by criteria
 	"""
 	match_providers = providers
 	for k, v in kwargs.items():
@@ -70,3 +70,15 @@ def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 			filter(lambda x: getattr(x, k, None) == v, match_providers)
 		)
 	return match_providers
+
+
+def get_provider(**kwargs: dict[str, Any]) -> Provider:
+	"""
+	Get provider by criteria
+	"""
+	match_providers = list(get_providers(**kwargs))
+	if not match_providers or len(match_providers) == 0:
+		raise ValueError("No provider found")
+	if len(match_providers) > 1:
+		raise ValueError("Multiple providers found")
+	return match_providers[0]

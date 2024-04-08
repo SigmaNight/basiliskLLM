@@ -3,7 +3,7 @@ from localization import _
 from logging import getLogger
 from account import Account, AccountSource, ACCOUNT_SOURCE_LABELS
 from config import conf
-from provider import providers, get_providers
+from provider import providers, get_provider
 
 log = getLogger(__name__)
 
@@ -102,11 +102,7 @@ class EditAccountDialog(wx.Dialog):
 			log.debug("No provider selected")
 			return
 		provider_name = self.provider.GetValue()
-		provider = list(get_providers(name=provider_name))
-		if len(provider) != 1:
-			log.debug("zero or multiple Provider found")
-			return
-		provider = provider[0]
+		provider = get_provider(name=provider_name)
 		self.api_key.Enable(provider.require_api_key)
 		self.use_organization_key.Enable(provider.organization_mode_available)
 		self.organization_key.Enable(
@@ -127,12 +123,7 @@ class EditAccountDialog(wx.Dialog):
 			self.provider.SetFocus()
 			return
 		provider_name = self.provider.GetValue()
-		provider = list(get_providers(name=provider_name))
-		if len(provider) != 1:
-			msg = _("zero provider or multiple provider found")
-			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			return
-		provider = provider[0]
+		provider = get_provider(name=provider_name)
 		if provider.require_api_key and not self.api_key.GetValue():
 			msg = _("Please enter an API key. It is required for this provider")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
