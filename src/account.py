@@ -1,6 +1,7 @@
 from __future__ import annotations
 from enum import Enum
 from logging import getLogger
+from os import getenv
 from typing import Any, Iterable, Optional
 from pydantic import (
 	BaseModel,
@@ -13,7 +14,7 @@ from pydantic import (
 	model_serializer,
 	ConfigDict,
 )
-from provider import Provider, get_provider
+from provider import Provider, providers, get_provider
 
 log = getLogger(__name__)
 
@@ -76,6 +77,32 @@ class AccountManager(RootModel[list[Account]]):
 	Manage multiple accounts for different providers
 	A provider can have several accounts
 	"""
+
+	def model_post_init(self, __context: Any) -> None:
+		for provider in providers:
+			api_key = None
+			if not provider.env_var_name_api_key:
+				continue
+			api_key = getenv(provider.env_var_name_api_key)
+			if not api_key:
+				continue
+			organization_key = None
+			if (
+				provider.organization_mode_available
+				and provider.env_var_name_organization_key
+			):
+				organization_key = getenv(
+					provider.env_var_name_organization_key
+				)
+		self.root.append(
+			Account(
+				name=f"{provider.name} account",
+				provider=provider,
+				api_key=api_key,
+				organization_key=organization_key,
+				source=AccountSource.ENV_VAR,
+			)
+		)
 
 	@model_serializer(mode="plain", when_used="json")
 	def serialize_account_config(self) -> list[dict[str, Any]]:
