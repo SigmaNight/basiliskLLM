@@ -94,15 +94,15 @@ class AccountManager(RootModel[list[Account]]):
 				organization_key = getenv(
 					provider.env_var_name_organization_key
 				)
-		self.root.append(
-			Account(
-				name=f"{provider.name} account",
-				provider=provider,
-				api_key=api_key,
-				organization_key=organization_key,
-				source=AccountSource.ENV_VAR,
+			self.root.append(
+				Account(
+					name=f"{provider.name} account",
+					provider=provider,
+					api_key=api_key,
+					organization_key=organization_key,
+					source=AccountSource.ENV_VAR,
+				)
 			)
-		)
 
 	@model_serializer(mode="plain", when_used="json")
 	def serialize_account_config(self) -> list[dict[str, Any]]:
