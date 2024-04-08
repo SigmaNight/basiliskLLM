@@ -42,7 +42,7 @@ class BasiliskConfig(BaseSettings):
 	accounts: AccountManager = Field(default=AccountManager(list()))
 
 	@classmethod
-	def settings_customize_sources(
+	def settings_customise_sources(
 		cls,
 		settings_cls: BaseSettings,
 		init_settings: PydanticBaseSettingsSource,
