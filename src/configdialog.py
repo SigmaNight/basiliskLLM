@@ -1,18 +1,39 @@
 import wx
-from config import conf
+from config import conf, LogLevelEnum
 from localization import _
-from logging import getLogger
+from logger import get_app_logger, set_log_level
 
-log = getLogger(__name__)
+log = get_app_logger(__name__)
 
-LOG_LEVELS = ["INFO", "WARNING", "ERROR", "CRITICAL", "DEBUG"]
+LOG_LEVELS = {
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.NOTSET: _("Off"),
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.DEBUG: _("Debug"),
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.INFO: _("Info"),
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.WARNING: _("Warning"),
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.ERROR: _("Error"),
+	# Translators: A label for the log level in the settings dialog
+	LogLevelEnum.CRITICAL: _("Critical"),
+}
+
 LANGUAGES = {
+	# Translators: A label for the language in the settings dialog
 	"auto": _("Auto"),
+	# Translators: A label for the language in the settings dialog
 	"en": _("English"),
+	# Translators: A label for the language in the settings dialog
 	"fi": _("Finnish"),
+	# Translators: A label for the language in the settings dialog
 	"fr": _("French"),
+	# Translators: A label for the language in the settings dialog
 	"ru": _("Russian"),
+	# Translators: A label for the language in the settings dialog
 	"uk": _("Ukrainian"),
+	# Translators: A label for the language in the settings dialog
 	"tr": _("Turkish"),
 }
 
@@ -32,14 +53,16 @@ class ConfigDialog(wx.Dialog):
 
 		label = wx.StaticText(panel, label=_("Log level"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level = conf["general"]["log_level"]
-		value = log_level if log_level in LOG_LEVELS else LOG_LEVELS[0]
+		log_level_value = conf.general.log_level.value
 		self.log_level = wx.ComboBox(
-			panel, choices=LOG_LEVELS, value=value, style=wx.CB_READONLY
+			panel,
+			choices=list(LOG_LEVELS.values()),
+			value=log_level_value,
+			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
 
-		cur_lang = conf["general"]["language"]
+		cur_lang = conf.general.language
 		value = LANGUAGES.get(cur_lang, LANGUAGES["auto"])
 		label = wx.StaticText(panel, label=_("Language"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
@@ -73,15 +96,16 @@ class ConfigDialog(wx.Dialog):
 
 	def onOK(self, event):
 		log.debug("Saving configuration")
-		conf["general"]["log_level"] = self.log_level.GetValue()
-		language = self.language.GetValue()
-		for key, value in LANGUAGES.items():
-			if language == value:
-				conf["general"]["language"] = key
-				break
-		conf["general"]["advanced_mode"] = self.advanced_mode.GetValue()
+		conf.general.log_level = list(LOG_LEVELS.keys())[
+			self.log_level.GetSelection()
+		]
+		conf.general.language = list(LANGUAGES.keys())[
+			self.language.GetSelection()
+		]
+		conf.general.advanced_mode = self.advanced_mode.GetValue()
 		log.debug("New configuration: %s", conf)
-		conf.write()
+		conf.save()
+		set_log_level(conf.general.log_level.name)
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):

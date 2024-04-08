@@ -26,6 +26,7 @@ class MainApp(wx.App):
 
 	def OnInit(self):
 		log.info("Application started")
+		log.debug(f"setting received -> {conf}")
 		initialize_accountManager()
 		self.frame = MainFrame(
 			None,
