@@ -55,8 +55,6 @@ class BasiliskConfig(BaseSettings):
 		)
 
 	@classmethod
-
-
 	def save(self) -> None:
 		basilisk_dict = self.model_dump(mode="json", by_alias=True)
 		conf_save_path = searcb_existing_path(search_config_paths)
