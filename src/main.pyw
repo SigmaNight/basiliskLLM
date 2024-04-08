@@ -279,6 +279,12 @@ class MainFrame(wx.Frame):
 		)
 		if config_dialog.ShowModal() == wx.ID_OK:
 			log.debug("Settings saved")
+		if conf.general.advanced_mode:
+			self.temp_spinner.Show()
+			self.top_p_spinner.Show()
+		else:
+			self.temp_spinner.Hide()
+			self.top_p_spinner.Hide()
 		config_dialog.Destroy()
 
 	def OnGithubRepo(self, event):
