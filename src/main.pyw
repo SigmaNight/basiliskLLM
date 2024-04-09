@@ -78,6 +78,7 @@ class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
 		super(MainFrame, self).__init__(*args, **kwargs)
 		self.InitUI()
+		self.updateUI()
 		self.ID_NEW_CONVERSATION = wx.NewIdRef()
 		self.ID_CLOSE_CONVERSATION = wx.NewIdRef()
 		self.InitAccelerators()
@@ -101,6 +102,14 @@ class MainFrame(wx.Frame):
 		elif not self.IsShown():
 			self.Show()
 			self.Restore()
+
+	def updateUI(self):
+		if conf.general.advanced_mode:
+			self.temp_spinner.Show()
+			self.top_p_spinner.Show()
+		else:
+			self.temp_spinner.Hide()
+			self.top_p_spinner.Hide()
 
 	def onMinimize(self, event):
 		log.debug("Minimized to tray")
@@ -278,13 +287,8 @@ class MainFrame(wx.Frame):
 			title=_("Settings")
 		)
 		if config_dialog.ShowModal() == wx.ID_OK:
+			self.updateUI()
 			log.debug("Settings saved")
-		if conf.general.advanced_mode:
-			self.temp_spinner.Show()
-			self.top_p_spinner.Show()
-		else:
-			self.temp_spinner.Hide()
-			self.top_p_spinner.Hide()
 		config_dialog.Destroy()
 
 	def OnGithubRepo(self, event):
