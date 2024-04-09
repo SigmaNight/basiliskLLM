@@ -129,12 +129,18 @@ class EditAccountDialog(wx.Dialog):
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			self.api_key.SetFocus()
 			return
+		use_organization_key = self.use_organization_key.GetValue()
+		if not provider.organization_mode_available:
+			use_organization_key = None
+		organization_key = self.organization_key.GetValue()
+		if not provider.organization_mode_available or organization_key == '':
+			organization_key = None
 		self.account = Account(
 			name=self.name.GetValue(),
 			provider=provider,
 			api_key=self.api_key.GetValue(),
-			organization_key=self.organization_key.GetValue(),
-			use_organization_key=self.use_organization_key.GetValue(),
+			use_organization_key=use_organization_key,
+			organization_key=organization_key,
 			source=AccountSource.CONFIG,
 		)
 		self.EndModal(wx.ID_OK)

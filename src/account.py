@@ -22,7 +22,6 @@ log = getLogger(__name__)
 class AccountSource(Enum):
 	ENV_VAR = "env_var"
 	CONFIG = "config"
-	UNKNOWN = "unknown"
 
 
 class Account(BaseModel):
@@ -32,13 +31,13 @@ class Account(BaseModel):
 
 	model_config = ConfigDict(populate_by_name=True)
 	name: str
-	use_organization_key: bool = Field(default=False)
-	api_key: Optional[SecretStr] = Field(default=None)
-	organization_key: Optional[SecretStr] = Field(default=None)
-	source: AccountSource = Field(default=AccountSource.UNKNOWN)
 	provider: Provider = Field(
-		validation_alias="providerID", serialization_alias="providerId"
+		validation_alias="provider_id", serialization_alias="provider_id"
 	)
+	api_key: Optional[SecretStr] = Field(default=None)
+	use_organization_key: Optional[bool] = Field(default=False)
+	organization_key: Optional[SecretStr] = Field(default=None)
+	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
@@ -109,7 +108,10 @@ class AccountManager(RootModel[list[Account]]):
 		accounts_config = filter(
 			lambda x: x.source == AccountSource.CONFIG, self.root
 		)
-		return [acc.model_dump(mode="json") for acc in accounts_config]
+		return [
+			acc.model_dump(mode="json", by_alias=True, exclude_none=True)
+			for acc in accounts_config
+		]
 
 	def add(self, account: Account):
 		if not isinstance(account, Account):
@@ -146,5 +148,4 @@ class AccountManager(RootModel[list[Account]]):
 ACCOUNT_SOURCE_LABELS = {
 	AccountSource.ENV_VAR: "Environment variable",
 	AccountSource.CONFIG: "Configuration file",
-	AccountSource.UNKNOWN: "Unknown",
 }
