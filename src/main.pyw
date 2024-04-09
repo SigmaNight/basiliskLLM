@@ -234,26 +234,25 @@ class MainFrame(wx.Frame):
 		self.model_list.InsertColumn(4, _("Max tokens"))
 		tab_sizer.Add(self.model_list, proportion=2, flag=wx.EXPAND)
 
-		if conf.general.advanced_mode:
-			label = wx.StaticText(tab_panel, label=_("&Temperature:"))
-			tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
-			self.temp_spinner = wx.SpinCtrl(
-				tab_panel,
-				value='0',
-				min=0,
-				max=200,
-			)
-			tab_sizer.Add(self.temp_spinner, proportion=0, flag=wx.EXPAND)
+		label = wx.StaticText(tab_panel, label=_("&Temperature:"))
+		tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
+		self.temp_spinner = wx.SpinCtrl(
+			tab_panel,
+			value='0',
+			min=0,
+			max=200,
+		)
+		tab_sizer.Add(self.temp_spinner, proportion=0, flag=wx.EXPAND)
 
-			label = wx.StaticText(tab_panel, label=_("Probability &Mass (top P):"))
-			tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
-			self.top_p_spinner = wx.SpinCtrl(
-				tab_panel,
-				value='0',
-				min=0,
-				max=100,
-			)
-			tab_sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
+		label = wx.StaticText(tab_panel, label=_("Probability &Mass (top P):"))
+		tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
+		self.top_p_spinner = wx.SpinCtrl(
+			tab_panel,
+			value='0',
+			min=0,
+			max=100,
+		)
+		tab_sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
 
 		submit_btn = wx.Button(tab_panel, label=_('Submit'))
 		tab_sizer.Add(submit_btn, proportion=0, flag=wx.EXPAND)
