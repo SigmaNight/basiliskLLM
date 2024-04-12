@@ -14,6 +14,7 @@ from pydantic import (
 	model_serializer,
 	ConfigDict,
 )
+from localization import _
 from provider import Provider, providers, get_provider
 
 log = getLogger(__name__)
@@ -22,6 +23,17 @@ log = getLogger(__name__)
 class AccountSource(Enum):
 	ENV_VAR = "env_var"
 	CONFIG = "config"
+
+
+class AccountOrganization(BaseModel):
+	model_config = ConfigDict(populate_by_name=True)
+	name: str
+	key: SecretStr
+	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
+
+	@field_serializer("key", when_used="json")
+	def dump_secret(self, value: SecretStr) -> str:
+		return value.get_secret_value()
 
 
 class Account(BaseModel):
@@ -35,15 +47,15 @@ class Account(BaseModel):
 		validation_alias="provider_id", serialization_alias="provider_id"
 	)
 	api_key: Optional[SecretStr] = Field(default=None)
-	use_organization_key: Optional[bool] = Field(default=False)
-	organization_key: Optional[SecretStr] = Field(default=None)
+	organizations: Optional[list[AccountOrganization]] = Field(default=None)
+	active_organization: Optional[str] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
 		return value.id
 
-	@field_serializer("api_key", "organization_key", when_used="json")
+	@field_serializer("api_key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> str:
 		return value.get_secret_value()
 
@@ -62,8 +74,7 @@ class Account(BaseModel):
 			raise ValueError(f"API key for {self.provider.name} is required")
 		if (
 			not self.provider.organization_mode_available
-			and not self.use_organization_key
-			and self.organization_key
+			and self.active_organization
 		):
 			raise ValueError(
 				f"Organization mode is not available for {self.provider.name}"
@@ -79,26 +90,37 @@ class AccountManager(RootModel[list[Account]]):
 
 	def model_post_init(self, __context: Any) -> None:
 		for provider in providers:
+			organizations = []
 			api_key = None
 			if not provider.env_var_name_api_key:
 				continue
 			api_key = getenv(provider.env_var_name_api_key)
 			if not api_key:
 				continue
-			organization_key = None
+			active_organization = None
 			if (
 				provider.organization_mode_available
 				and provider.env_var_name_organization_key
 			):
-				organization_key = getenv(
-					provider.env_var_name_organization_key
+				active_organization = _("from environment variable")
+				organizations.append(
+					AccountOrganization(
+						name=active_organization,
+						key=SecretStr(
+							getenv(provider.env_var_name_organization_key)
+						),
+						source=AccountSource.ENV_VAR,
+					)
 				)
+			else:
+				active_organization = None
 			self.root.append(
 				Account(
 					name=f"{provider.name} account",
 					provider=provider,
 					api_key=api_key,
-					organization_key=organization_key,
+					organizations=organizations,
+					active_organization=active_organization,
 					source=AccountSource.ENV_VAR,
 				)
 			)
