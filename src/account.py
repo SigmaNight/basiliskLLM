@@ -52,7 +52,7 @@ class Account(BaseModel):
 	)
 	api_key: Optional[SecretStr] = Field(default=None)
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
-	active_organization: Optional[str] = Field(default=None)
+	active_organization: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
 	@field_serializer("provider", when_used="always")
@@ -94,7 +94,7 @@ class Account(BaseModel):
 				f"No organizations found for {self.provider.name} account"
 			)
 		if not any(
-			org.name == self.active_organization for org in self.organizations
+			org.id == self.active_organization for org in self.organizations
 		):
 			raise ValueError(
 				f"Organization '{self.active_organization}' not found for {self.provider.name} account"
@@ -121,11 +121,13 @@ class AccountManager(RootModel[list[Account]]):
 			if (
 				provider.organization_mode_available
 				and provider.env_var_name_organization_key
+				and getenv(provider.env_var_name_organization_key)
 			):
-				active_organization = _("from environment variable")
+				active_organization = uuid4()
 				organizations.append(
 					AccountOrganization(
-						name=active_organization,
+						id=active_organization,
+						name=_("From environment variable"),
 						key=SecretStr(
 							getenv(provider.env_var_name_organization_key)
 						),

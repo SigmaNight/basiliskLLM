@@ -21,7 +21,7 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		parent: wx.Window,
 		title: str,
 		organization: Optional[AccountOrganization] = None,
-		size=(400, 400),
+		size: tuple = (400, 200),
 	):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
@@ -50,12 +50,12 @@ class EditAccountOrganizationDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK, _("Save"))
+		btn = wx.Button(panel, wx.ID_OK)
 		btn.SetDefault()
 		btn.Bind(wx.EVT_BUTTON, self.on_ok)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
-		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
+		btn = wx.Button(panel, wx.ID_CANCEL)
 		btn.Bind(wx.EVT_BUTTON, self.on_cancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
@@ -80,9 +80,13 @@ class EditAccountOrganizationDialog(wx.Dialog):
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			self.key.SetFocus()
 			return
-		self.organization = AccountOrganization(
-			name=self.name.GetValue(), key=self.key.GetValue()
-		)
+		if self.organization:
+			self.organization.name = self.name.GetValue()
+			self.organization.key = SecretStr(self.key.GetValue())
+		else:
+			self.organization = AccountOrganization(
+				name=self.name.GetValue(), key=self.key.GetValue()
+			)
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):
@@ -147,11 +151,11 @@ class AccountOrganizationDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK, _("Save"))
+		btn = wx.Button(panel, wx.ID_OK)
 		btn.Bind(wx.EVT_BUTTON, self.onOK)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
-		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
+		btn = wx.Button(panel, wx.ID_CANCEL)
 		btn.Bind(wx.EVT_BUTTON, self.onCancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
@@ -171,6 +175,24 @@ class AccountOrganizationDialog(wx.Dialog):
 					),
 				)
 			)
+
+	def update_ui(self):
+		if not self.organizations:
+			self.edit_btn.Disable()
+			self.remove_btn.Disable()
+			return
+		selected_item = self.organization_list.GetFirstSelected()
+		if selected_item == -1:
+			self.edit_btn.Disable()
+			self.remove_btn.Disable()
+			return
+		organization = self.organizations[selected_item]
+		if organization.source == AccountSource.ENV_VAR:
+			self.edit_btn.Disable()
+			self.remove_btn.Disable()
+			return
+		self.edit_btn.Enable()
+		self.remove_btn.Enable()
 
 	def on_item_selected(self, event):
 		selected_item = self.organization_list.GetFirstSelected()
@@ -240,8 +262,12 @@ class AccountOrganizationDialog(wx.Dialog):
 
 	def on_remove(self, event):
 		item = self.organization_list.GetFirstSelected()
+		organization_id = self.organizations[item].id
 		self.organizations.pop(item)
 		self.organization_list.DeleteItem(item)
+		if self.account.active_organization == organization_id:
+			self.account.active_organization = None
+		self.update_ui()
 
 	def onOK(self, event):
 		self.account.organizations = self.organizations
@@ -299,12 +325,12 @@ class EditAccountDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK, _("Save"))
+		btn = wx.Button(panel, wx.ID_OK)
 		btn.SetDefault()
 		btn.Bind(wx.EVT_BUTTON, self.on_ok)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
-		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
+		btn = wx.Button(panel, wx.ID_CANCEL)
 		btn.Bind(wx.EVT_BUTTON, self.on_cancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
@@ -335,7 +361,7 @@ class EditAccountDialog(wx.Dialog):
 			if self.account.active_organization:
 				index = -1
 				for i, organization in enumerate(self.account.organizations):
-					if organization.name == self.account.active_organization:
+					if organization.id == self.account.active_organization:
 						index = i + 1
 						break
 				self.organization.SetSelection(index)
@@ -347,10 +373,7 @@ class EditAccountDialog(wx.Dialog):
 					for i, organization in enumerate(
 						self.account.organizations
 					):
-						if (
-							organization.name
-							== self.account.active_organization
-						):
+						if organization.id == self.account.active_organization:
 							index = i + 1
 							break
 					self.organization.SetSelection(index)
@@ -363,6 +386,7 @@ class EditAccountDialog(wx.Dialog):
 		provider_name = self.provider.GetValue()
 		provider = get_provider(name=provider_name)
 		self.api_key.Enable(provider.require_api_key)
+		self.organization.Enable(provider.organization_mode_available)
 
 	def on_ok(self, event):
 		if not self.name.GetValue():
@@ -388,7 +412,7 @@ class EditAccountDialog(wx.Dialog):
 		if organization_index > 0:
 			active_organization = self.account.organizations[
 				organization_index - 1
-			].name
+			].id
 		if self.account:
 			self.account.name = self.name.GetValue()
 			self.account.provider = provider
@@ -441,7 +465,7 @@ class AccountDialog(wx.Dialog):
 		self.account_list.InsertColumn(
 			2,
 			# Translators: A label in account dialog
-			_("Organization to use"),
+			_("Active organization"),
 		)
 		self.account_list.InsertColumn(
 			3,
@@ -479,11 +503,11 @@ class AccountDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK, _("Save"))
+		btn = wx.Button(panel, wx.ID_OK)
 		btn.Bind(wx.EVT_BUTTON, self.onOK)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
-		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
+		btn = wx.Button(panel, wx.ID_CANCEL)
 		btn.Bind(wx.EVT_BUTTON, self.onCancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
@@ -492,19 +516,29 @@ class AccountDialog(wx.Dialog):
 	def init_data(self):
 		self.account_manager = conf.accounts.model_copy(deep=True)
 
+	def _get_organization_name(self, account):
+		if not account.provider.organization_mode_available:
+			return _("N/A")
+		if account.active_organization:
+			for organization in account.organizations:
+				if organization.id == account.active_organization:
+					return organization.name
+		return _("No (personal)")
+
 	def update_data(self):
 		for account in self.account_manager:
 			self.account_list.Append(
 				(
 					account.name,
 					account.provider.name,
-					account.active_organization or _("No"),
+					self._get_organization_name(account),
 					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
 				)
 			)
 
 	def update_ui(self):
 		account = self.account_manager[self.account_list.GetFirstSelected()]
+		log.debug(f"Selected account: {account}")
 		editable = account.source != AccountSource.ENV_VAR
 		self.edit_btn.Enable(editable)
 		self.remove_btn.Enable(editable)
@@ -523,6 +557,9 @@ class AccountDialog(wx.Dialog):
 		)
 		if dialog.ShowModal() == wx.ID_OK:
 			self.account_manager[index] = dialog.account
+			self.account_list.SetStringItem(
+				index, 2, self._get_organization_name(dialog.account)
+			)
 		dialog.Destroy()
 		self.account_list.SetItemState(
 			index,
@@ -540,11 +577,13 @@ class AccountDialog(wx.Dialog):
 				(
 					account.name,
 					account.provider.name,
-					account.active_organization or _("No"),
+					self._get_organization_name(account),
 					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
 				)
 			)
 		dialog.Destroy()
+		for i in range(self.account_list.GetItemCount()):
+			self.account_list.Select(i, False)
 		self.account_list.SetItemState(
 			self.account_list.GetItemCount() - 1,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
@@ -569,7 +608,7 @@ class AccountDialog(wx.Dialog):
 			self.account_list.SetStringItem(index, 0, account.name)
 			self.account_list.SetStringItem(index, 1, account.provider.name)
 			self.account_list.SetStringItem(
-				index, 2, account.active_organization or _("No")
+				index, 2, self._get_organization_name(account)
 			)
 			self.account_list.SetStringItem(
 				index,
