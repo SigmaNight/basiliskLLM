@@ -6,6 +6,13 @@ from logging import getLogger
 log = getLogger(__name__)
 
 
+class ProviderCapability(Enum):
+	IMAGE = "image"
+	TEXT = "text"
+	STT = "stt"
+	TTS = "tts"
+
+
 class ProviderAPIType(Enum):
 	OPENAI = "openai"
 	ANTHROPIC = "anthropic"
@@ -21,6 +28,7 @@ class Provider(BaseModel):
 	name: str
 	base_url: HttpUrl
 	api_type: ProviderAPIType
+	capabilities: set[ProviderCapability]
 	organization_mode_available: bool = Field(default=False)
 	require_api_key: bool = Field(default=True)
 	custom: bool = Field(default=True)
@@ -34,6 +42,12 @@ providers = [
 		name="OpenAI",
 		base_url="https://api.openai.com/v1",
 		api_type=ProviderAPIType.OPENAI,
+		capabilities={
+			ProviderCapability.IMAGE,
+			ProviderCapability.TEXT,
+			ProviderCapability.STT,
+			ProviderCapability.TTS,
+		},
 		organization_mode_available=True,
 		require_api_key=True,
 		env_var_name_api_key="OPENAI_API_KEY",
@@ -44,6 +58,7 @@ providers = [
 		name="MistralAI",
 		base_url="https://api.mistral.ai/v1",
 		api_type=ProviderAPIType.OPENAI,
+		capabilities={ProviderCapability.TEXT},
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="MISTRAL_API_KEY",
@@ -53,6 +68,7 @@ providers = [
 		name="OpenRouter",
 		base_url="https://openrouter.ai/api/v1",
 		api_type=ProviderAPIType.OPENAI,
+		capabilities={ProviderCapability.TEXT},
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
