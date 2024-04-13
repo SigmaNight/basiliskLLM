@@ -3,16 +3,18 @@ from enum import Enum
 from logging import getLogger
 from os import getenv
 from typing import Any, Iterable, Optional
+from uuid import uuid4
 from pydantic import (
 	BaseModel,
-	RootModel,
+	ConfigDict,
 	Field,
+	RootModel,
+	SecretStr,
+	UUID4,
 	field_serializer,
 	field_validator,
 	model_validator,
-	SecretStr,
 	model_serializer,
-	ConfigDict,
 )
 from localization import _
 from provider import Provider, providers, get_provider
@@ -27,6 +29,7 @@ class AccountSource(Enum):
 
 class AccountOrganization(BaseModel):
 	model_config = ConfigDict(populate_by_name=True)
+	id: UUID4 = Field(default_factory=uuid4)
 	name: str
 	key: SecretStr
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
@@ -42,6 +45,7 @@ class Account(BaseModel):
 	"""
 
 	model_config = ConfigDict(populate_by_name=True)
+	id: UUID4 = Field(default_factory=uuid4)
 	name: str
 	provider: Provider = Field(
 		validation_alias="provider_id", serialization_alias="provider_id"
@@ -78,6 +82,22 @@ class Account(BaseModel):
 		):
 			raise ValueError(
 				f"Organization mode is not available for {self.provider.name}"
+			)
+		return self
+
+	@model_validator(mode="after")
+	def validate_active_organization(self) -> Account:
+		if not self.active_organization:
+			return self
+		if not self.organizations:
+			raise ValueError(
+				f"No organizations found for {self.provider.name} account"
+			)
+		if not any(
+			org.name == self.active_organization for org in self.organizations
+		):
+			raise ValueError(
+				f"Organization '{self.active_organization}' not found for {self.provider.name} account"
 			)
 		return self
 
