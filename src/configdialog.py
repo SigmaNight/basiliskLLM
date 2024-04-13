@@ -73,6 +73,11 @@ class ConfigDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
+		self.advanced_mode = wx.CheckBox(
+			panel, label=_("Advanced mode"), style=wx.ALIGN_LEFT
+		)
+		self.advanced_mode.SetValue(conf.general.advanced_mode)
+		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -97,6 +102,7 @@ class ConfigDialog(wx.Dialog):
 		conf.general.language = list(LANGUAGES.keys())[
 			self.language.GetSelection()
 		]
+		conf.general.advanced_mode = self.advanced_mode.GetValue()
 		log.debug("New configuration: %s", conf)
 		conf.save()
 		set_log_level(conf.general.log_level.name)
