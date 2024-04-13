@@ -27,6 +27,7 @@ search_config_paths = [Path(__file__).parent / Path("basilisk_config.yml")]
 class GeneralSettings(BaseModel):
 	model_config = ConfigDict(populate_by_name=True)
 	language: str = Field(default="auto")
+	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
 
 
