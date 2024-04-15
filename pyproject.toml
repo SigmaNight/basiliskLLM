@@ -22,7 +22,7 @@ pyyaml = "^6.0.1"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.4"
 pre-commit = "^3.7.0"
-commitizen = "^3.21.3"
+commitizen = "^3.22.0"
 
 [tool.ruff]
 src = ["src"]
