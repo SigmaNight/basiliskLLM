@@ -20,7 +20,7 @@ pydantic-settings = "^2.2.1"
 pyyaml = "^6.0.1"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.3.4"
+ruff = "^0.3.7"
 pre-commit = "^3.7.0"
 commitizen = "^3.22.0"
 
