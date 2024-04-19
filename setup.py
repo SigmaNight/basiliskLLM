@@ -38,5 +38,7 @@ setup(
 			else "basiliskLLM",
 		)
 	],
-	message_extractors={"src": [("**.py", "python", None)]},
+	message_extractors={
+		"src": [("**.py", "python", None), ("**.pyw", "python", None)]
+	},
 )
