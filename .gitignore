@@ -25,3 +25,4 @@ tests/
 *.temp
 basilisk_config.yml
 *.pot
+*.mo
