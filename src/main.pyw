@@ -9,7 +9,7 @@ import config
 config.initialize_config()
 conf = config.conf
 from logger import get_app_logger
-from localization import _
+from localization import _, get_current_app_locale
 from consts import (
 	APP_NAME,
 	APP_VERSION,
@@ -24,7 +24,7 @@ log = get_app_logger(__name__)
 
 class MainApp(wx.App):
 
-	def OnInit(self):
+	def OnInit(self) -> bool:
 		log.info("Application started")
 		log.debug(f"setting received -> {conf}")
 		initialize_accountManager()
