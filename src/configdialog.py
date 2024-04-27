@@ -1,6 +1,7 @@
 import wx
+from babel import Locale
 from config import conf, LogLevelEnum
-from localization import _
+from localization import get_supported_locales, get_app_locale
 from logger import get_app_logger, set_log_level
 
 log = get_app_logger(__name__)
@@ -18,23 +19,6 @@ LOG_LEVELS = {
 	LogLevelEnum.ERROR: _("Error"),
 	# Translators: A label for the log level in the settings dialog
 	LogLevelEnum.CRITICAL: _("Critical"),
-}
-
-LANGUAGES = {
-	# Translators: A label for the language in the settings dialog
-	"auto": _("Auto"),
-	# Translators: A label for the language in the settings dialog
-	"en": _("English"),
-	# Translators: A label for the language in the settings dialog
-	"fi": _("Finnish"),
-	# Translators: A label for the language in the settings dialog
-	"fr": _("French"),
-	# Translators: A label for the language in the settings dialog
-	"ru": _("Russian"),
-	# Translators: A label for the language in the settings dialog
-	"uk": _("Ukrainian"),
-	# Translators: A label for the language in the settings dialog
-	"tr": _("Turkish"),
 }
 
 
@@ -61,14 +45,18 @@ class ConfigDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
-
-		cur_lang = conf.general.language
-		value = LANGUAGES.get(cur_lang, LANGUAGES["auto"])
-		label = wx.StaticText(panel, label=_("Language"), style=wx.ALIGN_LEFT)
+		app_locale = get_app_locale(conf.general.language)
+		self.init_languages(app_locale)
+		value = self.languages.get(
+			conf.general.language, self.languages["auto"]
+		)
+		label = wx.StaticText(
+			panel, label=_("Language (Requires restart)"), style=wx.ALIGN_LEFT
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.language = wx.ComboBox(
 			panel,
-			choices=list(LANGUAGES.values()),
+			choices=list(self.languages.values()),
 			value=value,
 			style=wx.CB_READONLY,
 		)
@@ -99,17 +87,35 @@ class ConfigDialog(wx.Dialog):
 		conf.general.log_level = list(LOG_LEVELS.keys())[
 			self.log_level.GetSelection()
 		]
-		conf.general.language = list(LANGUAGES.keys())[
+		conf.general.language = list(self.languages.keys())[
 			self.language.GetSelection()
 		]
+
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 		log.debug("New configuration: %s", conf)
 		conf.save()
 		set_log_level(conf.general.log_level.name)
+
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):
 		self.EndModal(wx.ID_CANCEL)
+
+	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
+		"""Get all supported languages and set the current language as default"""
+		self.languages = {
+			# Translators: A label for the language in the settings dialog
+			"auto": _("System default (auto)")
+		}
+		supported_locales = get_supported_locales()
+		self.languages.update(
+			{
+				str(
+					locale
+				): f"{locale.get_display_name(cur_locale).capitalize()} ({locale})"
+				for locale in supported_locales
+			}
+		)
 
 
 if __name__ == "__main__":

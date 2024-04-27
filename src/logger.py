@@ -1,19 +1,16 @@
 import logging
-from config import conf
 
-logging.basicConfig(
-	filename="basiliskLLM.log",
-	level=conf.general.log_level.name,
-	filemode='w',
-	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
 
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(
-	logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-)
-
-logging.getLogger().addHandler(console_handler)
+def setup_logging(level: str):
+	"""Setup logging configuration"""
+	console_handler = logging.StreamHandler()
+	file_handler = logging.FileHandler("basiliskLLM.log", mode='w')
+	logging.basicConfig(
+		level=level,
+		format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+		handlers=[console_handler, file_handler],
+		force=True,
+	)
 
 
 def set_log_level(level):

@@ -71,6 +71,7 @@ def searcb_existing_path(paths: list[Path]) -> Path:
 	return paths[0]
 
 
-def initialize_config():
+def initialize_config() -> BasiliskConfig:
 	global conf
 	conf = BasiliskConfig()
+	return conf
