@@ -6,10 +6,9 @@ if sys.platform == 'win32':
 import wx
 import wx.adv
 import config
-config.initialize_config()
-conf = config.conf
-from logger import get_app_logger
-from localization import _, get_current_app_locale
+
+from logger import get_app_logger, setup_logging
+from localization import init_translation
 from consts import (
 	APP_NAME,
 	APP_VERSION,
@@ -25,15 +24,20 @@ log = get_app_logger(__name__)
 class MainApp(wx.App):
 
 	def OnInit(self) -> bool:
-		log.info("Application started")
-		log.debug(f"setting received -> {conf}")
+		self.conf = config.initialize_config()
+		setup_logging(self.conf.general.log_level.name)
+		log.debug(f"setting received -> {self.conf}")
+		self.locale = init_translation(self.conf.general.language)
+		log.info("translation initialized")
 		initialize_accountManager()
 		self.frame = MainFrame(
 			None,
 			title=APP_NAME,
+
 		)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
+		log.info("Application started")
 		return True
 
 	def OnExit(self):
@@ -45,6 +49,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 
 	def __init__(self, frame):
 		super(TaskBarIcon, self).__init__()
+		log.debug("Initializing taskbar icon")
 		self.frame = frame
 		# TODO: Set a proper icon
 		transparent_icon = wx.Icon()
@@ -92,6 +97,7 @@ class MainFrame(wx.Frame):
 
 	def __init__(self, *args, **kwargs):
 		super(MainFrame, self).__init__(*args, **kwargs)
+		log.debug("Initializing main frame")
 		self.init_ui()
 		self.update_ui()
 		self.ID_NEW_CONVERSATION = wx.NewIdRef()
@@ -127,7 +133,7 @@ class MainFrame(wx.Frame):
 			self.stream_mode
 		)
 		for control in controls:
-			control.Show(conf.general.advanced_mode)
+			control.Show(config.conf.general.advanced_mode)
 
 	def on_key_down(self, event):
 		if event.GetModifiers() == wx.ACCEL_CTRL and event.GetKeyCode() == wx.WXK_RETURN:
@@ -158,14 +164,14 @@ class MainFrame(wx.Frame):
 		fileMenu.AppendSeparator()
 		add_image_files = fileMenu.Append(wx.ID_ANY, _('Add image files'))
 		fileMenu.AppendSeparator()
-		settings_menu = fileMenu.Append(wx.ID_ANY, _("Settings..."))
+		settings_menu = fileMenu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_settings, settings_menu)
-		quit_menu = fileMenu.Append(wx.ID_EXIT, _('Quit'))
+		quit_menu = fileMenu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_menu)
 
 		helpMenu = wx.Menu()
 
-		about_menu = helpMenu.Append(wx.ID_ABOUT, _("About"))
+		about_menu = helpMenu.Append(wx.ID_ABOUT)
 		self.Bind(wx.EVT_MENU, self.on_about, about_menu)
 
 		check_updates = helpMenu.Append(wx.ID_ANY, _("Check updates"))
@@ -177,8 +183,8 @@ class MainFrame(wx.Frame):
 		roko_basilisk = helpMenu.Append(wx.ID_ANY, _("Roko's Basilisk"))
 		self.Bind(wx.EVT_MENU, self.on_roko_basilisk, roko_basilisk)
 
-		menubar.Append(fileMenu, "&File")
-		menubar.Append(helpMenu, "&Help")
+		menubar.Append(fileMenu, _("&ile"))
+		menubar.Append(helpMenu, _("&Help"))
 		self.SetMenuBar(menubar)
 
 		self.notebook = wx.Notebook(self)

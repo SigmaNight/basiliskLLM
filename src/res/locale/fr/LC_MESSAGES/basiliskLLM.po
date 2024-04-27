@@ -8,220 +8,196 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BasiliskLLM 0.1.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-04-20 10:23+0200\n"
-"PO-Revision-Date: 2024-04-20 10:24+0200\n"
+"POT-Creation-Date: 2024-04-27 22:08+0200\n"
+"PO-Revision-Date: 2024-04-27 22:21+0200\n"
 "Last-Translator: Clément Boussiron <clement.boussiron@gmail.com>\n"
-"Language: fr\n"
 "Language-Team: fr <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.14.0\n"
+"X-Generator: Poedit 3.4.2\n"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:10
+#: src/configdialog.py:11
 msgid "Off"
 msgstr "Désactivé"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:12
+#: src/configdialog.py:13
 msgid "Debug"
 msgstr "Débogage"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:14
+#: src/configdialog.py:15
 msgid "Info"
 msgstr "Info"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:16
+#: src/configdialog.py:17
 msgid "Warning"
 msgstr "Avertissement"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:18
+#: src/configdialog.py:19
 msgid "Error"
 msgstr "Erreur"
 
 #. Translators: A label for the log level in the settings dialog
-#: src/configdialog.py:20
+#: src/configdialog.py:21
 msgid "Critical"
 msgstr "Critique"
 
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:25
-msgid "Auto"
-msgstr "Automatique"
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:27
-msgid "English"
-msgstr ""
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:29
-msgid "Finnish"
-msgstr ""
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:31
-msgid "French"
-msgstr ""
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:33
-msgid "Russian"
-msgstr ""
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:35
-msgid "Ukrainian"
-msgstr ""
-
-#. Translators: A label for the language in the settings dialog
-#: src/configdialog.py:37
-msgid "Turkish"
-msgstr ""
-
-#: src/configdialog.py:54
+#: src/configdialog.py:38
 msgid "Log level"
 msgstr "Niveau de journalisation"
 
-#: src/configdialog.py:67
-msgid "Language"
-msgstr "Langue"
+# | msgid "Language (Require restart)"
+#: src/configdialog.py:51
+msgid "Language (Requires restart)"
+msgstr "Langue (nécessite un redémarrage)"
 
-#: src/configdialog.py:77
+#: src/configdialog.py:61
 msgid "Advanced mode"
 msgstr "Mode avancé"
 
-#: src/configdialog.py:84
+#: src/configdialog.py:68
 msgid "Save"
 msgstr "Sauvegarder"
 
-#: src/configdialog.py:88
+#: src/configdialog.py:72
 msgid "Cancel"
 msgstr "Annuler"
 
-#: src/configdialog.py:117 src/main.pyw:390
+#. Translators: A label for the language in the settings dialog
+#: src/configdialog.py:104
+msgid "System default (auto)"
+msgstr "Identique au système (Automatique)"
+
+#: src/configdialog.py:117 src/main.pyw:396
 msgid "Settings"
 msgstr "Réglages"
 
-#: src/main.pyw:65
+#: src/main.pyw:70
 msgid "Show"
 msgstr "Montrer"
 
-#: src/main.pyw:65
+#: src/main.pyw:70
 msgid "Hide"
 msgstr "Cacher"
 
-#: src/main.pyw:75 src/main.pyw:168 src/main.pyw:411
+#: src/main.pyw:80 src/main.pyw:417
 msgid "About"
 msgstr "À propos"
 
-#: src/main.pyw:81 src/main.pyw:163
+#: src/main.pyw:86
 msgid "Quit"
 msgstr "Quiter"
 
-#: src/main.pyw:154
+#: src/main.pyw:160
 msgid "New conversation"
 msgstr "Nouvelle conversation"
 
-#: src/main.pyw:156
+#: src/main.pyw:162
 msgid "Close conversation"
 msgstr "Fermer la conversation"
 
-#: src/main.pyw:159
+#: src/main.pyw:165
 msgid "Add image files"
 msgstr "Ajouter une image depuis un fichier"
 
-#: src/main.pyw:161
-msgid "Settings..."
-msgstr "Réglages..."
-
-#: src/main.pyw:171
-msgid "Check updates"
-msgstr "Vérifier les mises à iours "
-
-#: src/main.pyw:174
-msgid "&GitHub repository"
-msgstr "Dépôt GitHub"
-
 #: src/main.pyw:177
-msgid "Roko's Basilisk"
-msgstr ""
+msgid "Check updates"
+msgstr "Vérifier les mises à jours"
 
-#: src/main.pyw:189
+#: src/main.pyw:180
+msgid "&GitHub repository"
+msgstr "Dépôt &GitHub"
+
+#: src/main.pyw:183
+msgid "Roko's Basilisk"
+msgstr "Basilique de Roko"
+
+#: src/main.pyw:186
+msgid "&File"
+msgstr "&Fichier"
+
+#: src/main.pyw:187
+msgid "&Help"
+msgstr "&Aide"
+
+#: src/main.pyw:195
 msgid "Ready"
 msgstr "Prêt"
 
 #. Translators: This is a label for account in the main window
-#: src/main.pyw:253
+#: src/main.pyw:259
 msgid "&Account:"
-msgstr "Compte"
+msgstr "&Compte"
 
 #. Translators: This is a label for system prompt in the main window
-#: src/main.pyw:266
+#: src/main.pyw:272
 msgid "S&ystem prompt:"
-msgstr "Système prompt"
+msgstr "S&ystème prompt"
 
 #. Translators: This is a label for user prompt in the main window
-#: src/main.pyw:275
+#: src/main.pyw:281
 msgid "&Messages:"
-msgstr "Messages"
+msgstr "&Messages"
 
 #. Translators: This is a label for user prompt in the main window
-#: src/main.pyw:284
+#: src/main.pyw:290
 msgid "&Prompt:"
-msgstr "Prompt:"
+msgstr "&Prompt:"
 
-#: src/main.pyw:291
+#: src/main.pyw:297
 msgid "M&odels:"
-msgstr "Modèles"
+msgstr "M&odèles"
 
-#: src/main.pyw:294
+#: src/main.pyw:300
 msgid "name"
 msgstr "nom"
 
-#: src/main.pyw:295
+#: src/main.pyw:301
 msgid "ID"
 msgstr "ID"
 
-#: src/main.pyw:296
+#: src/main.pyw:302
 msgid "Context window"
 msgstr "Fenêtre de contexte"
 
-#: src/main.pyw:297
+#: src/main.pyw:303
 msgid "Max tokens"
-msgstr "token maximum"
+msgstr "Token maximum"
 
 #. Translators: This is a label for max tokens in the main window
-#: src/main.pyw:303
+#: src/main.pyw:309
 msgid "&Max tokens:"
-msgstr "tokens maximum :"
+msgstr "Tokens &maximum :"
 
 #. Translators: This is a label for temperature in the main window
-#: src/main.pyw:316
+#: src/main.pyw:322
 msgid "&Temperature:"
-msgstr "Température :"
+msgstr "&Température :"
 
 #. Translators: This is a label for top P in the main window
-#: src/main.pyw:330
+#: src/main.pyw:336
 msgid "Probability &Mass (top P):"
-msgstr "Masse de probabilité (top P) :"
+msgstr "&Masse de probabilité (top P) :"
 
 #. Translators: This is a label for debug mode in the main window
-#: src/main.pyw:344
+#: src/main.pyw:350
 msgid "Debug mode"
-msgstr "Mode de déboguage"
+msgstr "Mode de débogage"
 
 #. Translators: This is a label for stream mode in the main window
-#: src/main.pyw:351
+#: src/main.pyw:357
 msgid "Stream mode"
 msgstr "Mode stream"
 
 #. Translators: This is a label for submit button in the main window
-#: src/main.pyw:358
+#: src/main.pyw:364
 msgid "Submit (Ctrl+Enter)"
 msgstr "Soumettre (Ctrl+Entrée)"

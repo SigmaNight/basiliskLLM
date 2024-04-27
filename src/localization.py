@@ -1,10 +1,10 @@
 import locale
 import gettext
-
+import wx
+from typing import Optional
 from pathlib import Path
 from babel import Locale
 from consts import APP_NAME, DEFAULT_LANG
-from config import conf
 from logger import get_app_logger
 
 logger = get_app_logger(__name__)
@@ -28,26 +28,42 @@ def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 	return supported_locales
 
 
-def get_current_app_locale() -> Locale:
+def get_app_locale(language: Optional[str]) -> Locale:
 	"""Get the current application locale"""
-	app_locale = locale.getdefaultlocale()[0]
-	if conf.general.language != "auto":
-		app_locale = conf.general.language
-	return Locale.parse(app_locale)
+	if language is None or language == "auto":
+		language = locale.getdefaultlocale()[0]
+	return Locale.parse(language)
 
 
-def setup_translation(locale: Locale) -> gettext.NullTranslations:
+def get_wx_locale(current_locale: Locale) -> wx.Locale:
+	"""Get the wxPython locale name from the babel locale"""
+	find_language = wx.Locale.FindLanguageInfo(current_locale.language)
+	if find_language:
+		logger.debug(
+			f"wxPython locale found for: {current_locale.english_name}({find_language.Language})"
+		)
+		return wx.Locale(find_language.Language)
+	logger.warning(
+		f"wxPython locale not found for: {current_locale.english_name}"
+	)
+	return wx.Locale(wx.LANGUAGE_DEFAULT)
+
+
+def setup_translation(locale: Locale) -> None:
 	"""Setup the translation for the application"""
-	global translation
-	global _
 	translation = gettext.translation(
 		domain=APP_NAME,
 		localedir=LOCALE_DIR,
 		languages=[str(locale)],
 		fallback=True,
 	)
-	_ = translation.gettext
-	logger.info(f"Translation setup for: {locale.english_name}")
+	translation.install()
+	logger.debug(f"gettext Translation setup for: {locale.english_name}")
 
 
-setup_translation(get_current_app_locale())
+def init_translation(language: Optional[str]) -> wx.Locale:
+	"""Initialize the translation for the application"""
+	app_locale = get_app_locale(language)
+	# Initialize the translation
+	setup_translation(app_locale)
+	return get_wx_locale(app_locale)

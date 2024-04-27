@@ -1,11 +1,7 @@
 import wx
+from babel import Locale
 from config import conf, LogLevelEnum
-from localization import (
-	_,
-	get_supported_locales,
-	get_current_app_locale,
-	setup_translation,
-)
+from localization import get_supported_locales, get_app_locale
 from logger import get_app_logger, set_log_level
 
 log = get_app_logger(__name__)
@@ -49,10 +45,14 @@ class ConfigDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
-		cur_lang = conf.general.language
-		self.init_languages(get_current_app_locale())
-		value = self.languages.get(cur_lang, self.languages["auto"])
-		label = wx.StaticText(panel, label=_("Language"), style=wx.ALIGN_LEFT)
+		app_locale = get_app_locale(conf.general.language)
+		self.init_languages(app_locale)
+		value = self.languages.get(
+			conf.general.language, self.languages["auto"]
+		)
+		label = wx.StaticText(
+			panel, label=_("Language (Requires restart)"), style=wx.ALIGN_LEFT
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.language = wx.ComboBox(
 			panel,
@@ -90,26 +90,29 @@ class ConfigDialog(wx.Dialog):
 		conf.general.language = list(self.languages.keys())[
 			self.language.GetSelection()
 		]
+
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 		log.debug("New configuration: %s", conf)
 		conf.save()
 		set_log_level(conf.general.log_level.name)
-		setup_translation(get_current_app_locale())
+
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):
 		self.EndModal(wx.ID_CANCEL)
 
-	def init_languages(self, current_lang: str) -> dict[str, str]:
+	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
 		"""Get all supported languages and set the current language as default"""
 		self.languages = {
 			# Translators: A label for the language in the settings dialog
-			"auto": _("Auto")
+			"auto": _("System default (auto)")
 		}
 		supported_locales = get_supported_locales()
 		self.languages.update(
 			{
-				str(locale): locale.get_display_name(current_lang)
+				str(
+					locale
+				): f"{locale.get_display_name(cur_locale).capitalize()} ({locale})"
 				for locale in supported_locales
 			}
 		)
