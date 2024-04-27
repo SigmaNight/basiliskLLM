@@ -41,9 +41,8 @@ repos:
       - id: poetry-lock
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
+        args: ["--no-update"]
       - id: poetry-install
-        files: "^(pyproject.toml|poetry.lock)$"
-        always_run: false
         stages:
           - "post-checkout"
           - "post-merge"
