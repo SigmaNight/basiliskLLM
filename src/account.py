@@ -189,6 +189,8 @@ class AccountManager(RootModel[list[Account]]):
 
 
 ACCOUNT_SOURCE_LABELS = {
-	AccountSource.ENV_VAR: "Environment variable",
-	AccountSource.CONFIG: "Configuration file",
+	# Translators: Account source label
+	AccountSource.ENV_VAR: _("Environment variable"),
+	# Translators: Account source label
+	AccountSource.CONFIG: _("Configuration file"),
 }
