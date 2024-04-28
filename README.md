@@ -64,6 +64,27 @@ cd src
 python main.pyw
 ```
 
+## translations 🌍
+
+This project is open to translations. If you want to help us translate the project into your language, you can create a po template file with the following command:
+
+```shell
+python setup.py extract_messages
+```
+
+Then you can create a po file for your language with the following command:
+
+```shell
+python setup.py init_catalog --locale <your_language_code>
+```
+
+The language code should be in the format of the ISO 639-1 standard. For example, for Spanish, the language code is `es`. You can find the language code for your language [here](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
+Use a text editor like [Poedit](https://poedit.net/) to translate the strings in the po file. When you finish translating the strings, you can compile the po file to a mo file with the following command:
+
+```shell
+python setup.py compile_catalog
+```
+
 ## Contributions: Summoning All Wizards and Witches
 
 Got ideas, translations, or magical spells to contribute? We're all ears. Open an issue like it's your Hogwarts acceptance letter. Time to make some magic happen!

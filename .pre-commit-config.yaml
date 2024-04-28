@@ -41,14 +41,13 @@ repos:
       - id: poetry-lock
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
+        args: ["--no-update"]
       - id: poetry-install
-        files: "^(pyproject.toml|poetry.lock)$"
-        always_run: false
         stages:
           - "post-checkout"
           - "post-merge"
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.21.3
+    rev: v3.24.0
     hooks:
       - id: commitizen
         stages:
@@ -60,7 +59,7 @@ repos:
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.3.5"
+    rev: "v0.4.1"
     hooks:
       - id: ruff-format
       - id: ruff

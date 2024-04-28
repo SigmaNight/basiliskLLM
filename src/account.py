@@ -16,7 +16,6 @@ from pydantic import (
 	model_validator,
 	model_serializer,
 )
-from localization import _
 from provider import Provider, providers, get_provider
 
 log = getLogger(__name__)

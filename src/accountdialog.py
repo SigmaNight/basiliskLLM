@@ -1,7 +1,6 @@
 from typing import Optional
 from pydantic import SecretStr
 import wx
-from localization import _
 from logging import getLogger
 from account import (
 	Account,
