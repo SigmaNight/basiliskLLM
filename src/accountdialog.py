@@ -37,12 +37,12 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(panel, label=_("Name:"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(panel, label=_("&Name:"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.name = wx.TextCtrl(panel)
 		sizer.Add(self.name, 0, wx.EXPAND)
 
-		label = wx.StaticText(panel, label=_("Key:"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(panel, label=_("API &Key:"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.key = wx.TextCtrl(panel)
 		sizer.Add(self.key, 0, wx.EXPAND)
@@ -393,7 +393,8 @@ class EditAccountDialog(wx.Dialog):
 		provider_name = self.provider.GetValue()
 		provider = get_provider(name=provider_name)
 		self.api_key.Enable(provider.require_api_key)
-		self.organization.Enable(provider.organization_mode_available)
+		if self.account:
+			self.organization.Enable(provider.organization_mode_available)
 
 	def on_ok(self, event):
 		if not self.name.GetValue():
