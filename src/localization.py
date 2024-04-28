@@ -1,14 +1,13 @@
-import locale
 import gettext
+import locale
+import logging
 import wx
 from typing import Optional
 from pathlib import Path
 from babel import Locale
 from consts import APP_NAME, DEFAULT_LANG
-from logger import get_app_logger
 
-logger = get_app_logger(__name__)
-
+log = logging.getLogger(__name__)
 LOCALE_DIR = Path(__file__).parent / Path("res", "locale")
 
 
@@ -22,7 +21,7 @@ def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 		if mo_file.exists():
 			supported_locales.append(detected_locale)
 		else:
-			logger.warning(
+			log.warning(
 				f"Translation compiled file not found for: {detected_locale.english_name}"
 			)
 	return supported_locales
@@ -39,13 +38,11 @@ def get_wx_locale(current_locale: Locale) -> wx.Locale:
 	"""Get the wxPython locale name from the babel locale"""
 	find_language = wx.Locale.FindLanguageInfo(current_locale.language)
 	if find_language:
-		logger.debug(
+		log.debug(
 			f"wxPython locale found for: {current_locale.english_name}({find_language.Language})"
 		)
 		return wx.Locale(find_language.Language)
-	logger.warning(
-		f"wxPython locale not found for: {current_locale.english_name}"
-	)
+	log.warning(f"wxPython locale not found for: {current_locale.english_name}")
 	return wx.Locale(wx.LANGUAGE_DEFAULT)
 
 
@@ -58,7 +55,7 @@ def setup_translation(locale: Locale) -> None:
 		fallback=True,
 	)
 	translation.install()
-	logger.debug(f"gettext Translation setup for: {locale.english_name}")
+	log.debug(f"gettext Translation setup for: {locale.english_name}")
 
 
 def init_translation(language: Optional[str]) -> wx.Locale:

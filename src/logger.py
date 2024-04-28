@@ -1,7 +1,7 @@
 import logging
 
 
-def setup_logging(level: str):
+def setup_logging(level: str) -> None:
 	"""Setup logging configuration"""
 	console_handler = logging.StreamHandler()
 	file_handler = logging.FileHandler("basiliskLLM.log", mode='w')
@@ -13,21 +13,15 @@ def setup_logging(level: str):
 	)
 
 
-def set_log_level(level):
+def set_log_level(level: str) -> None:
 	"""Change global log level to new level and update all loggers
 	:param level: new log level
 	"""
-	cur_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
+	cur_level = logging.getLevelName(logging.root.getEffectiveLevel())
 	if cur_level == level:
 		return
-	logging.getLogger().setLevel(level)
-	for handler in logging.getLogger().handlers:
+	logging.root.setLevel(level)
+	for handler in logging.root.handlers:
 		handler.setLevel(level)
-	new_level = logging.getLevelName(logging.getLogger().getEffectiveLevel())
-	logging.getLogger().debug(
-		f"Log level changed from {cur_level} to {new_level}"
-	)
-
-
-def get_app_logger(name):
-	return logging.getLogger(name)
+	new_level = logging.getLevelName(logging.root.getEffectiveLevel())
+	logging.root.debug(f"Log level changed from {cur_level} to {new_level}")
