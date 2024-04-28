@@ -16,7 +16,6 @@ from consts import (
 	APP_AUTHORS,
 	APP_SOURCE_URL
 )
-from account import initialize_accountManager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
 
@@ -30,11 +29,9 @@ class MainApp(wx.App):
 		log.debug(f"setting received -> {self.conf}")
 		self.locale = init_translation(self.conf.general.language)
 		log.info("translation initialized")
-		initialize_accountManager()
 		self.frame = MainFrame(
 			None,
-			title=APP_NAME,
-
+			title=APP_NAME
 		)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
@@ -184,7 +181,7 @@ class MainFrame(wx.Frame):
 		roko_basilisk = helpMenu.Append(wx.ID_ANY, _("Roko's Basilisk"))
 		self.Bind(wx.EVT_MENU, self.on_roko_basilisk, roko_basilisk)
 
-		menubar.Append(fileMenu, _("&ile"))
+		menubar.Append(fileMenu, _("&Conversation"))
 		menubar.Append(helpMenu, _("&Help"))
 		self.SetMenuBar(menubar)
 

@@ -2,6 +2,7 @@ import logging
 import wx
 from babel import Locale
 from config import conf, LogLevelEnum
+from accountdialog import AccountDialog
 from localization import get_supported_locales, get_app_locale
 from logger import set_log_level
 
@@ -27,11 +28,11 @@ class ConfigDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
-		self.initUI()
+		self.init_ui()
 		self.Centre()
 		self.Show()
 
-	def initUI(self):
+	def init_ui(self):
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -68,14 +69,17 @@ class ConfigDialog(wx.Dialog):
 		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
+		accountsBtn = wx.Button(panel, label=_("Manage &accounts"))
+		accountsBtn.Bind(wx.EVT_BUTTON, self.on_manage_accounts)
+
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK, _("Save"))
-		btn.Bind(wx.EVT_BUTTON, self.onOK)
+		btn.Bind(wx.EVT_BUTTON, self.on_ok)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
-		btn.Bind(wx.EVT_BUTTON, self.onCancel)
+		btn.Bind(wx.EVT_BUTTON, self.on_cancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		sizer.Add(bSizer, 0, wx.ALL, 5)
@@ -83,7 +87,12 @@ class ConfigDialog(wx.Dialog):
 		panel.Layout()
 		self.Layout()
 
-	def onOK(self, event):
+	def on_manage_accounts(self, event):
+		dlg = AccountDialog(self, _("Manage accounts"))
+		dlg.ShowModal()
+		dlg.Destroy()
+
+	def on_ok(self, event):
 		log.debug("Saving configuration")
 		conf.general.log_level = list(LOG_LEVELS.keys())[
 			self.log_level.GetSelection()
@@ -99,7 +108,7 @@ class ConfigDialog(wx.Dialog):
 
 		self.EndModal(wx.ID_OK)
 
-	def onCancel(self, event):
+	def on_cancel(self, event):
 		self.EndModal(wx.ID_CANCEL)
 
 	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
@@ -117,9 +126,3 @@ class ConfigDialog(wx.Dialog):
 				for locale in supported_locales
 			}
 		)
-
-
-if __name__ == "__main__":
-	app = wx.App()
-	ConfigDialog(None, -1, _("Settings"))
-	app.MainLoop()
