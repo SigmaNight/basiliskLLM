@@ -262,6 +262,13 @@ class AccountOrganizationDialog(wx.Dialog):
 	def on_remove(self, event):
 		item = self.organization_list.GetFirstSelected()
 		organization_id = self.organizations[item].id
+		organization_name = self.organizations[item].name
+		# Translators: A confirmation message in account dialog for removing organization
+		msg = _("Are you sure you want to remove the organization {}?").format(
+			organization_name
+		)
+		if wx.MessageBox(msg, _("Confirmation"), wx.YES_NO) != wx.YES:
+			return
 		self.organizations.pop(item)
 		self.organization_list.DeleteItem(item)
 		if self.account.active_organization == organization_id:
@@ -628,6 +635,13 @@ class AccountDialog(wx.Dialog):
 		if index == -1:
 			return
 		account = self.account_manager[index]
+		account_name = account.name
+		# Translators: A confirmation message in account dialog
+		msg = _("Are you sure you want to remove the account {}?").format(
+			account_name
+		)
+		if wx.MessageBox(msg, _("Confirmation"), wx.YES_NO) != wx.YES:
+			return
 		if account.source == AccountSource.ENV_VAR:
 			msg = _("Cannot remove account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
