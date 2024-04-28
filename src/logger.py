@@ -27,7 +27,3 @@ def set_log_level(level):
 	logging.getLogger().debug(
 		f"Log level changed from {cur_level} to {new_level}"
 	)
-
-
-def get_app_logger(name):
-	return logging.getLogger(name)

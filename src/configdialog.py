@@ -1,10 +1,11 @@
+import logging
 import wx
 from babel import Locale
 from config import conf, LogLevelEnum
 from localization import get_supported_locales, get_app_locale
-from logger import get_app_logger, set_log_level
+from logger import set_log_level
 
-log = get_app_logger(__name__)
+log = logging.getLogger(__name__)
 
 LOG_LEVELS = {
 	# Translators: A label for the log level in the settings dialog
