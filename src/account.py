@@ -188,9 +188,10 @@ class AccountManager(RootModel[list[Account]]):
 		self.root[index] = value
 
 
-ACCOUNT_SOURCE_LABELS = {
-	# Translators: Account source label
-	AccountSource.ENV_VAR: _("Environment variable"),
-	# Translators: Account source label
-	AccountSource.CONFIG: _("Configuration file"),
-}
+def get_account_source_labels() -> dict[AccountSource, str]:
+	return {
+		# Translators: Account source label
+		AccountSource.ENV_VAR: _("Environment variable"),
+		# Translators: Account source label
+		AccountSource.CONFIG: _("Configuration file"),
+	}

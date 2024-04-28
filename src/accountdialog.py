@@ -6,7 +6,7 @@ from account import (
 	Account,
 	AccountOrganization,
 	AccountSource,
-	ACCOUNT_SOURCE_LABELS,
+	get_account_source_labels,
 )
 from config import conf
 from provider import providers, get_provider
@@ -97,6 +97,7 @@ class AccountOrganizationDialog(wx.Dialog):
 		self, parent: wx.Window, title: str, account: Account, size=(400, 400)
 	):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
+		self.account_source_labels = get_account_source_labels()
 		self.parent = parent
 		self.account = account
 		self.init_ui()
@@ -169,7 +170,7 @@ class AccountOrganizationDialog(wx.Dialog):
 				(
 					organization.name,
 					organization.key.get_secret_value(),
-					ACCOUNT_SOURCE_LABELS.get(
+					self.account_source_labels.get(
 						organization.source, _("Unknown")
 					),
 				)
@@ -216,9 +217,7 @@ class AccountOrganizationDialog(wx.Dialog):
 				(
 					organization.name,
 					organization.key.get_secret_value(),
-					ACCOUNT_SOURCE_LABELS.get(
-						organization.source, _("Unknown")
-					),
+					self.account_.get(organization.source, _("Unknown")),
 				)
 			)
 		dialog.Destroy()
@@ -249,7 +248,9 @@ class AccountOrganizationDialog(wx.Dialog):
 			self.organization_list.SetStringItem(
 				selected_item,
 				2,
-				ACCOUNT_SOURCE_LABELS.get(organization.source, _("Unknown")),
+				self.account_source_labels.get(
+					organization.source, _("Unknown")
+				),
 			)
 		dialog.Destroy()
 		self.organization_list.SetItemState(
@@ -443,6 +444,7 @@ class AccountDialog(wx.Dialog):
 
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
+		self.account_source_labels = get_account_source_labels()
 		self.parent = parent
 		self.init_ui()
 		self.init_data()
@@ -538,7 +540,9 @@ class AccountDialog(wx.Dialog):
 					account.name,
 					account.provider.name,
 					self._get_organization_name(account),
-					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
+					self.account_source_labels.get(
+						account.source, _("Unknown")
+					),
 				)
 			)
 
@@ -584,7 +588,9 @@ class AccountDialog(wx.Dialog):
 					account.name,
 					account.provider.name,
 					self._get_organization_name(account),
-					ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
+					self.account_source_labels.get(
+						account.source, _("Unknown")
+					),
 				)
 			)
 		dialog.Destroy()
@@ -619,7 +625,7 @@ class AccountDialog(wx.Dialog):
 			self.account_list.SetStringItem(
 				index,
 				3,
-				ACCOUNT_SOURCE_LABELS.get(account.source, _("Unknown")),
+				self.account_source_labels.get(account.source, _("Unknown")),
 			)
 		dialog.Destroy()
 		self.account_list.SetItemState(
