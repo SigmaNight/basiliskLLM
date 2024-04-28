@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import winsound
@@ -7,7 +8,7 @@ import wx
 import wx.adv
 import config
 
-from logger import get_app_logger, setup_logging
+from logger import setup_logging
 from localization import init_translation
 from consts import (
 	APP_NAME,
@@ -18,7 +19,7 @@ from consts import (
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
 
-log = get_app_logger(__name__)
+log = logging.getLogger(__name__)
 
 class MainApp(wx.App):
 
