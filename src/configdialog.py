@@ -37,7 +37,7 @@ class ConfigDialog(wx.Dialog):
 
 		label = wx.StaticText(panel, label=_("Log level"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level_value = conf.general.log_level.value
+		log_level_value = LOG_LEVELS[conf.general.log_level]
 		self.log_level = wx.ComboBox(
 			panel,
 			choices=list(LOG_LEVELS.values()),
