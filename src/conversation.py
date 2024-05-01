@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal
 from pydantic import BaseModel, Field
+from provideraimodel import ProviderAIModel
 
 
 class MessageRoleEnum(Enum):
@@ -25,21 +26,20 @@ class Message(BaseModel):
 	content: list[TextMessageConten | ImageUrlMessageContent] | str = Field(
 		discrminator="type"
 	)
-	date: datetime
 
 
 class MessageBlock(BaseModel):
 	request: Message
-	response: Message
+	response: Message | None = Field(default=None)
+	model: ProviderAIModel
 	temperature: float = Field(default=1)
-
-
-class SystemMessageBlock(BaseModel):
-	message: Message
-	start_block: int = Field(default=0)
-	end_block: int = Field(default=-1)
+	max_tokens: int = Field(default=4096)
+	top_p: float = Field(default=1)
+	stream: bool = Field(default=False)
+	created_at: datetime = Field(default_factory=datetime.now)
+	updated_at: datetime = Field(default_factory=datetime.now)
 
 
 class Conversation(BaseModel):
-	systems: list[SystemMessageBlock]
-	messages: list[MessageBlock]
+	system: Message | None = Field(default=None)
+	messages: list[MessageBlock] = Field(default_factory=list)

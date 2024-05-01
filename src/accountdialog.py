@@ -272,8 +272,8 @@ class AccountOrganizationDialog(wx.Dialog):
 			return
 		self.organizations.pop(item)
 		self.organization_list.DeleteItem(item)
-		if self.account.active_organization == organization_id:
-			self.account.active_organization = None
+		if self.account.active_organization_id == organization_id:
+			self.account.active_organization_id = None
 		self.update_ui()
 
 	def onOK(self, event):
@@ -365,22 +365,25 @@ class EditAccountDialog(wx.Dialog):
 					for organization in self.account.organizations
 				]
 				self.organization.SetItems(choices)
-			if self.account.active_organization:
+			if self.account.active_organization_id:
 				index = -1
 				for i, organization in enumerate(self.account.organizations):
-					if organization.id == self.account.active_organization:
+					if organization.id == self.account.active_organization_id:
 						index = i + 1
 						break
 				self.organization.SetSelection(index)
 			else:
 				self.organization.SetSelection(0)
 
-				if self.account.active_organization:
+				if self.account.active_organization_id:
 					index = -1
 					for i, organization in enumerate(
 						self.account.organizations
 					):
-						if organization.id == self.account.active_organization:
+						if (
+							organization.id
+							== self.account.active_organization_id
+						):
 							index = i + 1
 							break
 					self.organization.SetSelection(index)
@@ -425,13 +428,13 @@ class EditAccountDialog(wx.Dialog):
 			self.account.name = self.name.GetValue()
 			self.account.provider = provider
 			self.account.api_key = SecretStr(self.api_key.GetValue())
-			self.account.active_organization = active_organization
+			self.account.active_organization_id = active_organization
 		else:
 			self.account = Account(
 				name=self.name.GetValue(),
 				provider=provider,
 				api_key=SecretStr(self.api_key.GetValue()),
-				active_organization=active_organization,
+				active_organization_id=active_organization,
 				source=AccountSource.CONFIG,
 			)
 		self.EndModal(wx.ID_OK)

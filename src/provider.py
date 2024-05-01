@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import Optional, Iterable, Any
+from typing import Optional, Iterable, Any, Type
 from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
+from providerengine import BaseEngine, OpenAIEngine
 
 log = getLogger(__name__)
 
@@ -34,6 +35,7 @@ class Provider(BaseModel):
 	custom: bool = Field(default=True)
 	env_var_name_api_key: Optional[str] = Field(default=None)
 	env_var_name_organization_key: Optional[str] = Field(default=None)
+	engine_cls: Type[BaseEngine]
 
 
 providers = [
@@ -52,7 +54,11 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENAI_API_KEY",
 		env_var_name_organization_key="OPENAI_ORG_KEY",
-	),
+		engine_cls=OpenAIEngine,
+	)
+]
+
+"""
 	Provider(
 		id="mistralai",
 		name="MistralAI",
@@ -73,7 +79,8 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
 	),
-]
+	]
+"""
 
 
 def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
