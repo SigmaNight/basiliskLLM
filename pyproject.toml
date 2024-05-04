@@ -78,7 +78,7 @@ excludes = [
     "setuptools", "setuptools_scm",
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
     "babel.messages"]
-
+    
 include_files = ["src/res"]
 include_path = "src"
 packages = ["os", "sys", "wx", "wx.adv", "openai", "pydantic_settings", "yaml", "platformdirs", "babel"]
