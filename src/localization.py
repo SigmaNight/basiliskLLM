@@ -1,3 +1,4 @@
+import sys
 import gettext
 import locale
 import logging
@@ -8,13 +9,21 @@ from babel import Locale
 from consts import APP_NAME, DEFAULT_LANG
 
 log = logging.getLogger(__name__)
-LOCALE_DIR = Path(__file__).parent / Path("res", "locale")
+
+
+if getattr(sys, "frozen", False):
+	logging.debug("Running in a cxfreeze bundle")
+	LOCALE_DIR = Path(sys.executable).parent / Path("res", "locale")
+else:
+	log.debug("Running in a normal Python environment")
+	LOCALE_DIR = Path(__file__).parent / Path("res", "locale")
 
 
 def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 	"""get all supported translation language from the locale directory and check if a mo file exwist for the language"""
 	supported_locales = [Locale.parse(DEFAULT_LANG)]
 	mo_sub_path = Path("LC_MESSAGES", f"{domain}.mo")
+	log.debug("Locale directory: %s", LOCALE_DIR)
 	for lang in LOCALE_DIR.iterdir():
 		mo_file = lang / mo_sub_path
 		detected_locale = Locale.parse(lang.name)
