@@ -1,6 +1,8 @@
+import sys
 import yaml
 from pathlib import Path
 from enum import Enum
+from platformdirs import user_config_path
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_settings import (
 	BaseSettings,
@@ -8,7 +10,6 @@ from pydantic_settings import (
 	SettingsConfigDict,
 	YamlConfigSettingsSource,
 )
-
 from account import AccountManager
 
 
@@ -21,7 +22,22 @@ class LogLevelEnum(Enum):
 	CRITICAL = "critical"
 
 
-search_config_paths = [Path(__file__).parent / Path("basilisk_config.yml")]
+config_file_path = Path("config.yml")
+search_config_paths = []
+if getattr(sys, "frozen", False):
+	search_config_paths.append(
+		Path(sys.executable).parent / Path("user_data") / config_file_path
+	)
+else:
+	search_config_paths.append(
+		Path(__file__).parent / Path("user_data") / config_file_path
+	)
+search_config_paths.append(
+	user_config_path(
+		"basilisk", "basilisk_llm", roaming=True, ensure_exists=True
+	)
+	/ config_file_path
+)
 
 
 class GeneralSettings(BaseModel):
