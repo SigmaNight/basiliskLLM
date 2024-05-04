@@ -1,13 +1,22 @@
-[tool.poetry]
+[project]
 name = "basiliskllm"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Where LLMs Unite"
-authors = ["André-Abush Clause <dev@andreabc.net>"]
-license = "GPL-2.0"
+authors = [
+    {name = "André-Abush Clause", email ="dev@andreabc.net"},
+]
 readme = "README.md"
-package-mode = false
+license = {file = "LICENSE"}
+
+[project.urls]
 homepage = "https://github.com/aaclause/basiliskLLM"
 repository = "https://github.com/aaclause/basiliskLLM"
+issues = "https://github.com/aaclause/basiliskLLM/issues"
+
+
+[tool.poetry]
+name = "basiliskllm"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -49,6 +58,17 @@ tag_format = "$version"
 version_scheme = "pep440"
 version_provider = "poetry"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+
+[tool.cxfreeze]
+executables = [
+    {script="src/main.pyw", base="gui", target_name="basiliskllm"},
+]
+[tool.cxfreeze.build_exe]
+optimize = 2
+excludes = [
+    "tarfile", "tkinter", "unittest", "email", "xml", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
+    "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
+    "babel.messages"]
+include_files = ["src/res"]
+include_path = "src"
+packages = ["os", "sys", "wx", "wx.adv", "openai", "pydantic_settings", "yaml", "platformdirs", "babel"]
