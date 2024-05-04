@@ -27,6 +27,7 @@ pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.1"
 pydantic-settings = "^2.2.1"
 pyyaml = "^6.0.1"
+platformdirs = "^4.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.3"
