@@ -40,7 +40,7 @@ class BaseEngine(ABC):
 		"""
 		messages = []
 		if system_message:
-			messages.append(system_message)
+			messages.append({"role": "system", "content": system_message})
 		for message_block in conversation.messages:
 			if not message_block.response:
 				continue
@@ -68,8 +68,8 @@ class BaseEngine(ABC):
 
 	@abstractmethod
 	def completion_response_with_stream(
-		self, response: Any, block: MessageBlock, debug: bool
-	):
+		self, response: Any, new_block: MessageBlock, debug: bool, **kwargs
+	) -> MessageBlock:
 		"""
 		Response with stream
 		"""
@@ -77,7 +77,7 @@ class BaseEngine(ABC):
 
 	@abstractmethod
 	def completion_response_without_stream(
-		self, response: Any, block: MessageBlock, debug: bool
+		self, response: Any, new_block: MessageBlock, debug: bool, **kwargs
 	) -> MessageBlock:
 		"""
 		Response without stream

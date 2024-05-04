@@ -143,7 +143,6 @@ class OpenAIEngine(BaseEngine):
 		**kwargs,
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
 		super().completion(new_block, conversation, system_message, **kwargs)
-		debug_mode = kwargs.pop("debug", False)
 		params = {
 			"model": new_block.model.id,
 			"messages": self.get_messages(
@@ -155,24 +154,26 @@ class OpenAIEngine(BaseEngine):
 			"stream": new_block.stream,
 		}
 		params.update(kwargs)
-		if debug_mode:
-			log.debug(f"Completion params: {params}")
 		response = self.client.chat.completions.create(**params)
 		return response
 
 	def completion_response_with_stream(
-		self,
-		response: Generator[ChatCompletionChunk, None, None],
-		block: MessageBlock,
-		debug: bool,
+		self, stream: Generator[ChatCompletionChunk, None, None]
 	):
-		pass
+		for chunk in stream:
+			delta = chunk.choices[0].delta
+			if delta and delta.content:
+				yield delta.content
 
 	def completion_response_without_stream(
-		self, response: ChatCompletion, block: MessageBlock, debug: bool
+		self,
+		response: ChatCompletion,
+		new_block: MessageBlock,
+		debug: bool,
+		**kwargs,
 	) -> MessageBlock:
-		block.response = Message(
+		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content,
 		)
-		return block
+		return new_block

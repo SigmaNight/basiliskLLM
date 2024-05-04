@@ -1,7 +1,9 @@
 import logging
 import os
 import sys
+import threading
 import winsound
+
 
 if sys.platform == 'win32':
 	import win32con
@@ -140,38 +142,59 @@ class MainFrame(wx.Frame):
 		return [m.display_model for m in self.current_engine.models]
 
 	def on_submit(self, event):
-		sys_msg = self.system_prompt_txt.GetValue()
-		prompt_msg = self.prompt.GetValue()
-		max_tokens = self.maxTokensSpinCtrl.GetValue()
-		temperature = self.temperature_spinner.GetValue()
-		top_p = self.top_p_spinner.GetValue()
-		debug = self.debug_mode.GetValue()
-		stream = self.stream_mode.GetValue()
-		model = self.current_model
-		engine = self.current_engine
-		log.debug(f"Submitting message with model {model.id}")
 		new_block = MessageBlock(
-			request=Message(role=MessageRoleEnum.USER, content=prompt_msg),
-			model=model,
-			temperature=temperature,
-			max_tokens=max_tokens,
-			top_p=top_p,
-			stream=stream,
+			request=Message(
+				role=MessageRoleEnum.USER,
+				content=self.prompt.GetValue()
+			),
+			model=self.current_model,
+			top_p = self.top_p_spinner.GetValue() / 100,
+			temperature=self.temperature_spinner.GetValue(),
+			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
+			stream=self.stream_mode.GetValue()
 		)
-		response = engine.completion(
-			new_block=new_block,
-			conversation=self.current_conversation,
-			system_message=sys_msg,
-			debug=debug,
-		)
-		if stream:
-			engine.completion_response_with_stream(response, new_block, debug)
-		else:
-			engine.completion_response_without_stream(
-				response, new_block, debug
+		completion_kw = {
+			"system_message": self.system_prompt_txt.GetValue(),
+			"conversation": self.current_conversation,
+			"new_block": new_block,
+			"debug": self.debug_mode.GetValue(),
+			"engine": self.current_engine,
+			"stream": new_block.stream
+		}
+		log.debug(f"Completion params: {completion_kw}")
+		self.messages.SetFocus()
+		thread = threading.Thread(target=self._handle_completion, kwargs=completion_kw)
+		thread.start()
+
+	def _handle_completion(self, engine: BaseEngine, **kwargs):
+		response = engine.completion(**kwargs)
+		new_block = kwargs["new_block"]
+		if kwargs.get("stream", False):
+			new_block.response = Message(
+				role=MessageRoleEnum.ASSISTANT,
+				content=""
 			)
+			self.current_conversation.messages.append(new_block)
+			self.update_messages()
+			self.prompt.Clear()
+			self.messages.SetFocus()
+			for chunk in self.current_engine.completion_response_with_stream(response):
+				new_block.response.content += chunk
+				self.messages.AppendText(chunk)
+			wx.CallAfter(self._post_completion_with_stream, new_block)
+		else:
+			new_block = engine.completion_response_without_stream(
+				response=response, **kwargs
+			)
+			wx.CallAfter(self._post_completion_without_stream, new_block)
+
+	def _post_completion_with_stream(self, new_block):
+		pass
+
+	def _post_completion_without_stream(self, new_block):
 		self.current_conversation.messages.append(new_block)
 		self.update_messages()
+		self.prompt.Clear()
 
 	def update_messages(self):
 		self.messages.Clear()
@@ -354,11 +377,16 @@ class MainFrame(wx.Frame):
 		label = wx.StaticText(
 			tab_panel,
 			# Translators: This is a label for max tokens in the main window
-			label=_("&Max tokens:"),
+			label=_("Max to&kens:"),
 		)
 		tab_sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.maxTokensSpinCtrl = wx.SpinCtrl(tab_panel, value='0', min=0)
-		tab_sizer.Add(self.maxTokensSpinCtrl, proportion=0, flag=wx.EXPAND)
+		self.max_tokens_spin_ctrl = wx.SpinCtrl(
+			tab_panel,
+			value='1024',
+			min=1,
+			max=64000,
+		)
+		tab_sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
 
 		label = wx.StaticText(
 			tab_panel,
@@ -383,15 +411,16 @@ class MainFrame(wx.Frame):
 		self.debug_mode = wx.CheckBox(
 			tab_panel,
 			# Translators: This is a label for debug mode in the main window
-			label=_("Debug mode"),
+			label=_("Debu&g mode"),
 		)
 		tab_sizer.Add(self.debug_mode, proportion=0, flag=wx.EXPAND)
 
 		self.stream_mode = wx.CheckBox(
 			tab_panel,
 			# Translators: This is a label for stream mode in the main window
-			label=_("Stream mode"),
+			label=_("&Stream mode"),
 		)
+		self.stream_mode.SetValue(True)
 		tab_sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
 
 		self.submit_btn = wx.Button(
@@ -421,6 +450,11 @@ class MainFrame(wx.Frame):
 			self.model_list.InsertItem(i, model[0])
 			self.model_list.SetItem(i, 1, model[1])
 			self.model_list.SetItem(i, 2, model[2])
+		self.model_list.SetItemState(
+			0,
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+		)
 
 	def on_close_conversation(self, event):
 		current_tab = self.notebook.GetSelection()
