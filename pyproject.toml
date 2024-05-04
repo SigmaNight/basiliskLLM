@@ -13,6 +13,12 @@ homepage = "https://github.com/aaclause/basiliskLLM"
 repository = "https://github.com/aaclause/basiliskLLM"
 issues = "https://github.com/aaclause/basiliskLLM/issues"
 
+[build-system]
+requires = ["cx_freeze>+7.0.0", "setuptools>=64.0.0", "setuptools_scm>=8"]
+build-backend = "cx_freeze.build"
+requires-python = ">=3.12"
+
+[tool.setuptools_scm]
 
 [tool.poetry]
 name = "basiliskllm"
@@ -34,6 +40,7 @@ ruff = "^0.4.3"
 pre-commit = "^3.7.0"
 commitizen = "^3.25.0"
 babel = "^2.15.0"
+setuptools-scm = "^8.0.4"
 
 [tool.ruff]
 src = ["src"]
@@ -68,8 +75,10 @@ executables = [
 optimize = 2
 excludes = [
     "tarfile", "tkinter", "unittest", "email", "xml", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
+    "setuptools", "setuptools_scm",
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
     "babel.messages"]
+
 include_files = ["src/res"]
 include_path = "src"
 packages = ["os", "sys", "wx", "wx.adv", "openai", "pydantic_settings", "yaml", "platformdirs", "babel"]
