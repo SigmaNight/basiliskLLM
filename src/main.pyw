@@ -8,7 +8,7 @@ import wx
 import wx.adv
 import config
 
-from logger import setup_logging
+from logger import setup_logging, logging_uncaught_exceptions
 from localization import init_translation
 from consts import (
 	APP_NAME,
@@ -425,5 +425,6 @@ class MainFrame(wx.Frame):
 		self.Close()
 
 if __name__ == '__main__':
+	sys.excepthook = logging_uncaught_exceptions()
 	app = MainApp()
 	app.MainLoop()
