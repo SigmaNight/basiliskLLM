@@ -163,17 +163,13 @@ class OpenAIEngine(BaseEngine):
 		for chunk in stream:
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
-				yield delta.content
+				yield self.normalize_linesep(delta.content)
 
 	def completion_response_without_stream(
-		self,
-		response: ChatCompletion,
-		new_block: MessageBlock,
-		debug: bool,
-		**kwargs,
+		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
+			content=self.normalize_linesep(response.choices[0].message.content),
 		)
 		return new_block

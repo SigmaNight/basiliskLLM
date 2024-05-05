@@ -2,7 +2,12 @@ from enum import Enum
 from typing import Optional, Iterable, Any, Type
 from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
-from providerengine import BaseEngine, OpenAIEngine
+from providerengine import (
+	BaseEngine,
+	MistralAIEngine,
+	OpenAIEngine,
+	OpenRouterEngine,
+)
 
 log = getLogger(__name__)
 
@@ -55,10 +60,7 @@ providers = [
 		env_var_name_api_key="OPENAI_API_KEY",
 		env_var_name_organization_key="OPENAI_ORG_KEY",
 		engine_cls=OpenAIEngine,
-	)
-]
-
-"""
+	),
 	Provider(
 		id="mistralai",
 		name="MistralAI",
@@ -68,6 +70,7 @@ providers = [
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="MISTRAL_API_KEY",
+		engine_cls=MistralAIEngine,
 	),
 	Provider(
 		id="openrouter",
@@ -78,9 +81,9 @@ providers = [
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
+		engine_cls=OpenRouterEngine,
 	),
-	]
-"""
+]
 
 
 def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:

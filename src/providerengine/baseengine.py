@@ -1,7 +1,9 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from os import linesep
 from typing import Any, TYPE_CHECKING
 from functools import cached_property
+from consts import APP_NAME, APP_SOURCE_URL
 from conversation import Conversation, MessageBlock, Message
 from provideraimodel import ProviderAIModel
 
@@ -40,7 +42,7 @@ class BaseEngine(ABC):
 		"""
 		messages = []
 		if system_message:
-			messages.append({"role": "system", "content": system_message})
+			messages.append(system_message.model_dump(mode="json"))
 		for message_block in conversation.messages:
 			if not message_block.response:
 				continue
@@ -83,3 +85,19 @@ class BaseEngine(ABC):
 		Response without stream
 		"""
 		pass
+
+	@staticmethod
+	def normalize_linesep(text: str) -> str:
+		"""
+		Normalize new line characters using the system's line separator
+		"""
+		if text and isinstance(text, str) and linesep != "\n":
+			text = text.replace('\n', linesep)
+		return text
+
+	@staticmethod
+	def get_user_agent() -> str:
+		"""
+		Get user agent
+		"""
+		return f"{APP_NAME} ({APP_SOURCE_URL})"

@@ -16,6 +16,7 @@ class ProviderAIModel:
 	max_temperature: float = field(default=2)
 	default_temperature: float = field(default=1)
 	vision: bool = field(default=False)
+	preview: bool = field(default=False)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
@@ -27,5 +28,5 @@ class ProviderAIModel:
 		return (
 			self.display_name,
 			str(self.context_window),
-			str(self.max_output_tokens),
+			str(self.max_output_tokens) if self.max_output_tokens > 0 else "",
 		)
