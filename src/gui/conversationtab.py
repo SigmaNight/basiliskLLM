@@ -167,7 +167,7 @@ class ConversationTab(wx.Panel):
 	def on_model_change(self, event):
 		model_index = self.model_list.GetFirstSelected()
 		model = self.current_engine.models[model_index]
-		self.temperature_spinner.SetMax(model.max_temperature * 100)
+		self.temperature_spinner.SetMax(int(model.max_temperature * 100))
 		self.temperature_spinner.SetValue(str(model.max_temperature / 2 * 100))
 		self.max_tokens_spin_ctrl.SetMax(model.max_output_tokens)
 		self.max_tokens_spin_ctrl.SetValue(str(model.max_output_tokens // 2))
