@@ -23,7 +23,7 @@ pyyaml = "^6.0.1"
 ruff = "^0.4.3"
 pre-commit = "^3.7.0"
 commitizen = "^3.25.0"
-babel = "^2.14.0"
+babel = "^2.15.0"
 
 [tool.ruff]
 src = ["src"]
