@@ -7,16 +7,9 @@ if sys.platform == 'win32':
 import wx
 import wx.adv
 import config
-
-from logger import setup_logging
+from consts import APP_NAME, APP_SOURCE_URL
+from logger import setup_logging, logging_uncaught_exceptions
 from localization import init_translation
-from consts import (
-	APP_NAME,
-	APP_VERSION,
-	APP_AUTHORS,
-	APP_SOURCE_URL
-)
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
 
 log = logging.getLogger(__name__)
@@ -407,14 +400,8 @@ class MainFrame(wx.Frame):
 		wx.LaunchDefaultBrowser("https://en.wikipedia.org/wiki/Roko%27s_basilisk")
 
 	def on_about(self, event):
-		wx.MessageBox(
-			f"{APP_NAME} v{APP_VERSION}\n\n"
-			f"Developed by: {APP_AUTHORS}\n\n"
-			f"Source code: {APP_SOURCE_URL}\n\n"
-			f"Licensed under the GNU GPL v2",
-			_("About"),
-			wx.OK | wx.ICON_INFORMATION
-		)
+		from aboutdialog import display_about_dialog
+		display_about_dialog(self)
 
 	def on_check_updates(self, event):
 		log.debug("Checking for updates")
@@ -425,5 +412,6 @@ class MainFrame(wx.Frame):
 		self.Close()
 
 if __name__ == '__main__':
+	sys.excepthook = logging_uncaught_exceptions
 	app = MainApp()
 	app.MainLoop()

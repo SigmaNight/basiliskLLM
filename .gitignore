@@ -10,10 +10,10 @@ venv/
 env/
 *.env
 .idea/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 *.swp
 *~
-*.json
 *.log
 .DS_Store
 Thumbs.db
