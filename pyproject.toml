@@ -73,6 +73,7 @@ executables = [
 ]
 [tool.cxfreeze.build_exe]
 optimize = 2
+build_exe = "dist"
 excludes = [
     "tarfile", "tkinter", "unittest", "email", "xml", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
     "setuptools", "setuptools_scm",

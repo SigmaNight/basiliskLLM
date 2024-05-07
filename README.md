@@ -72,7 +72,26 @@ You can build a standalone executable with the following command:
 poetry run cxfreeze build_exe
 ```
 
-This will create a `build` directory with the standalone executable. You can run the executable by double-clicking on it.
+This will create a `dist` directory with the standalone executable. You can run the executable by double-clicking on it.
+
+## 📦 packaging for windows
+
+The project uses innosetup to make an all in one installer. The installer package the output produced by cxfreeze.
+To create the installer, you need to install innosetup. You can download it from [here](https://www.jrsoftware.org/isdl.php).
+After installing innosetup, check that the `ISCC.exe` is in your PATH. You can do this by running the following command:
+
+```shell
+where ISCC.exe
+```
+
+If the command returns the path to the `ISCC.exe`, you are good to go.
+You can create the installer by running the following command:
+
+```shell
+iscc win_installer.iss
+```
+
+This will create an installer in the `output_setup` directory.
 
 ## 🌍 translations
 
