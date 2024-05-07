@@ -1,4 +1,4 @@
-from cx_Freeze import setup
+from setuptools import setup
 
 
 setup(
