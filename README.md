@@ -64,7 +64,36 @@ cd src
 python main.pyw
 ```
 
-## translations 🌍
+## 🚀 build standalone executable
+
+You can build a standalone executable with the following command:
+
+```shell
+poetry run cxfreeze build_exe
+```
+
+This will create a `dist` directory with the standalone executable. You can run the executable by double-clicking on it.
+
+## 📦 packaging for windows
+
+The project uses innosetup to make an all in one installer. The installer package the output produced by cxfreeze.
+To create the installer, you need to install innosetup. You can download it from [here](https://www.jrsoftware.org/isdl.php).
+After installing innosetup, check that the `ISCC.exe` is in your PATH. You can do this by running the following command:
+
+```shell
+where ISCC.exe
+```
+
+If the command returns the path to the `ISCC.exe`, you are good to go.
+You can create the installer by running the following command:
+
+```shell
+iscc win_installer.iss
+```
+
+This will create an installer in the `output_setup` directory.
+
+## 🌍 translations
 
 This project is open to translations. If you want to help us translate the project into your language, you can create a po template file with the following command:
 
@@ -85,6 +114,6 @@ Use a text editor like [Poedit](https://poedit.net/) to translate the strings in
 python setup.py compile_catalog
 ```
 
-## Contributions: Summoning All Wizards and Witches
+## 🧙‍♂️🧙‍♀️ Contributions: Summoning All Wizards and Witches
 
 Got ideas, translations, or magical spells to contribute? We're all ears. Open an issue like it's your Hogwarts acceptance letter. Time to make some magic happen!

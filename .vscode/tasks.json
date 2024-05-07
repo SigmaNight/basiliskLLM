@@ -1,0 +1,73 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile translation file",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "setup.py",
+                "compile_catalog"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "build executable",
+            "type": "shell",
+            "command": "cxfreeze",
+            "args": [
+                "build_exe"
+            ],
+            "dependsOn": [
+                "compile translation file"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build windows installer",
+            "type": "shell",
+            "dependsOn": [
+                "build executable"
+            ],
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "iscc",
+                "args": [
+                    "win_installer.iss"
+                ]
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ]
+}

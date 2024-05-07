@@ -9,14 +9,11 @@ if sys.platform == 'win32':
 import wx
 import wx.adv
 import config
-
-from typing import Iterable
-from uuid import UUID
-from consts import APP_NAME, APP_VERSION, APP_AUTHORS, APP_SOURCE_URL
+from consts import APP_NAME, APP_SOURCE_URL
 from gui.conversationtab import ConversationTab
 from gui.taskbaricon import TaskBarIcon
-from logger import setup_logging
 from localization import init_translation
+from logger import setup_logging, logging_uncaught_exceptions
 from providerengine import BaseEngine
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
@@ -219,15 +216,8 @@ class MainFrame(wx.Frame):
 		)
 
 	def on_about(self, event):
-		linesep = os.linesep
-		wx.MessageBox(
-			f"{APP_NAME} v{APP_VERSION}{linesep}"
-			f"Developed by: {APP_AUTHORS}{linesep}"
-			f"Source code: {APP_SOURCE_URL}{linesep}"
-			f"Licensed under the GNU GPL v2",
-			_("About"),
-			wx.OK | wx.ICON_INFORMATION,
-		)
+		from gui.aboutdialog import display_about_dialog
+		display_about_dialog(self)
 
 	def on_check_updates(self, event):
 		log.debug("Checking for updates")
@@ -239,5 +229,6 @@ class MainFrame(wx.Frame):
 
 
 if __name__ == '__main__':
+	sys.excepthook = logging_uncaught_exceptions
 	app = MainApp()
 	app.MainLoop()

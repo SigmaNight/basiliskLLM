@@ -141,6 +141,8 @@ class ConversationTab(wx.Panel):
 
 	def on_account_change(self, event):
 		account_index = self.account_combo.GetSelection()
+		if account_index == wx.NOT_FOUND:
+			return
 		account = config.conf.accounts[account_index]
 		self.accounts_engines.setdefault(
 			account.id, account.provider.engine_cls(account)
@@ -156,16 +158,10 @@ class ConversationTab(wx.Panel):
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 		)
 
-	def on_key_down(self, event):
-		if (
-			event.GetModifiers() == wx.ACCEL_CTRL
-			and event.GetKeyCode() == wx.WXK_RETURN
-		):
-			self.on_submit(event)
-		event.Skip()
-
 	def on_model_change(self, event):
 		model_index = self.model_list.GetFirstSelected()
+		if model_index == wx.NOT_FOUND:
+			return
 		model = self.current_engine.models[model_index]
 		self.temperature_spinner.SetMax(int(model.max_temperature * 100))
 		self.temperature_spinner.SetValue(str(model.max_temperature / 2 * 100))
@@ -183,6 +179,14 @@ class ConversationTab(wx.Panel):
 
 	def on_model_key_down(self, event):
 		if event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_submit(event)
+		event.Skip()
+
+	def on_key_down(self, event):
+		if (
+			event.GetModifiers() == wx.ACCEL_CTRL
+			and event.GetKeyCode() == wx.WXK_RETURN
+		):
 			self.on_submit(event)
 		event.Skip()
 
