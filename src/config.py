@@ -83,9 +83,9 @@ conf = None
 
 def search_existing_path(paths: list[Path]) -> Path:
 	for p in paths:
-		if p.exists():
+		if p.exists() or p.parent.exists():
 			return p
-	return paths[0]
+	return paths[-1]
 
 
 def initialize_config() -> BasiliskConfig:
