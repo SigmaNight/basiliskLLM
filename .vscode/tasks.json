@@ -6,7 +6,11 @@
         {
             "label": "compile translation file",
             "type": "shell",
-            "command": "python setup.py compile_catalog",
+            "command": "python",
+            "args": [
+                "setup.py",
+                "compile_catalog"
+            ],
             "presentation": {
                 "echo": true,
                 "reveal": "silent",
@@ -20,7 +24,10 @@
         {
             "label": "build executable",
             "type": "shell",
-            "command": "cxfreeze build_exe",
+            "command": "cxfreeze",
+            "args": [
+                "build_exe"
+            ],
             "dependsOn": [
                 "compile translation file"
             ],
@@ -38,6 +45,29 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "build windows installer",
+            "type": "shell",
+            "dependsOn": [
+                "build executable"
+            ],
+            "dependsOrder": "sequence",
+            "windows": {
+                "command": "iscc",
+                "args": [
+                    "win_installer.iss"
+                ]
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
         }
     ]
 }
