@@ -1,5 +1,5 @@
 import sys
-import wx
+import wx.adv
 from consts import APP_NAME, APP_SOURCE_URL
 
 app_version = None
@@ -10,7 +10,7 @@ if getattr(sys, "frozen", False):
 else:
 	from setuptools_scm import get_version
 
-	app_version = get_version(root='..', relative_to=__file__)
+	app_version = get_version(root="../..", relative_to=__file__)
 
 APP_AUTHORS = ["André-Abush Clause", "Clément Boussiron" "Nael Sayegh"]
 
