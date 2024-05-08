@@ -208,7 +208,8 @@ class ConversationTab(wx.Panel):
 		return accounts
 
 	def display_new_block(self, new_block: MessageBlock):
-		self.messages.AppendText(os.linesep)
+		if not self.messages.IsEmpty():
+			self.messages.AppendText(os.linesep)
 		self.messages.AppendText(
 			f"{new_block.request.role.value}: {new_block.request.content}"
 		)
