@@ -92,6 +92,7 @@ class MainFrame(wx.Frame):
 		self.SetStatusText(_("Ready"))
 
 		self.SetSize((800, 600))
+		self.Maximize(True)
 
 	def init_accelerators(self):
 		self.Bind(wx.EVT_CLOSE, self.on_close)
