@@ -138,6 +138,7 @@ class ConversationTab(wx.Panel):
 		)
 		for control in controls:
 			control.Show(config.conf.general.advanced_mode)
+		self.Layout()
 
 	def on_account_change(self, event):
 		account_index = self.account_combo.GetSelection()
@@ -164,7 +165,9 @@ class ConversationTab(wx.Panel):
 			return
 		model = self.current_engine.models[model_index]
 		self.temperature_spinner.SetMax(int(model.max_temperature * 100))
-		self.temperature_spinner.SetValue(str(model.max_temperature / 2 * 100))
+		self.temperature_spinner.SetValue(
+			str(int(model.max_temperature / 2 * 100))
+		)
 		self.max_tokens_spin_ctrl.SetMax(model.max_output_tokens)
 		self.max_tokens_spin_ctrl.SetValue(str(model.max_output_tokens // 2))
 

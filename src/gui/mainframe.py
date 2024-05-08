@@ -85,6 +85,8 @@ class MainFrame(wx.Frame):
 		self.tabs_panels = []
 		self.on_new_conversation(None)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
+		self.panel.SetSizer(sizer)
+		self.Layout()
 
 		self.CreateStatusBar()
 		self.SetStatusText(_("Ready"))
@@ -127,6 +129,7 @@ class MainFrame(wx.Frame):
 		elif not self.IsShown():
 			self.Show()
 			self.Restore()
+			self.Layout()
 
 	def on_minimize(self, event):
 		log.debug("Minimized to tray")
