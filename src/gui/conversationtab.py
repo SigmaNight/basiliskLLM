@@ -2,12 +2,14 @@ from uuid import UUID
 import logging
 import os
 import threading
+import time
 import wx
 
 import config
 from conversation import Conversation, Message, MessageBlock, MessageRoleEnum
 from provideraimodel import ProviderAIModel
 from providerengine import BaseEngine
+from soundmanager import play_sound, stop_sound
 
 log = logging.getLogger(__name__)
 
@@ -367,6 +369,7 @@ class ConversationTab(wx.Panel):
 
 	def _handle_completion(self, engine: BaseEngine, **kwargs):
 		try:
+			play_sound("progress", loop=True)
 			response = engine.completion(**kwargs)
 		except Exception as e:
 			log.error("Error during completion", exc_info=True)
@@ -403,11 +406,16 @@ class ConversationTab(wx.Panel):
 		self.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
+		self.last_time = time.time()
 
 	def _handle_completion_with_stream(self, chunk: str):
 		pos = self.messages.GetInsertionPoint()
 		self.messages.AppendText(chunk)
 		self.messages.SetInsertionPoint(pos)
+		new_time = time.time()
+		if new_time - self.last_time > 4:
+			play_sound("chat_response_pending")
+			self.last_time = new_time
 
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._end_task()
@@ -424,3 +432,6 @@ class ConversationTab(wx.Panel):
 		thread_id = task.ident
 		log.debug(f"Task {thread_id} ended")
 		self.task = None
+		stop_sound()
+		if success:
+			play_sound("chat_response_received")
