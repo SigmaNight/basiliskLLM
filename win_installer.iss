@@ -37,7 +37,7 @@ ShowTasksTreeLines=no
 Name: "en"; MessagesFile: "compiler:Default.isl"
 name: "french"; MessagesFile: "compiler:Languages\French.isl"
 [Files]
-Source: "dist\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs sortfilesbyextension
+Source: "dist\*"; DestDir: "{app}"; Excludes: "\user_data"; Flags: recursesubdirs createallsubdirs sortfilesbyextension
 
 [tasks]
 Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
