@@ -19,8 +19,8 @@ class ConversationTab(wx.Panel):
 		self.task = None
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
-		self.ID_SUBMIT = wx.NewIdRef()
-		self.Bind(wx.EVT_MENU, self.on_submit, id=self.ID_SUBMIT)
+		self.init_data()
+		self.update_ui()
 
 	def init_ui(self):
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -67,6 +67,7 @@ class ConversationTab(wx.Panel):
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		self.prompt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
 		self.prompt.Bind(wx.EVT_KEY_DOWN, self.on_prompt_key_down)
+		self.prompt.Bind(wx.EVT_CONTEXT_MENU, self.on_prompt_context_menu)
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
@@ -130,6 +131,10 @@ class ConversationTab(wx.Panel):
 
 		self.SetSizerAndFit(sizer)
 
+	def init_data(self):
+		self.on_account_change(None)
+		self.on_model_change(None)
+
 	def update_ui(self):
 		controls = (
 			self.temperature_spinner,
@@ -171,13 +176,41 @@ class ConversationTab(wx.Panel):
 		self.max_tokens_spin_ctrl.SetMax(model.max_output_tokens)
 		self.max_tokens_spin_ctrl.SetValue(str(model.max_output_tokens // 2))
 
+	def add_standard_context_menu_items(self, menu: wx.Menu):
+		menu.Append(wx.ID_UNDO)
+		menu.Append(wx.ID_REDO)
+		menu.Append(wx.ID_CUT)
+		menu.Append(wx.ID_COPY)
+		menu.Append(wx.ID_PASTE)
+		menu.Append(wx.ID_SELECTALL)
+
+	def on_prompt_context_menu(self, event):
+		menu = wx.Menu()
+		item = wx.MenuItem(
+			menu, wx.ID_ANY, _("Insert previous prompt") + " (Ctrl+Up)"
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.insert_previous_prompt, item)
+
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Submit") + " (Ctrl+Enter)")
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_submit, item)
+
+		self.add_standard_context_menu_items(menu)
+		self.prompt.PopupMenu(menu)
+		menu.Destroy()
+
 	def on_prompt_key_down(self, event):
+		key_code = event.GetKeyCode()
+		modifiers = event.GetModifiers()
 		if (
-			event.GetModifiers() == wx.ACCEL_CTRL
-			and event.GetKeyCode() == wx.WXK_UP
+			modifiers == wx.ACCEL_CTRL
+			and key_code == wx.WXK_UP
 			and not self.prompt.GetValue()
 		):
 			self.insert_previous_prompt()
+		elif modifiers == wx.ACCEL_CTRL and key_code == wx.WXK_RETURN:
+			self.on_submit(event)
 		event.Skip()
 
 	def on_model_key_down(self, event):
@@ -193,7 +226,7 @@ class ConversationTab(wx.Panel):
 			self.on_submit(event)
 		event.Skip()
 
-	def insert_previous_prompt(self):
+	def insert_previous_prompt(self, event=None):
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
