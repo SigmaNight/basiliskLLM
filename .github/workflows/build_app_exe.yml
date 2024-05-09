@@ -58,7 +58,7 @@ jobs:
         retention-days: 30
     - name: build windows installer
       run: |
-        iscc .\win_installer.iss \DAppArch=$env:matrix.arch
+        iscc .\win_installer.iss /DAppArch=$env:matrix.arch
     - name: upload installer
       uses: actions/upload-artifact@v4
       with:
