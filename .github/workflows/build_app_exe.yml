@@ -1,0 +1,33 @@
+name: "bbuild python app executable"
+on:
+  push:
+    branches:
+      - master
+      - CI*
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    strategy:
+        matrix:
+          arch: [x86, x64]
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        architecture: ${{ matrix.arch }}
+        cache: 'poetry'
+    - name: Install dependencies
+      run: |
+        poetry install
+    - name: Build executable
+      run: |
+        poetry run cxfreeze build_exe
