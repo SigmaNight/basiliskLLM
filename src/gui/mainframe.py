@@ -57,6 +57,11 @@ class MainFrame(wx.Frame):
 		)
 		add_image_files_item.Enable(False)
 		conversation_menu.AppendSeparator()
+		manage_accounts_item = conversation_menu.Append(
+			wx.ID_ANY, _("Manage &accounts")
+		)
+		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
+		update_item_label_ellipsis(manage_accounts_item)
 		preferences_item = conversation_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_ellipsis(preferences_item)
@@ -180,15 +185,26 @@ class MainFrame(wx.Frame):
 				self.notebook.SetSelection(current_tab_count - 1)
 				self.SetTitle(f"Conversation {current_tab_count} - {APP_NAME}")
 
+	def refresh_tabs(self):
+		for tab in self.tabs_panels:
+			tab.on_config_change()
+
+	def on_manage_accounts(self, event):
+		from gui.accountdialog import AccountDialog
+
+		account_dialog = AccountDialog(self, _("Manage accounts"))
+		if account_dialog.ShowModal() == wx.ID_OK:
+			self.refresh_tabs()
+		account_dialog.Destroy()
+
 	def on_preferences(self, event):
 		log.debug("Opening preferences dialog")
-		from configdialog import ConfigDialog
+		from src.gui.preferencesdialog import PreferencesDialog
 
-		config_dialog = ConfigDialog(self, title=_("Settings"))
-		if config_dialog.ShowModal() == wx.ID_OK:
-			self.update_ui()
-			log.debug("Config saved")
-		config_dialog.Destroy()
+		preferences_dialog = PreferencesDialog(self, title=_("Settings"))
+		if preferences_dialog.ShowModal() == wx.ID_OK:
+			self.refresh_tabs()
+		preferences_dialog.Destroy()
 
 	def on_github_repo(self, event):
 		wx.LaunchDefaultBrowser(APP_SOURCE_URL)

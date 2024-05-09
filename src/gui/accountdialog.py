@@ -515,8 +515,8 @@ class AccountDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK)
-		btn.Bind(wx.EVT_BUTTON, self.onOK)
+		btn = wx.Button(panel, wx.ID_SAVE)
+		btn.Bind(wx.EVT_BUTTON, self.on_save)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		btn = wx.Button(panel, wx.ID_CANCEL)
@@ -659,10 +659,11 @@ class AccountDialog(wx.Dialog):
 		self.account_manager.remove(account)
 		self.account_list.DeleteItem(index)
 
-	def onOK(self, event):
+	def on_save(self, event):
 		conf.accounts.clear()
 		for account in self.account_manager:
 			conf.accounts.add(account)
+		conf.save()
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):

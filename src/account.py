@@ -17,6 +17,7 @@ from pydantic import (
 	model_validator,
 	model_serializer,
 )
+import globalvars
 from provider import Provider, providers, get_provider
 
 log = getLogger(__name__)
@@ -133,6 +134,9 @@ class AccountManager(RootModel[list[Account]]):
 	"""
 
 	def model_post_init(self, __context: Any) -> None:
+		"""Load accounts from environment variables"""
+		if globalvars.args.no_env_account:
+			return
 		for provider in providers:
 			organizations = []
 			api_key = None

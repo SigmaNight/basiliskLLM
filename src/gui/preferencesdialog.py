@@ -2,7 +2,6 @@ import logging
 import wx
 from babel import Locale
 from config import conf, LogLevelEnum
-from accountdialog import AccountDialog
 from localization import get_supported_locales, get_app_locale
 from logger import set_log_level
 
@@ -24,7 +23,7 @@ LOG_LEVELS = {
 }
 
 
-class ConfigDialog(wx.Dialog):
+class PreferencesDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
@@ -69,9 +68,6 @@ class ConfigDialog(wx.Dialog):
 		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
-		accountsBtn = wx.Button(panel, label=_("Manage &accounts"))
-		accountsBtn.Bind(wx.EVT_BUTTON, self.on_manage_accounts)
-
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK, _("Save"))
@@ -87,11 +83,6 @@ class ConfigDialog(wx.Dialog):
 		panel.Layout()
 		self.Layout()
 
-	def on_manage_accounts(self, event):
-		dlg = AccountDialog(self, _("Manage accounts"))
-		dlg.ShowModal()
-		dlg.Destroy()
-
 	def on_ok(self, event):
 		log.debug("Saving configuration")
 		conf.general.log_level = list(LOG_LEVELS.keys())[
@@ -102,7 +93,6 @@ class ConfigDialog(wx.Dialog):
 		]
 
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
-		log.debug("New configuration: %s", conf)
 		conf.save()
 		set_log_level(conf.general.log_level.name)
 

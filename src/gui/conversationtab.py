@@ -148,6 +148,21 @@ class ConversationTab(wx.Panel):
 	def on_account_change(self, event):
 		account_index = self.account_combo.GetSelection()
 		if account_index == wx.NOT_FOUND:
+			if not config.conf.accounts:
+				if (
+					wx.MessageBox(
+						_(
+							"Please add an account first. Do you want to add an account now?"
+						),
+						_("No account configured"),
+						wx.YES_NO | wx.ICON_QUESTION,
+					)
+					== wx.YES
+				):
+					self.GetParent().GetParent().GetParent().on_manage_accounts(
+						None
+					)
+					self.on_config_change()
 			return
 		account = config.conf.accounts[account_index]
 		self.accounts_engines.setdefault(
@@ -173,8 +188,36 @@ class ConversationTab(wx.Panel):
 		self.temperature_spinner.SetValue(
 			str(int(model.max_temperature / 2 * 100))
 		)
-		self.max_tokens_spin_ctrl.SetMax(model.max_output_tokens)
-		self.max_tokens_spin_ctrl.SetValue(str(model.max_output_tokens // 2))
+		max_tokens = model.max_output_tokens
+		if max_tokens < 1:
+			max_tokens = model.context_window
+		self.max_tokens_spin_ctrl.SetMax(max_tokens)
+		self.max_tokens_spin_ctrl.SetValue(max_tokens // 2)
+
+	def refresh_accounts(self):
+		account_index = self.account_combo.GetSelection()
+		account_id = None
+		if account_index != wx.NOT_FOUND:
+			account_id = config.conf.accounts[account_index].id
+		self.account_combo.Clear()
+		self.account_combo.AppendItems(self.get_display_accounts())
+		account_index = wx.NOT_FOUND
+		if account_id:
+			for i, account in enumerate(config.conf.accounts):
+				if account.id == account_id:
+					account_index = i
+					break
+		if account_index != wx.NOT_FOUND:
+			self.account_combo.SetSelection(account_index)
+		elif self.account_combo.GetCount() > 0:
+			self.account_combo.SetSelection(0)
+			self.account_combo.SetFocus()
+
+	def on_config_change(self):
+		self.refresh_accounts()
+		self.on_account_change(None)
+		self.on_model_change(None)
+		self.update_ui()
 
 	def add_standard_context_menu_items(self, menu: wx.Menu):
 		menu.Append(wx.ID_UNDO)
@@ -308,7 +351,6 @@ class ConversationTab(wx.Panel):
 			"stream": new_block.stream,
 		}
 		log.debug(f"Completion params: {completion_kw}")
-		self.messages.SetFocus()
 		if self.task:
 			wx.MessageBox(
 				_("A task is already running. Please wait for it to complete."),
@@ -324,12 +366,25 @@ class ConversationTab(wx.Panel):
 		log.debug(f"Task {thread_id} started")
 
 	def _handle_completion(self, engine: BaseEngine, **kwargs):
-		response = engine.completion(**kwargs)
+		try:
+			response = engine.completion(**kwargs)
+		except Exception as e:
+			log.error("Error during completion", exc_info=True)
+
+			wx.CallAfter(
+				wx.MessageBox,
+				_("An error occurred during completion: ") + str(e),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			wx.CallAfter(self._end_task, False)
+			return
 		new_block = kwargs["new_block"]
 		if kwargs.get("stream", False):
 			new_block.response = Message(
 				role=MessageRoleEnum.ASSISTANT, content=""
 			)
+			wx.CallAfter(self.messages.SetFocus)
 			wx.CallAfter(self._pre_handle_completion_with_stream, new_block)
 			for chunk in self.current_engine.completion_response_with_stream(
 				response
@@ -363,7 +418,7 @@ class ConversationTab(wx.Panel):
 		self.display_new_block(new_block)
 		self.prompt.Clear()
 
-	def _end_task(self):
+	def _end_task(self, success: bool = True):
 		task = self.task
 		task.join()
 		thread_id = task.ident
