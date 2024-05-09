@@ -32,11 +32,11 @@ jobs:
         architecture: ${{ matrix.arch }}
         cache: 'poetry'
     - name: Install dependencies
-      run: |
-        poetry install
+      run: poetry install
+    - name: compile translations
+      run: poetry run python setup.py compile_catalog
     - name: Build executable
-      run: |
-        poetry run cxfreeze build_exe
+      run: poetry run cxfreeze build_exe
     - name: get version from executable
       id: get_version
       run: |
