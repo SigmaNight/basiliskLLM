@@ -36,3 +36,18 @@ jobs:
     - name: Build executable
       run: |
         poetry run cxfreeze build_exe
+    - name: get version from executable
+      id: get_version
+      run: |
+        $version = (Get-Item .\dist\basiliskLLM.exe).VersionInfo.FileVersionRaw
+        echo content=$version >> $GITHUB_OUTPUT
+    - name: create user data directory
+      run: |
+        New-Item -Path dist -Name user_data -ItemType directory
+    - name: create and upload portable zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: portable_basiliskLLM_${{ steps.get_version.outputs.content }}_${{ matrix.arch }}
+        path: dist/*
+        if-no-files-found: error
+        retention-days: 30
