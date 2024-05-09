@@ -1,4 +1,4 @@
-name: "bbuild python app executable"
+name: "build python app executable"
 on:
   push:
     branches:
@@ -52,7 +52,16 @@ jobs:
     - name: create and upload portable zip
       uses: actions/upload-artifact@v4
       with:
-        name: portable_basiliskLLM_${{ steps.get_version.outputs.content }}_${{ matrix.arch }}
+        name: portable_basiliskLLM_${{ steps.get_version.outputs.content }}_windows_${{ matrix.arch }}
         path: dist/*
         if-no-files-found: error
+        retention-days: 30
+    - name: build windows installer
+      run: |
+        iscc .\win_installer.iss \DAppArch=$env:matrix.arch
+    - name: upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: setup_basiliskLLM_${{ steps.get_version.outputs.content }}_windows_${{ matrix.arch }}
+        path: output_setup/*
         retention-days: 30
