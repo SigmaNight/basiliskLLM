@@ -26,6 +26,7 @@ class MainFrame(wx.Frame):
 			self.Bind(wx.EVT_ICONIZE, self.on_minimize)
 			self.register_hot_key()
 			self.Bind(wx.EVT_HOTKEY, self.toggle_visibility)
+		self.on_new_conversation(None)
 
 	def init_ui(self):
 		def update_item_label_ellipsis(item):
@@ -57,7 +58,7 @@ class MainFrame(wx.Frame):
 		add_image_files_item.Enable(False)
 		conversation_menu.AppendSeparator()
 		preferences_item = conversation_menu.Append(wx.ID_PREFERENCES)
-		self.Bind(wx.EVT_MENU, self.on_settings, preferences_item)
+		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_ellipsis(preferences_item)
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
@@ -78,20 +79,21 @@ class MainFrame(wx.Frame):
 		menu_bar.Append(help_menu, _("&Help"))
 		self.SetMenuBar(menu_bar)
 
-		self.panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
+		self.panel = wx.Panel(self)
+		actions_button = wx.Button(self.panel, label=_("Actions"))
+		sizer.Add(actions_button, flag=wx.EXPAND)
 
 		self.notebook = wx.Notebook(self.panel)
-		self.tabs_panels = []
-		self.on_new_conversation(None)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 		self.panel.SetSizer(sizer)
-		self.Layout()
+		self.tabs_panels = []
 
 		self.CreateStatusBar()
 		self.SetStatusText(_("Ready"))
 
 		self.SetSize((800, 600))
+		self.Layout()
 		self.Maximize(True)
 
 	def init_accelerators(self):
@@ -161,17 +163,10 @@ class MainFrame(wx.Frame):
 		)
 		self.notebook.SetSelection(len(self.tabs_panels) - 1)
 		self.SetTitle(f"Conversation {len(self.tabs_panels)} - {APP_NAME}")
-		self.tabs_panels[-1].on_account_change(None)
-		self.tabs_panels[-1].on_model_change(None)
 
 	def on_close_conversation(self, event):
 		current_tab = self.notebook.GetSelection()
 		if current_tab != wx.NOT_FOUND:
-			# delete task and conversation from the dictionary
-			self.tabs_tasks.pop(current_tab)
-			self.tabs_id_conversations.pop(
-				self.tabs_panels[current_tab].GetId()
-			)
 			self.notebook.DeletePage(current_tab)
 			self.tabs_panels.pop(current_tab)
 			current_tab_count = self.notebook.GetPageCount()
@@ -185,14 +180,14 @@ class MainFrame(wx.Frame):
 				self.notebook.SetSelection(current_tab_count - 1)
 				self.SetTitle(f"Conversation {current_tab_count} - {APP_NAME}")
 
-	def on_settings(self, event):
-		log.debug("Opening settings dialog")
+	def on_preferences(self, event):
+		log.debug("Opening preferences dialog")
 		from configdialog import ConfigDialog
 
 		config_dialog = ConfigDialog(self, title=_("Settings"))
 		if config_dialog.ShowModal() == wx.ID_OK:
 			self.update_ui()
-			log.debug("Settings saved")
+			log.debug("Config saved")
 		config_dialog.Destroy()
 
 	def on_github_repo(self, event):

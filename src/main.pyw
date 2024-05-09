@@ -19,7 +19,7 @@ class MainApp(wx.App):
 	def OnInit(self) -> bool:
 		self.conf = config.initialize_config()
 		setup_logging(self.conf.general.log_level.name)
-		log.debug(f"setting received -> {self.conf}")
+		log.debug(f"config: {self.conf}")
 		self.locale = init_translation(self.conf.general.language)
 		log.info("translation initialized")
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
@@ -28,7 +28,7 @@ class MainApp(wx.App):
 		log.info("Application started")
 		return True
 
-	def OnExit(self):
+	def OnExit(self) -> int:
 		log.info("Application exited")
 		return 0
 
