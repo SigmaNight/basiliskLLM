@@ -41,9 +41,14 @@ jobs:
       run: |
         $version = (Get-Item .\dist\basiliskLLM.exe).VersionInfo.FileVersionRaw
         echo content=$version >> $env:GITHUB_OUTPUT
-    - name: create user data directory
+    - name: create user config file for portable version
       run: |
         New-Item -Path dist -Name user_data -ItemType directory
+        New_Item -Path dist\user_data -Name config.yml -ItemType file
+        echo "general:" >> dist\user_data\config.yml
+        echo "  language: auto" >> dist\user_data\config.yml
+        echo "  log_level: info" >> dist\user_data\config.yml
+
     - name: create and upload portable zip
       uses: actions/upload-artifact@v4
       with:
