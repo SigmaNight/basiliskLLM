@@ -8,6 +8,7 @@ from consts import APP_NAME, APP_SOURCE_URL
 from localization import init_translation
 from logger import setup_logging, logging_uncaught_exceptions
 from providerengine import BaseEngine
+from soundmanager import initialize_sound_manager
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ""))
 
@@ -34,6 +35,8 @@ class MainApp(wx.App):
 		language = globalvars.args.language or self.conf.general.language
 		self.locale = init_translation(language)
 		log.info("translation initialized")
+		initialize_sound_manager()
+		log.info("sound manager initialized")
 		from gui.mainframe import MainFrame
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
