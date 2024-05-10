@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from functools import cached_property
 from logging import getLogger
 from os import getenv
 from typing import Any, Iterable, Optional
@@ -16,6 +17,7 @@ from pydantic import (
 	model_validator,
 	model_serializer,
 )
+import globalvars
 from provider import Provider, providers, get_provider
 
 log = getLogger(__name__)
@@ -51,7 +53,7 @@ class Account(BaseModel):
 	)
 	api_key: Optional[SecretStr] = Field(default=None)
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
-	active_organization: Optional[UUID4] = Field(default=None)
+	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
 	@field_serializer("provider", when_used="always")
@@ -77,7 +79,7 @@ class Account(BaseModel):
 			raise ValueError(f"API key for {self.provider.name} is required")
 		if (
 			not self.provider.organization_mode_available
-			and self.active_organization
+			and self.active_organization_id
 		):
 			raise ValueError(
 				f"Organization mode is not available for {self.provider.name}"
@@ -86,19 +88,43 @@ class Account(BaseModel):
 
 	@model_validator(mode="after")
 	def validate_active_organization(self) -> Account:
-		if not self.active_organization:
+		if not self.active_organization_id:
 			return self
 		if not self.organizations:
 			raise ValueError(
 				f"No organizations found for {self.provider.name} account"
 			)
 		if not any(
-			org.id == self.active_organization for org in self.organizations
+			org.id == self.active_organization_id for org in self.organizations
 		):
 			raise ValueError(
-				f"Organization '{self.active_organization}' not found for {self.provider.name} account"
+				f"Organization '{self.active_organization_id}' not found for {self.provider.name} account"
 			)
 		return self
+
+	@cached_property
+	def active_organization(self) -> Optional[AccountOrganization]:
+		if not self.active_organization_id:
+			return None
+		return next(
+			filter(
+				lambda x: x.id == self.active_organization_id,
+				self.organizations,
+			),
+			None,
+		)
+
+	@property
+	def active_organization_name(self) -> Optional[str]:
+		if not self.active_organization:
+			return None
+		return self.active_organization.name
+
+	@property
+	def active_organization_key(self) -> Optional[SecretStr]:
+		return (
+			self.active_organization.key if self.active_organization else None
+		)
 
 
 class AccountManager(RootModel[list[Account]]):
@@ -108,6 +134,9 @@ class AccountManager(RootModel[list[Account]]):
 	"""
 
 	def model_post_init(self, __context: Any) -> None:
+		"""Load accounts from environment variables"""
+		if globalvars.args.no_env_account:
+			return
 		for provider in providers:
 			organizations = []
 			api_key = None
@@ -141,7 +170,7 @@ class AccountManager(RootModel[list[Account]]):
 					provider=provider,
 					api_key=api_key,
 					organizations=organizations,
-					active_organization=active_organization,
+					active_organization_id=active_organization,
 					source=AccountSource.ENV_VAR,
 				)
 			)
@@ -181,7 +210,7 @@ class AccountManager(RootModel[list[Account]]):
 	def __iter__(self):
 		return iter(self.root)
 
-	def __getitem__(self, index):
+	def __getitem__(self, index) -> Account:
 		return self.root[index]
 
 	def __setitem__(self, index, value):

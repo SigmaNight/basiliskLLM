@@ -1,3 +1,4 @@
+import logging
 import sys
 import yaml
 from pathlib import Path
@@ -11,6 +12,8 @@ from pydantic_settings import (
 	YamlConfigSettingsSource,
 )
 from account import AccountManager
+
+log = logging.getLogger(__name__)
 
 
 class LogLevelEnum(Enum):
@@ -73,9 +76,11 @@ class BasiliskConfig(BaseSettings):
 
 	def save(self) -> None:
 		basilisk_dict = self.model_dump(mode="json", by_alias=True)
+		log.debug("Saving config: %s", basilisk_dict)
 		conf_save_path = search_existing_path(search_config_paths)
 		with conf_save_path.open(mode='w', encoding="UTF-8") as config_file:
 			yaml.dump(basilisk_dict, config_file, indent=2, sort_keys=False)
+		log.debug("Config saved to %s", conf_save_path)
 
 
 conf = None

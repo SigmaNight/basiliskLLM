@@ -15,6 +15,9 @@ if getattr(sys, "frozen", False):
 
 def setup_logging(level: str) -> None:
 	"""Setup logging configuration"""
+	level = level.upper()
+	if level == "OFF":
+		level = "NOTSET"
 	console_handler = logging.StreamHandler()
 	file_handler = logging.FileHandler(log_file_path, mode='w')
 	logging.basicConfig(
