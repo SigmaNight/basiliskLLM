@@ -11,7 +11,7 @@ from pydantic_settings import (
 	SettingsConfigDict,
 	YamlConfigSettingsSource,
 )
-from account import AccountManager
+from .account import AccountManager
 
 log = logging.getLogger(__name__)
 

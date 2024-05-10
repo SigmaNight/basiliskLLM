@@ -4,10 +4,10 @@ import wx
 
 if sys.platform == 'win32':
 	import win32con
-from consts import APP_NAME, APP_SOURCE_URL
-from gui.conversationtab import ConversationTab
-from gui.taskbaricon import TaskBarIcon
-import config
+from basilisk.consts import APP_NAME, APP_SOURCE_URL
+from .conversationtab import ConversationTab
+from .taskbaricon import TaskBarIcon
+import basilisk.config as config
 
 log = logging.getLogger(__name__)
 
@@ -190,7 +190,7 @@ class MainFrame(wx.Frame):
 			tab.on_config_change()
 
 	def on_manage_accounts(self, event):
-		from gui.accountdialog import AccountDialog
+		from .accountdialog import AccountDialog
 
 		account_dialog = AccountDialog(self, _("Manage accounts"))
 		if account_dialog.ShowModal() == wx.ID_OK:
@@ -199,7 +199,7 @@ class MainFrame(wx.Frame):
 
 	def on_preferences(self, event):
 		log.debug("Opening preferences dialog")
-		from src.gui.preferencesdialog import PreferencesDialog
+		from .preferencesdialog import PreferencesDialog
 
 		preferences_dialog = PreferencesDialog(self, title=_("Settings"))
 		if preferences_dialog.ShowModal() == wx.ID_OK:

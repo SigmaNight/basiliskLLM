@@ -6,7 +6,7 @@ import wx
 from typing import Optional
 from pathlib import Path
 from babel import Locale
-from consts import APP_NAME, DEFAULT_LANG
+from basilisk.consts import APP_NAME, DEFAULT_LANG
 
 log = logging.getLogger(__name__)
 

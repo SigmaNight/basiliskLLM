@@ -1,9 +1,9 @@
 import logging
 import wx
 from babel import Locale
-from config import conf, LogLevelEnum
-from localization import get_supported_locales, get_app_locale
-from logger import set_log_level
+from basilisk.config import conf, LogLevelEnum
+from basilisk.localization import get_supported_locales, get_app_locale
+from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)
 

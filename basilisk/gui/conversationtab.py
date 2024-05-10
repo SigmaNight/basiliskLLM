@@ -1,15 +1,20 @@
-from uuid import UUID
 import logging
 import os
 import threading
 import time
 import wx
+import basilisk.config as config
+from uuid import UUID
 
-import config
-from conversation import Conversation, Message, MessageBlock, MessageRoleEnum
-from provideraimodel import ProviderAIModel
-from providerengine import BaseEngine
-from soundmanager import play_sound, stop_sound
+from basilisk.conversation import (
+	Conversation,
+	Message,
+	MessageBlock,
+	MessageRoleEnum,
+)
+from basilisk.provideraimodel import ProviderAIModel
+from basilisk.providerengine import BaseEngine
+from basilisk.soundmanager import play_sound, stop_sound
 
 log = logging.getLogger(__name__)
 
