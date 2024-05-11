@@ -48,19 +48,3 @@ def resize_image(
 def encode_image(image_path):
 	with open(image_path, "rb") as image_file:
 		return base64.b64encode(image_file.read()).decode('utf-8')
-
-
-def describeFromImageFileList(client, messages: list, max_tokens: int = 700):
-	"""
-	Describe a list of images from a list of file paths.
-	@param client: OpenAI client
-	@param messages: list of messages
-	@param max_tokens: max tokens to use
-	@return: description
-	"""
-	if not messages:
-		return None
-	response = client.chat.completions.create(
-		model="gpt-4-vision-preview", messages=messages, max_tokens=max_tokens
-	)
-	return response.choices[0]

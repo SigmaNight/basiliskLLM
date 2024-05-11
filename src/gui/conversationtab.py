@@ -5,11 +5,19 @@ import threading
 import time
 import wx
 
-import config
-from conversation import Conversation, Message, MessageBlock, MessageRoleEnum
+from conversation import (
+	Conversation,
+	ImageUrlMessageContent,
+	TextMessageContent,
+	Message,
+	MessageBlock,
+	MessageRoleEnum,
+)
+from imagefile import ImageFile
 from provideraimodel import ProviderAIModel
 from providerengine import BaseEngine
 from soundmanager import play_sound, stop_sound
+import config
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +26,8 @@ class ConversationTab(wx.Panel):
 	def __init__(self, parent):
 		wx.Panel.__init__(self, parent)
 		self.conversation = Conversation()
+		self.image_files = []
+		self.last_time = 0
 		self.task = None
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
@@ -73,13 +83,33 @@ class ConversationTab(wx.Panel):
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
+		self.images_list_label = wx.StaticText(
+			self,
+			# Translators: This is a label for models in the main window
+			label=_("&Images:"),
+		)
+		sizer.Add(self.images_list_label, proportion=0, flag=wx.EXPAND)
+		self.images_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+		self.images_list.InsertColumn(0, _("Name"))
+		self.images_list.InsertColumn(1, _("Size"))
+		self.images_list.InsertColumn(2, _("Dimensions"))
+		self.images_list.InsertColumn(3, _("Path"))
+		self.images_list.SetColumnWidth(0, 200)
+		self.images_list.SetColumnWidth(1, 100)
+		self.images_list.SetColumnWidth(2, 100)
+		self.images_list.SetColumnWidth(3, 200)
+		sizer.Add(self.images_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+
 		label = wx.StaticText(self, label=_("M&odels:"))
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
 		self.model_list.InsertColumn(0, _("Name"))
 		self.model_list.InsertColumn(1, _("Context window"))
 		self.model_list.InsertColumn(2, _("Max tokens"))
-		sizer.Add(self.model_list, proportion=2, flag=wx.EXPAND)
+		self.model_list.SetColumnWidth(0, 200)
+		self.model_list.SetColumnWidth(1, 100)
+		self.model_list.SetColumnWidth(2, 100)
+		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 
@@ -136,6 +166,7 @@ class ConversationTab(wx.Panel):
 	def init_data(self):
 		self.on_account_change(None)
 		self.on_model_change(None)
+		self.refresh_images_list()
 
 	def update_ui(self):
 		controls = (
@@ -215,6 +246,39 @@ class ConversationTab(wx.Panel):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
+	def refresh_images_list(self):
+		self.images_list.DeleteAllItems()
+		if not self.image_files:
+			self.images_list_label.Hide()
+			self.images_list.Hide()
+			self.Layout()
+			return
+		self.images_list_label.Show()
+		self.images_list.Show()
+		self.Layout()
+		for i, image in enumerate(self.image_files):
+			self.images_list.InsertItem(i, image.name)
+			self.images_list.SetItem(i, 1, image.size)
+			self.images_list.SetItem(
+				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
+			)
+			self.images_list.SetItem(i, 3, image.path)
+		self.images_list.SetItemState(
+			i,
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+		)
+		self.images_list.EnsureVisible(i)
+
+	def add_images(self, path: list[str | ImageFile]):
+		log.debug(f"Adding images: {path}")
+		for path in path:
+			if isinstance(path, ImageFile):
+				self.image_files.append(path)
+			else:
+				self.image_files.append(ImageFile(path))
+		self.refresh_images_list()
+
 	def on_config_change(self):
 		self.refresh_accounts()
 		self.on_account_change(None)
@@ -285,12 +349,22 @@ class ConversationTab(wx.Panel):
 			accounts.append(f"{name} ({organization}) - {provider_name}")
 		return accounts
 
+	def extract_text_from_message(
+		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
+	):
+		if isinstance(content, str):
+			return content
+		text = ""
+		for item in content:
+			if item.type == "text":
+				text += item.text
+		return text
+
 	def display_new_block(self, new_block: MessageBlock):
 		if not self.messages.IsEmpty():
 			self.messages.AppendText(os.linesep)
-		self.messages.AppendText(
-			f"{new_block.request.role.value}: {new_block.request.content}"
-		)
+		content = self.extract_text_from_message(new_block.request.content)
+		self.messages.AppendText(f"{new_block.request.role.value}: {content}")
 		self.messages.AppendText(os.linesep)
 		pos = self.messages.GetInsertionPoint()
 		if new_block.response:
@@ -303,6 +377,8 @@ class ConversationTab(wx.Panel):
 
 	def update_messages(self):
 		self.messages.Clear()
+		self.image_files.clear()
+		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
@@ -322,11 +398,39 @@ class ConversationTab(wx.Panel):
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		return [m.display_model for m in self.current_engine.models]
 
+	def get_content_for_completion(
+		self, images_files: list[ImageFile] = None, prompt: str = None
+	) -> list[dict[str, str]]:
+		if not images_files:
+			images_files = self.image_files
+		if not images_files:
+			return prompt
+		content = []
+		if prompt:
+			content.append({"type": "text", "text": prompt})
+		for image_file in images_files:
+			content.append(
+				{"type": "image_url", "image_url": {"url": image_file.url}}
+			)
+		return content
+
 	def on_submit(self, event):
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		if self.image_files and not model.vision:
+			vision_models = ", ".join(
+				[m.name or m.id for m in self.current_engine.models if m.vision]
+			)
+			wx.MessageBox(
+				_(
+					"The selected model does not support images. Please select a vision model instead ({})."
+				).format(vision_models),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
 			)
 			return
 		system_message = None
@@ -337,7 +441,10 @@ class ConversationTab(wx.Panel):
 			)
 		new_block = MessageBlock(
 			request=Message(
-				role=MessageRoleEnum.USER, content=self.prompt.GetValue()
+				role=MessageRoleEnum.USER,
+				content=self.get_content_for_completion(
+					images_files=self.image_files, prompt=self.prompt.GetValue()
+				),
 			),
 			model=model,
 			temperature=self.temperature_spinner.GetValue() / 100,
@@ -352,7 +459,6 @@ class ConversationTab(wx.Panel):
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
-		log.debug(f"Completion params: {completion_kw}")
 		if self.task:
 			wx.MessageBox(
 				_("A task is already running. Please wait for it to complete."),
@@ -406,7 +512,8 @@ class ConversationTab(wx.Panel):
 		self.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
-		self.last_time = time.time()
+		self.image_files.clear()
+		self.refresh_images_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
 		pos = self.messages.GetInsertionPoint()
@@ -425,6 +532,8 @@ class ConversationTab(wx.Panel):
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
 		self.prompt.Clear()
+		self.image_files.clear()
+		self.refresh_images_list()
 
 	def _end_task(self, success: bool = True):
 		task = self.task

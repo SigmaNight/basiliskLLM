@@ -26,12 +26,14 @@ class MainApp(wx.App):
 
 	def OnInit(self) -> bool:
 		globalvars.args = parse_args()
-		log.debug(f"args: {globalvars.args}")
 		import config
 		self.conf = config.initialize_config()
 		log_level = globalvars.args.log_level or self.conf.general.log_level.name
 		setup_logging(log_level)
+		log.debug(f"args: {globalvars.args}")
 		log.debug(f"config: {self.conf}")
+		globalvars.user_data_path = config.search_existing_path(config.search_config_paths).parent
+		log.debug(f"user data path: {globalvars.user_data_path}")
 		language = globalvars.args.language or self.conf.general.language
 		self.locale = init_translation(language)
 		log.info("translation initialized")
