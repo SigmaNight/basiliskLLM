@@ -50,6 +50,14 @@ class GeneralSettings(BaseModel):
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
 
 
+class ImagesSettings(BaseModel):
+	model_config = ConfigDict(populate_by_name=True)
+	max_height: int = Field(default=720)
+	max_width: int = Field(default=0)
+	quality: int = Field(default=85, ge=1, le=100)
+	resize: bool = Field(default=False)
+
+
 class BasiliskConfig(BaseSettings):
 	model_config = SettingsConfigDict(
 		env_prefix="BASILISK_",
@@ -59,6 +67,7 @@ class BasiliskConfig(BaseSettings):
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
 	accounts: AccountManager = Field(default=AccountManager(list()))
+	images: ImagesSettings = Field(default_factory=ImagesSettings)
 
 	@classmethod
 	def settings_customise_sources(

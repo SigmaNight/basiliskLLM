@@ -262,7 +262,7 @@ class ConversationTab(wx.Panel):
 			self.images_list.SetItem(
 				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
 			)
-			self.images_list.SetItem(i, 3, image.path)
+			self.images_list.SetItem(i, 3, image.location)
 		self.images_list.SetItemState(
 			i,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,

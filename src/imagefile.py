@@ -80,8 +80,10 @@ class ImageFile:
 	@cached_property
 	def url(self) -> str:
 		location = self.location
+		log.debug(f'Processing image "{location}"')
 		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			if False:  # conf["images"]["resize"]:
+			if config.conf.images.resize:
+				start_time = time.time()
 				path_resized_image = os.path.join(
 					globalvars.user_data_path, "last_resized.jpg"
 				)
@@ -92,13 +94,13 @@ class ImageFile:
 					quality=config.conf.images.quality,
 					target=path_resized_image,
 				)
+				log.debug(
+					f"Image resized in {time.time() - start_time:.2f} second"
+				)
 				location = path_resized_image
-			log.debug(f"Encoding image: {location}")
 			start_time = time.time()
 			base64_image = encode_image(location)
-			log.debug(
-				f"Image encoded in {time.time() - start_time:.2f} seconds"
-			)
+			log.debug(f"Image encoded in {time.time() - start_time:.2f} second")
 			mime_type, _ = mimetypes.guess_type(location)
 			return f"data:{mime_type};base64,{base64_image}"
 		elif self.type == ImageFileTypes.IMAGE_URL:

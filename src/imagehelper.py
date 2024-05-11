@@ -31,6 +31,8 @@ def resize_image(
 	if max_width <= 0 and max_height <= 0:
 		return False
 	image = Image.open(src)
+	if image.mode in ("RGBA", "P"):
+		image = image.convert("RGB")
 	orig_width, orig_height = image.size
 	if max_width > 0 and max_height > 0:
 		ratio = min(max_width / orig_width, max_height / orig_height)
@@ -40,7 +42,9 @@ def resize_image(
 		ratio = max_height / orig_height
 	new_width = int(orig_width * ratio)
 	new_height = int(orig_height * ratio)
-	resized_image = image.resize((new_width, new_height), Image.ANTIALIAS)
+	resized_image = image.resize(
+		(new_width, new_height), Image.Resampling.LANCZOS
+	)
 	resized_image.save(target, optimize=True, quality=quality)
 	return True
 
