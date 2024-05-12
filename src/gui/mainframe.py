@@ -199,7 +199,7 @@ class MainFrame(wx.Frame):
 
 	def on_preferences(self, event):
 		log.debug("Opening preferences dialog")
-		from src.gui.preferencesdialog import PreferencesDialog
+		from gui.preferencesdialog import PreferencesDialog
 
 		preferences_dialog = PreferencesDialog(self, title=_("Settings"))
 		if preferences_dialog.ShowModal() == wx.ID_OK:
