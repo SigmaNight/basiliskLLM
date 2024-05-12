@@ -3,14 +3,19 @@ import time
 import wx
 import wx.adv
 import threading
+from pathlib import Path
+from .globalvars import resource_path
 
 log = logging.getLogger(__name__)
 
 ALIASES = {
-	"chat_request_sent": "res/sounds/chat_request_sent.wav",
-	"chat_response_pending": "res/sounds/chat_response_pending.wav",
-	"chat_response_received": "res/sounds/chat_response_received.wav",
-	"progress": "res/sounds/progress.wav",
+	"chat_request_sent": resource_path
+	/ Path("sounds", "chat_request_sent.wav"),
+	"chat_response_pending": resource_path
+	/ Path("sounds", "chat_response_pending.wav"),
+	"chat_response_received": resource_path
+	/ Path("sounds", "chat_response_received.wav"),
+	"progress": resource_path / Path("sounds", "progress.wav"),
 }
 
 
@@ -26,10 +31,10 @@ class SoundManager:
 	def _ensure_sound_loaded(self, file_path) -> wx.adv.Sound:
 		if file_path not in self.sound_cache:
 			sound = wx.adv.Sound()
-			if sound.Create(file_path):
+			if sound.Create(str(file_path)):
 				self.sound_cache[file_path] = sound
 			else:
-				raise IOError("Failed to load sound: " + file_path)
+				raise IOError(f"Failed to load sound: {file_path}")
 		return self.sound_cache[file_path]
 
 	def _play_sound_loop(self, sound: wx.adv.Sound, delay: float = 0.1):

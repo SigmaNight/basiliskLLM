@@ -3,10 +3,12 @@ import logging
 import sys
 import wx
 import basilisk.globalvars as globalvars
-from .consts import APP_NAME
-from .localization import init_translation
-from .logger import setup_logging, logging_uncaught_exceptions
-from .soundmanager import initialize_sound_manager
+
+# don't use relative import here, CxFreeze will fail to find the module
+from basilisk.consts import APP_NAME
+from basilisk.localization import init_translation
+from basilisk.logger import setup_logging, logging_uncaught_exceptions
+from basilisk.soundmanager import initialize_sound_manager
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +52,7 @@ class MainApp(wx.App):
 		log.info("translation initialized")
 		initialize_sound_manager()
 		log.info("sound manager initialized")
-		from .gui.mainframe import MainFrame
+		from basilisk.gui.mainframe import MainFrame
 
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
