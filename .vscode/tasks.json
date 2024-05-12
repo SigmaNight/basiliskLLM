@@ -24,8 +24,10 @@
         {
             "label": "build executable",
             "type": "shell",
-            "command": "cxfreeze",
+            "command": "python",
             "args": [
+                "-m",
+                "cx_Freeze",
                 "build_exe"
             ],
             "dependsOn": [

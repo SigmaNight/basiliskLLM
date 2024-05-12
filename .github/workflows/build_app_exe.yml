@@ -36,7 +36,7 @@ jobs:
     - name: compile translations
       run: poetry run python setup.py compile_catalog
     - name: Build executable
-      run: poetry run cxfreeze build_exe
+      run: poetry run python -m cx_Freeze build_exe
     - name: get version from executable
       id: get_version
       run: |
