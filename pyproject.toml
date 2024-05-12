@@ -70,7 +70,7 @@ version_provider = "poetry"
 
 [tool.cxfreeze]
 executables = [
-    {script="src/main.pyw", base="gui", target_name="basiliskllm"},
+    {script="basilisk/__main__.py", base="gui", target_name="basilisk"},
 ]
 [tool.cxfreeze.build_exe]
 optimize = 2
@@ -81,6 +81,6 @@ excludes = [
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
     "babel.messages"]
 
-include_files = ["src/res"]
-include_path = "src"
+include_files = ["basilisk/res"]
+include_path = "basilisk"
 packages = ["os", "sys", "wx", "wx.adv", "openai", "pydantic_settings", "yaml", "platformdirs", "babel"]
