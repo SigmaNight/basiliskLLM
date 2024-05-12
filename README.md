@@ -60,8 +60,7 @@ poetry shell
 Ready to watch the code baby crawl, maybe even walk? Fire up the project:
 
 ```shell
-cd src
-python main.pyw
+python -m basilisk
 ```
 
 ## 🚀 build standalone executable
@@ -69,7 +68,7 @@ python main.pyw
 You can build a standalone executable with the following command:
 
 ```shell
-poetry run cxfreeze build_exe
+poetry run python -m cx_Freeze build_exe
 ```
 
 This will create a `dist` directory with the standalone executable. You can run the executable by double-clicking on it.
