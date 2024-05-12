@@ -44,9 +44,9 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basiliskllm.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basiliskllm.exe"; WorkingDir: "{app}"; Tasks: DesktopIcon
-Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basiliskllm.exe"; WorkingDir: "{app}"; Tasks: StartupIcon
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: DesktopIcon
+Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: StartupIcon
 
 [Run]
-Filename: "{app}\basiliskllm.exe"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked
