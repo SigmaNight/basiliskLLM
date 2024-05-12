@@ -1,4 +1,5 @@
 from __future__ import annotations
+import basilisk.globalvars as globalvars
 from enum import Enum
 from functools import cached_property
 from logging import getLogger
@@ -17,8 +18,7 @@ from pydantic import (
 	model_validator,
 	model_serializer,
 )
-import globalvars
-from provider import Provider, providers, get_provider
+from .provider import Provider, providers, get_provider
 
 log = getLogger(__name__)
 

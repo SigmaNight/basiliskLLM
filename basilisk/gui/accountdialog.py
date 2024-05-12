@@ -2,14 +2,14 @@ from typing import Optional
 from pydantic import SecretStr
 import wx
 from logging import getLogger
-from account import (
+from basilisk.account import (
 	Account,
 	AccountOrganization,
 	AccountSource,
 	get_account_source_labels,
 )
-from config import conf
-from provider import providers, get_provider
+from basilisk.config import conf
+from basilisk.provider import providers, get_provider
 
 log = getLogger(__name__)
 

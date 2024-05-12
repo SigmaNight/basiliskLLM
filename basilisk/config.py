@@ -1,6 +1,6 @@
 import logging
 import yaml
-import globalvars
+import basilisk.globalvars as globalvars
 from pathlib import Path
 from enum import Enum
 from platformdirs import user_config_path
@@ -11,7 +11,7 @@ from pydantic_settings import (
 	SettingsConfigDict,
 	YamlConfigSettingsSource,
 )
-from account import AccountManager
+from .account import AccountManager
 
 log = logging.getLogger(__name__)
 

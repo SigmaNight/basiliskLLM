@@ -1,7 +1,7 @@
 import logging
 import wx.adv
 import wx
-from consts import APP_NAME
+from basilisk.consts import APP_NAME
 
 log = logging.getLogger(__name__)
 

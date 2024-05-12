@@ -1,5 +1,5 @@
 import logging
-import globalvars
+import basilisk.globalvars as globalvars
 from pathlib import Path
 from types import TracebackType
 from typing import Type

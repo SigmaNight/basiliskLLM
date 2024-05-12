@@ -4,7 +4,12 @@ from functools import cached_property
 from typing import Generator, Union, TYPE_CHECKING
 from openai import OpenAI
 from openai.types.chat import ChatCompletionChunk, ChatCompletion
-from conversation import Conversation, Message, MessageBlock, MessageRoleEnum
+from basilisk.conversation import (
+	Conversation,
+	Message,
+	MessageBlock,
+	MessageRoleEnum,
+)
 
 if TYPE_CHECKING:
 	from account import Account
