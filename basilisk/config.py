@@ -4,7 +4,7 @@ import yaml
 from pathlib import Path
 from enum import Enum
 from platformdirs import user_config_path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Extra, Field
 from pydantic_settings import (
 	BaseSettings,
 	PydanticBaseSettingsSource,
@@ -53,6 +53,7 @@ class GeneralSettings(BaseModel):
 class BasiliskConfig(BaseSettings):
 	model_config = SettingsConfigDict(
 		env_prefix="BASILISK_",
+		extra=Extra.allow,
 		yaml_file=search_config_paths,
 		yaml_file_encoding="UTF-8",
 	)
