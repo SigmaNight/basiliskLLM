@@ -1,6 +1,6 @@
 import logging
-import sys
 import yaml
+import basilisk.globalvars as globalvars
 from pathlib import Path
 from enum import Enum
 from platformdirs import user_config_path
@@ -27,14 +27,8 @@ class LogLevelEnum(Enum):
 
 config_file_path = Path("config.yml")
 search_config_paths = []
-if getattr(sys, "frozen", False):
-	search_config_paths.append(
-		Path(sys.executable).parent / Path("user_data") / config_file_path
-	)
-else:
-	search_config_paths.append(
-		Path(__file__).parent / Path("user_data") / config_file_path
-	)
+if globalvars.user_data_path:
+	search_config_paths.append(globalvars.user_data_path / config_file_path)
 search_config_paths.append(
 	user_config_path(
 		"basilisk", "basilisk_llm", roaming=True, ensure_exists=True
