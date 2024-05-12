@@ -1,0 +1,528 @@
+# Russian translations for basiliskllm.
+# Copyright (C) 2024 ORGANIZATION
+# This file is distributed under the same license as the basiliskllm
+# project.
+# Daniil Lepke <dgh@u-l.me>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: BasiliskLLM 0.1.0\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2024-05-12 23:26+0700\n"
+"PO-Revision-Date: 2024-05-13 02:42+0700\n"
+"Last-Translator: Daniil Lepke <dgh@u-l.me>\n"
+"Language-Team: ru <LL@li.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Generated-By: Babel 2.15.0\n"
+"X-Generator: Poedit 3.4.4\n"
+
+#: src/account.py:158
+msgid "From environment variable"
+msgstr "Из переменных среды"
+
+#. Translators: Account source label
+#: src/account.py:223
+msgid "Environment variable"
+msgstr "Переменные среды"
+
+#. Translators: Account source label
+#: src/account.py:225
+msgid "Configuration file"
+msgstr "Файл конфигурации"
+
+#: src/gui/aboutdialog.py:24
+msgid "Where LLMs Unite"
+msgstr "Where LLMs Unite"
+
+#: src/gui/aboutdialog.py:26
+msgid "GPLV2"
+msgstr "GPLv2"
+
+#: src/gui/accountdialog.py:40 src/gui/accountdialog.py:305
+msgid "&Name:"
+msgstr "&Имя:"
+
+#: src/gui/accountdialog.py:45
+msgid "API &Key:"
+msgstr "&Ключ API:"
+
+#: src/gui/accountdialog.py:73 src/gui/accountdialog.py:404
+msgid "Please enter a name"
+msgstr "Пожалуйста, введите имя"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/accountdialog.py:74 src/gui/accountdialog.py:79
+#: src/gui/accountdialog.py:405 src/gui/accountdialog.py:411
+#: src/gui/accountdialog.py:418 src/gui/accountdialog.py:618
+#: src/gui/accountdialog.py:657 src/gui/conversationtab.py:329
+#: src/gui/conversationtab.py:359 src/gui/conversationtab.py:380
+#: src/gui/preferencesdialog.py:20
+msgid "Error"
+msgstr "Error"
+
+#: src/gui/accountdialog.py:78
+msgid "Please enter a key"
+msgstr "Пожалуйста, введите ключ"
+
+#: src/gui/accountdialog.py:115
+msgid "Organizations"
+msgstr "Организации"
+
+#. Translators: A label in account dialog
+#: src/gui/accountdialog.py:122 src/gui/accountdialog.py:470
+#: src/gui/conversationtab.py:79
+msgid "Name"
+msgstr "Имя"
+
+#. Translators: A label in account dialog
+#: src/gui/accountdialog.py:127
+msgid "Key"
+msgstr "Ключ"
+
+#. Translators: A label in account dialog
+#: src/gui/accountdialog.py:132 src/gui/accountdialog.py:485
+msgid "Source"
+msgstr "Источник"
+
+#: src/gui/accountdialog.py:139
+msgid "&Add"
+msgstr "&Добавить"
+
+#: src/gui/accountdialog.py:141 src/gui/accountdialog.py:499
+msgid "&Edit"
+msgstr "&Редактировать"
+
+#: src/gui/accountdialog.py:144 src/gui/accountdialog.py:503
+msgid "&Remove"
+msgstr "&Удалить"
+
+#: src/gui/accountdialog.py:174 src/gui/accountdialog.py:220
+#: src/gui/accountdialog.py:252 src/gui/accountdialog.py:548
+#: src/gui/accountdialog.py:596 src/gui/accountdialog.py:632
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: src/gui/accountdialog.py:212
+msgid "Add organization"
+msgstr "Добавить организацию"
+
+#: src/gui/accountdialog.py:237
+msgid "Edit organization"
+msgstr "Редактировать организацию"
+
+#. Translators: A confirmation message in account dialog for removing
+#. organization
+#: src/gui/accountdialog.py:268
+msgid "Are you sure you want to remove the organization {}?"
+msgstr "Вы уверены, что хотите удалить организацию {}?"
+
+#: src/gui/accountdialog.py:271 src/gui/accountdialog.py:653
+msgid "Confirmation"
+msgstr "Подтверждение"
+
+#: src/gui/accountdialog.py:310
+msgid "&Provider:"
+msgstr "&Поставщик:"
+
+#: src/gui/accountdialog.py:319
+msgid "API &key:"
+msgstr "&Ключ API:"
+
+#: src/gui/accountdialog.py:326
+msgid "&Organization to use:"
+msgstr "&Использовать организацию:"
+
+#: src/gui/accountdialog.py:363 src/gui/conversationtab.py:283
+msgid "Personal"
+msgstr "Персональный"
+
+#: src/gui/accountdialog.py:410
+msgid "Please select a provider"
+msgstr "Пожалуйста, выберите поставщика"
+
+#: src/gui/accountdialog.py:417
+msgid "Please enter an API key. It is required for this provider"
+msgstr "Пожалуйста, введите ключ API. Он необходим для этого поставщика"
+
+#: src/gui/accountdialog.py:464
+msgid "Accounts"
+msgstr "Аккаунты"
+
+#. Translators: A label in account dialog
+#: src/gui/accountdialog.py:475
+msgid "Provider"
+msgstr "Поставщик"
+
+#. Translators: A label in account dialog
+#: src/gui/accountdialog.py:480
+msgid "Active organization"
+msgstr "Активная организация"
+
+#: src/gui/accountdialog.py:490
+msgid "&Add..."
+msgstr "&Добавить..."
+
+#: src/gui/accountdialog.py:494
+msgid "&Manage organizations..."
+msgstr "&Управление организациями..."
+
+#: src/gui/accountdialog.py:533
+msgid "N/A"
+msgstr "N/A"
+
+#: src/gui/accountdialog.py:538
+msgid "No (personal)"
+msgstr "Нет (персональный)"
+
+#: src/gui/accountdialog.py:570
+msgid "Manage organizations"
+msgstr "Управление организациями"
+
+#: src/gui/accountdialog.py:586
+msgid "Add account"
+msgstr "Добавить аккаунт"
+
+#: src/gui/accountdialog.py:617
+msgid "Cannot edit account from environment variable"
+msgstr ""
+"Редактирование невозможно для аккаунта, полученного из переменных среды"
+
+#: src/gui/accountdialog.py:620
+msgid "Edit account"
+msgstr "Редактировать аккаунт"
+
+#. Translators: A confirmation message in account dialog
+#: src/gui/accountdialog.py:650
+msgid "Are you sure you want to remove the account {}?"
+msgstr "Вы уверены, что хотите удалить аккаунт {}?"
+
+#: src/gui/accountdialog.py:656
+msgid "Cannot remove account from environment variable"
+msgstr "Невозможно удалить аккаунт, полученный из переменных среды"
+
+#. Translators: This is a label for account in the main window
+#: src/gui/conversationtab.py:33
+msgid "&Account:"
+msgstr "&Аккаунт:"
+
+#. Translators: This is a label for system prompt in the main window
+#: src/gui/conversationtab.py:47
+msgid "S&ystem prompt:"
+msgstr "&Системная подсказка:"
+
+#. Translators: This is a label for user prompt in the main window
+#: src/gui/conversationtab.py:56
+msgid "&Messages:"
+msgstr "&Сообщения:"
+
+#. Translators: This is a label for user prompt in the main window
+#: src/gui/conversationtab.py:67
+msgid "&Prompt:"
+msgstr "&Подсказка:"
+
+#: src/gui/conversationtab.py:76
+msgid "M&odels:"
+msgstr "&Модели:"
+
+#: src/gui/conversationtab.py:80
+msgid "Context window"
+msgstr "Контекстное окно"
+
+#: src/gui/conversationtab.py:81
+msgid "Max tokens"
+msgstr "Максимальное число токенов"
+
+#. Translators: This is a label for max tokens in the main window
+#: src/gui/conversationtab.py:89
+msgid "Max to&kens:"
+msgstr "Максимальное число &токенов:"
+
+#. Translators: This is a label for temperature in the main window
+#: src/gui/conversationtab.py:100
+msgid "&Temperature:"
+msgstr "&Температура:"
+
+#. Translators: This is a label for top P in the main window
+#: src/gui/conversationtab.py:111
+msgid "Probability &Mass (top P):"
+msgstr "&Масса вероятности (верхнее P):"
+
+#. Translators: This is a label for stream mode in the main window
+#: src/gui/conversationtab.py:120
+msgid "&Stream mode"
+msgstr "&Потоковый режим"
+
+#. Translators: This is a label for submit button in the main window
+#: src/gui/conversationtab.py:128
+msgid "Su&bmit (Ctrl+Enter)"
+msgstr "&Отправить (Ctrl+Enter)"
+
+#: src/gui/conversationtab.py:156
+msgid "Please add an account first. Do you want to add an account now?"
+msgstr "Пожалуйста, сначала добавьте аккаунт. Хотите сделать это сейчас?"
+
+#: src/gui/conversationtab.py:159
+msgid "No account configured"
+msgstr "Аккаунт не настроен"
+
+#: src/gui/conversationtab.py:235
+msgid "Insert previous prompt"
+msgstr "Вставить предыдущую подсказку"
+
+#: src/gui/conversationtab.py:240
+msgid "Submit"
+msgstr "Отправить"
+
+#: src/gui/conversationtab.py:329
+msgid "Please select a model"
+msgstr "Пожалуйста, выберите модель"
+
+#: src/gui/conversationtab.py:358
+msgid "A task is already running. Please wait for it to complete."
+msgstr "Задача уже запущена. Пожалуйста, дождитесь её завершения."
+
+#: src/gui/conversationtab.py:379
+msgid "An error occurred during completion: "
+msgstr "Произошла ошибка во время завершения: "
+
+#: src/gui/mainframe.py:45
+msgid "New conversation"
+msgstr "Новый разговор"
+
+#: src/gui/mainframe.py:49
+msgid "Close conversation"
+msgstr "Закончить разговор"
+
+#: src/gui/mainframe.py:56
+msgid "Add image files"
+msgstr "Добавить файлы изображений"
+
+#: src/gui/mainframe.py:61
+msgid "Manage &accounts"
+msgstr "Управление &аккаунтами"
+
+#: src/gui/mainframe.py:75
+msgid "Check updates"
+msgstr "Проверить обновления"
+
+#: src/gui/mainframe.py:78
+msgid "&GitHub repository"
+msgstr "&Репозиторий на GitHub"
+
+#: src/gui/mainframe.py:80
+msgid "Roko's Basilisk"
+msgstr "Roko's Basilisk"
+
+#: src/gui/mainframe.py:83
+msgid "&Conversation"
+msgstr "&Разговор"
+
+#: src/gui/mainframe.py:84
+msgid "&Help"
+msgstr "&Помощь"
+
+#: src/gui/mainframe.py:89
+msgid "Actions"
+msgstr "Действия"
+
+#: src/gui/mainframe.py:98
+msgid "Ready"
+msgstr "Готов"
+
+#: src/gui/mainframe.py:195
+msgid "Manage accounts"
+msgstr "Управление аккаунтами"
+
+#: src/gui/mainframe.py:204
+msgid "Settings"
+msgstr "Настройки"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/preferencesdialog.py:12
+msgid "Off"
+msgstr "Отключено"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/preferencesdialog.py:14
+msgid "Debug"
+msgstr "Debug"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/preferencesdialog.py:16
+msgid "Info"
+msgstr "Info"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/preferencesdialog.py:18
+msgid "Warning"
+msgstr "Warning"
+
+#. Translators: A label for the log level in the settings dialog
+#: src/gui/preferencesdialog.py:22
+msgid "Critical"
+msgstr "Critical"
+
+#: src/gui/preferencesdialog.py:39
+msgid "Log level"
+msgstr "Уровень журнала"
+
+#: src/gui/preferencesdialog.py:55
+msgid "Language (Requires restart)"
+msgstr "Язык (требуется перезапуск)"
+
+#: src/gui/preferencesdialog.py:66
+msgid "Advanced mode"
+msgstr "Расширенный режим"
+
+#: src/gui/preferencesdialog.py:73
+msgid "Save"
+msgstr "Сохранить"
+
+#: src/gui/preferencesdialog.py:77
+msgid "Cancel"
+msgstr "Отменить"
+
+#. Translators: A label for the language in the settings dialog
+#: src/gui/preferencesdialog.py:108
+msgid "System default (auto)"
+msgstr "По умолчанию как в системе (авто)"
+
+#: src/gui/taskbaricon.py:27
+msgid "Show"
+msgstr "Показать"
+
+#: src/gui/taskbaricon.py:27
+msgid "Hide"
+msgstr "Скрыть"
+
+#: src/gui/taskbaricon.py:30
+msgid "About"
+msgstr "О программе"
+
+#: src/gui/taskbaricon.py:32
+msgid "Quit"
+msgstr "Выход"
+
+#. Translators: This is a model description
+#: src/providerengine/mistralaiengine.py:20
+#: src/providerengine/mistralaiengine.py:28
+#, python-format
+msgid "aka %s"
+msgstr "aka %s"
+
+#. Translators: This is a model description
+#: src/providerengine/mistralaiengine.py:36
+msgid "Simple tasks (Classification, Customer Support, or Text Generation)"
+msgstr ""
+"Простые задачи (классификация, поддержка клиентов или генерация текста)"
+
+#. Translators: This is a model description
+#: src/providerengine/mistralaiengine.py:46
+msgid ""
+"Intermediate tasks that require moderate reasoning (Data extraction, "
+"Summarizing a Document, Writing emails, Writing a Job Description, or "
+"Writing Product Descriptions)"
+msgstr ""
+"Промежуточные задачи, требующие умеренного рассуждения (извлечение данных, "
+"обобщение документа, написание электронных писем, составление должностной "
+"инструкции или описания продукта)"
+
+#. Translators: This is a model description
+#: src/providerengine/mistralaiengine.py:56
+msgid ""
+"Complex tasks that require large reasoning capabilities or are highly "
+"specialized (Synthetic Text Generation, Code Generation, RAG, or Agents)"
+msgstr ""
+"Сложные задачи, требующие больших логических способностей или являющиеся "
+"узкоспециализированными (генерация синтетического текста, генерация кода, "
+"RAG или агенты)"
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:49
+msgid "Points to one of the most recent iterations of gpt-3.5 ProviderAIModel."
+msgstr "Указывает на одну из последних итераций модели GPT-3.5."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:58
+msgid ""
+"The latest GPT-3.5 Turbo ProviderAIModel with higher accuracy at responding "
+"in requested formats and a fix for a bug which caused a text encoding issue "
+"for non-English language function calls."
+msgstr ""
+"Новейшая модель GPT-3.5 Turbo с более высокой точностью при ответе в "
+"запрошенных форматах и исправлением ошибки, которая вызывала проблему с "
+"кодировкой текста при вызовах функций не на английском языке."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:67
+msgid ""
+"Updated GPT 3.5 Turbo. The latest GPT-3.5 Turbo ProviderAIModel with "
+"improved instruction following, JSON mode, reproducible outputs, parallel "
+"function calling, and more."
+msgstr ""
+"Обновлённая GPT-3.5 Turbo. Последняя модель GPT-3.5 Turbo с улучшенным "
+"следованием инструкциям, режимом JSON, воспроизводимыми выходными данными, "
+"параллельным вызовом функций и многим другим."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:76
+msgid ""
+"Same capabilities as the standard gpt-3.5-turbo ProviderAIModel but with 4 "
+"times the context"
+msgstr ""
+"Те же возможности, что и у стандартной модели gpt-3.5-turbo, но в 4 раза "
+"больше контекста"
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:85
+msgid "Points to one of the most recent iterations of gpt-4 ProviderAIModel."
+msgstr "Указывает на одну из самых последних итераций модели GPT-4."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:94
+msgid ""
+"The latest GPT-4 ProviderAIModel intended to reduce cases of “laziness” "
+"where the ProviderAIModel doesn’t complete a task."
+msgstr ""
+"Последняя версия GPT-4 предназначена для уменьшения случаев “лени”, когда "
+"модель не выполняет задачу."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:103
+msgid ""
+"GPT-4 Turbo ProviderAIModel featuring improved instruction following, JSON "
+"mode, reproducible outputs, parallel function calling, and more."
+msgstr ""
+"Модель GPT-4 Turbo с улучшенным следованием инструкциям, режимом JSON, "
+"воспроизводимыми выводами, параллельным вызовом функций и многим другим."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:112
+msgid ""
+"GPT-4 Turbo with vision. Ability to understand images, in addition to all "
+"other GPT-4 Turbo capabilities."
+msgstr ""
+"GPT-4 Turbo со зрением. Способность понимать изображения в дополнение ко "
+"всем другим возможностям GPT-4 Turbo."
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:122
+msgid ""
+"More capable than any GPT-3.5 ProviderAIModel, able to do more complex "
+"tasks, and optimized for chat"
+msgstr ""
+"Более мощная, чем любая модель GPT-3.5, способна выполнять более сложные "
+"задачи и оптимизирована для общения в чате"
+
+#. Translators: This is a ProviderAIModel description
+#: src/providerengine/openaiengine.py:130
+msgid ""
+"Same capabilities as the standard gpt-4 mode but with 4x the context length."
+msgstr ""
+"Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной "
+"контекста."
