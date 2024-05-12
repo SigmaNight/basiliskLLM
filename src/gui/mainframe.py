@@ -1,12 +1,23 @@
+import datetime
 import logging
+import os
 import sys
 import wx
 
 if sys.platform == 'win32':
 	import win32con
-from consts import APP_NAME, APP_SOURCE_URL
+from consts import (
+	APP_NAME,
+	APP_SOURCE_URL,
+	HOTKEY_TOGGLE_VISIBILITY,
+	HOTKEY_CAPTURE_FULL,
+	HOTKEY_CAPTURE_WINDOW,
+)
+import globalvars
 from gui.conversationtab import ConversationTab
 from gui.taskbaricon import TaskBarIcon
+from imagefile import ImageFile
+from screencapturethread import ScreenCaptureThread, CaptureMode
 import config
 
 log = logging.getLogger(__name__)
@@ -25,7 +36,7 @@ class MainFrame(wx.Frame):
 			self.tray_icon = TaskBarIcon(self)
 			self.Bind(wx.EVT_ICONIZE, self.on_minimize)
 			self.register_hot_key()
-			self.Bind(wx.EVT_HOTKEY, self.toggle_visibility)
+			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
 		self.on_new_conversation(None)
 
 	def init_ui(self):
@@ -128,8 +139,29 @@ class MainFrame(wx.Frame):
 
 	def register_hot_key(self):
 		self.RegisterHotKey(
-			1, win32con.MOD_CONTROL | win32con.MOD_ALT, ord('B')
+			HOTKEY_TOGGLE_VISIBILITY,
+			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			ord('B'),
 		)
+		self.RegisterHotKey(
+			HOTKEY_CAPTURE_FULL,
+			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			ord('F'),
+		)
+		self.RegisterHotKey(
+			HOTKEY_CAPTURE_WINDOW,
+			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			ord('W'),
+		)
+
+	def on_hotkey(self, event):
+		hotkey_id = event.GetId()
+		if hotkey_id == HOTKEY_TOGGLE_VISIBILITY:
+			self.toggle_visibility(None)
+		elif hotkey_id == HOTKEY_CAPTURE_WINDOW:
+			self.screen_capture(CaptureMode.WINDOW)
+		elif hotkey_id == HOTKEY_CAPTURE_FULL:
+			self.screen_capture(CaptureMode.FULL)
 
 	def toggle_visibility(self, event):
 		if self.IsShown():
@@ -138,6 +170,24 @@ class MainFrame(wx.Frame):
 			self.Show()
 			self.Restore()
 			self.Layout()
+
+	def screen_capture(self, capture_mode):
+		log.debug("Capturing screen")
+		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+		path = os.path.join(
+			globalvars.user_data_path, f"screenshot_{now_str}.png"
+		)
+		thread = ScreenCaptureThread(self, path, capture_mode)
+		thread.start()
+
+	def post_screen_capture(self, imagefile: ImageFile | str):
+		log.debug("Screen capture received")
+		self.current_tab.add_images([imagefile])
+		if not self.IsShown():
+			self.Show()
+			self.Restore()
+			self.Layout()
+		self.Raise()
 
 	def on_minimize(self, event):
 		log.debug("Minimized to tray")
