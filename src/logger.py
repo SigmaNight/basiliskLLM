@@ -1,12 +1,14 @@
 import logging
-import sys
+import globalvars
 from pathlib import Path
 from types import TracebackType
 from typing import Type
 from platformdirs import user_log_path
 
 log_file_path = Path("basilisk.log")
-if getattr(sys, "frozen", False):
+if globalvars.user_data_path:
+	log_file_path = globalvars.user_data_path / log_file_path
+else:
 	log_file_path = (
 		user_log_path("basilisk", "basilisk_llm", ensure_exists=True)
 		/ log_file_path
@@ -50,7 +52,6 @@ def logging_uncaught_exceptions(
 	"""Log uncaught exceptions"""
 	if isinstance(exc_type, KeyboardInterrupt):
 		logging.info("Keyboard interrupt")
-		sys.__excepthook__
 		return
 	logging.getLogger(exc_type.__module__).error(
 		"Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback)
