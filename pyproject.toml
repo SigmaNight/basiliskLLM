@@ -38,7 +38,7 @@ httpx = "^0.27.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.4"
-pre-commit = "^3.7.0"
+pre-commit = "^3.7.1"
 commitizen = "^3.25.0"
 babel = "^2.15.0"
 setuptools-scm = "^8.0.4"
