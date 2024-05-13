@@ -82,7 +82,7 @@ excludes = [
     "babel.messages", "h11.tests"]
 include_files = ["basilisk/res"]
 zip_include_packages = [
-    "wx", "openai", "yaml", "pydantic_settings", "platformdirs", "httpx",
+    "openai", "yaml", "pydantic_settings", "platformdirs", "httpx",
     "logging", "json", "pydantic", "pydantic_core",
     "asyncio", "anyio", "encodings", "dotenv", "email", "ctypes", "collections",
     "concurrent", "distro", "h11", "httpcore", "http", "importlib", "re", "sniffio",
