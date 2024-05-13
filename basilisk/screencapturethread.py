@@ -3,7 +3,7 @@ import datetime
 import threading
 from PIL import ImageGrab
 import wx
-from imagefile import ImageFile
+from .imagefile import ImageFile
 
 
 class CaptureMode(Enum):

@@ -5,9 +5,9 @@ import mimetypes
 import os
 import re
 import time
-from imagehelper import get_image_dimensions, encode_image, resize_image
-import config
-import globalvars
+from .imagehelper import get_image_dimensions, encode_image, resize_image
+from . import config
+from . import globalvars
 
 log = logging.getLogger(__name__)
 

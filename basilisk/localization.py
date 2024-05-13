@@ -1,4 +1,3 @@
-import sys
 import gettext
 import locale
 import logging
@@ -6,17 +5,13 @@ import wx
 from typing import Optional
 from pathlib import Path
 from babel import Locale
-from consts import APP_NAME, DEFAULT_LANG
+from .consts import APP_NAME, DEFAULT_LANG
+from .globalvars import resource_path
 
 log = logging.getLogger(__name__)
 
 
-if getattr(sys, "frozen", False):
-	logging.debug("Running in a cxfreeze bundle")
-	LOCALE_DIR = Path(sys.executable).parent / Path("res", "locale")
-else:
-	log.debug("Running in a normal Python environment")
-	LOCALE_DIR = Path(__file__).parent / Path("res", "locale")
+LOCALE_DIR = resource_path / Path("locale")
 
 
 def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:

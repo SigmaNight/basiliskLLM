@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 from os import linesep
 from typing import Any, TYPE_CHECKING
 from functools import cached_property
-from consts import APP_NAME, APP_SOURCE_URL
-from conversation import Conversation, MessageBlock, Message
-from provideraimodel import ProviderAIModel
+from basilisk.consts import APP_NAME, APP_SOURCE_URL
+from basilisk.conversation import Conversation, MessageBlock, Message
+from basilisk.provideraimodel import ProviderAIModel
 
 if TYPE_CHECKING:
-	from account import Account
+	from basilisk.account import Account
 
 
 class BaseEngine(ABC):

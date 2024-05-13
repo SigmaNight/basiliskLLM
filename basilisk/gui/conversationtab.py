@@ -1,11 +1,11 @@
-from uuid import UUID
 import logging
 import os
 import threading
 import time
 import wx
+from uuid import UUID
 
-from conversation import (
+from basilisk.conversation import (
 	Conversation,
 	ImageUrlMessageContent,
 	TextMessageContent,
@@ -13,11 +13,11 @@ from conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from imagefile import ImageFile
-from provideraimodel import ProviderAIModel
-from providerengine import BaseEngine
-from soundmanager import play_sound, stop_sound
-import config
+from basilisk.imagefile import ImageFile
+from basilisk.provideraimodel import ProviderAIModel
+from basilisk.providerengine import BaseEngine
+from basilisk.soundmanager import play_sound, stop_sound
+import basilisk.config as config
 
 log = logging.getLogger(__name__)
 

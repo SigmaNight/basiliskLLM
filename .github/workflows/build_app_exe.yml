@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        arch: [x86, x64]
+        arch: [x64, x86]
 
     steps:
     - name: checkout repository
@@ -36,11 +36,11 @@ jobs:
     - name: compile translations
       run: poetry run python setup.py compile_catalog
     - name: Build executable
-      run: poetry run cxfreeze build_exe
+      run: poetry run python -m cx_Freeze build_exe
     - name: get version from executable
       id: get_version
       run: |
-        $version = (Get-Item .\dist\basiliskLLM.exe).VersionInfo.FileVersionRaw
+        $version = (Get-Item .\dist\basilisk.exe).VersionInfo.FileVersionRaw
         echo content=$version >> $env:GITHUB_OUTPUT
     - name: create user config file for portable version
       run: |

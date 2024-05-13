@@ -6,19 +6,19 @@ import wx
 
 if sys.platform == 'win32':
 	import win32con
-from consts import (
+from basilisk.consts import (
 	APP_NAME,
 	APP_SOURCE_URL,
 	HOTKEY_TOGGLE_VISIBILITY,
 	HOTKEY_CAPTURE_FULL,
 	HOTKEY_CAPTURE_WINDOW,
 )
-import globalvars
-from gui.conversationtab import ConversationTab
-from gui.taskbaricon import TaskBarIcon
-from imagefile import ImageFile
-from screencapturethread import ScreenCaptureThread, CaptureMode
-import config
+from .conversationtab import ConversationTab
+from .taskbaricon import TaskBarIcon
+from basilisk.imagefile import ImageFile
+from basilisk.screencapturethread import ScreenCaptureThread, CaptureMode
+import basilisk.config as config
+import basilisk.globalvars as globalvars
 
 log = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class MainFrame(wx.Frame):
 			tab.on_config_change()
 
 	def on_manage_accounts(self, event):
-		from gui.accountdialog import AccountDialog
+		from .accountdialog import AccountDialog
 
 		account_dialog = AccountDialog(self, _("Manage accounts"))
 		if account_dialog.ShowModal() == wx.ID_OK:
@@ -266,7 +266,7 @@ class MainFrame(wx.Frame):
 
 	def on_preferences(self, event):
 		log.debug("Opening preferences dialog")
-		from gui.preferencesdialog import PreferencesDialog
+		from .preferencesdialog import PreferencesDialog
 
 		preferences_dialog = PreferencesDialog(self, title=_("Settings"))
 		if preferences_dialog.ShowModal() == wx.ID_OK:
