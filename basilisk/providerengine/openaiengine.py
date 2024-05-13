@@ -67,21 +67,21 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=4096,
 			),
 			ProviderAIModel(
-				id="gpt-3.5-turbo-1106",
+				id="gpt-4o",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					"Updated GPT 3.5 Turbo. The latest GPT-3.5 Turbo ProviderAIModel with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more."
+					"Our most advanced, multimodal flagship model that’s cheaper and faster than GPT-4 Turbo"
 				),
-				context_window=16385,
+				context_window=128000,
 				max_output_tokens=4096,
 			),
 			ProviderAIModel(
-				id="gpt-3.5-turbo-0613",
+				id="gpt-4-turbo",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					"Same capabilities as the standard gpt-3.5-turbo ProviderAIModel but with 4 times the context"
+					"The latest GPT-4 Turbo model with vision capabilities"
 				),
-				context_window=16384,
+				context_window=128000,
 				max_output_tokens=4096,
 			),
 			ProviderAIModel(
