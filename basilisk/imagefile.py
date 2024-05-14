@@ -109,3 +109,6 @@ class ImageFile:
 
 	def __str__(self):
 		return f"{self.name} ({self.size}, {self.dimensions}, {self.description}, {self.location})"
+
+	def __repr__(self):
+		return f"ImageFile(location={self.location}, name={self.name}, description={self.description}, size={self.size}, dimensions={self.dimensions})"
