@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import sys
+import tempfile
 import wx
 
 if sys.platform == 'win32':
@@ -18,7 +19,6 @@ from .taskbaricon import TaskBarIcon
 from basilisk.imagefile import ImageFile
 from basilisk.screencapturethread import ScreenCaptureThread, CaptureMode
 import basilisk.config as config
-import basilisk.globalvars as globalvars
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
 		self.conf: config.BasiliskConfig = kwargs.pop("conf")
+		self.tmp_files = []
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
 		self.init_ui()
@@ -174,9 +175,12 @@ class MainFrame(wx.Frame):
 	def screen_capture(self, capture_mode):
 		log.debug("Capturing screen")
 		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-		path = os.path.join(
-			globalvars.user_data_path, f"screenshot_{now_str}.png"
+		fd, path = tempfile.mkstemp(
+			prefix=f"basilisk_{now_str}_", suffix=".png"
 		)
+		os.close(fd)
+		self.tmp_files.append(path)
+		log.debug(f"Temporary file: {path}")
 		thread = ScreenCaptureThread(self, path, capture_mode)
 		thread.start()
 
@@ -195,6 +199,9 @@ class MainFrame(wx.Frame):
 
 	def on_close(self, event):
 		log.info("Closing application")
+		for tmp_file in self.tmp_files:
+			log.debug(f"Removing temporary file: {tmp_file}")
+			os.remove(tmp_file)
 		self.tray_icon.RemoveIcon()
 		self.tray_icon.Destroy()
 		self.Destroy()
