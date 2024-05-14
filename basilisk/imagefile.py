@@ -1,13 +1,13 @@
 from enum import Enum
-from functools import cached_property
+from functools import lru_cache
 import logging
 import mimetypes
 import os
 import re
+import tempfile
 import time
 from .imagehelper import get_image_dimensions, encode_image, resize_image
 from . import config
-from . import globalvars
 
 log = logging.getLogger(__name__)
 
@@ -77,16 +77,17 @@ class ImageFile:
 			return get_image_dimensions(self.location)
 		return None
 
-	@cached_property
-	def url(self) -> str:
+	@lru_cache(maxsize=None)
+	def get_url(self, resize=False) -> str:
 		location = self.location
 		log.debug(f'Processing image "{location}"')
 		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			if config.conf.images.resize:
+			if resize:
 				start_time = time.time()
-				path_resized_image = os.path.join(
-					globalvars.user_data_path, "last_resized.jpg"
+				fd, path_resized_image = tempfile.mkstemp(
+					prefix="basilisk_resized_", suffix=".jpg"
 				)
+				os.close(fd)
 				resize_image(
 					location,
 					max_width=config.conf.images.max_width,
@@ -100,6 +101,8 @@ class ImageFile:
 				location = path_resized_image
 			start_time = time.time()
 			base64_image = encode_image(location)
+			if resize:
+				os.remove(path_resized_image)
 			log.debug(f"Image encoded in {time.time() - start_time:.2f} second")
 			mime_type, _ = mimetypes.guess_type(location)
 			return f"data:{mime_type};base64,{base64_image}"

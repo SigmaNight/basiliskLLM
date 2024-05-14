@@ -410,7 +410,14 @@ class ConversationTab(wx.Panel):
 			content.append({"type": "text", "text": prompt})
 		for image_file in images_files:
 			content.append(
-				{"type": "image_url", "image_url": {"url": image_file.url}}
+				{
+					"type": "image_url",
+					"image_url": {
+						"url": image_file.get_url(
+							resize=config.conf.images.resize
+						)
+					},
+				}
 			)
 		return content
 
