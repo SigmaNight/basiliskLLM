@@ -65,9 +65,21 @@ class MainFrame(wx.Frame):
 		)
 		conversation_menu.AppendSeparator()
 		add_image_files_item = conversation_menu.Append(
-			wx.ID_ANY, _("Add image files")
+			wx.ID_ANY, _("Add image files...")
 		)
-		self.Bind(wx.EVT_MENU, self.on_add_image_files, add_image_files_item)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_add_image_files(e, False),
+			add_image_files_item,
+		)
+		add_image_url = conversation_menu.Append(
+			wx.ID_ANY, _("Add image URL...")
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_add_image_files(e, True),
+			add_image_url,
+		)
 		conversation_menu.AppendSeparator()
 		manage_accounts_item = conversation_menu.Append(
 			wx.ID_ANY, _("Manage &accounts")
@@ -246,8 +258,17 @@ class MainFrame(wx.Frame):
 	def current_tab(self):
 		return self.tabs_panels[self.notebook.GetSelection()]
 
-	def on_add_image_files(self, event):
-		self.current_tab.add_image_files()
+	def on_add_image_files(self, event, from_url=False):
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		if from_url:
+			current_tab.add_image_url()
+		else:
+			current_tab.add_image_files()
 
 	def refresh_tabs(self):
 		for tab in self.tabs_panels:

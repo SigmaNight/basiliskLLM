@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import threading
 import time
 import wx
@@ -13,7 +14,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.imagefile import ImageFile
+from basilisk.imagefile import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provideraimodel import ProviderAIModel
 from basilisk.providerengine import BaseEngine
 from basilisk.soundmanager import play_sound, stop_sound
@@ -227,6 +228,10 @@ class ConversationTab(wx.Panel):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_files, item)
 
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.add_image_url, item)
+
 		self.images_list.PopupMenu(menu)
 		menu.Destroy()
 
@@ -247,6 +252,79 @@ class ConversationTab(wx.Panel):
 			paths = file_dialog.GetPaths()
 			self.add_images(paths)
 		file_dialog.Destroy()
+
+	def add_image_url(self, event=None):
+		url_dialog = wx.TextEntryDialog(
+			self,
+			# Translators: This is a label for image URL in conversation tab
+			message=_("Enter the URL of the image:"),
+			caption=_("Add image URL"),
+		)
+		if url_dialog.ShowModal() != wx.ID_OK:
+			return
+		url = url_dialog.GetValue()
+		if not url:
+			return
+		url_pattern = re.compile(URL_PATTERN)
+		if re.match(url_pattern, url) is None:
+			wx.MessageBox(
+				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		try:
+			import urllib.request
+
+			r = urllib.request.urlopen(url)
+		except urllib.error.HTTPError as err:
+			wx.MessageBox(
+				# Translators: This message is displayed when the image URL returns an HTTP error.
+				_("HTTP error %s.") % err,
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		if not r.headers.get_content_type().startswith("image/"):
+			if (
+				wx.MessageBox(
+					# Translators: This message is displayed when the image URL seems to not point to an image.
+					_(
+						"The URL seems to not point to an image (content type: %s). Do you want to continue?"
+					)
+					% r.headers.get_content_type(),
+					_("Warning"),
+					wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
+				)
+				== wx.NO
+			):
+				return
+		description = ''
+		content_type = r.headers.get_content_type()
+		if content_type:
+			description = content_type
+		size = r.headers.get("Content-Length")
+		if size and size.isdigit():
+			size = int(size)
+		try:
+			dimensions = get_image_dimensions(r)
+		except BaseException as err:
+			log.error(err)
+			dimensions = None
+			wx.MessageBox(
+				_("Error getting image dimensions: %s") % err,
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+		self.add_images(
+			[
+				ImageFile(
+					location=url,
+					description=description,
+					size=size,
+					dimensions=dimensions,
+				)
+			]
+		)
+		url_dialog.Destroy()
 
 	def on_images_remove(self, event):
 		selection = self.images_list.GetFirstSelected()

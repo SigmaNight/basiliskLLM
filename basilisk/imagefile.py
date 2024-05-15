@@ -63,7 +63,7 @@ class ImageFile:
 		if self.type == ImageFileTypes.IMAGE_LOCAL:
 			return os.path.basename(self.location)
 		if self.type == ImageFileTypes.IMAGE_URL:
-			return self.location
+			return self.location.split("/")[-1]
 		return "N/A"
 
 	def _get_size(self):
