@@ -24,6 +24,7 @@ class ConversationTab(wx.Panel):
 		wx.Panel.__init__(self, parent)
 		self.conversation = Conversation()
 		self.task = None
+		self.stream_buffer = ""
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
 		self.init_data()
@@ -414,15 +415,22 @@ class ConversationTab(wx.Panel):
 		self.last_time = time.time()
 
 	def _handle_completion_with_stream(self, chunk: str):
-		pos = self.messages.GetInsertionPoint()
-		self.messages.AppendText(chunk)
-		self.messages.SetInsertionPoint(pos)
+		self.stream_buffer += chunk
+		if self.stream_buffer.endswith('\n') or len(self.stream_buffer) > 100:
+			self._flush_stream_buffer()
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
+	def _flush_stream_buffer(self):
+		pos = self.messages.GetInsertionPoint()
+		self.messages.AppendText(self.stream_buffer)
+		self.stream_buffer = ""
+		self.messages.SetInsertionPoint(pos)
+
 	def _post_completion_with_stream(self, new_block: MessageBlock):
+		self._flush_stream_buffer()
 		self._end_task()
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
