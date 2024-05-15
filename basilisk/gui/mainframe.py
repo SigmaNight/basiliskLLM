@@ -247,17 +247,7 @@ class MainFrame(wx.Frame):
 		return self.tabs_panels[self.notebook.GetSelection()]
 
 	def on_add_image_files(self, event):
-		file_dialog = wx.FileDialog(
-			self,
-			message=_("Select one or more image files"),
-			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=_("Image files")
-			+ " (*.png;*.jpeg;*.jpg;*.gif)|*.png;*.jpeg;*.jpg;*.gif",
-		)
-		if file_dialog.ShowModal() == wx.ID_OK:
-			paths = file_dialog.GetPaths()
-			self.current_tab.add_images(paths)
-		file_dialog.Destroy()
+		self.current_tab.add_image_files()
 
 	def refresh_tabs(self):
 		for tab in self.tabs_panels:

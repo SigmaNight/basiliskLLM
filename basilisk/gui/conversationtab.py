@@ -90,6 +90,8 @@ class ConversationTab(wx.Panel):
 		)
 		sizer.Add(self.images_list_label, proportion=0, flag=wx.EXPAND)
 		self.images_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+		self.images_list.Bind(wx.EVT_CONTEXT_MENU, self.on_images_context_menu)
+		self.images_list.Bind(wx.EVT_KEY_DOWN, self.on_images_key_down)
 		self.images_list.InsertColumn(0, _("Name"))
 		self.images_list.InsertColumn(1, _("Size"))
 		self.images_list.InsertColumn(2, _("Dimensions"))
@@ -212,6 +214,53 @@ class ConversationTab(wx.Panel):
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 		)
 
+	def on_images_context_menu(self, event):
+		selected = self.images_list.GetFirstSelected()
+		menu = wx.Menu()
+
+		if selected != wx.NOT_FOUND:
+			item = wx.MenuItem(menu, wx.ID_ANY, _("Remove selected image"))
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
+
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.add_image_files, item)
+
+		self.images_list.PopupMenu(menu)
+		menu.Destroy()
+
+	def on_images_key_down(self, event):
+		if event.GetKeyCode() == wx.WXK_DELETE:
+			self.on_images_remove(None)
+		event.Skip()
+
+	def add_image_files(self, event=None):
+		file_dialog = wx.FileDialog(
+			self,
+			message=_("Select one or more image files"),
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
+			wildcard=_("Image files")
+			+ " (*.png;*.jpeg;*.jpg;*.gif)|*.png;*.jpeg;*.jpg;*.gif",
+		)
+		if file_dialog.ShowModal() == wx.ID_OK:
+			paths = file_dialog.GetPaths()
+			self.add_images(paths)
+		file_dialog.Destroy()
+
+	def on_images_remove(self, event):
+		selection = self.images_list.GetFirstSelected()
+		if selection == wx.NOT_FOUND:
+			return
+		self.image_files.pop(selection)
+		self.refresh_images_list()
+		if selection >= self.images_list.GetItemCount():
+			selection -= 1
+		if selection >= 0:
+			self.images_list.SetItemState(
+				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
+			)
+
 	def on_model_change(self, event):
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
@@ -264,9 +313,7 @@ class ConversationTab(wx.Panel):
 			)
 			self.images_list.SetItem(i, 3, image.location)
 		self.images_list.SetItemState(
-			i,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
 		self.images_list.EnsureVisible(i)
 
