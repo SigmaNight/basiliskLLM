@@ -95,7 +95,7 @@ class ConversationTab(wx.Panel):
 		)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value='1024', min=1, max=64000
+			self, value='1024', min=0, max=64000
 		)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
 

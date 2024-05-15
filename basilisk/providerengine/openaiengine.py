@@ -154,10 +154,11 @@ class OpenAIEngine(BaseEngine):
 				new_block, conversation, system_message
 			),
 			"temperature": new_block.temperature,
-			"max_tokens": new_block.max_tokens,
 			"top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
+		if new_block.max_tokens:
+			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
 		response = self.client.chat.completions.create(**params)
 		return response
