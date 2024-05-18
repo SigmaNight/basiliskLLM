@@ -37,6 +37,13 @@ search_config_paths.append(
 )
 
 
+def search_existing_path(paths: list[Path]) -> Path:
+	for p in paths:
+		if p.exists() or p.parent.exists():
+			return p
+	return paths[-1]
+
+
 class GeneralSettings(BaseModel):
 	model_config = ConfigDict(populate_by_name=True)
 	language: str = Field(default="auto")
@@ -56,7 +63,7 @@ class BasiliskConfig(BaseSettings):
 	model_config = SettingsConfigDict(
 		env_prefix="BASILISK_",
 		extra=Extra.allow,
-		yaml_file=search_config_paths,
+		yaml_file=search_existing_path(search_config_paths),
 		yaml_file_encoding="UTF-8",
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
@@ -88,13 +95,6 @@ class BasiliskConfig(BaseSettings):
 
 
 conf = None
-
-
-def search_existing_path(paths: list[Path]) -> Path:
-	for p in paths:
-		if p.exists() or p.parent.exists():
-			return p
-	return paths[-1]
 
 
 def initialize_config() -> BasiliskConfig:
