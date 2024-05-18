@@ -1,7 +1,7 @@
 #ifndef AppArch
     #define AppArch "x64"
 #endif
-#define MyAppVersion GetVersionNumbersString('dist\basiliskLLM.exe')
+#define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
 
 [setup]
 AppVersion={#MyAppVersion}
@@ -45,7 +45,7 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+B"
 Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: DesktopIcon
 Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: StartupIcon
 
