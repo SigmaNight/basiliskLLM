@@ -361,7 +361,7 @@ class ConversationTab(wx.Panel):
 		if account_index != wx.NOT_FOUND:
 			account_id = config.conf.accounts[account_index].id
 		self.account_combo.Clear()
-		self.account_combo.AppendItems(self.get_display_accounts())
+		self.account_combo.AppendItems(self.get_display_accounts(True))
 		account_index = wx.NOT_FOUND
 		if account_id:
 			for i, account in enumerate(config.conf.accounts):
@@ -466,11 +466,18 @@ class ConversationTab(wx.Panel):
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
-	def get_display_accounts(self) -> list:
+	def get_display_accounts(self, force_refresh=False) -> list:
 		accounts = []
 		for account in config.conf.accounts:
+			if force_refresh:
+				if "active_organization" in account.__dict__:
+					del account.__dict__["active_organization"]
 			name = account.name
-			organization = account.active_organization or _("Personal")
+			organization = (
+				account.active_organization.name
+				if account.active_organization
+				else _("Personal")
+			)
 			provider_name = account.provider.name
 			accounts.append(f"{name} ({organization}) - {provider_name}")
 		return accounts
