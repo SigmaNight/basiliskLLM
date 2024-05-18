@@ -217,7 +217,9 @@ class AccountOrganizationDialog(wx.Dialog):
 				(
 					organization.name,
 					organization.key.get_secret_value(),
-					self.account_.get(organization.source, _("Unknown")),
+					self.account_source_labels.get(
+						organization.source, _("Unknown")
+					),
 				)
 			)
 		dialog.Destroy()
@@ -529,13 +531,9 @@ class AccountDialog(wx.Dialog):
 		self.account_manager = conf.accounts.model_copy(deep=True)
 
 	def _get_organization_name(self, account):
-		if not account.provider.organization_mode_available:
-			return _("N/A")
-		if account.active_organization:
-			for organization in account.organizations:
-				if organization.id == account.active_organization:
-					return organization.name
-		return _("No (personal)")
+		if not account.active_organization:
+			return _("No (personal)")
+		return account.active_organization.name
 
 	def update_data(self):
 		for account in self.account_manager:
@@ -620,6 +618,8 @@ class AccountDialog(wx.Dialog):
 		dialog = EditAccountDialog(self, _("Edit account"), account=account)
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
+			if "active_organization" in account.__dict__:
+				del account.__dict__["active_organization"]
 			self.account_manager[index] = account
 			self.account_list.SetStringItem(index, 0, account.name)
 			self.account_list.SetStringItem(index, 1, account.provider.name)
