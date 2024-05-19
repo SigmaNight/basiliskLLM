@@ -7,12 +7,11 @@ import re
 import tempfile
 import time
 from .imagehelper import get_image_dimensions, encode_image, resize_image
-from . import config
 
 log = logging.getLogger(__name__)
 
 URL_PATTERN = re.compile(
-	r"^(?:http)s?://(?:[A-Z0-9-]+\.)+[A-Z]{2,6}(?::\d+)?(?:/?|[/?]\S+)$",
+	r'(https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+|data:image/\S+)',
 	re.IGNORECASE,
 )
 
@@ -78,7 +77,9 @@ class ImageFile:
 		return None
 
 	@lru_cache(maxsize=None)
-	def get_url(self, resize=False) -> str:
+	def get_url(
+		self, resize=False, max_width=None, max_height=None, quality=None
+	) -> str:
 		location = self.location
 		log.debug(f'Processing image "{location}"')
 		if self.type == ImageFileTypes.IMAGE_LOCAL:
@@ -90,9 +91,9 @@ class ImageFile:
 				os.close(fd)
 				resize_image(
 					location,
-					max_width=config.conf.images.max_width,
-					max_height=config.conf.images.max_height,
-					quality=config.conf.images.quality,
+					max_width=max_width,
+					max_height=max_height,
+					quality=quality,
 					target=path_resized_image,
 				)
 				log.debug(

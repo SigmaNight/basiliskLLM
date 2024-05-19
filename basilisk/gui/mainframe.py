@@ -184,7 +184,26 @@ class MainFrame(wx.Frame):
 			self.Restore()
 			self.Layout()
 
-	def screen_capture(self, capture_mode):
+	def capture_partial_screen(
+		self, screen_coordinates: tuple[int, int, int, int]
+	):
+		log.debug(f"Capturing partial screen: {screen_coordinates}")
+		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+		fd, path = tempfile.mkstemp(
+			prefix=f"basilisk_{now_str}_", suffix=".png"
+		)
+		os.close(fd)
+		self.tmp_files.append(path)
+		log.debug(f"Temporary file: {path}")
+		thread = ScreenCaptureThread(
+			self,
+			path=path,
+			capture_mode=CaptureMode.PARTIAL,
+			screen_coordinates=screen_coordinates,
+		)
+		thread.start()
+
+	def screen_capture(self, capture_mode: CaptureMode):
 		log.debug("Capturing screen")
 		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 		fd, path = tempfile.mkstemp(

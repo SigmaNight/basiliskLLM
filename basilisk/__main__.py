@@ -8,6 +8,7 @@ import basilisk.globalvars as globalvars
 from basilisk.consts import APP_NAME
 from basilisk.localization import init_translation
 from basilisk.logger import setup_logging, logging_uncaught_exceptions
+from basilisk.serverthread import ServerThread
 from basilisk.soundmanager import initialize_sound_manager
 
 log = logging.getLogger(__name__)
@@ -57,6 +58,9 @@ class MainApp(wx.App):
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
+		log.debug("Initializing server")
+		self.server = ServerThread(self.frame, 4242)
+		self.server.start()
 		log.info("Application started")
 		return True
 

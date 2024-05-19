@@ -547,7 +547,10 @@ class ConversationTab(wx.Panel):
 					"type": "image_url",
 					"image_url": {
 						"url": image_file.get_url(
-							resize=config.conf.images.resize
+							resize=config.conf.images.resize,
+							max_width=config.conf.images.max_width,
+							max_height=config.conf.images.max_height,
+							quality=config.conf.images.quality,
 						)
 					},
 				}
