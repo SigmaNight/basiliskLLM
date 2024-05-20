@@ -125,6 +125,12 @@ class MainFrame(wx.Frame):
 		self.Bind(wx.EVT_TIMER, self.on_timer)
 		self.timer.Start(100)
 
+		tool_menu = wx.Menu()
+		install_nvda_addon = tool_menu.Append(
+			wx.ID_ANY, _("Install NVDA addon")
+		)
+		self.Bind(wx.EVT_MENU, self.on_install_nvda_addon, install_nvda_addon)
+
 		help_menu = wx.Menu()
 		about_item = help_menu.Append(wx.ID_ABOUT)
 		self.Bind(wx.EVT_MENU, self.on_about, about_item)
@@ -141,6 +147,7 @@ class MainFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.on_view_log, view_log_item)
 
 		menu_bar.Append(conversation_menu, _("&Conversation"))
+		menu_bar.Append(tool_menu, _("Too&ls"))
 		menu_bar.Append(help_menu, _("&Help"))
 		self.SetMenuBar(menu_bar)
 
@@ -389,6 +396,42 @@ class MainFrame(wx.Frame):
 		if preferences_dialog.ShowModal() == wx.ID_OK:
 			self.refresh_tabs()
 		preferences_dialog.Destroy()
+
+	def on_install_nvda_addon(self, event):
+		import zipfile
+
+		res_nvda_addon_path = os.path.join(
+			globalvars.resource_path, "connectors", "nvda"
+		)
+		try:
+			if not os.path.isdir(res_nvda_addon_path):
+				raise ValueError(
+					f"NVDA addon folder not found: {res_nvda_addon_path}"
+				)
+
+			tmp_nvda_addon_path = os.path.join(
+				tempfile.gettempdir(), "basiliskllm.nvda-addon"
+			)
+			log.debug(f"Creating NVDA addon: {tmp_nvda_addon_path}")
+			with zipfile.ZipFile(
+				tmp_nvda_addon_path, 'w', zipfile.ZIP_DEFLATED
+			) as zipf:
+				for root, _, files in os.walk(res_nvda_addon_path):
+					for file in files:
+						file_path = os.path.join(root, file)
+						arcname = os.path.relpath(
+							file_path, start=res_nvda_addon_path
+						)
+						zipf.write(file_path, arcname)
+			log.debug("NVDA addon created")
+			os.startfile(tmp_nvda_addon_path)
+		except Exception as e:
+			log.error(f"Failed to create NVDA addon: {e}")
+			wx.MessageBox(
+				_("Failed to create NVDA addon"),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
 
 	def on_github_repo(self, event):
 		wx.LaunchDefaultBrowser(APP_SOURCE_URL)
