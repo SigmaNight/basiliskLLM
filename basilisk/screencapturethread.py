@@ -1,9 +1,14 @@
+from __future__ import annotations
 from enum import Enum
 import datetime
 import threading
+import typing
 from PIL import ImageGrab
 import wx
 from .imagefile import ImageFile
+
+if typing.TYPE_CHECKING:
+	from gui.mainframe import MainFrame
 
 
 class CaptureMode(Enum):
@@ -15,16 +20,18 @@ class CaptureMode(Enum):
 class ScreenCaptureThread(threading.Thread):
 	def __init__(
 		self,
-		parent: wx.Frame,
+		parent: "MainFrame",
 		path: str,
 		capture_mode: CaptureMode = CaptureMode.FULL,
 		screen_coordinates: tuple = None,
+		name: str = "",
 	):
 		super().__init__()
 		self.parent = parent
 		self.capture_mode = capture_mode
 		self.path = path
 		self.screen_coordinates = screen_coordinates
+		self.name = name
 
 	def run(self):
 		if self.capture_mode == CaptureMode.FULL:
@@ -44,13 +51,15 @@ class ScreenCaptureThread(threading.Thread):
 		else:
 			raise ValueError("Invalid capture mode")
 
-		description = " (%s)" % datetime.datetime.now().strftime("%H:%M:%S")
+		name = " (%s)" % self.name
+		if not name:
+			name = " (%s)" % datetime.datetime.now().strftime("%H:%M:%S")
 		if self.capture_mode == CaptureMode.FULL:
-			description = _("Full screen capture") + description
+			name = _("Full screen capture") + name
 		elif self.capture_mode == CaptureMode.WINDOW:
-			description = _("Window capture") + description
+			name = _("Window capture") + name
 		else:
-			description = _("Partial screen capture") + description
+			name = _("Partial screen capture") + name
 		wx.CallAfter(
-			self.parent.post_screen_capture, ImageFile(self.path, description)
+			self.parent.post_screen_capture, ImageFile(self.path, name=name)
 		)

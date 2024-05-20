@@ -37,7 +37,7 @@ class ServerThread(threading.Thread):
 					if data:
 						data = data.decode("utf-8")
 						if data.startswith("grab:"):
-							grab_mode = data.replace(' ', '').split(":")[1]
+							grab_mode = data.split(':', 1)[1].strip()
 							if grab_mode == "full":
 								wx.CallAfter(
 									self.frame.screen_capture, CaptureMode.FULL
@@ -47,17 +47,30 @@ class ServerThread(threading.Thread):
 									self.frame.screen_capture,
 									CaptureMode.WINDOW,
 								)
-							elif re.match(r"\d+,\d+,\d+,\d+", grab_mode):
-								coords = tuple(map(int, grab_mode.split(",")))
+							elif re.match(
+								r"\d+, ?\d+, ?\d+, ?\d+(?:;.*+)?", grab_mode
+							):
+								name = ""
+								coords = grab_mode
+								if '\n' in grab_mode:
+									coords, name = grab_mode.split('\n', 1)
+								coords = tuple(map(int, coords.split(",")))
 								wx.CallAfter(
-									self.frame.capture_partial_screen, coords
+									self.frame.capture_partial_screen,
+									coords,
+									name,
 								)
+							else:
+								log.error(f"Invalid grab mode: {grab_mode}")
 						elif data.startswith("url:"):
-							url = data.split(":", 1)[1]
+							name = ""
+							url = data.split(':', 1)[1].strip()
+							if '\n' in url:
+								url, name = url.split('\n', 1)
 							image_files = [
 								ImageFile(
 									location=url,
-									name="Image",
+									name=name,
 									size=-1,
 									dimensions=(0, 0),
 								)

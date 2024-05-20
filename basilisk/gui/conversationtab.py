@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 class ConversationTab(wx.Panel):
-	def __init__(self, parent):
+	def __init__(self, parent: wx.Window):
 		wx.Panel.__init__(self, parent)
 		self.conversation = Conversation()
 		self.image_files = []
@@ -117,34 +117,34 @@ class ConversationTab(wx.Panel):
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 
-		label = wx.StaticText(
+		self.max_tokens_label = wx.StaticText(
 			self,
 			# Translators: This is a label for max tokens in the main window
 			label=_("Max to&kens:"),
 		)
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.max_tokens_label, proportion=0, flag=wx.EXPAND)
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value='1024', min=0, max=64000
+			self, value='0', min=0, max=2000000
 		)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
 
-		label = wx.StaticText(
+		self.temperature_label = wx.StaticText(
 			self,
 			# Translators: This is a label for temperature in the main window
 			label=_("&Temperature:"),
 		)
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.temperature_label, proportion=0, flag=wx.EXPAND)
 		self.temperature_spinner = wx.SpinCtrl(
 			self, value="100", min=0, max=200
 		)
 		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
 
-		label = wx.StaticText(
+		self.top_p_label = wx.StaticText(
 			self,
 			# Translators: This is a label for top P in the main window
-			label=_("Probability &Mass (top P):"),
+			label=_("Probabilit&y Mass (top P):"),
 		)
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.top_p_label, proportion=0, flag=wx.EXPAND)
 		self.top_p_spinner = wx.SpinCtrl(self, value="100", min=0, max=100)
 		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
 
@@ -174,7 +174,11 @@ class ConversationTab(wx.Panel):
 
 	def update_ui(self):
 		controls = (
+			self.max_tokens_label,
+			self.max_tokens_spin_ctrl,
+			self.temperature_label,
 			self.temperature_spinner,
+			self.top_p_label,
 			self.top_p_spinner,
 			self.stream_mode,
 		)
@@ -182,7 +186,7 @@ class ConversationTab(wx.Panel):
 			control.Show(config.conf.general.advanced_mode)
 		self.Layout()
 
-	def on_account_change(self, event):
+	def on_account_change(self, event: wx.CommandEvent):
 		account_index = self.account_combo.GetSelection()
 		if account_index == wx.NOT_FOUND:
 			if not config.conf.accounts:
@@ -216,7 +220,7 @@ class ConversationTab(wx.Panel):
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 		)
 
-	def on_images_context_menu(self, event):
+	def on_images_context_menu(self, event: wx.ContextMenuEvent):
 		selected = self.images_list.GetFirstSelected()
 		menu = wx.Menu()
 
@@ -244,7 +248,7 @@ class ConversationTab(wx.Panel):
 		self.images_list.PopupMenu(menu)
 		menu.Destroy()
 
-	def on_images_key_down(self, event):
+	def on_images_key_down(self, event: wx.KeyEvent):
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
@@ -253,7 +257,7 @@ class ConversationTab(wx.Panel):
 			self.on_images_remove(None)
 		event.Skip()
 
-	def add_image_files(self, event=None):
+	def add_image_files(self, event: wx.CommandEvent = None):
 		file_dialog = wx.FileDialog(
 			self,
 			message=_("Select one or more image files"),
@@ -266,7 +270,7 @@ class ConversationTab(wx.Panel):
 			self.add_images(paths)
 		file_dialog.Destroy()
 
-	def add_image_url(self, event=None):
+	def add_image_url(self, event: wx.CommandEvent = None):
 		url_dialog = wx.TextEntryDialog(
 			self,
 			# Translators: This is a label for image URL in conversation tab
@@ -339,7 +343,7 @@ class ConversationTab(wx.Panel):
 		)
 		url_dialog.Destroy()
 
-	def on_images_remove(self, event):
+	def on_images_remove(self, event: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
@@ -351,8 +355,10 @@ class ConversationTab(wx.Panel):
 			self.images_list.SetItemState(
 				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 			)
+		else:
+			self.prompt.SetFocus()
 
-	def on_copy_image_url(self, event):
+	def on_copy_image_url(self, event: wx.CommandEvent):
 		selected = self.images_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
@@ -361,7 +367,7 @@ class ConversationTab(wx.Panel):
 		wx.TheClipboard.SetData(wx.TextDataObject(url))
 		wx.TheClipboard.Close()
 
-	def on_model_change(self, event):
+	def on_model_change(self, event: wx.CommandEvent):
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return
@@ -374,7 +380,7 @@ class ConversationTab(wx.Panel):
 		if max_tokens < 1:
 			max_tokens = model.context_window
 		self.max_tokens_spin_ctrl.SetMax(max_tokens)
-		self.max_tokens_spin_ctrl.SetValue(max_tokens // 2)
+		self.max_tokens_spin_ctrl.SetValue(0)
 
 	def refresh_accounts(self):
 		account_index = self.account_combo.GetSelection()
@@ -440,7 +446,7 @@ class ConversationTab(wx.Panel):
 		menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
-	def on_prompt_context_menu(self, event):
+	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
 		menu = wx.Menu()
 		item = wx.MenuItem(
 			menu, wx.ID_ANY, _("Insert previous prompt") + " (Ctrl+Up)"
@@ -456,7 +462,7 @@ class ConversationTab(wx.Panel):
 		self.prompt.PopupMenu(menu)
 		menu.Destroy()
 
-	def on_prompt_key_down(self, event):
+	def on_prompt_key_down(self, event: wx.KeyEvent):
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if (
@@ -469,12 +475,12 @@ class ConversationTab(wx.Panel):
 			self.on_submit(event)
 		event.Skip()
 
-	def on_model_key_down(self, event):
+	def on_model_key_down(self, event: wx.KeyEvent):
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_submit(event)
 		event.Skip()
 
-	def on_key_down(self, event):
+	def on_key_down(self, event: wx.KeyEvent):
 		if (
 			event.GetModifiers() == wx.ACCEL_CTRL
 			and event.GetKeyCode() == wx.WXK_RETURN
@@ -482,12 +488,12 @@ class ConversationTab(wx.Panel):
 			self.on_submit(event)
 		event.Skip()
 
-	def insert_previous_prompt(self, event=None):
+	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
-	def get_display_accounts(self, force_refresh=False) -> list:
+	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
 		accounts = []
 		for account in config.conf.accounts:
 			if force_refresh:
@@ -505,7 +511,7 @@ class ConversationTab(wx.Panel):
 
 	def extract_text_from_message(
 		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
-	):
+	) -> str:
 		if isinstance(content, str):
 			return content
 		text = ""
@@ -578,7 +584,10 @@ class ConversationTab(wx.Panel):
 			)
 		return content
 
-	def on_submit(self, event):
+	def on_submit(self, event: wx.CommandEvent):
+		if not self.prompt.GetValue() and not self.image_files:
+			self.prompt.SetFocus()
+			return
 		model = self.current_model
 		if not model:
 			wx.MessageBox(

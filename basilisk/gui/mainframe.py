@@ -191,7 +191,7 @@ class MainFrame(wx.Frame):
 			self.Layout()
 
 	def capture_partial_screen(
-		self, screen_coordinates: tuple[int, int, int, int]
+		self, screen_coordinates: tuple[int, int, int, int], name: str = ""
 	):
 		log.debug(f"Capturing partial screen: {screen_coordinates}")
 		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -206,6 +206,7 @@ class MainFrame(wx.Frame):
 			path=path,
 			capture_mode=CaptureMode.PARTIAL,
 			screen_coordinates=screen_coordinates,
+			name=name,
 		)
 		thread.start()
 
