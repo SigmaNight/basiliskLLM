@@ -2,6 +2,7 @@ import logging
 import re
 import socket
 import threading
+import wx
 from basilisk.imagefile import ImageFile
 from basilisk.screencapturethread import CaptureMode
 
@@ -13,7 +14,7 @@ class ServerThread(threading.Thread):
 		super().__init__()
 		self.frame = frame
 		self.port = port
-		self.running = False
+		self.running = threading.Event()
 
 	def run(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,37 +22,48 @@ class ServerThread(threading.Thread):
 			log.error("Failed to create socket")
 			return
 		sock.bind(("127.0.0.1", self.port))
-		self.running = True
+		self.running.set()
 		log.info(f"Server started on port {self.port}")
 		sock.listen(1)
-		while True:
-			conn, addr = sock.accept()
+		while self.running.is_set():
+			sock.settimeout(1.0)
+			try:
+				conn, addr = sock.accept()
+			except socket.timeout:
+				continue
 			with conn:
 				try:
 					data = conn.recv(1024 * 1024 * 20)
 					if data:
 						data = data.decode("utf-8")
-						log.debug(f"Received data: {data}")
 						if data.startswith("grab:"):
 							grab_mode = data.replace(' ', '').split(":")[1]
 							if grab_mode == "full":
-								self.frame.screen_capture(CaptureMode.FULL)
+								wx.CallAfter(
+									self.frame.screen_capture, CaptureMode.FULL
+								)
 							elif grab_mode == "window":
-								self.frame.screen_capture(CaptureMode.WINDOW)
+								wx.CallAfter(
+									self.frame.screen_capture,
+									CaptureMode.WINDOW,
+								)
 							elif re.match(r"\d+,\d+,\d+,\d+", grab_mode):
 								coords = tuple(map(int, grab_mode.split(",")))
-								self.frame.capture_partial_screen(coords)
+								wx.CallAfter(
+									self.frame.capture_partial_screen, coords
+								)
 						elif data.startswith("url:"):
 							url = data.split(":", 1)[1]
-							self.frame.current_tab.add_images(
-								[
-									ImageFile(
-										location=url,
-										name="Image",
-										size=-1,
-										dimensions=(0, 0),
-									)
-								]
+							image_files = [
+								ImageFile(
+									location=url,
+									name="Image",
+									size=-1,
+									dimensions=(0, 0),
+								)
+							]
+							wx.CallAfter(
+								self.frame.current_tab.add_images, image_files
 							)
 						else:
 							log.error(f"no action for data: {data}")
@@ -62,6 +74,7 @@ class ServerThread(threading.Thread):
 					log.error(f"Error receiving data: {e}")
 				finally:
 					conn.close()
+		sock.close()
 
 	def stop(self):
-		self.running = False
+		self.running.clear()

@@ -58,13 +58,19 @@ class MainApp(wx.App):
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
-		log.debug("Initializing server")
-		self.server = ServerThread(self.frame, 4242)
-		self.server.start()
+		self.server = None
+		if self.conf.server.enable:
+			self.server = ServerThread(self.frame, self.conf.server.port)
+			self.server.start()
 		log.info("Application started")
 		return True
 
 	def OnExit(self) -> int:
+		if self.server:
+			log.debug("Stopping server")
+			self.server.stop()
+			self.server.join()
+			log.debug("Server stopped")
 		log.info("Application exited")
 		return 0
 

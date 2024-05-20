@@ -111,8 +111,17 @@ class ImageFile:
 			return location
 		raise ValueError("Invalid image type")
 
+	@property
+	def display_location(self):
+		location = self.location
+		if location.startswith("data:image/"):
+			location = f"{location[:50]}...{location[-10:]}"
+		return location
+
 	def __str__(self):
-		return f"{self.name} ({self.size}, {self.dimensions}, {self.description}, {self.location})"
+		location = self.display_location
+		return f"{self.name} ({self.size}, {self.dimensions}, {self.description}, {location})"
 
 	def __repr__(self):
-		return f"ImageFile(location={self.location}, name={self.name}, description={self.description}, size={self.size}, dimensions={self.dimensions})"
+		location = self.display_location
+		return f"ImageFile(name={self.name}, size={self.size}, dimensions={self.dimensions}, description={self.description}, location={location})"

@@ -59,6 +59,12 @@ class ImagesSettings(BaseModel):
 	resize: bool = Field(default=False)
 
 
+class ServerSettings(BaseModel):
+	model_config = ConfigDict(populate_by_name=True)
+	port: int = Field(default=4242)
+	enable: bool = Field(default=True)
+
+
 class BasiliskConfig(BaseSettings):
 	model_config = SettingsConfigDict(
 		env_prefix="BASILISK_",
@@ -69,6 +75,7 @@ class BasiliskConfig(BaseSettings):
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
 	accounts: AccountManager = Field(default=AccountManager(list()))
 	images: ImagesSettings = Field(default_factory=ImagesSettings)
+	server: ServerSettings = Field(default_factory=ServerSettings)
 
 	@classmethod
 	def settings_customise_sources(

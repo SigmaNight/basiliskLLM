@@ -82,14 +82,14 @@ class PreferencesDialog(wx.Dialog):
 		images_group = wx.StaticBox(panel, label=_("Images"))
 		images_group_sizer = wx.StaticBoxSizer(images_group, wx.VERTICAL)
 
-		self.resize = wx.CheckBox(
+		self.image_resize = wx.CheckBox(
 			images_group,
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Resize images before uploading"),
 		)
-		self.resize.SetValue(conf.images.resize)
-		self.resize.Bind(wx.EVT_CHECKBOX, self.on_resize)
-		images_group_sizer.Add(self.resize, 0, wx.ALL, 5)
+		self.image_resize.SetValue(conf.images.resize)
+		self.image_resize.Bind(wx.EVT_CHECKBOX, self.on_resize)
+		images_group_sizer.Add(self.image_resize, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
 			images_group,
@@ -99,10 +99,10 @@ class PreferencesDialog(wx.Dialog):
 			),
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
-		self.max_height = wx.SpinCtrl(
+		self.image_max_height = wx.SpinCtrl(
 			images_group, value=str(conf.images.max_height), min=0, max=10000
 		)
-		images_group_sizer.Add(self.max_height, 0, wx.ALL, 5)
+		images_group_sizer.Add(self.image_max_height, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
 			images_group,
@@ -112,10 +112,10 @@ class PreferencesDialog(wx.Dialog):
 			),
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
-		self.max_width = wx.SpinCtrl(
+		self.image_max_width = wx.SpinCtrl(
 			images_group, value=str(conf.images.max_width), min=0, max=10000
 		)
-		images_group_sizer.Add(self.max_width, 0, wx.ALL, 5)
+		images_group_sizer.Add(self.image_max_width, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
 			images_group,
@@ -125,13 +125,37 @@ class PreferencesDialog(wx.Dialog):
 			),
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
-		self.quality = wx.SpinCtrl(
+		self.image_quality = wx.SpinCtrl(
 			images_group, value=str(conf.images.quality), min=1, max=100
 		)
-		images_group_sizer.Add(self.quality, 0, wx.ALL, 5)
+		images_group_sizer.Add(self.image_quality, 0, wx.ALL, 5)
 
 		self.on_resize(None)
 		sizer.Add(images_group_sizer, 0, wx.ALL, 5)
+
+		server_group = wx.StaticBox(panel, label=_("Server"))
+		server_group_sizer = wx.StaticBoxSizer(server_group, wx.VERTICAL)
+
+		self.server_enable = wx.CheckBox(
+			server_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Enable server mode (requires restart)"),
+		)
+		self.server_enable.SetValue(conf.server.enable)
+		server_group_sizer.Add(self.server_enable, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			server_group,
+			# Translators: A label in the preferences dialog
+			label=_("Port:"),
+		)
+		server_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.server_port = wx.SpinCtrl(
+			server_group, value=str(conf.server.port), min=1, max=65535
+		)
+		server_group_sizer.Add(self.server_port, 0, wx.ALL, 5)
+
+		sizer.Add(server_group_sizer, 0, wx.ALL, 5)
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -149,10 +173,10 @@ class PreferencesDialog(wx.Dialog):
 		self.Layout()
 
 	def on_resize(self, event):
-		val = self.resize.GetValue()
-		self.max_height.Enable(val)
-		self.max_width.Enable(val)
-		self.quality.Enable(val)
+		val = self.image_resize.GetValue()
+		self.image_max_height.Enable(val)
+		self.image_max_width.Enable(val)
+		self.image_quality.Enable(val)
 
 	def on_ok(self, event):
 		log.debug("Saving configuration")
@@ -165,10 +189,13 @@ class PreferencesDialog(wx.Dialog):
 
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 
-		conf.images.resize = self.resize.GetValue()
-		conf.images.max_height = int(self.max_height.GetValue())
-		conf.images.max_width = int(self.max_width.GetValue())
-		conf.images.quality = int(self.quality.GetValue())
+		conf.images.resize = self.image_resize.GetValue()
+		conf.images.max_height = int(self.image_max_height.GetValue())
+		conf.images.max_width = int(self.image_max_width.GetValue())
+		conf.images.quality = int(self.image_quality.GetValue())
+
+		conf.server.enable = self.server_enable.GetValue()
+		conf.server.port = int(self.server_port.GetValue())
 
 		conf.save()
 		set_log_level(conf.general.log_level.name)

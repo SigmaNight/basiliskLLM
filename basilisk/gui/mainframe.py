@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import signal
 import sys
 import tempfile
 import wx
@@ -91,6 +92,11 @@ class MainFrame(wx.Frame):
 		update_item_label_ellipsis(preferences_item)
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
+		self.signal_received = False
+		signal.signal(signal.SIGINT, self.on_ctrl_c)
+		self.timer = wx.Timer(self)
+		self.Bind(wx.EVT_TIMER, self.on_timer)
+		self.timer.Start(100)
 
 		help_menu = wx.Menu()
 		about_item = help_menu.Append(wx.ID_ABOUT)
@@ -325,6 +331,14 @@ class MainFrame(wx.Frame):
 
 	def on_check_updates(self, event):
 		log.debug("Checking for updates")
+
+	def on_ctrl_c(self, signum, frame):
+		self.signal_received = True
+
+	def on_timer(self, event):
+		if self.signal_received:
+			log.debug("Received SIGINT")
+			wx.CallAfter(self.on_quit, None)
 
 	def on_quit(self, event):
 		if sys.platform == "win32":

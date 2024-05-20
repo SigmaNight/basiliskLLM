@@ -221,9 +221,17 @@ class ConversationTab(wx.Panel):
 		menu = wx.Menu()
 
 		if selected != wx.NOT_FOUND:
-			item = wx.MenuItem(menu, wx.ID_ANY, _("Remove selected image"))
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Remove selected image") + " (Del)"
+			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
+
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Copy image URL") + " (Ctrl+C)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
 
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
 		menu.Append(item)
@@ -237,7 +245,11 @@ class ConversationTab(wx.Panel):
 		menu.Destroy()
 
 	def on_images_key_down(self, event):
-		if event.GetKeyCode() == wx.WXK_DELETE:
+		key_code = event.GetKeyCode()
+		modifiers = event.GetModifiers()
+		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
+			self.on_copy_image_url(None)
+		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
 			self.on_images_remove(None)
 		event.Skip()
 
@@ -340,6 +352,15 @@ class ConversationTab(wx.Panel):
 				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 			)
 
+	def on_copy_image_url(self, event):
+		selected = self.images_list.GetFirstSelected()
+		if selected == wx.NOT_FOUND:
+			return
+		url = self.image_files[selected].location
+		wx.TheClipboard.Open()
+		wx.TheClipboard.SetData(wx.TextDataObject(url))
+		wx.TheClipboard.Close()
+
 	def on_model_change(self, event):
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
@@ -390,7 +411,7 @@ class ConversationTab(wx.Panel):
 			self.images_list.SetItem(
 				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
 			)
-			self.images_list.SetItem(i, 3, image.location)
+			self.images_list.SetItem(i, 3, image.display_location)
 		self.images_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
