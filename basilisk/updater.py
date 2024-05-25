@@ -15,6 +15,60 @@ from .globalvars import base_path
 
 log = getLogger(__name__)
 
+update_portable_script = """@echo off
+REM Check if the portable ZIP file path is provided
+if "%~1"=="" (
+	echo error: you must provide the path to the portable ZIP file to extract.
+	exit /b 1
+)
+
+REM Check if the portable APP destination folder is provided
+if "%~2"=="" (
+	echo error: you must provide the portable APP destination folder.
+	exit /b 1
+)
+
+
+REM Check if the portable ZIP file exists
+if not exist "%~1" (
+    echo Error: the portable ZIP file "%~1" does not exist.
+    exit /b 1
+)
+
+REM Check if the portable APP destination folder exists
+if not exist "%~2" (
+    echo Creating the portable APP destination folder...
+    mkdir "%~2"
+)
+
+REM Path to the ZIP utility
+set "zipUtil=%SystemRoot%\System32"
+
+REM Wait for the portable APP to be closed
+timeout /t 3 /nobreak >nul
+
+REM Decompress the ZIP file
+echo Decompressing the portable ZIP file...
+"%zipUtil%\\tar.exe" -xf "%~1" -C "%~2" --exclude=user_data
+
+if %errorlevel% neq 0 (
+    echo Error: failed to decompress the portable ZIP file.
+    exit /b %errorlevel%
+)
+
+echo The portable APP has been successfully updated.
+start "" "%~2\\basilisk.exe"
+
+REM Delete the ZIP file
+del "%~1"
+if %errorlevel% neq 0 (
+	echo Error: failed to delete the portable ZIP file.
+	exit /b %errorlevel%
+	)
+
+exit /b 0
+"""
+
 
 class BaseUpdater(ABC):
 	@abstractmethod
@@ -65,6 +119,7 @@ class BaseUpdater(ABC):
 	) -> Optional[str]:
 		pass
 
+	@abstractmethod
 	def download_portable(
 		self,
 		grafical_callback: Callable[[int, int], None],
@@ -99,11 +154,26 @@ class BaseUpdater(ABC):
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.DEVNULL,
 			stdin=subprocess.DEVNULL,
+			close_fds=True,
+			creationflags=subprocess.CREATE_NO_WINDOW
+			| subprocess.DETACHED_PROCESS,
 			shell=True,
 		)
 
 	def update_portable(self):
-		pass
+		update_script_path = base_path.joinpath("update_portable.bat")
+		with open(update_script_path, "w") as update_script:
+			update_script.write(update_portable_script)
+		subprocess.Popen(
+			(update_script_path, self.downloaded_file, base_path),
+			stdin=subprocess.DEVNULL,
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			shell=True,
+			close_fds=True,
+			creationflags=subprocess.CREATE_NO_WINDOW
+			| subprocess.DETACHED_PROCESS,
+		)
 
 	def update(self):
 		if getattr(sys, "frozen", False):
@@ -145,12 +215,38 @@ class NigthlyUpdater(BaseUpdater):
 			raise Exception("No version found or multiple versions found")
 		return unique_version.pop()
 
-	def get_link_installer(self) -> str:
+	def get_download_link(self, installer: bool) -> str:
 		architecture = self.get_app_architecture()
 		artifact_links = self.table_root.findall(".//td/a")
+		artifact_prefix_name = (
+			"setup_basiliskLLM" if installer else "portable_basiliskLLM"
+		)
 		for link in artifact_links:
-			if "setup_basiliskLLM" in link.text and architecture in link.text:
+			if artifact_prefix_name in link.text and architecture in link.text:
 				return link.get("href")
+
+	def download_zip(
+		self,
+		link: str,
+		zip_tmp: tempfile.NamedTemporaryFile,
+		grafical_callback: Callable[[int, int], None] = None,
+		stop_download: bool = False,
+	) -> bool:
+		response = httpx.get(link, follow_redirects=True)
+		response.raise_for_status()
+		total_length = int(response.headers.get("Content-Length", 0))
+		chunk_size = 4096
+		downloaded_length = 0
+		for chunk in response.iter_bytes(chunk_size):
+			zip_tmp.write(chunk)
+			downloaded_length += chunk_size
+			if grafical_callback:
+				grafical_callback(downloaded_length, total_length)
+			if stop_download:
+				return False
+		zip_tmp.flush()
+		zip_tmp.seek(0)
+		return True
 
 	def download_installer(
 		self,
@@ -158,26 +254,38 @@ class NigthlyUpdater(BaseUpdater):
 		stop_download=False,
 	) -> Optional[str]:
 		log.info("Downloading installer")
-		link = self.get_link_installer()
+		link = self.get_download_link(True)
 		log.debug(f"Installer link: {link}")
-		response = httpx.get(link, follow_redirects=True)
-		response.raise_for_status()
-		total_length = int(response.headers.get("Content-Length", 0))
-		chunk_size = 4096
-		downloaded_length = 0
 		with tempfile.NamedTemporaryFile(
 			prefix="setup_basiliskllm_", suffix=".zip"
 		) as zip_tmp_file:
-			for chunk in response.iter_bytes(chunk_size):
-				zip_tmp_file.write(chunk)
-				downloaded_length += chunk_size
-				if grafical_callback:
-					grafical_callback(downloaded_length, total_length)
-				if stop_download:
-					return None
-			zip_tmp_file.flush()
-			zip_tmp_file.seek(0)
+			download_finished = self.download_zip(
+				link, zip_tmp_file, True, grafical_callback, stop_download
+			)
+			if not download_finished:
+				return None
 			return self.extract_installer_from_zip(zip_tmp_file)
+
+	def download_portable(
+		self,
+		grafical_callback: Callable[[int, int], None],
+		stop_download: bool = False,
+	) -> str | None:
+		link = self.get_download_link(False)
+		log.debug(f"Portable link: {link}")
+		with tempfile.NamedTemporaryFile(
+			prefix="portable_basiliskllm_",
+			suffix=".zip",
+			dir=base_path,
+			delete=False,
+			delete_on_close=False,
+		) as zip_tmp_file:
+			download_finished = self.download_zip(
+				link, zip_tmp_file, grafical_callback, stop_download
+			)
+			if not download_finished:
+				return None
+		return zip_tmp_file.name
 
 	def extract_installer_from_zip(
 		self, zip_tmp_file: tempfile.NamedTemporaryFile
