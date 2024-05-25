@@ -99,7 +99,6 @@ class MainFrame(wx.Frame):
 		update_item_label_ellipsis(about_item)
 		check_updates_item = help_menu.Append(wx.ID_ANY, _("Check updates"))
 		self.Bind(wx.EVT_MENU, self.on_check_updates, check_updates_item)
-		check_updates_item.Enable(False)
 		github_repo_item = help_menu.Append(wx.ID_ANY, _("&GitHub repository"))
 		self.Bind(wx.EVT_MENU, self.on_github_repo, github_repo_item)
 		roko_basilisk_item = help_menu.Append(wx.ID_ANY, _("Roko's Basilisk"))
@@ -364,6 +363,9 @@ class MainFrame(wx.Frame):
 
 	def on_check_updates(self, event):
 		log.debug("Checking for updates")
+		from .updatedialog import UpdateDialog
+
+		UpdateDialog(parent=self, title=_("Check updates")).Show()
 
 	def on_ctrl_c(self, signum, frame):
 		self.signal_received = True
