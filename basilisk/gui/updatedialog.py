@@ -34,9 +34,8 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.sizer.Add(self.download_finished_label, 0, wx.ALL | wx.CENTER, 10)
 		self.update_label = wx.StaticText(
 			self.panel,
-			label=_(
-				"Update basiliskLLM version: %s", self.updater.latest_version
-			),
+			label=_("Update basiliskLLM version: %s")
+			% self.updater.latest_version,
 		)
 		self.update_label.Hide()
 		self.sizer.Add(self.update_label, 0, wx.ALL | wx.CENTER, 10)
@@ -63,8 +62,7 @@ class DownloadUpdateDialog(wx.Dialog):
 			wx.CallAfter(
 				wx.MessageDialog(
 					self,
-					_("Error downloading update: %s", e),
-					_("Error"),
+					_("Error downloading update: %s") % e,
 					wx.OK | wx.ICON_ERROR,
 				).ShowModal()
 			)
@@ -131,7 +129,7 @@ class UpdateDialog(wx.Dialog):
 		self.sizer.Add(self.update_message_label, 0, wx.ALL | wx.CENTER, 10)
 		self.current_version_label = wx.StaticText(
 			self.panel,
-			label=_("Current version: %s", self.updater.current_version),
+			label=_("Current version: %s") % self.updater.current_version,
 		)
 		self.current_version_label.Hide()
 		self.sizer.Add(self.current_version_label, 0, wx.ALL | wx.CENTER, 10)
@@ -160,7 +158,7 @@ class UpdateDialog(wx.Dialog):
 		self.update_message_label.Show()
 		self.current_version_label.Show()
 		self.new_version_label.SetLabel(
-			_("New version: %s", self.updater.latest_version)
+			_("New version: %s") % self.updater.latest_version
 		)
 		self.new_version_label.Show()
 		self.update_button.Show()
