@@ -7,7 +7,11 @@ import basilisk.globalvars as globalvars
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
 from basilisk.localization import init_translation
-from basilisk.logger import setup_logging, logging_uncaught_exceptions
+from basilisk.logger import (
+	setup_logging,
+	logging_uncaught_exceptions,
+	get_log_file_path,
+)
 from basilisk.soundmanager import initialize_sound_manager
 
 log = logging.getLogger(__name__)
@@ -47,6 +51,11 @@ class MainApp(wx.App):
 		)
 		setup_logging(log_level)
 		log.debug(f"config: {self.conf}")
+		if getattr(sys, "frozen", False):
+			log.info(
+				"running frozen application: redirecting stdio to log file"
+			)
+			self.RedirectStdio(str(get_log_file_path()))
 		language = globalvars.args.language or self.conf.general.language
 		self.locale = init_translation(language)
 		log.info("translation initialized")
