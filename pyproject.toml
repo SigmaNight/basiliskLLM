@@ -76,7 +76,7 @@ executables = [
 optimize = 2
 build_exe = "dist"
 excludes = [
-    "tarfile", "tkinter", "unittest", "email", "xml", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
+    "tarfile", "tkinter", "unittest", "email", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
     "setuptools", "setuptools_scm",
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
     "babel.messages", "h11.tests"]
@@ -86,4 +86,4 @@ zip_include_packages = [
     "logging", "json", "pydantic", "pydantic_core",
     "asyncio", "anyio", "encodings", "dotenv", "email", "ctypes", "collections",
     "concurrent", "distro", "h11", "httpcore", "http", "importlib", "re", "sniffio",
-    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk"]
+    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk", "xml"]
