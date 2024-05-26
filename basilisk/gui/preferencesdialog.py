@@ -1,7 +1,7 @@
 import logging
 import wx
 from babel import Locale
-from basilisk.config import conf, LogLevelEnum
+from basilisk.config import conf, LogLevelEnum, ReleaseChannelEnum
 from basilisk.localization import get_supported_locales, get_app_locale
 from basilisk.logger import set_log_level
 
@@ -20,6 +20,15 @@ LOG_LEVELS = {
 	LogLevelEnum.ERROR: _("Error"),
 	# Translators: A label for the log level in the settings dialog
 	LogLevelEnum.CRITICAL: _("Critical"),
+}
+
+release_channels = {
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.STABLE: _("Stable"),
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.BETA: _("Beta"),
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.NIGHTLY: _("Nightly"),
 }
 
 
@@ -70,6 +79,18 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
+		label = wx.StaticText(
+			panel, label=_("Release channel"), style=wx.ALIGN_LEFT
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		release_channel_value = release_channels[conf.general.release_channel]
+		self.release_channel = wx.ComboBox(
+			panel,
+			choices=list(release_channels.values()),
+			value=release_channel_value,
+			style=wx.CB_READONLY,
+		)
+		sizer.Add(self.release_channel, 0, wx.ALL, 5)
 		self.advanced_mode = wx.CheckBox(
 			panel,
 			# Translators: A label for a checkbox in the preferences dialog
@@ -186,7 +207,9 @@ class PreferencesDialog(wx.Dialog):
 		conf.general.language = list(self.languages.keys())[
 			self.language.GetSelection()
 		]
-
+		conf.general.release_channel = list(release_channels.keys())[
+			self.release_channel.GetSelection()
+		]
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 
 		conf.images.resize = self.image_resize.GetValue()
