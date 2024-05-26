@@ -10,9 +10,9 @@ from functools import cached_property
 from logging import getLogger
 from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
-
-from .globalvars import base_path
+from .config import conf, ReleaseChannelEnum
 from .consts import APP_REPO
+from .globalvars import base_path
 
 log = getLogger(__name__)
 
@@ -332,7 +332,7 @@ class GithubUpdater(BaseUpdater):
 		url = self.url
 		if not self.pre_release:
 			url += "/latest"
-		response = httpx.get(self.url, headers=self.headers)
+		response = httpx.get(url, headers=self.headers)
 		response.raise_for_status()
 		data = response.json()
 		if self.pre_release:
@@ -401,3 +401,14 @@ class GithubUpdater(BaseUpdater):
 			if not download_finished:
 				return None
 		return zip_tmp_file.name
+
+
+def get_updater_from_channel() -> BaseUpdater:
+	log.info(f"Getting updater from channel: {conf.general.release_channel}")
+	match conf.general.release_channel:
+		case ReleaseChannelEnum.STABLE:
+			return GithubUpdater(pre_release=False)
+		case ReleaseChannelEnum.BETA:
+			return GithubUpdater(pre_release=True)
+		case ReleaseChannelEnum.NIGHTLY:
+			return NigthlyUpdater()
