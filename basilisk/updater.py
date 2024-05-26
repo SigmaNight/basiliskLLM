@@ -8,10 +8,11 @@ import httpx
 from abc import ABC, abstractmethod
 from functools import cached_property
 from logging import getLogger
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
 
 from .globalvars import base_path
+from .consts import APP_REPO
 
 log = getLogger(__name__)
 
@@ -75,6 +76,7 @@ class BaseUpdater(ABC):
 	def latest_version(self) -> str:
 		pass
 
+	@cached_property
 	def is_update_enable(self) -> bool:
 		return getattr(sys, "frozen", False)
 
@@ -96,6 +98,7 @@ class BaseUpdater(ABC):
 		log.info(f"Latest version: {latest_version}")
 		return current_version != latest_version
 
+	@cached_property
 	def get_app_architecture(self) -> str:
 		arch = platform.architecture()[0]
 		if arch == "64bit":
@@ -105,13 +108,37 @@ class BaseUpdater(ABC):
 		else:
 			raise Exception("Unknown architecture")
 
+	@cached_property
 	def is_app_installed(self) -> bool:
-		if getattr(sys, "frozen", False):
+		if self.is_update_enable():
 			return base_path.joinpath("uninstall.exe").exists()
 		else:
 			raise NotImplementedError(
 				"Installation check not implemented for non-frozen applications"
 			)
+
+	def download_file(
+		self,
+		link: str,
+		file_tmp: tempfile.NamedTemporaryFile,
+		grafical_callback: Callable[[int, int], None] = None,
+		stop_download: bool = False,
+	) -> bool:
+		response = httpx.get(link, follow_redirects=True)
+		response.raise_for_status()
+		total_length = int(response.headers.get("Content-Length", 0))
+		chunk_size = 4096
+		downloaded_length = 0
+		for chunk in response.iter_bytes(chunk_size):
+			file_tmp.write(chunk)
+			downloaded_length += chunk_size
+			if grafical_callback:
+				grafical_callback(downloaded_length, total_length)
+			if stop_download:
+				return False
+		file_tmp.flush()
+		file_tmp.seek(0)
+		return True
 
 	@abstractmethod
 	def download_installer(
@@ -132,8 +159,8 @@ class BaseUpdater(ABC):
 		grafical_callback: Callable[[int, int], None] = None,
 		stop_download: bool = False,
 	) -> bool:
-		if getattr(sys, "frozen", False):
-			if self.is_app_installed():
+		if self.is_update_enable:
+			if self.is_app_installed:
 				self.downloaded_file = self.download_installer(
 					grafical_callback, stop_download
 				)
@@ -176,10 +203,10 @@ class BaseUpdater(ABC):
 		)
 
 	def update(self):
-		if getattr(sys, "frozen", False):
+		if self.is_update_enable:
 			if not getattr(self, "downloaded_file", None):
 				raise Exception("Download the update first")
-			if self.is_app_installed():
+			if self.is_app_installed:
 				self.update_with_installer()
 			else:
 				self.update_portable()
@@ -191,18 +218,23 @@ class BaseUpdater(ABC):
 
 class NigthlyUpdater(BaseUpdater):
 	def __init__(self):
-		self.url = "https://nightly.link/aaclause/basiliskLLM/workflows/build_app_exe/master"
+		self.url = (
+			f"https://nightly.link/{APP_REPO}/workflows/build_app_exe/master"
+		)
 
 	@cached_property
-	def latest_version(self) -> str:
-		log.info("Getting latest version")
+	def artifact_xml_table(self) -> ET.Element:
 		response = httpx.get(self.url)
 		response.raise_for_status()
 		table_pattern = re.compile(r"(<table>.*?</table>)", re.DOTALL)
 		xml_table = re.findall(table_pattern, response.text)[0]
 		log.debug(f"link table received: {xml_table}")
-		self.table_root = ET.fromstring(xml_table)
-		version_links = self.table_root.findall(".//th/a")
+		return ET.fromstring(xml_table)
+
+	@cached_property
+	def latest_version(self) -> str:
+		log.info("Getting latest version")
+		version_links = self.artifact_xml_table.findall(".//th/a")
 		unique_version = set()
 		for link in version_links:
 			text = link.text
@@ -217,36 +249,13 @@ class NigthlyUpdater(BaseUpdater):
 
 	def get_download_link(self, installer: bool) -> str:
 		architecture = self.get_app_architecture()
-		artifact_links = self.table_root.findall(".//td/a")
+		artifact_links = self.artifact_xml_table.findall(".//td/a")
 		artifact_prefix_name = (
 			"setup_basiliskLLM" if installer else "portable_basiliskLLM"
 		)
 		for link in artifact_links:
 			if artifact_prefix_name in link.text and architecture in link.text:
 				return link.get("href")
-
-	def download_zip(
-		self,
-		link: str,
-		zip_tmp: tempfile.NamedTemporaryFile,
-		grafical_callback: Callable[[int, int], None] = None,
-		stop_download: bool = False,
-	) -> bool:
-		response = httpx.get(link, follow_redirects=True)
-		response.raise_for_status()
-		total_length = int(response.headers.get("Content-Length", 0))
-		chunk_size = 4096
-		downloaded_length = 0
-		for chunk in response.iter_bytes(chunk_size):
-			zip_tmp.write(chunk)
-			downloaded_length += chunk_size
-			if grafical_callback:
-				grafical_callback(downloaded_length, total_length)
-			if stop_download:
-				return False
-		zip_tmp.flush()
-		zip_tmp.seek(0)
-		return True
 
 	def download_installer(
 		self,
@@ -259,10 +268,9 @@ class NigthlyUpdater(BaseUpdater):
 		with tempfile.NamedTemporaryFile(
 			prefix="setup_basiliskllm_", suffix=".zip"
 		) as zip_tmp_file:
-			download_finished = self.download_zip(
+			if not self.download_file(
 				link, zip_tmp_file, True, grafical_callback, stop_download
-			)
-			if not download_finished:
+			):
 				return None
 			return self.extract_installer_from_zip(zip_tmp_file)
 
@@ -280,12 +288,11 @@ class NigthlyUpdater(BaseUpdater):
 			delete=False,
 			delete_on_close=False,
 		) as zip_tmp_file:
-			download_finished = self.download_zip(
+			if not self.download_file(
 				link, zip_tmp_file, grafical_callback, stop_download
-			)
-			if not download_finished:
+			):
 				return None
-		return zip_tmp_file.name
+			return zip_tmp_file.name
 
 	def extract_installer_from_zip(
 		self, zip_tmp_file: tempfile.NamedTemporaryFile
@@ -309,3 +316,88 @@ class NigthlyUpdater(BaseUpdater):
 				setup_tmp_file.flush()
 				log.info(f"Installer extracted to: {setup_tmp_file.name}")
 				return setup_tmp_file.name
+
+
+class GithubUpdater(BaseUpdater):
+	def __init__(self, pre_release: bool = False):
+		self.url = f"https://api.github.com/repo/{APP_REPO}/releases"
+		self.headers = {
+			"Accept": "application/vnd.github+json",
+			"X-GitHub-Api-Version": "2022-11-28",
+		}
+		self.pre_release = pre_release
+
+	@cached_property
+	def release_data(self) -> dict[str, Any]:
+		url = self.url
+		if not self.pre_release:
+			url += "/latest"
+		response = httpx.get(self.url, headers=self.headers)
+		response.raise_for_status()
+		data = response.json()
+		if self.pre_release:
+			for release in data:
+				if release["prerelease"]:
+					data = release
+					break
+		return data
+
+	@cached_property
+	def latest_version(self) -> str:
+		return self.release_data["tag_name"]
+
+	def get_download_link(self, installer: bool) -> str:
+		data = self.release_data
+		architecture = self.get_app_architecture()
+		assets = data["assets"]
+		asset_prefix_name = (
+			"setup_basiliskLLM" if installer else "portable_basiliskLLM"
+		)
+		for asset in assets:
+			if (
+				asset_prefix_name in asset["name"]
+				and architecture in asset["name"]
+			):
+				return asset["browser_download_url"]
+
+	def download_installer(
+		self,
+		grafical_callback: Callable[[int, int], None] = None,
+		stop_download=False,
+	) -> Optional[str]:
+		log.info("Downloading installer")
+		link = self.get_download_link(True)
+		log.debug(f"Installer link: {link}")
+		with tempfile.NamedTemporaryFile(
+			prefix="setup_basiliskllm_",
+			suffix=".exe",
+			delete=False,
+			delete_on_close=False,
+		) as installer_tmp_file:
+			download_finished = self.download_file(
+				link, installer_tmp_file, grafical_callback, stop_download
+			)
+			if not download_finished:
+				return None
+			return installer_tmp_file.name
+
+	def download_portable(
+		self,
+		grafical_callback: Callable[[int, int], None],
+		stop_download: bool = False,
+	) -> str | None:
+		link = self.get_download_link(False)
+		log.debug(f"Portable link: {link}")
+		with tempfile.NamedTemporaryFile(
+			prefix="portable_basiliskllm_",
+			suffix=".zip",
+			dir=base_path,
+			delete=False,
+			delete_on_close=False,
+		) as zip_tmp_file:
+			download_finished = self.download_file(
+				link, zip_tmp_file, grafical_callback, stop_download
+			)
+			if not download_finished:
+				return None
+		return zip_tmp_file.name
