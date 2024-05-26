@@ -175,10 +175,22 @@ class UpdateDialog(wx.Dialog):
 
 	def on_check_for_updates(self):
 		log.debug("Checking for updates")
-		if self.updater.is_update_available():
-			wx.CallAfter(self.on_update_available)
-		else:
-			wx.CallAfter(self.on_no_updates)
+		try:
+			update_available = self.updater.is_update_available
+			if update_available:
+				wx.CallAfter(self.on_update_available)
+			else:
+				wx.CallAfter(self.on_no_updates)
+		except Exception as e:
+			log.error(f"Error checking for updates: {e}")
+			wx.CallAfter(
+				wx.MessageDialog(
+					self,
+					_("Error checking for updates: %s") % e,
+					wx.OK | wx.ICON_ERROR,
+				).ShowModal()
+			)
+			self.Destroy()
 
 	def on_update(self, event):
 		download_dialog = DownloadUpdateDialog(
