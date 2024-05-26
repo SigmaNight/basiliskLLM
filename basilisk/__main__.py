@@ -3,6 +3,7 @@ import logging
 import sys
 import wx
 import basilisk.globalvars as globalvars
+import basilisk.config as config
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
@@ -43,7 +44,6 @@ class MainApp(wx.App):
 	def OnInit(self) -> bool:
 		globalvars.args = parse_args()
 		log.debug(f"args: {globalvars.args}")
-		import basilisk.config as config
 
 		self.conf = config.initialize_config()
 		log_level = (

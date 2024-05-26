@@ -59,7 +59,9 @@ class BasiliskConfig(BaseSettings):
 		yaml_file_encoding="UTF-8",
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
-	accounts: AccountManager = Field(default=AccountManager(list()))
+	accounts: AccountManager = Field(
+		default_factory=lambda: AccountManager(list())
+	)
 
 	@classmethod
 	def settings_customise_sources(
