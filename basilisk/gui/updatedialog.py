@@ -1,7 +1,7 @@
 import wx
 import threading
 from logging import getLogger
-from basilisk.updater import NigthlyUpdater
+from basilisk.updater import get_updater_from_channel, BaseUpdater
 
 log = getLogger(__name__)
 
@@ -9,7 +9,7 @@ log = getLogger(__name__)
 class DownloadUpdateDialog(wx.Dialog):
 	def __init__(
 		self,
-		updater: NigthlyUpdater,
+		updater: BaseUpdater,
 		parent: wx.Window,
 		title: str,
 		size=(400, 400),
@@ -63,7 +63,7 @@ class DownloadUpdateDialog(wx.Dialog):
 				wx.MessageDialog(
 					self,
 					_("Error downloading update: %s") % e,
-					wx.OK | wx.ICON_ERROR,
+					style=wx.OK | wx.ICON_ERROR,
 				).ShowModal()
 			)
 			self.Destroy()
@@ -99,8 +99,8 @@ class UpdateDialog(wx.Dialog):
 	def __init__(self, parent: wx.Window, title: str, size=(400, 400)):
 		log.debug("Creating update dialog")
 		wx.Dialog.__init__(self, parent, title=title, size=size)
-		self.updater = NigthlyUpdater()
-		if not self.updater.is_update_enable():
+		self.updater = get_updater_from_channel()
+		if not self.updater.is_update_enable:
 			log.error("Update are disabled for source application")
 			wx.MessageDialog(
 				self,
@@ -176,7 +176,7 @@ class UpdateDialog(wx.Dialog):
 	def on_check_for_updates(self):
 		log.debug("Checking for updates")
 		try:
-			update_available = self.updater.is_update_available
+			update_available = self.updater.is_update_available()
 			if update_available:
 				wx.CallAfter(self.on_update_available)
 			else:
@@ -187,7 +187,7 @@ class UpdateDialog(wx.Dialog):
 				wx.MessageDialog(
 					self,
 					_("Error checking for updates: %s") % e,
-					wx.OK | wx.ICON_ERROR,
+					style=wx.OK | wx.ICON_ERROR,
 				).ShowModal()
 			)
 			self.Destroy()
