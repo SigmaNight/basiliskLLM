@@ -177,7 +177,7 @@ class MainFrame(wx.Frame):
 		)
 
 	def on_hotkey(self, event):
-		match event.GetId():
+		match HotkeyAction(event.GetId()):
 			case HotkeyAction.TOGGLE_VISIBILITY:
 				self.toggle_visibility(None)
 			case HotkeyAction.CAPTURE_WINDOW:
