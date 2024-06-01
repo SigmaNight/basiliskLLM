@@ -8,13 +8,7 @@ import wx
 
 if sys.platform == 'win32':
 	import win32con
-from basilisk.consts import (
-	APP_NAME,
-	APP_SOURCE_URL,
-	HOTKEY_TOGGLE_VISIBILITY,
-	HOTKEY_CAPTURE_FULL,
-	HOTKEY_CAPTURE_WINDOW,
-)
+from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from .conversationtab import ConversationTab
 from .taskbaricon import TaskBarIcon
 from basilisk import globalvars
@@ -167,29 +161,31 @@ class MainFrame(wx.Frame):
 
 	def register_hot_key(self):
 		self.RegisterHotKey(
-			HOTKEY_TOGGLE_VISIBILITY,
+			HotkeyAction.TOGGLE_VISIBILITY,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('B'),
 		)
 		self.RegisterHotKey(
-			HOTKEY_CAPTURE_FULL,
+			HotkeyAction.CAPTURE_FULL,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('F'),
 		)
 		self.RegisterHotKey(
-			HOTKEY_CAPTURE_WINDOW,
+			HotkeyAction.CAPTURE_WINDOW,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('W'),
 		)
 
 	def on_hotkey(self, event):
-		hotkey_id = event.GetId()
-		if hotkey_id == HOTKEY_TOGGLE_VISIBILITY:
-			self.toggle_visibility(None)
-		elif hotkey_id == HOTKEY_CAPTURE_WINDOW:
-			self.screen_capture(CaptureMode.WINDOW)
-		elif hotkey_id == HOTKEY_CAPTURE_FULL:
-			self.screen_capture(CaptureMode.FULL)
+		match event.GetId():
+			case HotkeyAction.TOGGLE_VISIBILITY:
+				self.toggle_visibility(None)
+			case HotkeyAction.CAPTURE_WINDOW:
+				self.screen_capture(CaptureMode.WINDOW)
+			case HotkeyAction.CAPTURE_FULL:
+				self.screen_capture(CaptureMode.FULL)
+			case _:
+				log.error(f"Unknown hotkey action: {event.GetId()}")
 
 	def toggle_visibility(self, event):
 		if self.IsShown():
