@@ -11,6 +11,9 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
+	from anthropic._streaming import Stream
+	from anthropic.types import Message as AnthropicMessage
+	from anthropic.types.message_stream_event import MessageStreamEvent
 	from account import Account
 from .baseengine import BaseEngine, ProviderAIModel
 
@@ -41,9 +44,8 @@ class AnthropicAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="claude-3-opus-20240229",
 				name="Claude 3 Opus",
-				# Translators: This is a ProviderAIModel description
-				description=_("Most powerful model for highly complex tasks"),
 				# Translators: This is a model description
+				description=_("Most powerful model for highly complex tasks"),
 				context_window=200000,
 				max_output_tokens=4096,
 				vision=True,
@@ -78,7 +80,7 @@ class AnthropicAIEngine(BaseEngine):
 		conversation: Conversation,
 		system_message: Message | None,
 		**kwargs,
-	):
+	) -> Message | Stream[MessageStreamEvent]:
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
 			"model": new_block.model.id,
@@ -95,14 +97,16 @@ class AnthropicAIEngine(BaseEngine):
 		response = self.client.messages.create(**params)
 		return response
 
-	def completion_response_with_stream(self, stream):
+	def completion_response_with_stream(
+		self, stream: Stream[MessageStreamEvent]
+	):
 		for event in stream:
 			match event.type:
 				case "content_block_delta":
 					yield event.delta.text
 
 	def completion_response_without_stream(
-		self, response, new_block: MessageBlock, **kwargs
+		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
