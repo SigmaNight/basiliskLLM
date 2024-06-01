@@ -37,11 +37,13 @@ jobs:
       run: poetry run python setup.py compile_catalog
     - name: Build executable
       run: poetry run python -m cx_Freeze build_exe
-    - name: get version from executable
+    - name: get version info
       id: get_version
       run: |
         $version = (Get-Item .\dist\basilisk.exe).VersionInfo.FileVersionRaw
-        echo content=$version >> $env:GITHUB_OUTPUT
+        $short_sha = (git rev-parse --short HEAD)
+        echo version_number=$version >> $env:GITHUB_OUTPUT
+        echo short_sha=$short_sha >> $env:GITHUB_OUTPUT
     - name: create user config file for portable version
       run: |
         New-Item -Path dist -Name user_data -ItemType directory
@@ -53,7 +55,7 @@ jobs:
     - name: create and upload portable zip
       uses: actions/upload-artifact@v4
       with:
-        name: portable_basiliskLLM_${{ steps.get_version.outputs.content }}_windows_${{ matrix.arch }}
+        name: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ steps.get_version.outputs.short_sha }}_${{ runner.os }}_${{ matrix.arch }}
         path: dist/*
         if-no-files-found: error
         retention-days: 30
@@ -63,6 +65,6 @@ jobs:
     - name: upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: setup_basiliskLLM_${{ steps.get_version.outputs.content }}_windows_${{ matrix.arch }}
+        name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ steps.get_version.outputs.short_sha }}_${{ runner.os }}_${{ matrix.arch }}
         path: output_setup/*
         retention-days: 30
