@@ -63,6 +63,6 @@ jobs:
     - name: upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}__${{ runner.os }}_${{ matrix.arch }}
+        name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
         path: output_setup/*
         retention-days: 30
