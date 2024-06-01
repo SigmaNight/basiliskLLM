@@ -4,6 +4,7 @@ import re
 import threading
 import time
 import wx
+import basilisk.config as config
 from uuid import UUID
 
 from basilisk.conversation import (
@@ -19,7 +20,6 @@ from basilisk.imagefile import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provideraimodel import ProviderAIModel
 from basilisk.providerengine import BaseEngine
 from basilisk.soundmanager import play_sound, stop_sound
-import basilisk.config as config
 
 log = logging.getLogger(__name__)
 
