@@ -34,6 +34,9 @@ class MainFrame(wx.Frame):
 		self.init_ui()
 		self.ID_NEW_CONVERSATION = wx.NewIdRef()
 		self.ID_CLOSE_CONVERSATION = wx.NewIdRef()
+		self.ID_ADD_IMAGE_FILE = wx.NewIdRef()
+		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
+		self.ID_PREFERENCES = wx.NewIdRef()
 		self.init_accelerators()
 		if sys.platform == "win32":
 			self.tray_icon = TaskBarIcon(self)
@@ -55,31 +58,29 @@ class MainFrame(wx.Frame):
 
 		conversation_menu = wx.Menu()
 		new_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("New conversation")
+			wx.ID_ANY, _("New conversation\tCtrl+N")
 		)
 		self.Bind(wx.EVT_MENU, self.on_new_conversation, new_conversation_item)
 		close_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("Close conversation")
+			wx.ID_ANY, _("Close conversation\tCtrl+W")
 		)
 		self.Bind(
 			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
 		)
 		conversation_menu.AppendSeparator()
 		add_image_files_item = conversation_menu.Append(
-			wx.ID_ANY, _("Add image files...")
+			wx.ID_ANY, _("Add image from &file\tCtrl+I")
 		)
 		self.Bind(
 			wx.EVT_MENU,
-			lambda e: self.on_add_image_files(e, False),
+			lambda e: self.on_add_image(e, False),
 			add_image_files_item,
 		)
 		add_image_url = conversation_menu.Append(
-			wx.ID_ANY, _("Add image URL...")
+			wx.ID_ANY, _("Add image from &URL\tCtrl+U")
 		)
 		self.Bind(
-			wx.EVT_MENU,
-			lambda e: self.on_add_image_files(e, True),
-			add_image_url,
+			wx.EVT_MENU, lambda e: self.on_add_image(e, True), add_image_url
 		)
 		conversation_menu.AppendSeparator()
 		manage_accounts_item = conversation_menu.Append(
@@ -139,12 +140,22 @@ class MainFrame(wx.Frame):
 			self.on_close_conversation,
 			id=self.ID_CLOSE_CONVERSATION,
 		)
+		self.Bind(wx.EVT_MENU, self.on_add_image, id=self.ID_ADD_IMAGE_FILE)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda evt: self.on_add_image(evt, True),
+			id=self.ID_ADD_URL_IMAGE,
+		)
+		self.Bind(wx.EVT_MENU, self.on_preferences, id=self.ID_PREFERENCES)
 
 		self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
 
 		accelerators = [
 			(wx.ACCEL_CTRL, ord('N'), self.ID_NEW_CONVERSATION),
 			(wx.ACCEL_CTRL, ord('W'), self.ID_CLOSE_CONVERSATION),
+			(wx.ACCEL_CTRL, ord('I'), self.ID_ADD_IMAGE_FILE),
+			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
+			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), self.ID_PREFERENCES),
 		]
 
 		for i in range(1, 10):
@@ -305,7 +316,7 @@ class MainFrame(wx.Frame):
 	def current_tab(self):
 		return self.tabs_panels[self.notebook.GetSelection()]
 
-	def on_add_image_files(self, event, from_url=False):
+	def on_add_image(self, event, from_url=False):
 		current_tab = self.current_tab
 		if not current_tab:
 			wx.MessageBox(
