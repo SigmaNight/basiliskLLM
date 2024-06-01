@@ -161,17 +161,17 @@ class MainFrame(wx.Frame):
 
 	def register_hot_key(self):
 		self.RegisterHotKey(
-			HotkeyAction.TOGGLE_VISIBILITY,
+			HotkeyAction.TOGGLE_VISIBILITY.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('B'),
 		)
 		self.RegisterHotKey(
-			HotkeyAction.CAPTURE_FULL,
+			HotkeyAction.CAPTURE_FULL.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('F'),
 		)
 		self.RegisterHotKey(
-			HotkeyAction.CAPTURE_WINDOW,
+			HotkeyAction.CAPTURE_WINDOW.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord('W'),
 		)
