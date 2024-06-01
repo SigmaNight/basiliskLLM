@@ -29,7 +29,7 @@ class LogLevelEnum(Enum):
 class ReleaseChannelEnum(Enum):
 	STABLE = "stable"
 	BETA = "beta"
-	NIGHTLY = "nightly"
+	DEV = "dev"
 
 
 class AutomaticUpdateModeEnum(Enum):

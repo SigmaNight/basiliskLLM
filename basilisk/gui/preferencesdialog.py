@@ -33,7 +33,7 @@ release_channels = {
 	# Translators: A label for the release channel in the settings dialog
 	ReleaseChannelEnum.BETA: _("Beta"),
 	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.NIGHTLY: _("Nightly"),
+	ReleaseChannelEnum.DEV: _("Development"),
 }
 
 

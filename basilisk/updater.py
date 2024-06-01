@@ -415,7 +415,7 @@ def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
 			return GithubUpdater(pre_release=False)
 		case ReleaseChannelEnum.BETA:
 			return GithubUpdater(pre_release=True)
-		case ReleaseChannelEnum.NIGHTLY:
+		case ReleaseChannelEnum.DEV:
 			return NigthlyUpdater()
 
 
