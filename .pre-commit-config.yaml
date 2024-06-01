@@ -47,7 +47,7 @@ repos:
           - "post-checkout"
           - "post-merge"
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.25.0
+    rev: v3.27.0
     hooks:
       - id: commitizen
         stages:
@@ -59,7 +59,7 @@ repos:
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.4.4"
+    rev: "v0.4.5"
     hooks:
       - id: ruff-format
       - id: ruff

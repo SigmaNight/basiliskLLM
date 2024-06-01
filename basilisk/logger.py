@@ -1,3 +1,4 @@
+import sys
 import logging
 import basilisk.globalvars as globalvars
 from pathlib import Path
@@ -5,14 +6,18 @@ from types import TracebackType
 from typing import Type
 from platformdirs import user_log_path
 
-log_file_path = Path("basilisk.log")
-if globalvars.user_data_path:
-	log_file_path = globalvars.user_data_path / log_file_path
-else:
-	log_file_path = (
-		user_log_path("basilisk", "basilisk_llm", ensure_exists=True)
-		/ log_file_path
-	)
+
+def get_log_file_path() -> Path:
+	"""Get log file path"""
+	log_file_path = Path("basilisk.log")
+	if globalvars.user_data_path:
+		log_file_path = globalvars.user_data_path / log_file_path
+	else:
+		log_file_path = (
+			user_log_path("basilisk", "basilisk_llm", ensure_exists=True)
+			/ log_file_path
+		)
+	return log_file_path
 
 
 def setup_logging(level: str) -> None:
@@ -20,12 +25,13 @@ def setup_logging(level: str) -> None:
 	level = level.upper()
 	if level == "OFF":
 		level = "NOTSET"
-	console_handler = logging.StreamHandler()
-	file_handler = logging.FileHandler(log_file_path, mode='w')
+	handlers = [logging.FileHandler(get_log_file_path(), mode='w')]
+	if not getattr(sys, "frozen", False):
+		handlers.append(logging.StreamHandler())
 	logging.basicConfig(
 		level=level,
 		format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-		handlers=[console_handler, file_handler],
+		handlers=handlers,
 		force=True,
 	)
 
