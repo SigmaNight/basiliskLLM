@@ -86,4 +86,4 @@ zip_include_packages = [
     "logging", "json", "pydantic", "pydantic_core",
     "asyncio", "anyio", "encodings", "dotenv", "email", "ctypes", "collections",
     "concurrent", "distro", "h11", "httpcore", "http", "importlib", "re", "sniffio",
-    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk"]
+    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk", "tokenizers", "anthropic", "PIL"]
