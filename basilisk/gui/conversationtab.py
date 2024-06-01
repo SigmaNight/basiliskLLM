@@ -191,7 +191,7 @@ class ConversationTab(wx.Panel):
 		self.stop_completion_btn = wx.Button(
 			self,
 			# Translators: This is a label for stop completion button in the main window
-			label=_("Sto&p completion"),
+			label=_("Stop completio&n"),
 		)
 		self.stop_completion_btn.Bind(wx.EVT_BUTTON, self.on_stop_completion)
 		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
@@ -217,6 +217,7 @@ class ConversationTab(wx.Panel):
 			self.stream_mode,
 		)
 		for control in controls:
+			control.Enable(config.conf.general.advanced_mode)
 			control.Show(config.conf.general.advanced_mode)
 		self.Layout()
 
