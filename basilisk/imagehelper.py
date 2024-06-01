@@ -31,6 +31,8 @@ def resize_image(
 	if max_width <= 0 and max_height <= 0:
 		return False
 	image = Image.open(src)
+	if image.mode in ("RGBA", "P"):
+		image = image.convert("RGB")
 	orig_width, orig_height = image.size
 	if max_width > 0 and max_height > 0:
 		ratio = min(max_width / orig_width, max_height / orig_height)
@@ -40,7 +42,9 @@ def resize_image(
 		ratio = max_height / orig_height
 	new_width = int(orig_width * ratio)
 	new_height = int(orig_height * ratio)
-	resized_image = image.resize((new_width, new_height), Image.ANTIALIAS)
+	resized_image = image.resize(
+		(new_width, new_height), Image.Resampling.LANCZOS
+	)
 	resized_image.save(target, optimize=True, quality=quality)
 	return True
 
@@ -48,19 +52,3 @@ def resize_image(
 def encode_image(image_path):
 	with open(image_path, "rb") as image_file:
 		return base64.b64encode(image_file.read()).decode('utf-8')
-
-
-def describeFromImageFileList(client, messages: list, max_tokens: int = 700):
-	"""
-	Describe a list of images from a list of file paths.
-	@param client: OpenAI client
-	@param messages: list of messages
-	@param max_tokens: max tokens to use
-	@return: description
-	"""
-	if not messages:
-		return None
-	response = client.chat.completions.create(
-		model="gpt-4-vision-preview", messages=messages, max_tokens=max_tokens
-	)
-	return response.choices[0]

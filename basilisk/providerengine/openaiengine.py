@@ -49,6 +49,26 @@ class OpenAIEngine(BaseEngine):
 		log.debug("Getting openAI models")
 		return [
 			ProviderAIModel(
+				id="gpt-4o",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					"Our most advanced, multimodal flagship model that’s cheaper and faster than GPT-4 Turbo"
+				),
+				context_window=128000,
+				max_output_tokens=4096,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="gpt-4-turbo",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					"The latest GPT-4 Turbo model with vision capabilities"
+				),
+				context_window=128000,
+				max_output_tokens=4096,
+				vision=True,
+			),
+			ProviderAIModel(
 				id="gpt-3.5-turbo",
 				# Translators: This is a ProviderAIModel description
 				description=_(
@@ -64,24 +84,6 @@ class OpenAIEngine(BaseEngine):
 					"The latest GPT-3.5 Turbo ProviderAIModel with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls."
 				),
 				context_window=16385,
-				max_output_tokens=4096,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo-1106",
-				# Translators: This is a ProviderAIModel description
-				description=_(
-					"Updated GPT 3.5 Turbo. The latest GPT-3.5 Turbo ProviderAIModel with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more."
-				),
-				context_window=16385,
-				max_output_tokens=4096,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo-0613",
-				# Translators: This is a ProviderAIModel description
-				description=_(
-					"Same capabilities as the standard gpt-3.5-turbo ProviderAIModel but with 4 times the context"
-				),
-				context_window=16384,
 				max_output_tokens=4096,
 			),
 			ProviderAIModel(

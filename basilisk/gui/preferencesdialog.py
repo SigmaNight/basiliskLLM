@@ -36,7 +36,12 @@ class PreferencesDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(panel, label=_("Log level"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(
+			panel,
+			# Translators: A label for the log level selection in the preferences dialog
+			label=_("Log level"),
+			style=wx.ALIGN_LEFT,
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		log_level_value = LOG_LEVELS[conf.general.log_level]
 		self.log_level = wx.ComboBox(
@@ -52,7 +57,10 @@ class PreferencesDialog(wx.Dialog):
 			conf.general.language, self.languages["auto"]
 		)
 		label = wx.StaticText(
-			panel, label=_("Language (Requires restart)"), style=wx.ALIGN_LEFT
+			panel,
+			# Translators: A label for the language selection in the preferences dialog
+			label=_("Language (Requires restart)"),
+			style=wx.ALIGN_LEFT,
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.language = wx.ComboBox(
@@ -63,10 +71,91 @@ class PreferencesDialog(wx.Dialog):
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
 		self.advanced_mode = wx.CheckBox(
-			panel, label=_("Advanced mode"), style=wx.ALIGN_LEFT
+			panel,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Advanced mode"),
+			style=wx.ALIGN_LEFT,
 		)
 		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
+
+		images_group = wx.StaticBox(panel, label=_("Images"))
+		images_group_sizer = wx.StaticBoxSizer(images_group, wx.VERTICAL)
+
+		self.image_resize = wx.CheckBox(
+			images_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Resize images before uploading"),
+		)
+		self.image_resize.SetValue(conf.images.resize)
+		self.image_resize.Bind(wx.EVT_CHECKBOX, self.on_resize)
+		images_group_sizer.Add(self.image_resize, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			images_group,
+			# Translators: A label in the preferences dialog
+			label=_(
+				"Maximum &height (0 to resize proportionally to the width):"
+			),
+		)
+		images_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.image_max_height = wx.SpinCtrl(
+			images_group, value=str(conf.images.max_height), min=0, max=10000
+		)
+		images_group_sizer.Add(self.image_max_height, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			images_group,
+			# Translators: A label in the preferences dialog
+			label=_(
+				"Maximum &width (0 to resize proportionally to the height):"
+			),
+		)
+		images_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.image_max_width = wx.SpinCtrl(
+			images_group, value=str(conf.images.max_width), min=0, max=10000
+		)
+		images_group_sizer.Add(self.image_max_width, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			images_group,
+			# Translators: A label in the preferences dialog
+			label=_(
+				"&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be avoided):"
+			),
+		)
+		images_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.image_quality = wx.SpinCtrl(
+			images_group, value=str(conf.images.quality), min=1, max=100
+		)
+		images_group_sizer.Add(self.image_quality, 0, wx.ALL, 5)
+
+		self.on_resize(None)
+		sizer.Add(images_group_sizer, 0, wx.ALL, 5)
+
+		server_group = wx.StaticBox(panel, label=_("Server"))
+		server_group_sizer = wx.StaticBoxSizer(server_group, wx.VERTICAL)
+
+		self.server_enable = wx.CheckBox(
+			server_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Enable server mode (requires restart)"),
+		)
+		self.server_enable.SetValue(conf.server.enable)
+		server_group_sizer.Add(self.server_enable, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			server_group,
+			# Translators: A label in the preferences dialog
+			label=_("Port:"),
+		)
+		server_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.server_port = wx.SpinCtrl(
+			server_group, value=str(conf.server.port), min=1, max=65535
+		)
+		server_group_sizer.Add(self.server_port, 0, wx.ALL, 5)
+
+		sizer.Add(server_group_sizer, 0, wx.ALL, 5)
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -83,6 +172,12 @@ class PreferencesDialog(wx.Dialog):
 		panel.Layout()
 		self.Layout()
 
+	def on_resize(self, event):
+		val = self.image_resize.GetValue()
+		self.image_max_height.Enable(val)
+		self.image_max_width.Enable(val)
+		self.image_quality.Enable(val)
+
 	def on_ok(self, event):
 		log.debug("Saving configuration")
 		conf.general.log_level = list(LOG_LEVELS.keys())[
@@ -93,6 +188,15 @@ class PreferencesDialog(wx.Dialog):
 		]
 
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
+
+		conf.images.resize = self.image_resize.GetValue()
+		conf.images.max_height = int(self.image_max_height.GetValue())
+		conf.images.max_width = int(self.image_max_width.GetValue())
+		conf.images.quality = int(self.image_quality.GetValue())
+
+		conf.server.enable = self.server_enable.GetValue()
+		conf.server.port = int(self.server_port.GetValue())
+
 		conf.save()
 		set_log_level(conf.general.log_level.name)
 

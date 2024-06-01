@@ -11,19 +11,19 @@ class MessageRoleEnum(Enum):
 	SYSTEM = "system"
 
 
-class TextMessageConten(BaseModel):
-	type: Literal["text"]
-	text: str
-
-
 class ImageUrlMessageContent(BaseModel):
 	type: Literal["image_url"]
 	image_url: dict[str, str]
 
 
+class TextMessageContent(BaseModel):
+	type: Literal["text"]
+	text: str
+
+
 class Message(BaseModel):
 	role: MessageRoleEnum
-	content: list[TextMessageConten | ImageUrlMessageContent] | str = Field(
+	content: list[TextMessageContent | ImageUrlMessageContent] | str = Field(
 		discrminator="type"
 	)
 

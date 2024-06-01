@@ -4,7 +4,7 @@ import basilisk.globalvars as globalvars
 from pathlib import Path
 from enum import Enum
 from platformdirs import user_config_path
-from pydantic import BaseModel, ConfigDict, Extra, Field
+from pydantic import BaseModel, Extra, Field
 from pydantic_settings import (
 	BaseSettings,
 	PydanticBaseSettingsSource,
@@ -45,10 +45,21 @@ def search_existing_path(paths: list[Path]) -> Path:
 
 
 class GeneralSettings(BaseModel):
-	model_config = ConfigDict(populate_by_name=True)
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
+
+
+class ImagesSettings(BaseModel):
+	max_height: int = Field(default=720)
+	max_width: int = Field(default=0)
+	quality: int = Field(default=85, ge=1, le=100)
+	resize: bool = Field(default=False)
+
+
+class ServerSettings(BaseModel):
+	port: int = Field(default=4242)
+	enable: bool = Field(default=True)
 
 
 class BasiliskConfig(BaseSettings):
@@ -62,6 +73,8 @@ class BasiliskConfig(BaseSettings):
 	accounts: AccountManager = Field(
 		default_factory=lambda: AccountManager(list())
 	)
+	images: ImagesSettings = Field(default_factory=ImagesSettings)
+	server: ServerSettings = Field(default_factory=ServerSettings)
 
 	@classmethod
 	def settings_customise_sources(

@@ -20,9 +20,13 @@ Hold your horses! Not quite there yet...
 
 These shortcuts work anywhere in Windows.
 
-- `Ctrl+Alt+B`: Minimize to tray or show the BasiliskLLM window.
+- `AltGr+Shift+B`: Minimize to tray or show the BasiliskLLM window.
 
-Note: you also minimize the window by clicking the minimize button or Windows+Down.
+  Note: you can also minimize the window by clicking the minimize button or by pressing the *Windows key + Down arrow*.
+
+- `AltGr+Shift+W`: take a screenshot of the current window and send the image to the active chat.
+
+- `AltGr+Shift+F`: take a screenshot of the full screen and send the image to the active chat.
 
 ### BasiliskLLM window shortcuts
 

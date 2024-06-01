@@ -20,7 +20,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 		self.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN, self.on_right_down)
 
 	def on_left_down(self, event):
-		self.frame.Show()
+		self.frame.toggle_visibility(None)
 
 	def on_right_down(self, event):
 		menu = wx.Menu()

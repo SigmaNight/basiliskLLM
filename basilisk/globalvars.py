@@ -14,3 +14,4 @@ user_data_path = (
 resource_path = base_path / Path("res")
 
 args = None
+app_should_exit = False
