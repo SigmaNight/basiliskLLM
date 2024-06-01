@@ -40,10 +40,8 @@ jobs:
     - name: get version info
       id: get_version
       run: |
-        $version = (Get-Item .\dist\basilisk.exe).VersionInfo.FileVersionRaw
-        $short_sha = (git rev-parse --short HEAD)
+        $version = (poetry run python -m setuptools_scm)
         echo version_number=$version >> $env:GITHUB_OUTPUT
-        echo short_sha=$short_sha >> $env:GITHUB_OUTPUT
     - name: create user config file for portable version
       run: |
         New-Item -Path dist -Name user_data -ItemType directory
@@ -65,6 +63,6 @@ jobs:
     - name: upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ steps.get_version.outputs.short_sha }}_${{ runner.os }}_${{ matrix.arch }}
+        name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}__${{ runner.os }}_${{ matrix.arch }}
         path: output_setup/*
         retention-days: 30
