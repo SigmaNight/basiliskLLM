@@ -65,10 +65,7 @@ class ConversationTab(wx.Panel):
 		self.system_prompt_txt = wx.TextCtrl(
 			self,
 			size=(800, 100),
-			style=wx.TE_MULTILINE
-			| wx.TE_READONLY
-			| wx.TE_WORDWRAP
-			| wx.HSCROLL,
+			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
 		)
 		sizer.Add(self.system_prompt_txt, proportion=1, flag=wx.EXPAND)
 
