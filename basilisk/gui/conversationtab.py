@@ -14,6 +14,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk import globalvars
 from basilisk.imagefile import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provideraimodel import ProviderAIModel
 from basilisk.providerengine import BaseEngine
@@ -31,6 +32,8 @@ class ConversationTab(wx.Panel):
 		self.last_time = 0
 		self.task = None
 		self.stream_buffer = ""
+		self._messages_already_focused = False
+		self._stop_completion = False
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
 		self.init_data()
@@ -59,7 +62,14 @@ class ConversationTab(wx.Panel):
 			label=_("S&ystem prompt:"),
 		)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.system_prompt_txt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+		self.system_prompt_txt = wx.TextCtrl(
+			self,
+			size=(800, 100),
+			style=wx.TE_MULTILINE
+			| wx.TE_READONLY
+			| wx.TE_WORDWRAP
+			| wx.HSCROLL,
+		)
 		sizer.Add(self.system_prompt_txt, proportion=1, flag=wx.EXPAND)
 
 		label = wx.StaticText(
@@ -69,7 +79,12 @@ class ConversationTab(wx.Panel):
 		)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		self.messages = wx.TextCtrl(
-			self, style=wx.TE_MULTILINE | wx.TE_READONLY
+			self,
+			size=(800, 400),
+			style=wx.TE_MULTILINE
+			| wx.TE_READONLY
+			| wx.TE_WORDWRAP
+			| wx.HSCROLL,
 		)
 		sizer.Add(self.messages, proportion=1, flag=wx.EXPAND)
 
@@ -79,7 +94,11 @@ class ConversationTab(wx.Panel):
 			label=_("&Prompt:"),
 		)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.prompt = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+		self.prompt = wx.TextCtrl(
+			self,
+			size=(800, 100),
+			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
+		)
 		self.prompt.Bind(wx.EVT_KEY_DOWN, self.on_prompt_key_down)
 		self.prompt.Bind(wx.EVT_CONTEXT_MENU, self.on_prompt_context_menu)
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
@@ -91,7 +110,9 @@ class ConversationTab(wx.Panel):
 			label=_("&Images:"),
 		)
 		sizer.Add(self.images_list_label, proportion=0, flag=wx.EXPAND)
-		self.images_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+		self.images_list = wx.ListCtrl(
+			self, size=(800, 100), style=wx.LC_REPORT
+		)
 		self.images_list.Bind(wx.EVT_CONTEXT_MENU, self.on_images_context_menu)
 		self.images_list.Bind(wx.EVT_KEY_DOWN, self.on_images_key_down)
 		self.images_list.InsertColumn(0, _("Name"))
@@ -156,6 +177,8 @@ class ConversationTab(wx.Panel):
 		self.stream_mode.SetValue(True)
 		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
 
+		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
 		self.submit_btn = wx.Button(
 			self,
 			# Translators: This is a label for submit button in the main window
@@ -163,7 +186,18 @@ class ConversationTab(wx.Panel):
 		)
 		self.submit_btn.Bind(wx.EVT_BUTTON, self.on_submit)
 		self.submit_btn.SetDefault()
-		sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
+		btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
+
+		self.stop_completion_btn = wx.Button(
+			self,
+			# Translators: This is a label for stop completion button in the main window
+			label=_("Sto&p completion"),
+		)
+		self.stop_completion_btn.Bind(wx.EVT_BUTTON, self.on_stop_completion)
+		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
+		self.stop_completion_btn.Hide()
+
+		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizerAndFit(sizer)
 
@@ -606,6 +640,8 @@ class ConversationTab(wx.Panel):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
+		self.submit_btn.Disable()
+		self.stop_completion_btn.Show()
 		system_message = None
 		if self.system_prompt_txt.GetValue():
 			system_message = Message(
@@ -646,6 +682,9 @@ class ConversationTab(wx.Panel):
 		thread_id = thread.ident
 		log.debug(f"Task {thread_id} started")
 
+	def on_stop_completion(self, event: wx.CommandEvent):
+		self._stop_completion = True
+
 	def _handle_completion(self, engine: BaseEngine, **kwargs):
 		try:
 			play_sound("progress", loop=True)
@@ -666,11 +705,13 @@ class ConversationTab(wx.Panel):
 			new_block.response = Message(
 				role=MessageRoleEnum.ASSISTANT, content=""
 			)
-			wx.CallAfter(self.messages.SetFocus)
 			wx.CallAfter(self._pre_handle_completion_with_stream, new_block)
 			for chunk in self.current_engine.completion_response_with_stream(
 				response
 			):
+				if self._stop_completion or globalvars.app_should_exit:
+					log.debug("Stopping completion")
+					break
 				new_block.response.content += chunk
 				wx.CallAfter(self._handle_completion_with_stream, chunk)
 			wx.CallAfter(self._post_completion_with_stream, new_block)
@@ -690,8 +731,11 @@ class ConversationTab(wx.Panel):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if self.stream_buffer.endswith('\n') or len(self.stream_buffer) > 100:
+		if '\n' in chunk or len(self.stream_buffer) > 120:
 			self._flush_stream_buffer()
+			if not self._messages_already_focused:
+				self.messages.SetFocus()
+				self._messages_already_focused = True
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")
@@ -706,6 +750,7 @@ class ConversationTab(wx.Panel):
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._flush_stream_buffer()
 		self._end_task()
+		self._messages_already_focused = False
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
 		self._end_task()
@@ -716,6 +761,9 @@ class ConversationTab(wx.Panel):
 		self.refresh_images_list()
 
 	def _end_task(self, success: bool = True):
+		if not self._messages_already_focused:
+			self.messages.SetFocus()
+			self._messages_already_focused = True
 		task = self.task
 		task.join()
 		thread_id = task.ident
@@ -724,3 +772,6 @@ class ConversationTab(wx.Panel):
 		stop_sound()
 		if success:
 			play_sound("chat_response_received")
+		self.stop_completion_btn.Hide()
+		self.submit_btn.Enable()
+		self._stop_completion = False

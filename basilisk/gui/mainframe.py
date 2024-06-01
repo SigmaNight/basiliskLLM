@@ -17,6 +17,7 @@ from basilisk.consts import (
 )
 from .conversationtab import ConversationTab
 from .taskbaricon import TaskBarIcon
+from basilisk import globalvars
 from basilisk.imagefile import ImageFile
 from basilisk.screencapturethread import ScreenCaptureThread, CaptureMode
 import basilisk.config as config
@@ -36,7 +37,6 @@ class MainFrame(wx.Frame):
 		self.init_accelerators()
 		if sys.platform == "win32":
 			self.tray_icon = TaskBarIcon(self)
-			self.Bind(wx.EVT_ICONIZE, self.on_minimize)
 			self.register_hot_key()
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
 		self.on_new_conversation(None)
@@ -126,13 +126,11 @@ class MainFrame(wx.Frame):
 
 		self.CreateStatusBar()
 		self.SetStatusText(_("Ready"))
-
-		self.SetSize((800, 600))
 		self.Layout()
 		self.Maximize(True)
 
 	def init_accelerators(self):
-		self.Bind(wx.EVT_CLOSE, self.on_close)
+		self.Bind(wx.EVT_CLOSE, self.on_quit)
 		self.Bind(
 			wx.EVT_MENU, self.on_new_conversation, id=self.ID_NEW_CONVERSATION
 		)
@@ -186,9 +184,7 @@ class MainFrame(wx.Frame):
 		if self.IsShown():
 			self.on_minimize(None)
 		elif not self.IsShown():
-			self.Show()
-			self.Restore()
-			self.Layout()
+			self.on_restore(None)
 
 	def capture_partial_screen(
 		self, screen_coordinates: tuple[int, int, int, int], name: str = ""
@@ -232,17 +228,42 @@ class MainFrame(wx.Frame):
 		self.Raise()
 
 	def on_minimize(self, event):
+		if not self.IsShown():
+			log.debug("Already minimized")
+			return
 		log.debug("Minimized to tray")
 		self.Hide()
+		wx.adv.NotificationMessage(
+			APP_NAME, _("Basilisk has been minimized to the system tray")
+		).Show()
 
-	def on_close(self, event):
+	def on_restore(self, event):
+		if self.IsShown():
+			log.debug("Already restored")
+			return
+		log.debug("Restored from tray")
+		self.Show(True)
+		self.Raise()
+
+	def on_quit(self, event):
 		log.info("Closing application")
+		globalvars.app_should_exit = True
 		for tmp_file in self.tmp_files:
 			log.debug(f"Removing temporary file: {tmp_file}")
 			os.remove(tmp_file)
+		# ensure all conversation tasks are stopped
+		for tab in self.tabs_panels:
+			if tab.task:
+				task_id = tab.task.ident
+				log.debug(
+					f"Waiting for conversation task {task_id} to finish..."
+				)
+				tab.task.join()
+				log.debug("... is dead")
 		self.tray_icon.RemoveIcon()
 		self.tray_icon.Destroy()
 		self.Destroy()
+		wx.GetApp().ExitMainLoop()
 
 	def on_tab_changed(self, event):
 		tab_index = event.GetSelection()
@@ -340,8 +361,3 @@ class MainFrame(wx.Frame):
 		if self.signal_received:
 			log.debug("Received SIGINT")
 			wx.CallAfter(self.on_quit, None)
-
-	def on_quit(self, event):
-		if sys.platform == "win32":
-			self.tray_icon.RemoveIcon()
-		self.Close()

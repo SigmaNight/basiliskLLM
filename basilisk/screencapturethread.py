@@ -51,7 +51,7 @@ class ScreenCaptureThread(threading.Thread):
 		else:
 			raise ValueError("Invalid capture mode")
 
-		name = " (%s)" % self.name
+		name = self.name
 		if not name:
 			name = " (%s)" % datetime.datetime.now().strftime("%H:%M:%S")
 		if self.capture_mode == CaptureMode.FULL:
