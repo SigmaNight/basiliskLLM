@@ -112,7 +112,7 @@ class MainApp(wx.App):
 			log.debug("Server stopped")
 		if self.auto_update and self.auto_update.is_alive():
 			self.stop_auto_update = True
-			self.auto_update_thread.join()
+			self.auto_update.join()
 			log.info("Automatic update thread stopped")
 		log.info("Application exited")
 		return 0
