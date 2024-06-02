@@ -12,6 +12,8 @@ on:
 
 jobs:
   build_windows:
+    outputs:
+      version_number: ${{ steps.get_version.outputs.version_number }}
     runs-on: windows-latest
     strategy:
       fail-fast: true
