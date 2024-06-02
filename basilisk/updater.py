@@ -34,14 +34,14 @@ if "%~2"=="" (
 
 REM Check if the portable ZIP file exists
 if not exist "%~1" (
-    echo Error: the portable ZIP file "%~1" does not exist.
-    exit /b 1
+	echo Error: the portable ZIP file "%~1" does not exist.
+	exit /b 1
 )
 
 REM Check if the portable APP destination folder exists
 if not exist "%~2" (
-    echo Creating the portable APP destination folder...
-    mkdir "%~2"
+	echo Creating the portable APP destination folder...
+	mkdir "%~2"
 )
 
 REM Path to the ZIP utility
@@ -55,8 +55,8 @@ echo Decompressing the portable ZIP file...
 "%zipUtil%\tar.exe" -xf "%~1" -C "%~2" --exclude=user_data
 
 if %errorlevel% neq 0 (
-    echo Error: failed to decompress the portable ZIP file.
-    exit /b %errorlevel%
+	echo Error: failed to decompress the portable ZIP file.
+	exit /b %errorlevel%
 )
 
 echo The portable APP has been successfully updated.
@@ -67,7 +67,7 @@ del "%~1"
 if %errorlevel% neq 0 (
 	echo Error: failed to delete the portable ZIP file.
 	exit /b %errorlevel%
-	)
+)
 
 exit /b 0
 """
