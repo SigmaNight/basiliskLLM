@@ -29,9 +29,9 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.sizer.Add(self.downloading_label, 0, wx.ALL | wx.CENTER, 10)
 		self.downloading_gauge = wx.Gauge(self.panel, range=100)
 		self.sizer.Add(self.downloading_gauge, 0, wx.ALL | wx.EXPAND, 10)
-		self.close_button = wx.Button(self.panel, label=_("Close"))
-		self.close_button.Bind(wx.EVT_BUTTON, self.on_close)
-		self.sizer.Add(self.close_button, 0, wx.ALL | wx.CENTER, 10)
+		self.cancel_button = wx.Button(self.panel, id=wx.ID_CANCEL)
+		self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.CENTER, 10)
 		self.download_finished_label = wx.StaticText(
 			self.panel, label=_("Update download finished")
 		)
@@ -50,6 +50,7 @@ class DownloadUpdateDialog(wx.Dialog):
 		else:
 			self.download_finished_label.Hide()
 			self.update_label.Hide()
+			self.update_button.Disable()
 			self.update_button.Hide()
 			self.stop_download = False
 			self.download_thread = threading.Thread(
@@ -75,7 +76,9 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.downloading_gauge.Hide()
 		self.download_finished_label.Show()
 		self.update_label.Show()
+		self.update_button.Enable()
 		self.update_button.Show()
+		self.update_button.SetFocus()
 		self.Layout()
 
 	def on_update(self, event):
@@ -91,7 +94,7 @@ class DownloadUpdateDialog(wx.Dialog):
 		)
 		wx.CallAfter(self.downloading_gauge.SetValue, download_percent)
 
-	def on_close(self, event):
+	def on_cancel(self, event):
 		if hasattr(self, "download_thread") and self.download_thread.is_alive():
 			self.stop_download = True
 		self.Destroy()
@@ -145,7 +148,7 @@ class UpdateDialog(wx.Dialog):
 		self.update_button = wx.Button(self.panel, label=_("Update now"))
 		self.update_button.Bind(wx.EVT_BUTTON, self.on_update)
 		self.sizer.Add(self.update_button, 0, wx.ALL | wx.CENTER, 10)
-		self.close_button = wx.Button(self.panel, label=_("Close"))
+		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
 		self.close_button.Bind(wx.EVT_BUTTON, self.on_close)
 		self.sizer.Add(self.close_button, 0, wx.ALL | wx.CENTER, 10)
 		self.panel.SetSizer(self.sizer)
@@ -177,11 +180,13 @@ class UpdateDialog(wx.Dialog):
 		self.current_version_label.SetLabel(
 			_("Current version: %s") % self.updater.current_version
 		)
+		self.update_button.Disable()
 		self.update_button.Hide()
 		self.checking_gauge.Pulse()
 		self.update_message_label.Hide()
 		self.current_version_label.Hide()
 		self.new_version_label.Hide()
+		self.update_button.Disable()
 		self.update_button.Hide()
 		self.sizer.Fit(self)
 		self.Layout()
@@ -200,7 +205,9 @@ class UpdateDialog(wx.Dialog):
 			_("New version: %s") % self.updater.latest_version
 		)
 		self.new_version_label.Show()
+		self.update_button.Enable()
 		self.update_button.Show()
+		self.update_button.SetFocus()
 		self.Layout()
 
 	def on_no_updates(self, event):
