@@ -32,6 +32,7 @@ class MainFrame(wx.Frame):
 		self.ID_CLOSE_CONVERSATION = wx.NewIdRef()
 		self.ID_ADD_IMAGE_FILE = wx.NewIdRef()
 		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
+		self.ID_MANAGE_ACCOUNTS = wx.NewIdRef()
 		self.ID_PREFERENCES = wx.NewIdRef()
 		self.init_accelerators()
 		if sys.platform == "win32":
@@ -41,31 +42,54 @@ class MainFrame(wx.Frame):
 		self.on_new_conversation(None)
 
 	def init_ui(self):
-		def update_item_label_ellipsis(item):
+		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
 			"""
 			Update the label of the given item to include ellipsis at the end if not already present.
 
 			:param item: The item whose label is to be updated.
+			:param suffix: The suffix to add to the label.
 			"""
-			if not item.GetItemLabel().endswith("..."):
-				item.SetItemLabel(item.GetItemLabel() + "...")
+			if not item.GetItemLabel().endswith(suffix):
+				item.SetItemLabel(item.GetItemLabel() + suffix)
 
 		menu_bar = wx.MenuBar()
 
 		conversation_menu = wx.Menu()
 		new_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("New conversation\tCtrl+N")
+			wx.ID_ANY,
+			# Translators: A label for a menu item to create a new conversation
+			_("New conversation") + " (Ctrl+N)",
 		)
 		self.Bind(wx.EVT_MENU, self.on_new_conversation, new_conversation_item)
+		open_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to open a conversation
+			_("Open conversation") + "... (Ctrl+O)",
+		)
+		open_conversation_item.Enable(False)
+		save_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to save a conversation
+			_("Save conversation") + " (Ctrl+S)",
+		)
+		save_conversation_item.Enable(False)
+		save_as_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to save a conversation as a new file
+			_("Save conversation as") + "... (Ctrl+Shift+S)",
+		)
+		save_as_conversation_item.Enable(False)
 		close_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("Close conversation\tCtrl+W")
+			wx.ID_ANY, _("Close conversation") + " (Ctrl+W)"
 		)
 		self.Bind(
 			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
 		)
 		conversation_menu.AppendSeparator()
 		add_image_files_item = conversation_menu.Append(
-			wx.ID_ANY, _("Add image from &file\tCtrl+I")
+			wx.ID_ANY,
+			# Translators: A label for a menu item to add an image from a file
+			_("Add image from f&ile") + "... (Ctrl+I)",
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -73,20 +97,24 @@ class MainFrame(wx.Frame):
 			add_image_files_item,
 		)
 		add_image_url = conversation_menu.Append(
-			wx.ID_ANY, _("Add image from &URL\tCtrl+U")
+			wx.ID_ANY,
+			# Translators: A label for a menu item to add an image from a URL
+			_("Add image from &URL") + "... (Ctrl+U)",
 		)
 		self.Bind(
 			wx.EVT_MENU, lambda e: self.on_add_image(e, True), add_image_url
 		)
 		conversation_menu.AppendSeparator()
 		manage_accounts_item = conversation_menu.Append(
-			wx.ID_ANY, _("Manage &accounts")
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage accounts
+			_("Manage &accounts") + "... (Ctrl+Shift+A)",
 		)
 		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
-		update_item_label_ellipsis(manage_accounts_item)
+		update_item_label_suffix(manage_accounts_item)
 		preferences_item = conversation_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
-		update_item_label_ellipsis(preferences_item)
+		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
 		self.signal_received = False
@@ -98,7 +126,7 @@ class MainFrame(wx.Frame):
 		help_menu = wx.Menu()
 		about_item = help_menu.Append(wx.ID_ABOUT)
 		self.Bind(wx.EVT_MENU, self.on_about, about_item)
-		update_item_label_ellipsis(about_item)
+		update_item_label_suffix(about_item)
 		check_updates_item = help_menu.Append(wx.ID_ANY, _("Check updates"))
 		self.Bind(wx.EVT_MENU, self.on_manual_update_check, check_updates_item)
 		github_repo_item = help_menu.Append(wx.ID_ANY, _("&GitHub repository"))
@@ -144,6 +172,9 @@ class MainFrame(wx.Frame):
 			lambda evt: self.on_add_image(evt, True),
 			id=self.ID_ADD_URL_IMAGE,
 		)
+		self.Bind(
+			wx.EVT_MENU, self.on_manage_accounts, id=self.ID_MANAGE_ACCOUNTS
+		)
 		self.Bind(wx.EVT_MENU, self.on_preferences, id=self.ID_PREFERENCES)
 
 		self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
@@ -153,6 +184,7 @@ class MainFrame(wx.Frame):
 			(wx.ACCEL_CTRL, ord('W'), self.ID_CLOSE_CONVERSATION),
 			(wx.ACCEL_CTRL, ord('I'), self.ID_ADD_IMAGE_FILE),
 			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
+			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('A'), self.ID_MANAGE_ACCOUNTS),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), self.ID_PREFERENCES),
 		]
 
@@ -365,7 +397,7 @@ class MainFrame(wx.Frame):
 		)
 
 	def on_about(self, event):
-		from gui.aboutdialog import display_about_dialog
+		from .aboutdialog import display_about_dialog
 
 		display_about_dialog(self)
 
