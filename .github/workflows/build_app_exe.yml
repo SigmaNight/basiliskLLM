@@ -62,7 +62,7 @@ jobs:
         run: Compress-Archive -Path dist -DestinationPath portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}.zip
       - name: build windows installer
         run: |
-          iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} \DMyAppVersion=${{ steps.get_version.outputs.version_number }}
+          iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
       - name: upload installer on branch
         if: github.ref_type == 'branch'
         uses: actions/upload-artifact@v4
