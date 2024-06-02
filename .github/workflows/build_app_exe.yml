@@ -12,7 +12,6 @@ on:
 
 jobs:
   build_windows:
-    outputs:
     runs-on: windows-latest
     strategy:
       fail-fast: true
