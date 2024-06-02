@@ -69,7 +69,8 @@ jobs:
         with:
           files: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}.zip
           fail_on_unmatched_files: true
-
+          draft: true
+          prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
       - name: build windows installer
         run: |
           iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
@@ -86,3 +87,5 @@ jobs:
         with:
           files: output_setup/*
           fail_on_unmatched_files: true
+          draft: true
+          prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
