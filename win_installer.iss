@@ -1,8 +1,9 @@
 #ifndef AppArch
     #define AppArch "x64"
 #endif
-#define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
-
+#ifndef MyAppVersion
+    #define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
+#endif
 [setup]
 AppVersion={#MyAppVersion}
 AppName=basiliskLLM

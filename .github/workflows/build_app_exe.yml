@@ -13,7 +13,6 @@ on:
 jobs:
   build_windows:
     outputs:
-      version_number: ${{ steps.get_version.outputs.version_number }}
     runs-on: windows-latest
     strategy:
       fail-fast: true
@@ -51,19 +50,29 @@ jobs:
           echo "  language: auto" >> dist\user_data\config.yml
           echo "  log_level: info" >> dist\user_data\config.yml
 
-      - name: create and upload portable zip
+      - name: create and upload portable zip on branch
+        if: github.ref_type == 'branch'
         uses: actions/upload-artifact@v4
         with:
           name: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
           retention-days: 30
+      - name: create portable zip on tag
+        if: github.ref_type == 'tag'
+        run: Compress-Archive -Path dist -DestinationPath portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}.zip
       - name: build windows installer
         run: |
-          iscc .\win_installer.iss /DAppArch=${{ matrix.arch }}
-      - name: upload installer
+          iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} \DMyAppVersion=${{ steps.get_version.outputs.version_number }}
+      - name: upload installer on branch
+        if: github.ref_type == 'branch'
         uses: actions/upload-artifact@v4
         with:
           name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
           path: output_setup/*
           retention-days: 30
+      - name: upload installer on tag
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output_setus/setup_basilisskLLM*
