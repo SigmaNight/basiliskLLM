@@ -96,10 +96,15 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
+
+		update_group = wx.StaticBox(panel, label=_("Update"))
+		update_group_sizer = wx.StaticBoxSizer(update_group, wx.VERTICAL)
+
 		label = wx.StaticText(
 			panel, label=_("Release channel"), style=wx.ALIGN_LEFT
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
+		update_group_sizer.Add(label, 0, wx.ALL, 5)
+
 		release_channel_value = release_channels[conf.general.release_channel]
 		self.release_channel = wx.ComboBox(
 			panel,
@@ -107,11 +112,12 @@ class PreferencesDialog(wx.Dialog):
 			value=release_channel_value,
 			style=wx.CB_READONLY,
 		)
-		sizer.Add(self.release_channel, 0, wx.ALL, 5)
+		update_group_sizer.Add(self.release_channel, 0, wx.ALL, 5)
+
 		label = wx.StaticText(
 			panel, label=_("Automatic update mode"), style=wx.ALIGN_LEFT
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
+		update_group_sizer.Add(label, 0, wx.ALL, 5)
 		auto_update_mode_value = auto_update_modes[
 			conf.general.automatic_update_mode
 		]
@@ -121,7 +127,10 @@ class PreferencesDialog(wx.Dialog):
 			value=auto_update_mode_value,
 			style=wx.CB_READONLY,
 		)
-		sizer.Add(self.auto_update_mode, 0, wx.ALL, 5)
+		update_group_sizer.Add(self.auto_update_mode, 0, wx.ALL, 5)
+
+		sizer.Add(update_group_sizer, 0, wx.ALL, 5)
+
 		self.advanced_mode = wx.CheckBox(
 			panel,
 			# Translators: A label for a checkbox in the preferences dialog
