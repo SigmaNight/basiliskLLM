@@ -1,7 +1,8 @@
 from enum import Enum
 
 APP_NAME = "BasiliskLLM"
-APP_SOURCE_URL = "https://github.com/aaclause/basiliskLLM"
+APP_REPO = "aaclause/basiliskLLM"
+APP_SOURCE_URL = f"https://github.com/{APP_REPO}"
 DEFAULT_LANG = "en"
 
 

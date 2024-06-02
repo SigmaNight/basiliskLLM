@@ -1,8 +1,9 @@
 import logging
 import yaml
 import basilisk.globalvars as globalvars
-from pathlib import Path
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from platformdirs import user_config_path
 from pydantic import BaseModel, Extra, Field
 from pydantic_settings import (
@@ -23,6 +24,19 @@ class LogLevelEnum(Enum):
 	WARNING = "warning"
 	ERROR = "error"
 	CRITICAL = "critical"
+
+
+class ReleaseChannelEnum(Enum):
+	STABLE = "stable"
+	BETA = "beta"
+	DEV = "dev"
+
+
+class AutomaticUpdateModeEnum(Enum):
+	OFF = "off"
+	NOTIFY = "notify"
+	DOWNLOAD = "download"
+	INSTALL = "install"
 
 
 config_file_path = Path("config.yml")
@@ -48,6 +62,13 @@ class GeneralSettings(BaseModel):
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
+	automatic_update_mode: AutomaticUpdateModeEnum = Field(
+		default=AutomaticUpdateModeEnum.NOTIFY
+	)
+	release_channel: ReleaseChannelEnum = Field(
+		default=ReleaseChannelEnum.STABLE
+	)
+	last_update_check: datetime | None = Field(default=None)
 
 
 class ImagesSettings(BaseModel):

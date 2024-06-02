@@ -1,7 +1,12 @@
 import logging
 import wx
 from babel import Locale
-from basilisk.config import conf, LogLevelEnum
+from basilisk.config import (
+	conf,
+	LogLevelEnum,
+	ReleaseChannelEnum,
+	AutomaticUpdateModeEnum,
+)
 from basilisk.localization import get_supported_locales, get_app_locale
 from basilisk.logger import set_log_level
 
@@ -20,6 +25,27 @@ LOG_LEVELS = {
 	LogLevelEnum.ERROR: _("Error"),
 	# Translators: A label for the log level in the settings dialog
 	LogLevelEnum.CRITICAL: _("Critical"),
+}
+
+release_channels = {
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.STABLE: _("Stable"),
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.BETA: _("Beta"),
+	# Translators: A label for the release channel in the settings dialog
+	ReleaseChannelEnum.DEV: _("Development"),
+}
+
+
+auto_update_modes = {
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.OFF: _("Off"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.NOTIFY: _("Notify new version"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.DOWNLOAD: _("Download new version"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.INSTALL: _("Install new version"),
 }
 
 
@@ -70,6 +96,41 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.language, 0, wx.ALL, 5)
+
+		update_group = wx.StaticBox(panel, label=_("Update"))
+		update_group_sizer = wx.StaticBoxSizer(update_group, wx.VERTICAL)
+
+		label = wx.StaticText(
+			panel, label=_("Release channel"), style=wx.ALIGN_LEFT
+		)
+		update_group_sizer.Add(label, 0, wx.ALL, 5)
+
+		release_channel_value = release_channels[conf.general.release_channel]
+		self.release_channel = wx.ComboBox(
+			panel,
+			choices=list(release_channels.values()),
+			value=release_channel_value,
+			style=wx.CB_READONLY,
+		)
+		update_group_sizer.Add(self.release_channel, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			panel, label=_("Automatic update mode"), style=wx.ALIGN_LEFT
+		)
+		update_group_sizer.Add(label, 0, wx.ALL, 5)
+		auto_update_mode_value = auto_update_modes[
+			conf.general.automatic_update_mode
+		]
+		self.auto_update_mode = wx.ComboBox(
+			panel,
+			choices=list(auto_update_modes.values()),
+			value=auto_update_mode_value,
+			style=wx.CB_READONLY,
+		)
+		update_group_sizer.Add(self.auto_update_mode, 0, wx.ALL, 5)
+
+		sizer.Add(update_group_sizer, 0, wx.ALL, 5)
+
 		self.advanced_mode = wx.CheckBox(
 			panel,
 			# Translators: A label for a checkbox in the preferences dialog
@@ -186,7 +247,12 @@ class PreferencesDialog(wx.Dialog):
 		conf.general.language = list(self.languages.keys())[
 			self.language.GetSelection()
 		]
-
+		conf.general.release_channel = list(release_channels.keys())[
+			self.release_channel.GetSelection()
+		]
+		conf.general.automatic_update_mode = list(auto_update_modes.keys())[
+			self.auto_update_mode.GetSelection()
+		]
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 
 		conf.images.resize = self.image_resize.GetValue()

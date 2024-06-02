@@ -5,16 +5,18 @@ import signal
 import sys
 import tempfile
 import wx
+import basilisk.config as config
 
 if sys.platform == 'win32':
 	import win32con
-from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
-from .conversationtab import ConversationTab
-from .taskbaricon import TaskBarIcon
 from basilisk import globalvars
+from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from basilisk.imagefile import ImageFile
 from basilisk.screencapturethread import ScreenCaptureThread, CaptureMode
-import basilisk.config as config
+from basilisk.updater import BaseUpdater
+from .conversationtab import ConversationTab
+from .taskbaricon import TaskBarIcon
+from .updatedialog import UpdateDialog, DownloadUpdateDialog
 
 log = logging.getLogger(__name__)
 
@@ -98,8 +100,7 @@ class MainFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.on_about, about_item)
 		update_item_label_ellipsis(about_item)
 		check_updates_item = help_menu.Append(wx.ID_ANY, _("Check updates"))
-		self.Bind(wx.EVT_MENU, self.on_check_updates, check_updates_item)
-		check_updates_item.Enable(False)
+		self.Bind(wx.EVT_MENU, self.on_manual_update_check, check_updates_item)
 		github_repo_item = help_menu.Append(wx.ID_ANY, _("&GitHub repository"))
 		self.Bind(wx.EVT_MENU, self.on_github_repo, github_repo_item)
 		roko_basilisk_item = help_menu.Append(wx.ID_ANY, _("Roko's Basilisk"))
@@ -362,8 +363,9 @@ class MainFrame(wx.Frame):
 
 		display_about_dialog(self)
 
-	def on_check_updates(self, event):
+	def on_manual_update_check(self, event):
 		log.debug("Checking for updates")
+		UpdateDialog(parent=self, title=_("Check updates")).Show()
 
 	def on_ctrl_c(self, signum, frame):
 		self.signal_received = True
@@ -372,3 +374,27 @@ class MainFrame(wx.Frame):
 		if self.signal_received:
 			log.debug("Received SIGINT")
 			wx.CallAfter(self.on_quit, None)
+
+	def show_update_notification(self, updater: BaseUpdater):
+		log.info("Showing update notification")
+
+		def show_dialog():
+			update_dialog = UpdateDialog(
+				parent=self, title=_("New version available"), updater=updater
+			)
+			update_dialog.ShowModal()
+			log.debug(f"Update dialog shown: {update_dialog.IsShown()}")
+
+		wx.CallAfter(show_dialog)
+
+	def show_update_download(self, updater: BaseUpdater):
+		log.info("Showing update download dialog")
+
+		def show_dialog():
+			download_dialog = DownloadUpdateDialog(
+				parent=self, title=_("Downloading update"), updater=updater
+			)
+			download_dialog.ShowModal()
+			log.debug(f"Download dialog shown: {download_dialog.IsShown()}")
+
+		wx.CallAfter(show_dialog)
