@@ -63,7 +63,7 @@ class AnthropicAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="claude-3-haiku-20240307",
-				name="claude-3-haiku-20240307",
+				name="Claude 3 Haiku",
 				# Translators: This is a model description
 				description=_(
 					"Fastest and most compact model fornear-instant responsiveness"
@@ -72,7 +72,89 @@ class AnthropicAIEngine(BaseEngine):
 				max_output_tokens=4096,
 				vision=True,
 			),
+			ProviderAIModel(
+				id="claude-2.1",
+				name="Claude 2.1",
+				# Translators: This is a model description
+				description=_(
+					"Updated version of Claude 2 with improved accuracy"
+				),
+				context_window=200000,
+				max_output_tokens=4096,
+				vision=False,
+			),
+			ProviderAIModel(
+				id="claude-2.0",
+				name="Claude 2",
+				# Translators: This is a model description
+				description=_(
+					"Predecessor to Claude 3, offering strong all-round performance"
+				),
+				context_window=100000,
+				max_output_tokens=4096,
+				vision=False,
+			),
+			ProviderAIModel(
+				id="claude-instant-1.2",
+				name="Claude Instant 1.2",
+				# Translators: This is a model description
+				description=_(
+					"Our cheapest small and fast model, a predecessor of Claude Haiku"
+				),
+				context_window=100000,
+				max_output_tokens=4096,
+				vision=False,
+			),
 		]
+
+	def get_message(self, message: Message) -> dict[str, str]:
+		if isinstance(message.content, list):
+			content = []
+			for item in message.content:
+				if item.type == "text":
+					content.append(item)
+				elif (
+					item.type == "image_url"
+					and isinstance(item.image_url, dict)
+					and item.image_url["url"].startswith("data:")
+				):
+					image1_media_type, image1_data = item.image_url[
+						"url"
+					].split(";", 1)
+					image1_media_type = image1_media_type.split(":", 1)[1]
+					image1_data = image1_data.split(",", 1)[1]
+					content.append(
+						{
+							"type": "image",
+							"source": {
+								"type": "base64",
+								"media_type": image1_media_type,
+								"data": image1_data,
+							},
+						}
+					)
+				else:
+					raise ValueError("Unsupported content type")
+			return {"role": message.role.value, "content": content}
+		if isinstance(message.content, str):
+			return message.model_dump(mode="json")
+		raise ValueError("Unsupported content message type")
+
+	def get_messages(
+		self, new_block: MessageBlock, conversation: Conversation
+	) -> list[Message]:
+		"""
+		Get messages
+		"""
+		messages = []
+		for message_block in conversation.messages:
+			if not message_block.response:
+				continue
+			messages.append(self.get_message(message_block.request))
+			messages.append(self.get_message(message_block.response))
+		messages.append(self.get_message(new_block.request))
+		log.debug("Messages: %s", messages)
+		return messages
 
 	def completion(
 		self,
@@ -84,7 +166,7 @@ class AnthropicAIEngine(BaseEngine):
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
 			"model": new_block.model.id,
-			"messages": self.get_messages(new_block, conversation, None),
+			"messages": self.get_messages(new_block, conversation),
 			"temperature": new_block.temperature,
 			"max_tokens": new_block.max_tokens
 			or new_block.model.max_output_tokens,
