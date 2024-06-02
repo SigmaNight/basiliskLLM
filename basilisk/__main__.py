@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import threading
 import wx
 import basilisk.globalvars as globalvars
 import basilisk.config as config
@@ -15,6 +16,7 @@ from basilisk.logger import (
 )
 from basilisk.serverthread import ServerThread
 from basilisk.soundmanager import initialize_sound_manager
+from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
 
@@ -71,8 +73,36 @@ class MainApp(wx.App):
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
 			self.server.start()
+		self.frame.Show()
+		self.auto_update = None
+		if (
+			self.conf.general.automatic_update_mode
+			!= config.AutomaticUpdateModeEnum.OFF
+		):
+			self.start_auto_update_thread()
 		log.info("Application started")
 		return True
+
+	def start_auto_update_thread(self):
+		self.stop_auto_update = False
+		target_func = (
+			automatic_update_check
+			if self.conf.general.automatic_update_mode
+			== config.AutomaticUpdateModeEnum.NOTIFY
+			else automatic_update_download
+		)
+		callback_func = (
+			self.frame.show_update_notification
+			if self.conf.general.automatic_update_mode
+			== config.AutomaticUpdateModeEnum.NOTIFY
+			else self.frame.show_update_download
+		)
+		self.auto_update = threading.Thread(
+			target=target_func,
+			args=(self.conf, callback_func, self.stop_auto_update),
+		)
+		self.auto_update.start()
+		log.info("Automatic update thread started")
 
 	def OnExit(self) -> int:
 		if self.server:
@@ -80,6 +110,10 @@ class MainApp(wx.App):
 			self.server.stop()
 			self.server.join()
 			log.debug("Server stopped")
+		if self.auto_update and self.auto_update.is_alive():
+			self.stop_auto_update = True
+			self.auto_update.join()
+			log.info("Automatic update thread stopped")
 		log.info("Application exited")
 		return 0
 
