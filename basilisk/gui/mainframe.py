@@ -112,8 +112,11 @@ class MainFrame(wx.Frame):
 
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		self.panel = wx.Panel(self)
-		actions_button = wx.Button(self.panel, label=_("Actions"))
-		sizer.Add(actions_button, flag=wx.EXPAND)
+		minimize_taskbar = wx.Button(
+			self.panel, label=_("Minimize to tray") + " (Ctrl+Alt+Shift+B)"
+		)
+		minimize_taskbar.Bind(wx.EVT_BUTTON, self.on_minimize)
+		sizer.Add(minimize_taskbar, flag=wx.EXPAND)
 
 		self.notebook = wx.Notebook(self.panel)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
@@ -242,7 +245,10 @@ class MainFrame(wx.Frame):
 		log.debug("Minimized to tray")
 		self.Hide()
 		wx.adv.NotificationMessage(
-			APP_NAME, _("Basilisk has been minimized to the system tray")
+			APP_NAME,
+			_(
+				"Basilisk has been minimized to the system tray. Click the icon to restore or use the hotkey Ctrl+Alt+Shift+B to toggle visibility."
+			),
 		).Show()
 
 	def on_restore(self, event):
