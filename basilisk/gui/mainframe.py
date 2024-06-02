@@ -267,8 +267,12 @@ class MainFrame(wx.Frame):
 				)
 				tab.task.join()
 				log.debug("... is dead")
-		self.tray_icon.RemoveIcon()
-		self.tray_icon.Destroy()
+		if sys.platform == "win32":
+			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
+			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
+			self.UnregisterHotKey(HotkeyAction.CAPTURE_FULL.value)
+			self.tray_icon.RemoveIcon()
+			self.tray_icon.Destroy()
 		self.Destroy()
 		wx.GetApp().ExitMainLoop()
 
