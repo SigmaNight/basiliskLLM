@@ -9,6 +9,9 @@ on:
   pull_request:
     branches:
       - master
+permissions:
+  contents: write
+  pull-requests: read
 
 jobs:
   build_windows:
@@ -60,6 +63,13 @@ jobs:
       - name: create portable zip on tag
         if: github.ref_type == 'tag'
         run: Compress-Archive -Path dist -DestinationPath portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}.zip
+      - name: upload portable zip on tag
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}.zip
+          fail_on_unmatched_files: true
+
       - name: build windows installer
         run: |
           iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
@@ -74,4 +84,5 @@ jobs:
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: output_setus/setup_basilisskLLM*
+          files: output_setup/*
+          fail_on_unmatched_files: true
