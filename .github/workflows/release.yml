@@ -1,8 +1,9 @@
 name: "create release"
 on:
   workflow_run:
-    workflows: ["build_app_exe"]
+    workflows: ["build python app executable"]
     types: ["completed"]
+
 permissions:
   contents: write
 
