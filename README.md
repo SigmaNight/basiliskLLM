@@ -39,12 +39,14 @@ These shortcuts work only when the BasiliskLLM window is focused.
 ### automatic update of the Application (Windows only)
 
 The app has a builtins auto update feature.
-There is three canals of update:
+There is three channels of update:
 
 - `stable`: the stable version of the app (default a stable release on github)
 - `beta`: the beta version of the app (default a pre release on github)
-- `dev`: the dev version of the app (default the last commit on the main branch)
-  You have four modes of update:
+- `dev`: the dev version of the app (default the last commit on the master branch)
+
+You have four modes of update:
+
 - 'notify': the app will notify you when a new version is available
 - 'download': the app will download the new version but you have to install it manually
 - 'install': the app will download and install the new version automatically (not implemented yet)
