@@ -4,6 +4,7 @@ from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
 from .providerengine import (
 	BaseEngine,
+	AnthropicAIEngine,
 	MistralAIEngine,
 	OpenAIEngine,
 	OpenRouterEngine,
@@ -32,7 +33,7 @@ class Provider(BaseModel):
 
 	id: str
 	name: str
-	base_url: HttpUrl
+	base_url: Optional[HttpUrl] = Field(default=None)
 	api_type: ProviderAPIType
 	capabilities: set[ProviderCapability]
 	organization_mode_available: bool = Field(default=False)
@@ -44,6 +45,17 @@ class Provider(BaseModel):
 
 
 providers = [
+	Provider(
+		id="anthropic",
+		name="Anthropic",
+		api_type=ProviderAPIType.ANTHROPIC,
+		capabilities={ProviderCapability.IMAGE, ProviderCapability.TEXT},
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="ANTHROPIC_API_KEY",
+		env_var_name_organization_key="ANTHROPIC_ORG_KEY",
+		engine_cls=AnthropicAIEngine,
+	),
 	Provider(
 		id="openai",
 		name="OpenAI",
