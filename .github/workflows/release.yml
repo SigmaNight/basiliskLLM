@@ -1,0 +1,39 @@
+name: "create release"
+on:
+  workflow_run:
+    workflows: ["build_app_exe"]
+    types: ["completed"]
+permissions:
+  contents: write
+
+jobs:
+  create_release:
+    if: github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - name: download windows portable artifacts
+        id: download_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: portable_basiliskLLM_${{ github.event.workflow_run.jobs.build_windows.version_number }}_*
+          path: ${{ github.workspace }}/artifacts
+      - name: re-zip portable artifacts
+        run: |
+         for d in ${{ github.workspace }}/artifacts/portable_basiliskLLM_${{ github.event.workflow_run.jobs.build_windows.version_number }}_*; do
+           zip -r -9 $d.zip $d
+           rm -rf $d
+         done
+      - name: download windows installer artifacts
+        id: download_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: setup_basiliskLLM_${{ github.event.workflow_run.jobs.build_windows.version_number }}_*
+          path: ${{ github.workspace }}/artifacts
+      - name: create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ github.workspace }}/artifacts/*
+          tag_name: ${{ github.ref }}
+          draft: true
+          prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
