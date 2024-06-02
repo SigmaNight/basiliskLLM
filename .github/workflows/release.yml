@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: download windows portable artifacts
-        id: download_artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: portable_basiliskLLM_${{ github.event.workflow_run.jobs.build_windows.version_number }}_*
@@ -25,7 +24,6 @@ jobs:
            rm -rf $d
          done
       - name: download windows installer artifacts
-        id: download_artifacts
         uses: actions/download-artifact@v4
         with:
           pattern: setup_basiliskLLM_${{ github.event.workflow_run.jobs.build_windows.version_number }}_*
