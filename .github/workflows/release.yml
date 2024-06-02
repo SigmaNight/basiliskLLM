@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: create release name
         id: get_release_name
-        run: echo "release_name=$(echo ${{ github.ref_name }} | cut -c 2-)" >> $GITHUB_ENV
+        run: echo "release_name=$(echo ${{ github.ref_name }} | cut -c 2-) \($(date '+%Y-%m-%d')\)" >> $GITHUB_ENV
       - name: create release
         uses: softprops/action-gh-release@v2
         with:
