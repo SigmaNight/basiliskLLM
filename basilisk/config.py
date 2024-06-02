@@ -32,11 +32,11 @@ class ReleaseChannelEnum(Enum):
 	NIGHTLY = "nightly"
 
 
-class AutomaticUpdateMode(Enum):
-	OFF = "OFF"
-	NOTIFY = "NOTIFY"
-	DOWNLOAD = "DOWNLOAD"
-	INSTALL = "INSTALL"
+class AutomaticUpdateModeEnum(Enum):
+	OFF = "off"
+	NOTIFY = "notify"
+	DOWNLOAD = "download"
+	INSTALL = "install"
 
 
 config_file_path = Path("config.yml")
@@ -62,8 +62,8 @@ class GeneralSettings(BaseModel):
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
-	automatic_update_mode: AutomaticUpdateMode = Field(
-		default=AutomaticUpdateMode.NOTIFY
+	automatic_update_mode: AutomaticUpdateModeEnum = Field(
+		default=AutomaticUpdateModeEnum.NOTIFY
 	)
 	release_channel: ReleaseChannelEnum = Field(
 		default=ReleaseChannelEnum.STABLE

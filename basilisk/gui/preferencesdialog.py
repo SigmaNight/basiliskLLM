@@ -1,7 +1,12 @@
 import logging
 import wx
 from babel import Locale
-from basilisk.config import conf, LogLevelEnum, ReleaseChannelEnum
+from basilisk.config import (
+	conf,
+	LogLevelEnum,
+	ReleaseChannelEnum,
+	AutomaticUpdateModeEnum,
+)
 from basilisk.localization import get_supported_locales, get_app_locale
 from basilisk.logger import set_log_level
 
@@ -29,6 +34,18 @@ release_channels = {
 	ReleaseChannelEnum.BETA: _("Beta"),
 	# Translators: A label for the release channel in the settings dialog
 	ReleaseChannelEnum.NIGHTLY: _("Nightly"),
+}
+
+
+auto_update_modes = {
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.OFF: _("Off"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.NOTIFY: _("Notify new version"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.DOWNLOAD: _("Download new version"),
+	# Translators: A label for the automatic update mode in the settings dialog
+	AutomaticUpdateModeEnum.INSTALL: _("Install new version"),
 }
 
 
@@ -91,6 +108,20 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.release_channel, 0, wx.ALL, 5)
+		label = wx.StaticText(
+			panel, label=_("Automatic update mode"), style=wx.ALIGN_LEFT
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		auto_update_mode_value = auto_update_modes[
+			conf.general.automatic_update_mode
+		]
+		self.auto_update_mode = wx.ComboBox(
+			panel,
+			choices=list(auto_update_modes.values()),
+			value=auto_update_mode_value,
+			style=wx.CB_READONLY,
+		)
+		sizer.Add(self.auto_update_mode, 0, wx.ALL, 5)
 		self.advanced_mode = wx.CheckBox(
 			panel,
 			# Translators: A label for a checkbox in the preferences dialog
@@ -209,6 +240,9 @@ class PreferencesDialog(wx.Dialog):
 		]
 		conf.general.release_channel = list(release_channels.keys())[
 			self.release_channel.GetSelection()
+		]
+		conf.general.automatic_update_mode = list(auto_update_modes.keys())[
+			self.auto_update_mode.GetSelection()
 		]
 		conf.general.advanced_mode = self.advanced_mode.GetValue()
 

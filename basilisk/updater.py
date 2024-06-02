@@ -1,3 +1,4 @@
+import time
 import platform
 import re
 import subprocess
@@ -6,17 +7,18 @@ import tempfile
 import zipfile
 import httpx
 from abc import ABC, abstractmethod
+from datetime import datetime
 from functools import cached_property
 from logging import getLogger
 from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
-from .config import conf, ReleaseChannelEnum
+from .config import ReleaseChannelEnum, BasiliskConfig
 from .consts import APP_REPO
 from .globalvars import base_path
 
 log = getLogger(__name__)
 
-update_portable_script = """@echo off
+update_portable_script = r"""@echo off
 REM Check if the portable ZIP file path is provided
 if "%~1"=="" (
 	echo error: you must provide the path to the portable ZIP file to extract.
@@ -50,7 +52,7 @@ timeout /t 3 /nobreak >nul
 
 REM Decompress the ZIP file
 echo Decompressing the portable ZIP file...
-"%zipUtil%\\tar.exe" -xf "%~1" -C "%~2" --exclude=user_data
+"%zipUtil%\tar.exe" -xf "%~1" -C "%~2" --exclude=user_data
 
 if %errorlevel% neq 0 (
     echo Error: failed to decompress the portable ZIP file.
@@ -58,7 +60,7 @@ if %errorlevel% neq 0 (
 )
 
 echo The portable APP has been successfully updated.
-start "" "%~2\\basilisk.exe"
+start "" "%~2\basilisk.exe"
 
 REM Delete the ZIP file
 del "%~1"
@@ -110,7 +112,7 @@ class BaseUpdater(ABC):
 
 	@cached_property
 	def is_app_installed(self) -> bool:
-		if self.is_update_enable():
+		if self.is_update_enable:
 			return base_path.joinpath("uninstall.exe").exists()
 		else:
 			raise NotImplementedError(
@@ -161,10 +163,12 @@ class BaseUpdater(ABC):
 	) -> bool:
 		if self.is_update_enable:
 			if self.is_app_installed:
+				log.debug("starting download installer")
 				self.downloaded_file = self.download_installer(
 					grafical_callback, stop_download
 				)
 			else:
+				log.debug("starting download portable")
 				self.downloaded_file = self.download_portable(
 					grafical_callback, stop_download
 				)
@@ -248,7 +252,7 @@ class NigthlyUpdater(BaseUpdater):
 		return unique_version.pop()
 
 	def get_download_link(self, installer: bool) -> str:
-		architecture = self.get_app_architecture()
+		architecture = self.get_app_architecture
 		artifact_links = self.artifact_xml_table.findall(".//td/a")
 		artifact_prefix_name = (
 			"setup_basiliskLLM" if installer else "portable_basiliskLLM"
@@ -279,6 +283,7 @@ class NigthlyUpdater(BaseUpdater):
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
 	) -> str | None:
+		log.info("getting link for portable")
 		link = self.get_download_link(False)
 		log.debug(f"Portable link: {link}")
 		with tempfile.NamedTemporaryFile(
@@ -403,7 +408,7 @@ class GithubUpdater(BaseUpdater):
 		return zip_tmp_file.name
 
 
-def get_updater_from_channel() -> BaseUpdater:
+def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
 	log.info(f"Getting updater from channel: {conf.general.release_channel}")
 	match conf.general.release_channel:
 		case ReleaseChannelEnum.STABLE:
@@ -412,3 +417,77 @@ def get_updater_from_channel() -> BaseUpdater:
 			return GithubUpdater(pre_release=True)
 		case ReleaseChannelEnum.NIGHTLY:
 			return NigthlyUpdater()
+
+
+def automatic_update_check(
+	conf: BasiliskConfig,
+	notify_update_callback: Callable[[BaseUpdater], None] = None,
+	stop: bool = False,
+	retries: int = 20,
+) -> Optional[BaseUpdater]:
+	updater = get_updater_from_channel(conf)
+	if not updater.is_update_enable:
+		log.error("Update are disabled for source application")
+		return None
+	if (
+		conf.general.last_update_check is not None
+		and conf.general.last_update_check.date() == datetime.now().date()
+	):
+		log.info("Last update check was today")
+		return None
+	else:
+		log.info("Last update check was not today")
+	try:
+		update_available = updater.is_update_available()
+		if not update_available:
+			log.info("No update available")
+		if notify_update_callback and update_available:
+			log.info("Update available")
+			notify_update_callback(updater)
+		conf.general.last_update_check = datetime.now()
+		conf.save()
+		return updater
+	except Exception as e:
+		log.error(f"Error checking for updates: {e}")
+		if retries > 0 and not stop:
+			retries -= 1
+			log.info(f"Retrying update check: {retries} retries left")
+			time.sleep(300)
+			return automatic_update_check(
+				conf, notify_update_callback, stop, retries
+			)
+		else:
+			log.error("Failed to check for updates, maximum retries reached")
+			return None
+
+
+def automatic_update_download(
+	conf: BasiliskConfig,
+	notify_update_callback: Callable[[BaseUpdater], None] = None,
+	stop: bool = False,
+	retries: int = 20,
+) -> Optional[BaseUpdater]:
+	updater = automatic_update_check(conf, None, retries)
+	if not updater:
+		return None
+	try:
+		download_finished = updater.download()
+		if not download_finished:
+			log.info("Update not downloaded")
+			return None
+		if notify_update_callback:
+			log.info("Update downloaded")
+			notify_update_callback(updater)
+			return updater
+	except Exception as e:
+		log.error(f"Error downloading update: {e}")
+		if retries > 0 and not stop:
+			retries -= 1
+			log.info(f"Retrying update download: {retries} retries left")
+			time.sleep(300)
+			return automatic_update_download(
+				conf, notify_update_callback, stop, retries
+			)
+		else:
+			log.error("Failed to download update, maximum retries reached")
+			return None
