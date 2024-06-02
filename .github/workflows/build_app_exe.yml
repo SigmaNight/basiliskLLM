@@ -14,6 +14,24 @@ permissions:
   pull-requests: read
 
 jobs:
+  create_release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    outputs:
+      release_name: ${{ steps.get_release_name.outputs.release_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: get release name
+        id: get_release_name
+        run: echo "release_name=$(echo ${{ github.ref_name }} | cut -c 2-) ($(date '+%Y-%m-%d'))" >> "$GITHUB_OUTPUT"
+      - name: create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          draft: true
+          prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+          name: ${{ steps.get_release_name.outputs.release_name }}
+
   build_windows:
     runs-on: windows-latest
     strategy:
@@ -71,6 +89,7 @@ jobs:
           fail_on_unmatched_files: true
           draft: true
           prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+          name: ${{ needs.create_release.outputs.release_name }}
       - name: build windows installer
         run: |
           iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
@@ -89,3 +108,4 @@ jobs:
           fail_on_unmatched_files: true
           draft: true
           prerelease: ${{ contains(github.ref_name, 'a')  || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+          name: ${{ needs.create_release.outputs.release_name }}
