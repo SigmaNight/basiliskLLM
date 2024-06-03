@@ -13,7 +13,7 @@ from logging import getLogger
 from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
 from .config import ReleaseChannelEnum, BasiliskConfig
-from .consts import APP_REPO
+from .consts import APP_REPO, UNINSTALL_FILE_NAME
 from .globalvars import base_path
 
 log = getLogger(__name__)
@@ -113,7 +113,7 @@ class BaseUpdater(ABC):
 	@cached_property
 	def is_app_installed(self) -> bool:
 		if self.is_update_enable:
-			return base_path.joinpath("uninstall.exe").exists()
+			return base_path.joinpath(UNINSTALL_FILE_NAME).exists()
 		else:
 			raise NotImplementedError(
 				"Installation check not implemented for non-frozen applications"
