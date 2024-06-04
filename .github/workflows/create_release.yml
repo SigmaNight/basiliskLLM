@@ -6,10 +6,10 @@ on:
         required: true
         type: string
         description: "The name of the release tag"
-
-permissions:
-  contents: write
-  pull-requests: read
+    secrets:
+      gh_token:
+        required: true
+        description: "The GitHub token to use for the release"
 
 jobs:
   create_release:
@@ -50,3 +50,4 @@ jobs:
           prerelease: ${{ contains(inputs.ref_name, 'a')  || contains(inputs.ref_name, 'b') || contains(inputs.ref_name, 'rc') }}
           generate_release_notes: true
           name: ${{ steps.get_release_name.outputs.release_name }}
+          token: ${{ secrets.gh_token }}

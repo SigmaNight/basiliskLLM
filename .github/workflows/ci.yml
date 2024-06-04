@@ -14,7 +14,11 @@ jobs:
   build_app:
    uses: ./.github/workflows/build_app.yml
   release:
+    permissions:
+      contents: write
+      pull-requests: read
     if: github.event_name == 'push' && github.ref_type == 'tag'
     uses: ./.github/workflows/create_release.yml
     with:
       ref_name: ${{ github.ref_name }}
+      gh_token: ${{ secrets.GITHUB_TOKEN }}
