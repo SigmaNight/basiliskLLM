@@ -21,4 +21,3 @@ jobs:
     uses: ./.github/workflows/create_release.yml
     with:
       ref_name: ${{ github.ref_name }}
-      gh_token: ${{ secrets.GITHUB_TOKEN }}
