@@ -38,10 +38,8 @@ jobs:
         with:
           pattern: setup_basiliskLLM_*
           path: installer
-      - name: move installer
-        run: |
-          find "./installer" -type f -name "*.exe" -exec mv {} "./installer" \;
-          find "./installer" -mindepth 1 -type d -exec rmdir {} \;
+          merge-multiple: true
+      - run: ls -l installer
       - name: create release
         uses: softprops/action-gh-release@v2
         with:
