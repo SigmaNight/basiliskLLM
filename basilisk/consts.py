@@ -6,7 +6,6 @@ APP_SOURCE_URL = f"https://github.com/{APP_REPO}"
 DEFAULT_LANG = "en"
 
 
-
 class HotkeyAction(Enum):
 	TOGGLE_VISIBILITY = 1
 	CAPTURE_FULL = 20
