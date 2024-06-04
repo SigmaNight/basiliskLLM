@@ -1,0 +1,13 @@
+name: "CI on branch"
+on:
+  push:
+    branches:
+      - master
+      - CI*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build_app:
+   uses: ./.github/workflows/build_app.yml

@@ -1,0 +1,60 @@
+name: "build app executable"
+on:
+  workflow_call:
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [x64, x86]
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: ${{ matrix.arch }}
+          cache: "poetry"
+      - name: Install dependencies
+        run: poetry install
+      - name: compile translations
+        run: poetry run python setup.py compile_catalog
+      - name: Build executable
+        run: poetry run python -m cx_Freeze build_exe
+      - name: get version info
+        id: get_version
+        run: |
+          $version = (poetry run python -m setuptools_scm)
+          echo version_number=$version >> $env:GITHUB_OUTPUT
+      - name: build windows installer
+        run: iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
+
+      - name: create user config file for portable version
+        run: |
+          New-Item -Path dist -Name user_data -ItemType directory
+          New-Item -Path dist\user_data -Name config.yml -ItemType file
+          echo "general:" >> dist\user_data\config.yml
+          echo "  language: auto" >> dist\user_data\config.yml
+          echo "  log_level: info" >> dist\user_data\config.yml
+
+      - name: create and upload portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: upload installer on branch
+        if: github.ref_type == 'branch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
+          path: output_setup/*
+          retention-days: 30
