@@ -35,7 +35,6 @@ jobs:
           echo version_number=$version >> $env:GITHUB_OUTPUT
       - name: build windows installer
         run: iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
-
       - name: create user config file for portable version
         run: |
           New-Item -Path dist -Name user_data -ItemType directory
@@ -51,10 +50,10 @@ jobs:
           path: dist/*
           if-no-files-found: error
           retention-days: 30
-      - name: upload installer on branch
-        if: github.ref_type == 'branch'
+      - name: upload installer
         uses: actions/upload-artifact@v4
         with:
           name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
           path: output_setup/*
+          if-no-files-found: error
           retention-days: 30
