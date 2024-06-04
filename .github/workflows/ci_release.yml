@@ -24,13 +24,16 @@ jobs:
         run: |
           cd portable_app
           for d in */; do
-            zip -r "${d%/}.zip" "$d"
+            echo "::group::Zipping $d"
+            zip -6 -r "${d%/}.zip" "$d"
+            echo "removing $d"
             rm -r "$d"
+            echo "::endgroup::"
           done
       - name: download app installer
         uses: actions/download-artifact@v4
         with:
-          name: setup_basiliskLLM_*
+          pattern: setup_basiliskLLM_*
           path: installer
       - name: create release
         uses: softprops/action-gh-release@v2
