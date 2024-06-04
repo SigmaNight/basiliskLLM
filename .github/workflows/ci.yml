@@ -10,9 +10,14 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+  pull-requests: read
+
 jobs:
   build_app:
-   uses: ./.github/workflows/build_app.yml
+    uses: ./.github/workflows/build_app.yml
+
   release:
     permissions:
       contents: write
