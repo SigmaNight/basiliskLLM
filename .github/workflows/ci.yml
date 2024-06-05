@@ -23,6 +23,7 @@ jobs:
       contents: write
       pull-requests: read
     if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build_app
     uses: ./.github/workflows/create_release.yml
     with:
       ref_name: ${{ github.ref_name }}
