@@ -349,7 +349,7 @@ class GithubUpdater(BaseUpdater):
 
 	@cached_property
 	def latest_version(self) -> str:
-		return self.release_data["tag_name"]
+		return self.release_data["tag_name"][1:]
 
 	def get_download_link(self, installer: bool) -> str:
 		data = self.release_data
