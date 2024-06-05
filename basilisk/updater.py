@@ -13,7 +13,7 @@ from logging import getLogger
 from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
 from .config import ReleaseChannelEnum, BasiliskConfig
-from .consts import APP_REPO
+from .consts import APP_REPO, WORKFLOW_NAME
 from .globalvars import base_path
 
 log = getLogger(__name__)
@@ -223,7 +223,7 @@ class BaseUpdater(ABC):
 class NigthlyUpdater(BaseUpdater):
 	def __init__(self):
 		self.url = (
-			f"https://nightly.link/{APP_REPO}/workflows/build_app_exe/master"
+			f"https://nightly.link/{APP_REPO}/workflows/{WORKFLOW_NAME}/master"
 		)
 
 	@cached_property
