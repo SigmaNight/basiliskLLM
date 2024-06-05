@@ -17,7 +17,8 @@ issues = "https://github.com/aaclause/basiliskLLM/issues"
 requires = ["cx_freeze>+7.0.0", "setuptools>=64.0.0", "setuptools_scm>=8"]
 build-backend = "cx_freeze.build"
 requires-python = ">=3.12"
-
+[tool.setuptools]
+packages = ["basilisk"]
 [tool.setuptools_scm]
 
 [tool.poetry]
