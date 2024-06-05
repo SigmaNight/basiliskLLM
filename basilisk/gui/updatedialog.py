@@ -210,7 +210,7 @@ class UpdateDialog(wx.Dialog):
 		self.update_button.SetFocus()
 		self.Layout()
 
-	def on_no_updates(self, event):
+	def on_no_updates(self):
 		self.checking_label.Hide()
 		self.checking_gauge.Hide()
 		self.update_message_label.SetLabel(
