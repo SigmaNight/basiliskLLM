@@ -1,0 +1,48 @@
+name: "CI on release"
+on:
+  workflow_call:
+    inputs:
+      ref_name:
+        required: true
+        type: string
+        description: "The name of the release tag"
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: get release name
+        id: get_release_name
+        run: echo "release_name=$(echo ${{ inputs.ref_name }} | cut -c 2-) ($(date '+%Y-%m-%d'))" >> "$GITHUB_OUTPUT"
+      - name: download app portable
+        uses: actions/download-artifact@v4
+        with:
+          pattern: portable_basiliskLLM_*
+          path: portable_app
+      - name: zip all portable app
+        run: |
+          cd portable_app
+          for d in */; do
+            echo "::group::Zipping $d"
+            zip -6 -r "${d%/}.zip" "$d"
+            echo "removing $d"
+            rm -r "$d"
+            echo "::endgroup::"
+          done
+      - name: download app installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: setup_basiliskLLM_*
+          path: installer
+          merge-multiple: true
+      - name: create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            portable_app/*.zip
+            installer/*.exe
+          tag_name: ${{ github.ref }}
+          draft: true
+          prerelease: ${{ contains(inputs.ref_name, 'a')  || contains(inputs.ref_name, 'b') || contains(inputs.ref_name, 'rc') }}
+          generate_release_notes: true
+          name: ${{ steps.get_release_name.outputs.release_name }}
