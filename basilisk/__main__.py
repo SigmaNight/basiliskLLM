@@ -5,9 +5,11 @@ import threading
 import wx
 import basilisk.globalvars as globalvars
 import basilisk.config as config
-
 # don't use relative import here, CxFreeze will fail to find the module
+
 from basilisk.consts import APP_NAME
+from basilisk.gui.mainframe import MainFrame
+
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	setup_logging,
@@ -64,8 +66,6 @@ class MainApp(wx.App):
 		log.info("translation initialized")
 		initialize_sound_manager()
 		log.info("sound manager initialized")
-		from basilisk.gui.mainframe import MainFrame
-
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
