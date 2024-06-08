@@ -100,6 +100,7 @@ class MainApp(wx.App):
 		self.auto_update = threading.Thread(
 			target=target_func,
 			args=(self.conf, callback_func, self.stop_auto_update),
+			daemon=True,
 		)
 		self.auto_update.start()
 		log.info("Automatic update thread started")
