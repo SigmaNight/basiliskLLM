@@ -273,7 +273,7 @@ class NigthlyUpdater(BaseUpdater):
 			prefix="setup_basiliskllm_", suffix=".zip"
 		) as zip_tmp_file:
 			if not self.download_file(
-				link, zip_tmp_file, True, grafical_callback, stop_download
+				link, zip_tmp_file, grafical_callback, stop_download
 			):
 				return None
 			return self.extract_installer_from_zip(zip_tmp_file)
