@@ -439,13 +439,14 @@ def automatic_update_check(
 		log.info("Last update check was not today")
 	try:
 		update_available = updater.is_update_available()
-		if not update_available:
-			log.info("No update available")
+		conf.general.last_update_check = datetime.now()
+		conf.save()
 		if notify_update_callback and update_available:
 			log.info("Update available")
 			notify_update_callback(updater)
-		conf.general.last_update_check = datetime.now()
-		conf.save()
+		if not update_available:
+			log.info("No update available")
+			return None
 		return updater
 	except Exception as e:
 		log.error(f"Error checking for updates: {e}")
