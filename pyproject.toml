@@ -29,7 +29,7 @@ package-mode = false
 python = "^3.12"
 anthropic = "^0.28.0"
 cx-freeze = "^7.1.0"
-openai = "^1.30.3"
+openai = "^1.33.0"
 pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.1"
 pydantic-settings = "^2.2.1"
