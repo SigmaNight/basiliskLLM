@@ -9,11 +9,10 @@ import psutil
 import wx
 import basilisk.globalvars as globalvars
 import basilisk.config as config
-from basilisk.singletoninstance import SingletonInstance
-from basilisk.filewatcher import send_focus_signal, watch_focus_signal
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
+from basilisk.filewatcher import send_focus_signal, watch_focus_signal
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	setup_logging,
@@ -21,6 +20,7 @@ from basilisk.logger import (
 	get_log_file_path,
 )
 from basilisk.serverthread import ServerThread
+from basilisk.singletoninstance import SingletonInstance
 from basilisk.soundmanager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 

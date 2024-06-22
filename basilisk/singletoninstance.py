@@ -3,11 +3,11 @@ import os
 
 
 class SingletonInstance:
-	def __init__(self, lock_file):
+	def __init__(self, lock_file: str):
 		self.lock_file = lock_file
 		self.lock_handle = None
 
-	def acquire(self):
+	def acquire(self) -> bool:
 		"""Return True if lock was acquired, False otherwise."""
 		if os.path.exists(self.lock_file):
 			return False
@@ -33,7 +33,7 @@ class SingletonInstance:
 			except Exception:
 				pass
 
-	def get_existing_pid(self):
+	def get_existing_pid(self) -> int | None:
 		"""Return the PID of the existing lock file, or None if it doesn't exist."""
 		if os.path.exists(self.lock_file):
 			with open(self.lock_file, 'r') as f:
