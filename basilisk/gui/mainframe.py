@@ -276,12 +276,6 @@ class MainFrame(wx.Frame):
 			return
 		log.debug("Minimized to tray")
 		self.Hide()
-		wx.adv.NotificationMessage(
-			APP_NAME,
-			_(
-				"Basilisk has been minimized to the system tray. Click the icon to restore or use the hotkey Ctrl+Alt+Shift+B to toggle visibility."
-			),
-		).Show()
 
 	def on_restore(self, event):
 		if self.IsShown():

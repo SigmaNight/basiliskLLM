@@ -1,10 +1,16 @@
 import argparse
 import logging
+import os
+import shutil
 import sys
+import tempfile
 import threading
+import psutil
 import wx
 import basilisk.globalvars as globalvars
 import basilisk.config as config
+from basilisk.singletoninstance import SingletonInstance
+from basilisk.filewatcher import send_focus_signal, watch_focus_signal
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
@@ -19,6 +25,8 @@ from basilisk.soundmanager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
+TMP_DIR = tempfile.gettempdir() + '/basilisk'
+FILE_LOCK_PATH = os.path.join(TMP_DIR, "app.lock")
 
 
 def parse_args():
@@ -34,10 +42,17 @@ def parse_args():
 		help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 		default=None,
 	)
+	(
+		parser.add_argument(
+			"--no-env-account",
+			"-N",
+			help="Disable loading accounts from environment variables",
+			action="store_true",
+		),
+	)
 	parser.add_argument(
-		"--no-env-account",
-		"-N",
-		help="Disable loading accounts from environment variables",
+		"-n",
+		help="Show message window if application is already running",
 		action="store_true",
 	)
 	return parser.parse_args()
@@ -45,7 +60,6 @@ def parse_args():
 
 class MainApp(wx.App):
 	def OnInit(self) -> bool:
-		globalvars.args = parse_args()
 		log.debug(f"args: {globalvars.args}")
 
 		self.conf = config.initialize_config()
@@ -69,6 +83,7 @@ class MainApp(wx.App):
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
+		watch_focus_signal(self.bring_window_to_focus)
 		self.server = None
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
@@ -82,6 +97,11 @@ class MainApp(wx.App):
 			self.start_auto_update_thread()
 		log.info("Application started")
 		return True
+
+	def bring_window_to_focus(self):
+		self.frame.Show()
+		self.frame.Raise()
+		self.frame.SetFocus()
 
 	def start_auto_update_thread(self):
 		self.stop_auto_update = False
@@ -115,11 +135,37 @@ class MainApp(wx.App):
 			self.stop_auto_update = True
 			self.auto_update.join()
 			log.info("Automatic update thread stopped")
+		log.debug("Removing temporary files")
+		shutil.rmtree(TMP_DIR, ignore_errors=True)
+
 		log.info("Application exited")
 		return 0
 
 
 if __name__ == '__main__':
+	os.makedirs(TMP_DIR, exist_ok=True)
+	globalvars.args = parse_args()
+	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
+	if not singleton_instance.acquire():
+		existing_pid = singleton_instance.get_existing_pid()
+		if existing_pid:
+			try:
+				psutil.Process(existing_pid)
+				if "-n" in sys.argv:
+					import ctypes
+
+					ctypes.windll.user32.MessageBoxW(
+						0,
+						f"{APP_NAME} is already running. Use the tray icon to interact with the application or AltGr+Shift+B to focus the window.",
+						APP_NAME,
+						0x40 | 0x0,
+					)
+				else:
+					send_focus_signal()
+				sys.exit(0)
+			except psutil.NoSuchProcess:
+				singleton_instance.acquire()
+
 	sys.excepthook = logging_uncaught_exceptions
 	app = MainApp()
 	app.MainLoop()
