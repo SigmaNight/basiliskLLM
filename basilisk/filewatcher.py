@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 	from watchdog.observers import BaseObserverSubclassCallable
 	from watchdog.events import FileSystemEvent
 
-TMP_DIR = tempfile.gettempdir() + '/basilisk'
+TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
 
 
 class FocusEventHandler(FileSystemEventHandler):

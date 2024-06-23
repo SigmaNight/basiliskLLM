@@ -25,7 +25,7 @@ from basilisk.soundmanager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
-TMP_DIR = tempfile.gettempdir() + '/basilisk'
+TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
 FILE_LOCK_PATH = os.path.join(TMP_DIR, "app.lock")
 
 
@@ -42,13 +42,11 @@ def parse_args():
 		help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 		default=None,
 	)
-	(
-		parser.add_argument(
-			"--no-env-account",
-			"-N",
-			help="Disable loading accounts from environment variables",
-			action="store_true",
-		),
+	parser.add_argument(
+		"--no-env-account",
+		"-N",
+		help="Disable loading accounts from environment variables",
+		action="store_true",
 	)
 	parser.add_argument(
 		"-n",
