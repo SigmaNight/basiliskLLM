@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
 
 
-class FocusEventHandler(FileSystemEventHandler):
+class FileWatcher(FileSystemEventHandler):
 	def __init__(self, callback: Callable):
 		self.callback = callback
 
@@ -28,7 +28,7 @@ def send_focus_signal():
 
 
 def watch_focus_signal(callback: Callable) -> BaseObserverSubclassCallable:
-	event_handler = FocusEventHandler(callback)
+	event_handler = FileWatcher(callback)
 	observer = Observer()
 	observer.schedule(event_handler, TMP_DIR, recursive=False)
 	observer.start()
