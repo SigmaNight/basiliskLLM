@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-import tempfile
 import threading
 import psutil
 import wx
@@ -11,8 +10,8 @@ import basilisk.globalvars as globalvars
 import basilisk.config as config
 
 # don't use relative import here, CxFreeze will fail to find the module
-from basilisk.consts import APP_NAME
-from basilisk.filewatcher import send_focus_signal, watch_focus_signal
+from basilisk.consts import APP_NAME, TMP_DIR, FILE_LOCK_PATH
+from basilisk.filewatcher import send_focus_signal, init_file_watcher
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	setup_logging,
@@ -25,8 +24,6 @@ from basilisk.soundmanager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
-TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
-FILE_LOCK_PATH = os.path.join(TMP_DIR, "app.lock")
 
 
 def parse_args():
@@ -81,7 +78,7 @@ class MainApp(wx.App):
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)
 		self.frame.Show(True)
-		watch_focus_signal(self.bring_window_to_focus)
+		self.file_watcher = init_file_watcher(self.bring_window_to_focus)
 		self.server = None
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
@@ -135,6 +132,11 @@ class MainApp(wx.App):
 			log.info("Automatic update thread stopped")
 		log.debug("Removing temporary files")
 		shutil.rmtree(TMP_DIR, ignore_errors=True)
+
+		log.debug("Stopping file watcher")
+		self.file_watcher.stop()
+		self.file_watcher.join()
+		log.debug("File watcher stopped")
 
 		log.info("Application exited")
 		return 0

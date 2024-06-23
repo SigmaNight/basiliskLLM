@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 import os
-import tempfile
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -9,8 +8,7 @@ from watchdog.events import FileSystemEventHandler
 if TYPE_CHECKING:
 	from watchdog.observers import BaseObserverSubclassCallable
 	from watchdog.events import FileSystemEvent
-
-TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
+from basilisk.consts import TMP_DIR
 
 
 class FileWatcher(FileSystemEventHandler):
@@ -27,7 +25,7 @@ def send_focus_signal():
 		f.write(str(time.time()))
 
 
-def watch_focus_signal(callback: Callable) -> BaseObserverSubclassCallable:
+def init_file_watcher(callback: Callable) -> BaseObserverSubclassCallable:
 	event_handler = FileWatcher(callback)
 	observer = Observer()
 	observer.schedule(event_handler, TMP_DIR, recursive=False)
