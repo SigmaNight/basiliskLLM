@@ -13,12 +13,19 @@ from basilisk.conversation import (
 
 if TYPE_CHECKING:
 	from account import Account
-from .baseengine import BaseEngine, ProviderAIModel
+from .baseengine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
 class OpenAIEngine(BaseEngine):
+	capabilities: set[ProviderCapability] = {
+		ProviderCapability.IMAGE,
+		ProviderCapability.TEXT,
+		ProviderCapability.STT,
+		ProviderCapability.TTS,
+	}
+
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
 
@@ -181,3 +188,16 @@ class OpenAIEngine(BaseEngine):
 			content=self.normalize_linesep(response.choices[0].message.content),
 		)
 		return new_block
+
+	def get_transcription(
+		self, audio_file_path: str, response_format: str = "json"
+	) -> str:
+		"""
+		Get transcription from audio file
+		"""
+		file = open(audio_file_path, "rb")
+		transcription = self.client.audio.transcriptions.create(
+			model="whisper-1", file=file, response_format=response_format
+		)
+		file.close()
+		return transcription

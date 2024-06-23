@@ -18,7 +18,9 @@ from basilisk.conversation import (
 from basilisk import globalvars
 from basilisk.imagefile import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provideraimodel import ProviderAIModel
+from basilisk.providercapability import ProviderCapability
 from basilisk.providerengine import BaseEngine
+from basilisk.recordingthread import RecordingThread
 from basilisk.soundmanager import play_sound, stop_sound
 
 log = logging.getLogger(__name__)
@@ -27,9 +29,11 @@ log = logging.getLogger(__name__)
 class ConversationTab(wx.Panel):
 	def __init__(self, parent: wx.Window):
 		wx.Panel.__init__(self, parent)
+		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
 		self.last_time = 0
+		self.recording_thread: RecordingThread = None
 		self.task = None
 		self.stream_buffer = ""
 		self._messages_already_focused = False
@@ -194,6 +198,14 @@ class ConversationTab(wx.Panel):
 		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
 		self.stop_completion_btn.Hide()
 
+		self.toggle_record_btn = wx.Button(
+			self,
+			# Translators: This is a label for record button in the main window
+			label=_("Record") + " (Ctrl+R)",
+		)
+		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
+		self.toggle_record_btn.Bind(wx.EVT_BUTTON, self.toggle_recording)
+
 		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizerAndFit(sizer)
@@ -250,6 +262,9 @@ class ConversationTab(wx.Panel):
 			0,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+		)
+		self.toggle_record_btn.Enable(
+			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
 
 	def on_images_context_menu(self, event: wx.ContextMenuEvent):
@@ -615,6 +630,92 @@ class ConversationTab(wx.Panel):
 				}
 			)
 		return content
+
+	def transcribe_audio_file(self, audio_file: str = None):
+		self.recording_thread = RecordingThread(
+			provider_engine=self.current_engine,
+			recordings_settings=config.conf.recordings,
+			conversation_tab=self,
+			audio_file_path=audio_file,
+		)
+		self.recording_thread.daemon = True
+		self.recording_thread.start()
+
+	def on_transcribe_audio_file(self):
+		cur_provider = self.current_engine
+		if ProviderCapability.STT not in cur_provider.capabilities:
+			wx.MessageBox(
+				_("The selected provider does not support speech-to-text"),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		dlg = wx.FileDialog(
+			self,
+			# Translators: This is a label for audio file in the main window
+			message=_("Select an audio file to transcribe"),
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+			wildcard=_("Audio files")
+			+ " (*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm)|*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm",
+		)
+		if dlg.ShowModal() == wx.ID_OK:
+			audio_file = dlg.GetPath()
+			dlg.Destroy()
+			self.transcribe_audio_file(audio_file)
+		else:
+			dlg.Destroy()
+
+	def on_recording_started(self):
+		play_sound("recording_started")
+		self.SetStatusText(_("Recording..."))
+
+	def on_recording_stopped(self):
+		play_sound("recording_stopped")
+		self.SetStatusText(_("Recording stopped"))
+
+	def on_transcription_started(self):
+		play_sound("progress", loop=True)
+		self.SetStatusText(_("Transcribing..."))
+
+	def on_transcription_received(self, transcription):
+		stop_sound()
+		self.SetStatusText(_("Ready"))
+		self.prompt.AppendText(transcription.text)
+		self.prompt.SetInsertionPointEnd()
+		self.prompt.SetFocus()
+
+	def on_transcription_error(self, error):
+		stop_sound()
+		self.SetStatusText(_("Ready"))
+		wx.MessageBox(
+			_("An error occurred during transcription: ") + str(error),
+			_("Error"),
+			wx.OK | wx.ICON_ERROR,
+		)
+
+	def toggle_recording(self, event: wx.CommandEvent):
+		if self.recording_thread and self.recording_thread.is_alive():
+			self.stop_recording()
+		else:
+			self.start_recording()
+
+	def start_recording(self):
+		cur_provider = self.current_engine
+		if ProviderCapability.STT not in cur_provider.capabilities:
+			wx.MessageBox(
+				_("The selected provider does not support speech-to-text"),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		self.toggle_record_btn.SetLabel(_("Stop recording") + " (Ctrl+R)")
+		self.submit_btn.Disable()
+		self.transcribe_audio_file()
+
+	def stop_recording(self):
+		self.recording_thread.stop()
+		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
+		self.submit_btn.Enable()
 
 	def on_submit(self, event: wx.CommandEvent):
 		if not self.prompt.GetValue() and not self.image_files:

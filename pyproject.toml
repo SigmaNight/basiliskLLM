@@ -38,6 +38,8 @@ platformdirs = "^4.2.2"
 httpx = "^0.27.0"
 watchdog = "^4.0.1"
 psutil = "^6.0.0"
+sounddevice = "^0.4.7"
+numpy = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.10"
