@@ -61,7 +61,6 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-ignore-init-module-imports = true
 extend-select = ["INT"]
 
 [tool.commitizen]
