@@ -12,12 +12,18 @@ from basilisk.consts import TMP_DIR
 
 
 class FileWatcher(FileSystemEventHandler):
+	last_modified = {}
+
 	def __init__(self, callback: Callable):
 		self.callback = callback
 
 	def on_modified(self, event: FileSystemEvent):
 		if event.src_path == os.path.join(TMP_DIR, "focus_file"):
-			self.callback()
+			if event.src_path not in self.last_modified:
+				self.last_modified[event.src_path] = 0
+			elif time.time() - self.last_modified[event.src_path] > 1:
+				self.last_modified[event.src_path] = time.time()
+				self.callback()
 
 
 def send_focus_signal():
