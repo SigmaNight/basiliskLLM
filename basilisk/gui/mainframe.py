@@ -5,13 +5,14 @@ import signal
 import sys
 import tempfile
 import wx
-import basilisk.config as config
 
 if sys.platform == 'win32':
 	import win32con
+import basilisk.config as config
 from basilisk import globalvars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from basilisk.imagefile import ImageFile
+from basilisk.logger import get_log_file_path
 from basilisk.screencapturethread import ScreenCaptureThread, CaptureMode
 from basilisk.updater import BaseUpdater
 from .conversationtab import ConversationTab
@@ -34,6 +35,7 @@ class MainFrame(wx.Frame):
 		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
 		self.ID_MANAGE_ACCOUNTS = wx.NewIdRef()
 		self.ID_PREFERENCES = wx.NewIdRef()
+		self.ID_VIEW_LOG = wx.NewIdRef()
 		self.init_accelerators()
 		if sys.platform == "win32":
 			self.tray_icon = TaskBarIcon(self)
@@ -133,6 +135,10 @@ class MainFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.on_github_repo, github_repo_item)
 		roko_basilisk_item = help_menu.Append(wx.ID_ANY, _("Roko's Basilisk"))
 		self.Bind(wx.EVT_MENU, self.on_roko_basilisk, roko_basilisk_item)
+		view_log_item = help_menu.Append(
+			wx.ID_ANY, _("View &log") + " (Ctrl+Shift+F1)"
+		)
+		self.Bind(wx.EVT_MENU, self.on_view_log, view_log_item)
 
 		menu_bar.Append(conversation_menu, _("&Conversation"))
 		menu_bar.Append(help_menu, _("&Help"))
@@ -176,6 +182,7 @@ class MainFrame(wx.Frame):
 			wx.EVT_MENU, self.on_manage_accounts, id=self.ID_MANAGE_ACCOUNTS
 		)
 		self.Bind(wx.EVT_MENU, self.on_preferences, id=self.ID_PREFERENCES)
+		self.Bind(wx.EVT_MENU, self.on_view_log, id=self.ID_VIEW_LOG)
 
 		self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
 
@@ -186,6 +193,7 @@ class MainFrame(wx.Frame):
 			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('A'), self.ID_MANAGE_ACCOUNTS),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), self.ID_PREFERENCES),
+			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_F1, self.ID_VIEW_LOG),
 		]
 
 		for i in range(1, 10):
@@ -398,6 +406,15 @@ class MainFrame(wx.Frame):
 	def on_manual_update_check(self, event):
 		log.debug("Checking for updates")
 		UpdateDialog(parent=self, title=_("Check updates")).Show()
+
+	def on_view_log(self, event):
+		try:
+			os.startfile(get_log_file_path())
+		except Exception as e:
+			log.error(f"Failed to open log file: {e}")
+			wx.MessageBox(
+				_("Failed to open log file"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
 
 	def on_ctrl_c(self, signum, frame):
 		self.signal_received = True
