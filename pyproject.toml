@@ -85,9 +85,11 @@ excludes = [
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
     "babel.messages", "h11.tests"]
 include_files = ["basilisk/res"]
+includes = ["numpy"]
+packages = ["numpy"]
 zip_include_packages = [
     "openai", "yaml", "pydantic_settings", "platformdirs", "httpx",
     "logging", "json", "pydantic", "pydantic_core",
     "asyncio", "anyio", "encodings", "dotenv", "email", "ctypes", "collections",
     "concurrent", "distro", "h11", "httpcore", "http", "importlib", "re", "sniffio",
-    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk", "xml", "tokenizers", "anthropic", "PIL"]
+    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk", "xml", "tokenizers", "anthropic", "PIL", "numpy"]
