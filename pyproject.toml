@@ -77,7 +77,7 @@ executables = [
     {script="basilisk/__main__.py", base="gui", target_name="basilisk"},
 ]
 [tool.cxfreeze.build_exe]
-optimize = 2
+optimize = 1
 build_exe = "dist"
 excludes = [
     "tarfile", "tkinter", "unittest", "email", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
