@@ -448,6 +448,9 @@ def automatic_update_check(
 			log.info("No update available")
 			return None
 		return updater
+	except httpx.HTTPStatusError as e:
+		log.error(f"Error checking for updates: {e}")
+		return None
 	except Exception as e:
 		log.error(f"Error checking for updates: {e}")
 		if retries > 0 and not stop:
