@@ -57,7 +57,7 @@ class SoundManager:
 
 			if loop:
 				self.loop_thread = threading.Thread(
-					target=self._play_sound_loop, args=(sound,)
+					target=self._play_sound_loop, args=(sound,), daemon=True
 				)
 				self.loop_thread.start()
 			else:
