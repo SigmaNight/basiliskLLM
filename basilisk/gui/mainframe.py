@@ -163,7 +163,7 @@ class MainFrame(wx.Frame):
 		self.Maximize(True)
 
 	def init_accelerators(self):
-		self.Bind(wx.EVT_CLOSE, self.on_quit)
+		self.Bind(wx.EVT_CLOSE, self.on_minimize)
 		self.Bind(
 			wx.EVT_MENU, self.on_new_conversation, id=self.ID_NEW_CONVERSATION
 		)
