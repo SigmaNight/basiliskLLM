@@ -15,12 +15,17 @@ if TYPE_CHECKING:
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
 	from account import Account
-from .baseengine import BaseEngine, ProviderAIModel
+from .baseengine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
 class AnthropicAIEngine(BaseEngine):
+	capabilities: set[ProviderCapability] = {
+		ProviderCapability.TEXT,
+		ProviderCapability.IMAGE,
+	}
+
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
 

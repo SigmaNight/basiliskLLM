@@ -78,6 +78,12 @@ class ImagesSettings(BaseModel):
 	resize: bool = Field(default=False)
 
 
+class RecordingsSettings(BaseModel):
+	sample_rate: int = Field(default=16000, ge=8000, le=48000)
+	channels: int = Field(default=1, ge=1, le=2)
+	dtype: str = Field(default="int16")
+
+
 class ServerSettings(BaseModel):
 	port: int = Field(default=4242)
 	enable: bool = Field(default=True)
@@ -95,6 +101,7 @@ class BasiliskConfig(BaseSettings):
 		default_factory=lambda: AccountManager(list())
 	)
 	images: ImagesSettings = Field(default_factory=ImagesSettings)
+	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)
 
 	@classmethod

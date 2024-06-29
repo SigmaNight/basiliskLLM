@@ -3,12 +3,17 @@ import time
 import httpx
 from functools import cached_property
 from .baseengine import ProviderAIModel
-from .openaiengine import OpenAIEngine
+from .openaiengine import OpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
 class OpenRouterEngine(OpenAIEngine):
+	capabilities: set[ProviderCapability] = {
+		ProviderCapability.TEXT,
+		ProviderCapability.IMAGE,
+	}
+
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
 		"""

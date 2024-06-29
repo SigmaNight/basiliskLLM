@@ -16,6 +16,10 @@ ALIASES = {
 	"chat_response_received": resource_path
 	/ Path("sounds", "chat_response_received.wav"),
 	"progress": resource_path / Path("sounds", "progress.wav"),
+	"recording_started": resource_path
+	/ Path("sounds", "recording_started.wav"),
+	"recording_stopped": resource_path
+	/ Path("sounds", "recording_stopped.wav"),
 }
 
 
