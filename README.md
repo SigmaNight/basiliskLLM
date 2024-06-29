@@ -4,7 +4,7 @@ In Development - It's still in its infancy. Use with caution!
 
 ## So, What's the Idea Here?
 
-**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into OpenAI, OpenRouter, Mistral, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
+**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into Anthropic, Mistral, OpenAI, OpenRouter, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
 
 ### And the Name? Seriously?
 
@@ -67,6 +67,8 @@ These shortcuts work anywhere in Windows.
 - `AltGr+Shift+W`: take a screenshot of the current window and send the image to the active chat.
 - `AltGr+Shift+F`: take a screenshot of the full screen and send the image to the active chat.
 
+Note: you can also minimize the window using Alt+F4.
+
 ### BasiliskLLM window shortcuts
 
 These shortcuts work only when the BasiliskLLM window is focused.
@@ -75,7 +77,7 @@ These shortcuts work only when the BasiliskLLM window is focused.
 - `Ctrl+n`: Create a new chat.
 - `Ctrl+w`: Close the current chat.
 
-### NVDA Add-on Connector
+## NVDA Add-on Connector
 
 For those using NVDA, you can install the NVDA add-on connector to send the image of the current object directly to the active chat from any application.
 
@@ -85,7 +87,7 @@ Once the add-on is installed, you can use the following shortcuts:
 - NVDA+SHIFT+k: Capture the current navigator object and send it to BasiliskLLM.
 - NVDA+SHIFT+l: Send the current image source to BasiliskLLM (url or base64).
 
-### Automatic update of the Application (Windows only)
+## Automatic update of the Application (Windows only)
 
 The app includes a built-in auto-update feature with three update channels:
 
