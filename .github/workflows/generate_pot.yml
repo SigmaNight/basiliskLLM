@@ -22,7 +22,7 @@ jobs:
       - name: upload POT file
         uses: actions/upload-artifact@v4
         with:
-          name: basiliskLLM_${{ steps.get_version.outputs.version_number }}.pot
+          name: basiliskLLM.pot
           path: basiliskLLM.pot
           if-no-files-found: error
           retention-days: 30
