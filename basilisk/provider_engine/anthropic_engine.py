@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
 	from account import Account
-from .baseengine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 

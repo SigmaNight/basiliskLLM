@@ -4,7 +4,7 @@ import wx
 import wx.adv
 import threading
 from pathlib import Path
-from .globalvars import resource_path
+from .global_vars import resource_path
 
 log = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import logging
 import yaml
-import basilisk.globalvars as globalvars
+import basilisk.global_vars as global_vars
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -41,8 +41,8 @@ class AutomaticUpdateModeEnum(Enum):
 
 config_file_path = Path("config.yml")
 search_config_paths = []
-if globalvars.user_data_path:
-	search_config_paths.append(globalvars.user_data_path / config_file_path)
+if global_vars.user_data_path:
+	search_config_paths.append(global_vars.user_data_path / config_file_path)
 search_config_paths.append(
 	user_config_path(
 		"basilisk", "basilisk_llm", roaming=True, ensure_exists=True

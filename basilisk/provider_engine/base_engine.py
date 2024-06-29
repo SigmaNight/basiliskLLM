@@ -5,8 +5,8 @@ from typing import Any, TYPE_CHECKING
 from functools import cached_property
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, MessageBlock, Message
-from basilisk.provideraimodel import ProviderAIModel
-from basilisk.providercapability import ProviderCapability
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
 
 if TYPE_CHECKING:
 	from basilisk.account import Account

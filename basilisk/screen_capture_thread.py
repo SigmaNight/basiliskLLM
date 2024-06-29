@@ -5,10 +5,10 @@ import threading
 import typing
 from PIL import ImageGrab
 import wx
-from .imagefile import ImageFile
+from .image_file import ImageFile
 
 if typing.TYPE_CHECKING:
-	from gui.mainframe import MainFrame
+	from basilisk.gui.main_frame import MainFrame
 
 
 class CaptureMode(Enum):

@@ -1,6 +1,6 @@
 import sys
 import logging
-import basilisk.globalvars as globalvars
+import basilisk.global_vars as global_vars
 from pathlib import Path
 from types import TracebackType
 from typing import Type
@@ -10,8 +10,8 @@ from platformdirs import user_log_path
 def get_log_file_path() -> Path:
 	"""Get log file path"""
 	log_file_path = Path("basilisk.log")
-	if globalvars.user_data_path:
-		log_file_path = globalvars.user_data_path / log_file_path
+	if global_vars.user_data_path:
+		log_file_path = global_vars.user_data_path / log_file_path
 	else:
 		log_file_path = (
 			user_log_path("basilisk", "basilisk_llm", ensure_exists=True)

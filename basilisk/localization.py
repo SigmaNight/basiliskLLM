@@ -6,7 +6,7 @@ from typing import Optional
 from pathlib import Path
 from babel import Locale
 from .consts import APP_NAME, DEFAULT_LANG
-from .globalvars import resource_path
+from .global_vars import resource_path
 
 log = logging.getLogger(__name__)
 

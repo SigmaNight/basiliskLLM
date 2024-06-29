@@ -3,9 +3,9 @@ import os
 import psutil
 import sys
 from basilisk.consts import APP_NAME, TMP_DIR, FILE_LOCK_PATH
-from basilisk.filewatcher import send_focus_signal
-from basilisk import globalvars
-from basilisk.singletoninstance import SingletonInstance
+from basilisk.file_watcher import send_focus_signal
+from basilisk import global_vars
+from basilisk.singleton_instance import SingletonInstance
 
 
 def parse_args():
@@ -37,7 +37,7 @@ def parse_args():
 
 if __name__ == '__main__':
 	os.makedirs(TMP_DIR, exist_ok=True)
-	globalvars.args = parse_args()
+	global_vars.args = parse_args()
 	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
 	if not singleton_instance.acquire():
 		existing_pid = singleton_instance.get_existing_pid()
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 				sys.exit(0)
 			except psutil.NoSuchProcess:
 				singleton_instance.acquire()
-	from basilisk.mainapp import MainApp
+	from basilisk.main_app import MainApp
 
 	app = MainApp()
 	app.MainLoop()
