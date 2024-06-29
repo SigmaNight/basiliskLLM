@@ -18,6 +18,9 @@ jobs:
   build_app:
     uses: ./.github/workflows/build_app.yml
 
+  generate_pot:
+    uses: ./.github/workflows/generate_pot.yml
+
   release:
     permissions:
       contents: write

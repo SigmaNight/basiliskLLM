@@ -167,24 +167,29 @@ This will create an installer in the `output_setup` directory.
 
 ### 🌍 Translations
 
-This project is open to translations. If you want to help us translate the project into your language, you can create a PO template file (.pot) with the following command:
+This project welcomes translations. If you'd like to help translate the project into your language, you can retrieve the `.pot` (Portable Object Template) file from the releases page and translate it using a text editor like [Poedit](https://poedit.net/).
+
+Alternatively, generate a `.pot` file from the source code with the following command:
 
 ```shell
 python setup.py extract_messages
 ```
 
-Then you can create a PO file for your language with the following command:
+To create a PO (Portable Object) file for your language, use the command:
 
 ```shell
 python setup.py init_catalog --locale <your_language_code>
 ```
 
-The language code should be in the format of the ISO 639-1 standard. For example, for Spanish, the language code is `es`. You can find the language code for your language [here](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
-Use a text editor like [Poedit](https://poedit.net/) to translate the strings in the po file. When you finish translating the strings, you can compile the PO file to a MO file with the following command:
+The language code should adhere to the ISO 639-1 standard. For instance, the code for Spanish is `es`. You can find the appropriate code for your language [here](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
+
+Use a text editor like [Poedit](https://poedit.net/) to translate the strings in the `.po` file. Once you've finished translating, compile the `.po` file into an `.mo` (Machine Object) file with the command:
 
 ```shell
 python setup.py compile_catalog
 ```
+
+Finally, create a pull request with your translated `.po` file.
 
 ## 🧙‍♂️🧙‍♀️ Contributions: Summoning All Wizards and Witches
 

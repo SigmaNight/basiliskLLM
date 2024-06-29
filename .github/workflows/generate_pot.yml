@@ -1,0 +1,28 @@
+name: "Generate POT file"
+on:
+  workflow_call:
+
+jobs:
+  generate_pot:
+    runs-on: windows-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install poetry
+        uses: abatilo/actions-poetry@v3
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+      - name: build POT file
+        run: poetry run python setup.py extract_messages
+      - name: upload POT file
+        uses: actions/upload-artifact@v4
+        with:
+          name: basiliskLLM.pot
+          path: basiliskLLM.pot
+          if-no-files-found: error
+          retention-days: 30
