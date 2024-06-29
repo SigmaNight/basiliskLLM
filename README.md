@@ -75,6 +75,16 @@ These shortcuts work only when the BasiliskLLM window is focused.
 - `Ctrl+n`: Create a new chat.
 - `Ctrl+w`: Close the current chat.
 
+### NVDA Add-on Connector
+
+For those using NVDA, you can install the NVDA add-on connector to send the image of the current object directly to the active chat from any application.
+
+To install the NVDA add-on connector, navigate to the Tools menu > Install NVDA add-on.
+Once the add-on is installed, you can use the following shortcuts:
+
+- NVDA+SHIFT+k: Capture the current navigator object and send it to BasiliskLLM.
+- NVDA+SHIFT+l: Send the current image source to BasiliskLLM (url or base64).
+
 ### Automatic update of the Application (Windows only)
 
 The app includes a built-in auto-update feature with three update channels:
