@@ -124,7 +124,6 @@ class MainFrame(wx.Frame):
 			_("Manage &accounts") + "... (Ctrl+Shift+A)",
 		)
 		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
-		update_item_label_suffix(manage_accounts_item)
 		preferences_item = conversation_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")

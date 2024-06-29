@@ -14,7 +14,12 @@ else:
 
 APP_AUTHORS = ["André-Abush Clause", "Clément Boussiron" "Nael Sayegh"]
 
-APP_TRANSLATORS = ["André-Abush Clause", "Clément Boussiron"]
+APP_TRANSLATORS = [
+	"André-Abush Clause (French)",
+	"Clément Boussiron (French)",
+	"Daniil Lepke (Russian)",
+	"Umut Korkmaz (Turkish)",
+]
 
 
 def display_about_dialog(parent):
