@@ -15,13 +15,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Install poetry
-        run: pipx install poetry
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           architecture: ${{ matrix.arch }}
-          cache: "poetry"
+      - name: install poetry
+        uses: abatilo/actions-poetry@v3
+      - name: cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}_${{ matrix.arch }}_poetry_${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_${{ matrix.arch }}_poetry_
       - name: Install dependencies
         run: poetry install
       - name: compile translations
