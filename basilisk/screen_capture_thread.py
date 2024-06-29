@@ -34,32 +34,36 @@ class ScreenCaptureThread(threading.Thread):
 		self.name = name
 
 	def run(self):
-		if self.capture_mode == CaptureMode.FULL:
-			screen_image = ImageGrab.grab()
-			screen_image.save(self.path, "PNG")
-		elif self.capture_mode == CaptureMode.PARTIAL:
-			screen_image = ImageGrab.grab(bbox=self.screen_coordinates)
-			screen_image.save(self.path, "PNG")
-		elif self.capture_mode == CaptureMode.WINDOW:
-			screen = wx.ScreenDC()
-			size = screen.GetSize()
-			bmp = wx.Bitmap(size.width, size.height)
-			mem = wx.MemoryDC(bmp)
-			mem.Blit(0, 0, size.width, size.height, screen, 0, 0)
-			del mem
-			bmp.SaveFile(self.path, wx.BITMAP_TYPE_PNG)
-		else:
-			raise ValueError("Invalid capture mode")
+		match self.capture_mode:
+			case CaptureMode.FULL:
+				screen_image = ImageGrab.grab()
+				screen_image.save(self.path, "PNG")
+			case CaptureMode.PARTIAL:
+				screen_image = ImageGrab.grab(bbox=self.screen_coordinates)
+				screen_image.save(self.path, "PNG")
+			case CaptureMode.WINDOW:
+				screen = wx.ScreenDC()
+				size = screen.GetSize()
+				bmp = wx.Bitmap(size.width, size.height)
+				mem = wx.MemoryDC(bmp)
+				mem.Blit(0, 0, size.width, size.height, screen, 0, 0)
+				del mem
+				bmp.SaveFile(self.path, wx.BITMAP_TYPE_PNG)
+			case _:
+				raise ValueError("Invalid capture mode")
 
 		name = self.name
 		if not name:
-			name = " (%s)" % datetime.datetime.now().strftime("%H:%M:%S")
-		if self.capture_mode == CaptureMode.FULL:
-			name = _("Full screen capture") + name
-		elif self.capture_mode == CaptureMode.WINDOW:
-			name = _("Window capture") + name
-		else:
-			name = _("Partial screen capture") + name
+			name = datetime.datetime.now().strftime("%H:%M:%S")
+		match self.capture_mode:
+			case CaptureMode.FULL:
+				name = f"%s ({name})" % _("Full screen capture")
+			case CaptureMode.WINDOW:
+				name = f"%s ({name})" % _("Window capture")
+			case CaptureMode.PARTIAL:
+				name = f"%s ({name})" % _("Partial screen capture")
+			case _:
+				raise ValueError("Invalid capture mode")
 		wx.CallAfter(
 			self.parent.post_screen_capture, ImageFile(self.path, name=name)
 		)
