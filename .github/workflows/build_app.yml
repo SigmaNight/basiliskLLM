@@ -19,7 +19,15 @@ jobs:
         with:
           python-version: "3.12"
           architecture: ${{ matrix.arch }}
-          cache: "poetry"
+      - name: install poetry
+        uses: abatilo/actions-poetry@v3
+      - name: cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}_${{ matrix.arch }}_poetry_${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_${{ matrix.arch }}_poetry_
       - name: Install dependencies
         run: poetry install
       - name: compile translations
