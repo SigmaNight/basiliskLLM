@@ -14,7 +14,7 @@ from typing import Callable, Optional, Any
 from xml.etree import ElementTree as ET
 from .config import ReleaseChannelEnum, BasiliskConfig
 from .consts import APP_REPO, WORKFLOW_NAME, UNINSTALL_FILE_NAME
-from .globalvars import base_path
+from .global_vars import base_path
 
 log = getLogger(__name__)
 

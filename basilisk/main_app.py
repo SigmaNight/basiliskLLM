@@ -3,20 +3,20 @@ import shutil
 import sys
 import threading
 import wx
-import basilisk.globalvars as globalvars
+import basilisk.global_vars as global_vars
 import basilisk.config as config
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME, TMP_DIR
-from basilisk.filewatcher import init_file_watcher
+from basilisk.file_watcher import init_file_watcher
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	setup_logging,
 	logging_uncaught_exceptions,
 	get_log_file_path,
 )
-from basilisk.serverthread import ServerThread
-from basilisk.soundmanager import initialize_sound_manager
+from basilisk.server_thread import ServerThread
+from basilisk.sound_manager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
@@ -28,9 +28,9 @@ class MainApp(wx.App):
 
 		self.conf = config.initialize_config()
 		log_level = (
-			globalvars.args.log_level or self.conf.general.log_level.name
+			global_vars.args.log_level or self.conf.general.log_level.name
 		)
-		log.debug(f"args: {globalvars.args}")
+		log.debug(f"args: {global_vars.args}")
 		setup_logging(log_level)
 		log.debug(f"config: {self.conf}")
 		if getattr(sys, "frozen", False):
@@ -38,12 +38,12 @@ class MainApp(wx.App):
 				"running frozen application: redirecting stdio to log file"
 			)
 			self.RedirectStdio(str(get_log_file_path()))
-		language = globalvars.args.language or self.conf.general.language
+		language = global_vars.args.language or self.conf.general.language
 		self.locale = init_translation(language)
 		log.info("translation initialized")
 		initialize_sound_manager()
 		log.info("sound manager initialized")
-		from basilisk.gui.mainframe import MainFrame
+		from basilisk.gui.main_frame import MainFrame
 
 		self.frame = MainFrame(None, title=APP_NAME, conf=self.conf)
 		self.SetTopWindow(self.frame)

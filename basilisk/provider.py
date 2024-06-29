@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional, Iterable, Any, Type
 from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
-from .providerengine import (
+from .provider_engine import (
 	BaseEngine,
 	AnthropicAIEngine,
 	MistralAIEngine,

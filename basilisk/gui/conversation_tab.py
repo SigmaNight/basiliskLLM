@@ -15,13 +15,13 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk import globalvars
-from basilisk.imagefile import ImageFile, URL_PATTERN, get_image_dimensions
-from basilisk.provideraimodel import ProviderAIModel
-from basilisk.providercapability import ProviderCapability
-from basilisk.providerengine import BaseEngine
-from basilisk.recordingthread import RecordingThread
-from basilisk.soundmanager import play_sound, stop_sound
+from basilisk import global_vars
+from basilisk.image_file import ImageFile, URL_PATTERN, get_image_dimensions
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine import BaseEngine
+from basilisk.recording_thread import RecordingThread
+from basilisk.sound_manager import play_sound, stop_sound
 
 log = logging.getLogger(__name__)
 
@@ -808,7 +808,7 @@ class ConversationTab(wx.Panel):
 			for chunk in self.current_engine.completion_response_with_stream(
 				response
 			):
-				if self._stop_completion or globalvars.app_should_exit:
+				if self._stop_completion or global_vars.app_should_exit:
 					log.debug("Stopping completion")
 					break
 				new_block.response.content += chunk

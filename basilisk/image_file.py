@@ -6,7 +6,7 @@ import os
 import re
 import tempfile
 import time
-from .imagehelper import get_image_dimensions, encode_image, resize_image
+from .image_helper import get_image_dimensions, encode_image, resize_image
 
 log = logging.getLogger(__name__)
 

@@ -3,8 +3,8 @@ import re
 import socket
 import threading
 import wx
-from basilisk.imagefile import ImageFile
-from basilisk.screencapturethread import CaptureMode
+from basilisk.image_file import ImageFile
+from basilisk.screen_capture_thread import CaptureMode
 
 log = logging.getLogger(__name__)
 

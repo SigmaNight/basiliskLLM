@@ -2,8 +2,8 @@ import logging
 import time
 import httpx
 from functools import cached_property
-from .baseengine import ProviderAIModel
-from .openaiengine import OpenAIEngine, ProviderCapability
+from .base_engine import ProviderAIModel
+from .openai_engine import OpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 

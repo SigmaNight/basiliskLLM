@@ -10,7 +10,7 @@ import sounddevice as sd
 import wx
 
 if TYPE_CHECKING:
-	from .providerengine.baseengine import BaseEngine
+	from .provider_engine.base_engine import BaseEngine
 	from basilisk.config import RecordingsSettings
 	from basilisk.conversation import ConversationTab
 

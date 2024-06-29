@@ -1,5 +1,5 @@
 from __future__ import annotations
-import basilisk.globalvars as globalvars
+import basilisk.global_vars as global_vars
 from enum import Enum
 from functools import cached_property
 from logging import getLogger
@@ -135,7 +135,7 @@ class AccountManager(RootModel[list[Account]]):
 
 	def model_post_init(self, __context: Any) -> None:
 		"""Load accounts from environment variables"""
-		if globalvars.args.no_env_account:
+		if global_vars.args.no_env_account:
 			return
 		for provider in providers:
 			organizations = []
