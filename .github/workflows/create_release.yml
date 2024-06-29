@@ -35,10 +35,16 @@ jobs:
           pattern: setup_basiliskLLM_*
           path: installer
           merge-multiple: true
+      - name: download POT file
+        uses: actions/download-artifact@v4
+        with:
+          pattern: basiliskLLM.pot
+          path: .
       - name: create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            basiliskLLM.pot
             portable_app/*.zip
             installer/*.exe
           tag_name: ${{ github.ref }}
