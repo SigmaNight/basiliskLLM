@@ -16,6 +16,10 @@ ALIASES = {
 	"chat_response_received": resource_path
 	/ Path("sounds", "chat_response_received.wav"),
 	"progress": resource_path / Path("sounds", "progress.wav"),
+	"recording_started": resource_path
+	/ Path("sounds", "recording_started.wav"),
+	"recording_stopped": resource_path
+	/ Path("sounds", "recording_stopped.wav"),
 }
 
 
@@ -57,7 +61,7 @@ class SoundManager:
 
 			if loop:
 				self.loop_thread = threading.Thread(
-					target=self._play_sound_loop, args=(sound,)
+					target=self._play_sound_loop, args=(sound,), daemon=True
 				)
 				self.loop_thread.start()
 			else:

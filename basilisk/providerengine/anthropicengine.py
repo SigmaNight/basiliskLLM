@@ -15,12 +15,17 @@ if TYPE_CHECKING:
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
 	from account import Account
-from .baseengine import BaseEngine, ProviderAIModel
+from .baseengine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
 class AnthropicAIEngine(BaseEngine):
+	capabilities: set[ProviderCapability] = {
+		ProviderCapability.TEXT,
+		ProviderCapability.IMAGE,
+	}
+
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
 
@@ -42,10 +47,19 @@ class AnthropicAIEngine(BaseEngine):
 		log.debug("Getting Anthropic models")
 		return [
 			ProviderAIModel(
+				id="claude-3-5-sonnet-20240620",
+				name="Claude 3.5 Sonnet",
+				# Translators: This is a model description
+				description=_("Most intelligent model"),
+				context_window=200000,
+				max_output_tokens=4096,
+				vision=True,
+			),
+			ProviderAIModel(
 				id="claude-3-opus-20240229",
 				name="Claude 3 Opus",
 				# Translators: This is a model description
-				description=_("Most powerful model for highly complex tasks"),
+				description=_("Powerful model for highly complex tasks"),
 				context_window=200000,
 				max_output_tokens=4096,
 				vision=True,
@@ -54,9 +68,7 @@ class AnthropicAIEngine(BaseEngine):
 				id="claude-3-sonnet-20240229",
 				name="Claude 3 Sonnet",
 				# Translators: This is a model description
-				description=_(
-					"Ideal balance of intelligence and speed for enterprise workloads"
-				),
+				description=_("Balance of intelligence and speed"),
 				context_window=200000,
 				max_output_tokens=4096,
 				vision=True,
@@ -66,7 +78,7 @@ class AnthropicAIEngine(BaseEngine):
 				name="Claude 3 Haiku",
 				# Translators: This is a model description
 				description=_(
-					"Fastest and most compact model fornear-instant responsiveness"
+					"Fastest and most compact model for near-instant responsiveness"
 				),
 				context_window=200000,
 				max_output_tokens=4096,

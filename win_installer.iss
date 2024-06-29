@@ -1,6 +1,7 @@
 #ifndef AppArch
     #define AppArch "x64"
 #endif
+
 #ifndef MyAppVersion
     #define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
 #endif
@@ -9,7 +10,7 @@ AppVersion={#MyAppVersion}
 AppName=basiliskLLM
 AppVerName={#SetupSetting("AppName")} {#SetupSetting("AppVersion")}
 ArchitecturesAllowed={#AppArch}
-ArchitecturesInstallIn64BitMode=x64 ia64
+ArchitecturesInstallIn64BitMode=x64
 Output=yes
 OutputDir=output_setup
 OutputBaseFilename=setup_{#SetupSetting("AppName")}_{#SetupSetting("AppVersion")}_{#AppArch}
@@ -46,9 +47,9 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+B"
-Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: DesktopIcon
-Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: StartupIcon
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+A"
+Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
+Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: StartupIcon
 
 [Run]
-Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked

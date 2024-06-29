@@ -273,7 +273,7 @@ class NigthlyUpdater(BaseUpdater):
 			prefix="setup_basiliskllm_", suffix=".zip"
 		) as zip_tmp_file:
 			if not self.download_file(
-				link, zip_tmp_file, True, grafical_callback, stop_download
+				link, zip_tmp_file, grafical_callback, stop_download
 			):
 				return None
 			return self.extract_installer_from_zip(zip_tmp_file)
@@ -439,14 +439,18 @@ def automatic_update_check(
 		log.info("Last update check was not today")
 	try:
 		update_available = updater.is_update_available()
-		if not update_available:
-			log.info("No update available")
+		conf.general.last_update_check = datetime.now()
+		conf.save()
 		if notify_update_callback and update_available:
 			log.info("Update available")
 			notify_update_callback(updater)
-		conf.general.last_update_check = datetime.now()
-		conf.save()
+		if not update_available:
+			log.info("No update available")
+			return None
 		return updater
+	except httpx.HTTPStatusError as e:
+		log.error(f"Error checking for updates: {e}")
+		return None
 	except Exception as e:
 		log.error(f"Error checking for updates: {e}")
 		if retries > 0 and not stop:

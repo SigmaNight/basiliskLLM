@@ -15,6 +15,7 @@ class ServerThread(threading.Thread):
 		self.frame = frame
 		self.port = port
 		self.running = threading.Event()
+		self.daemon = True
 
 	def run(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

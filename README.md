@@ -4,7 +4,7 @@ In Development - It's still in its infancy. Use with caution!
 
 ## So, What's the Idea Here?
 
-**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into OpenAI, OpenRouter, Mistral, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
+**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into Anthropic, Mistral, OpenAI, OpenRouter, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
 
 ### And the Name? Seriously?
 
@@ -12,7 +12,50 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 
 ## Download and installation
 
-Hold your horses! Not quite there yet...
+### Download Options
+
+- Visit the [latest release page](https://github.com/aaclause/basiliskLLM/releases/latest) for the most up-to-date stable version.
+- For pre-releases or historical versions, head over to [all releases](https://github.com/aaclause/basiliskLLM/releases).
+
+### Available Assets for Each Release
+
+- **Setup for Windows x64:** Traditional installer for 64-bit Windows systems.
+- **Setup for Windows x86:** Traditional installer for 32-bit Windows systems.
+- **Portable Version for Windows x64:** No installation required, just extract and run `basilisk.exe`.
+- **Portable Version for Windows x86:** No installation required, just extract and run `basilisk.exe`.
+
+### Installation Using the Setup Installer
+
+- **Download the Installer:** Choose the appropriate installer (x64 or x86) from the releases page.
+- **Run the Installer:** Follow the installation prompts to get **BasiliskLLM** set up on your machine.
+- **Start the Application:** Once installed, launch **BasiliskLLM** from your desktop or start menu.
+
+### Using the Portable Version
+
+- **Download the Portable Version:** Select the portable version (x64 or x86) from the releases page.
+- **Extract the Files:** Unzip the downloaded file to a folder of your choice.
+- **Run the Application:** Launch `basilisk.exe` from the extracted folder. No installation needed.
+
+### Manual Installation (for Developers and Brave Souls)
+
+**Clone the Repository:**
+
+```shell
+git clone https://github.com/aaclause/basiliskLLM.git
+cd basiliskLLM
+```
+
+**Install Dependencies:**
+
+```shell
+poetry install
+```
+
+**Run the Application:**
+
+```shell
+poetry run python -m basilisk
+```
 
 ## Shortcuts
 
@@ -24,6 +67,8 @@ These shortcuts work anywhere in Windows.
 - `AltGr+Shift+W`: take a screenshot of the current window and send the image to the active chat.
 - `AltGr+Shift+F`: take a screenshot of the full screen and send the image to the active chat.
 
+Note: you can also minimize the window using Alt+F4.
+
 ### BasiliskLLM window shortcuts
 
 These shortcuts work only when the BasiliskLLM window is focused.
@@ -32,7 +77,17 @@ These shortcuts work only when the BasiliskLLM window is focused.
 - `Ctrl+n`: Create a new chat.
 - `Ctrl+w`: Close the current chat.
 
-### Automatic update of the Application (Windows only)
+## NVDA Add-on Connector
+
+For those using NVDA, you can install the NVDA add-on connector to send the image of the current object directly to the active chat from any application.
+
+To install the NVDA add-on connector, navigate to the Tools menu > Install NVDA add-on.
+Once the add-on is installed, you can use the following shortcuts:
+
+- NVDA+SHIFT+k: Capture the current navigator object and send it to BasiliskLLM.
+- NVDA+SHIFT+l: Send the current image source to BasiliskLLM (url or base64).
+
+## Automatic update of the Application (Windows only)
 
 The app includes a built-in auto-update feature with three update channels:
 
@@ -42,10 +97,10 @@ The app includes a built-in auto-update feature with three update channels:
 
 You have four update modes available:
 
-- 'notify': the app will notify you when a new version is available.
-- 'download': the app will download the new version but you have to install it manually.
-- 'install': the app will download and install the new version automatically (not implemented yet).
-- 'off': the app will not check for new versions.
+- **notify**: the app will notify you when a new version is available.
+- **download**: the app will download the new version but you have to install it manually.
+- **install**: the app will download and install the new version automatically (not implemented yet).
+- **off**: the app will not check for new versions.
 
 ## 🛠 Setting Up Your Dev Palace 🏰
 
@@ -78,7 +133,7 @@ Ready to watch the code baby crawl, maybe even walk? Fire up the project:
 python -m basilisk
 ```
 
-## 🚀 Build Standalone Executable
+### 🚀 Build Standalone Executable
 
 You can build a standalone executable with the following command:
 
@@ -88,7 +143,7 @@ poetry run python -m cx_Freeze build_exe
 
 This will create a `dist` directory with the standalone executable. You can run the executable by double-clicking on it.
 
-## 📦 Packaging for Windows
+### 📦 Packaging for Windows
 
 The project utilizes Inno Setup to create an all-in-one installer, packaging the output generated by cx_Freeze. ...
 
@@ -110,7 +165,7 @@ iscc win_installer.iss
 
 This will create an installer in the `output_setup` directory.
 
-## 🌍 Translations
+### 🌍 Translations
 
 This project is open to translations. If you want to help us translate the project into your language, you can create a PO template file (.pot) with the following command:
 

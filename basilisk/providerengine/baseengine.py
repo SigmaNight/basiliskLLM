@@ -6,12 +6,15 @@ from functools import cached_property
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, MessageBlock, Message
 from basilisk.provideraimodel import ProviderAIModel
+from basilisk.providercapability import ProviderCapability
 
 if TYPE_CHECKING:
 	from basilisk.account import Account
 
 
 class BaseEngine(ABC):
+	capabilities: set[ProviderCapability] = set()
+
 	def __init__(self, account: Account) -> None:
 		self.account = account
 
@@ -101,3 +104,11 @@ class BaseEngine(ABC):
 		Get user agent
 		"""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
+
+	def get_transcription(self, *args, **kwargs) -> str:
+		"""
+		Get transcription from audio file
+		"""
+		raise NotImplementedError(
+			"Transcription not implemented for this engine"
+		)

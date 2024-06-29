@@ -1,4 +1,6 @@
 from enum import Enum
+import os
+import tempfile
 
 APP_NAME = "BasiliskLLM"
 APP_REPO = "aaclause/basiliskLLM"
@@ -6,6 +8,8 @@ APP_SOURCE_URL = f"https://github.com/{APP_REPO}"
 DEFAULT_LANG = "en"
 WORKFLOW_NAME = "ci"
 UNINSTALL_FILE_NAME = "unins000.exe"
+TMP_DIR = os.path.join(tempfile.gettempdir(), "basilisk")
+FILE_LOCK_PATH = os.path.join(TMP_DIR, "app.lock")
 
 
 class HotkeyAction(Enum):
