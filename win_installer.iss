@@ -39,6 +39,9 @@ ShowTasksTreeLines=no
 Name: "en"; MessagesFile: "compiler:Default.isl"
 name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+name: "turkish"; MessagesFile: "compiler:Languages\Turkish.isl"
+Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
+
 [Files]
 Source: "dist\*"; DestDir: "{app}"; Excludes: "\user_data"; Flags: recursesubdirs createallsubdirs sortfilesbyextension ignoreversion
 
