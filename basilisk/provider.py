@@ -17,6 +17,7 @@ class ProviderAPIType(Enum):
 	OPENAI = "openai"
 	ANTHROPIC = "anthropic"
 	OLLAMA = "ollama"
+	GEMINI = "gemini"
 
 
 class Provider(BaseModel):
@@ -99,6 +100,16 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
 		engine_cls_path="basilisk.provider_engine.openrouter_engine.OpenRouterEngine",
+	),
+	Provider(
+		id="gemini",
+		name="Gemini",
+		base_url="https://https://generativelanguage.googleapis.com",
+		api_type=ProviderAPIType.GEMINI,
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="GOOGLE_API_KEY",
+		engine_cls_path="basilisk.provider_engine.gemini_engine.GeminiEngine",
 	),
 ]
 
