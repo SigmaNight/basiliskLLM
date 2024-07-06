@@ -196,14 +196,14 @@ class GeminiEngine(BaseEngine):
 			if system_message
 			else None,
 		)
-		generation_config = None
-		"""
+
 		generation_config = genai.GenerationConfig(
-			max_output_tokens=new_block.max_tokens,
+			max_output_tokens=new_block.max_tokens
+			if new_block.max_tokens
+			else None,
 			temperature=new_block.temperature,
 			top_p=new_block.top_p,
 		)
-		"""
 		return model.generate_content(
 			contents=self.get_messages(new_block, conversation),
 			generation_config=generation_config,
