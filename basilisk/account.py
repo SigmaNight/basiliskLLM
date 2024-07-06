@@ -17,6 +17,8 @@ from pydantic import (
 	field_validator,
 	model_validator,
 	model_serializer,
+	OnErrorOmit,
+	ValidationError,
 )
 from .provider import Provider, providers, get_provider
 
@@ -56,6 +58,15 @@ class Account(BaseModel):
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
+	def __init__(self, **data: Any):
+		try:
+			super().__init__(**data)
+		except ValidationError as e:
+			log.error(
+				f"Error in account {e} the account will not be accessible"
+			)
+			raise e
+
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
 		return value.id
@@ -71,7 +82,6 @@ class Account(BaseModel):
 			return value
 		if isinstance(value, str):
 			return get_provider(id=value)
-		raise ValueError("the value must be a string or a provider instance")
 
 	@model_validator(mode="after")
 	def require_keys(self) -> Account:
@@ -127,7 +137,7 @@ class Account(BaseModel):
 		)
 
 
-class AccountManager(RootModel[list[Account]]):
+class AccountManager(RootModel[list[OnErrorOmit[Account]]]):
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
