@@ -7,6 +7,7 @@ import threading
 import time
 from typing import TYPE_CHECKING
 from uuid import UUID
+from wx.lib.agw.floatspin import FloatSpin
 
 import wx
 
@@ -29,6 +30,20 @@ from basilisk.sound_manager import play_sound, stop_sound
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 log = logging.getLogger(__name__)
+
+
+class FloatSpinTextCtrlAccessible(wx.Accessible):
+	def __init__(self, win: wx.Window = None, name: str = None):
+		super().__init__(win)
+		self._name = name
+
+	def GetName(self, childId):
+		if self._name:
+			return (wx.ACC_OK, self._name)
+		return super().GetName(childId)
+
+	def SetName(self, name: str):
+		self._name = name
 
 
 class ConversationTab(wx.Panel):
@@ -161,9 +176,20 @@ class ConversationTab(wx.Panel):
 			label=_("&Temperature:"),
 		)
 		sizer.Add(self.temperature_label, proportion=0, flag=wx.EXPAND)
-		self.temperature_spinner = wx.SpinCtrl(
-			self, value="100", min=0, max=200
+		self.temperature_spinner = FloatSpin(
+			self,
+			min_val=0.0,
+			max_val=2.0,
+			increment=0.01,
+			value=0.5,
+			digits=2,
+			name="temperature",
 		)
+		float_spin_accessible = FloatSpinTextCtrlAccessible(
+			win=self.temperature_spinner._textctrl,
+			name=self.temperature_label.GetLabel().replace("&", ""),
+		)
+		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
 		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
 
 		self.top_p_label = wx.StaticText(
@@ -172,7 +198,20 @@ class ConversationTab(wx.Panel):
 			label=_("Probabilit&y Mass (top P):"),
 		)
 		sizer.Add(self.top_p_label, proportion=0, flag=wx.EXPAND)
-		self.top_p_spinner = wx.SpinCtrl(self, value="100", min=0, max=100)
+		self.top_p_spinner = FloatSpin(
+			self,
+			min_val=0.0,
+			max_val=1.0,
+			increment=0.01,
+			value=1.0,
+			digits=2,
+			name="Top P",
+		)
+		float_spin_accessible = FloatSpinTextCtrlAccessible(
+			win=self.top_p_spinner._textctrl,
+			name=self.top_p_label.GetLabel().replace("&", ""),
+		)
+		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
 
 		self.stream_mode = wx.CheckBox(
@@ -424,10 +463,8 @@ class ConversationTab(wx.Panel):
 		if model_index == wx.NOT_FOUND:
 			return
 		model = self.current_engine.models[model_index]
-		self.temperature_spinner.SetMax(int(model.max_temperature * 100))
-		self.temperature_spinner.SetValue(
-			str(int(model.max_temperature / 2 * 100))
-		)
+		self.temperature_spinner.SetMax(int(model.max_temperature))
+		self.temperature_spinner.SetValue(model.max_temperature / 2)
 		max_tokens = model.max_output_tokens
 		if max_tokens < 1:
 			max_tokens = model.context_window
@@ -760,8 +797,8 @@ class ConversationTab(wx.Panel):
 				),
 			),
 			model=model,
-			temperature=self.temperature_spinner.GetValue() / 100,
-			top_p=self.top_p_spinner.GetValue() / 100,
+			temperature=self.temperature_spinner.GetValue(),
+			top_p=self.top_p_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
 			stream=self.stream_mode.GetValue(),
 		)
