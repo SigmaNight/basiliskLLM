@@ -80,16 +80,24 @@ executables = [
 optimize = 1
 build_exe = "dist"
 excludes = [
-    "tarfile", "tkinter", "unittest", "email", "pydoc_data", "distutils", "multiprocessing", "sqlite3", "test", "commitizen", "pip", "tomllib", "jinja2", "packaging", "ftplib",
-    "setuptools", "setuptools_scm",
+    "babel.messages", "commitizen", "distutils", "email", "ftplib", "h11.tests", "jinja2",
+    "multiprocessing",
+    "numpy._core.tests", "numpy.f2py", "numpy.fft", "numpy.ma", "numpy.polynomial", "numpy.random", "numpy.testing",
+    "pip", "pydoc_data", "packaging",
+    "setuptools", "setuptools_scm", "sqlite3",
+    "tarfile", "tomllib", "test", "tkinter", "unittest",
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
-    "babel.messages", "h11.tests"]
+     ]
 include_files = ["basilisk/res"]
 includes = ["numpy"]
 packages = ["numpy"]
 zip_include_packages = [
-    "openai", "yaml", "pydantic_settings", "platformdirs", "httpx",
-    "logging", "json", "pydantic", "pydantic_core",
-    "asyncio", "anyio", "encodings", "dotenv", "email", "ctypes", "collections",
-    "concurrent", "distro", "h11", "httpcore", "http", "importlib", "re", "sniffio",
-    "idna", "certifi", "urllib", "zipfile", "zoneinfo", "basilisk", "xml", "tokenizers", "anthropic", "PIL", "numpy"]
+    "anyio", "annotated_types", "anthropic", "asyncio",
+    "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
+    "distro", "dotenv", "encodings", "email",
+    "h11", "html", "httpcore", "http", "httpx",
+    "idna", "importlib", "jiter", "json", "logging",
+    "openai", "numpy", "platformdirs", "pycparser", "PIL", "psutil", "pydantic", "pydantic_core", "pydantic_settings",
+    "re", "sniffio", "tokenizers", "urllib",
+    "watchdog", "xml", "yaml", "zipfile", "zoneinfo",
+    "basilisk"]
