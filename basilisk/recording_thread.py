@@ -5,7 +5,7 @@ import tempfile
 from typing import TYPE_CHECKING
 import threading
 import wave
-import numpy as np
+from numpy import array as np_array, append as np_append
 import sounddevice as sd
 import wx
 
@@ -43,7 +43,7 @@ class RecordingThread(threading.Thread):
 	def run(self):
 		if not self.audio_file_path:
 			self.audio_file_path = self.get_filename()
-			self.audio_data = np.array([], dtype=self.recordings_settings.dtype)
+			self.audio_data = np_array([], dtype=self.recordings_settings.dtype)
 			log.debug("Recording started")
 			wx.CallAfter(self.conversation_tab.on_recording_started)
 			self.record_audio(self.recordings_settings.sample_rate)
@@ -73,7 +73,7 @@ class RecordingThread(threading.Thread):
 				frame, overflowed = stream.read(chunk_size)
 				if overflowed:
 					log.error("Audio buffer has overflowed.")
-				self.audio_data = np.append(self.audio_data, frame)
+				self.audio_data = np_append(self.audio_data, frame)
 				if self._wantAbort:
 					break
 		self._recording = False
