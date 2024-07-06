@@ -1,9 +1,8 @@
 from __future__ import annotations
 import logging
 from functools import cached_property
+from time import time
 from typing import Generator, Union, TYPE_CHECKING
-from openai import OpenAI
-from openai.types.chat import ChatCompletionChunk, ChatCompletion
 from basilisk.conversation import (
 	Conversation,
 	Message,
@@ -12,6 +11,8 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
+	from openai import OpenAI
+	from openai.types.chat import ChatCompletionChunk, ChatCompletion
 	from account import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -25,9 +26,16 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 	}
+	OpenAI: OpenAI | None = None
 
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
+		if OpenAIEngine.OpenAI is None:
+			start = time()
+			from openai import OpenAI
+
+			OpenAIEngine.OpenAI = OpenAI
+			log.debug("OpenAI imported in %s seconds", time() - start)
 
 	@cached_property
 	def client(self) -> OpenAI:
@@ -40,7 +48,7 @@ class OpenAIEngine(BaseEngine):
 			if self.account.active_organization_key
 			else None
 		)
-		return OpenAI(
+		return OpenAIEngine.OpenAI(
 			api_key=self.account.api_key.get_secret_value(),
 			organization=organization_key,
 			base_url=str(self.account.provider.base_url),

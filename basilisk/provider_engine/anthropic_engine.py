@@ -1,8 +1,8 @@
 from __future__ import annotations
 import logging
 from functools import cached_property
+from time import time
 from typing import TYPE_CHECKING
-from anthropic import Anthropic
 from basilisk.conversation import (
 	Conversation,
 	Message,
@@ -11,6 +11,7 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
+	from anthropic import Anthropic
 	from anthropic._streaming import Stream
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
@@ -25,9 +26,16 @@ class AnthropicAIEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
+	Anthropic: Anthropic | None = None
 
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
+		if AnthropicAIEngine.Anthropic is None:
+			start = time()
+			from anthropic import Anthropic
+
+			AnthropicAIEngine.Anthropic = Anthropic
+			log.debug("Anthropic imported in %s seconds", time() - start)
 
 	@cached_property
 	def client(self) -> Anthropic:
@@ -35,7 +43,9 @@ class AnthropicAIEngine(BaseEngine):
 		Property to return the client object
 		"""
 		super().client
-		return Anthropic(api_key=self.account.api_key.get_secret_value())
+		return AnthropicAIEngine.Anthropic(
+			api_key=self.account.api_key.get_secret_value()
+		)
 		log.debug("New Anthropic client initialized")
 
 	@cached_property
