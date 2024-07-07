@@ -1,18 +1,20 @@
 from __future__ import annotations
+
 import logging
-import google.generativeai as genai
 from functools import cached_property
 from typing import TYPE_CHECKING
 
+import google.generativeai as genai
 
 from basilisk.conversation import (
 	Conversation,
+	ImageUrlMessageContent,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 	TextMessageContent,
-	ImageUrlMessageContent,
 )
+
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 if TYPE_CHECKING:
