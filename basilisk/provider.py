@@ -1,14 +1,10 @@
+from __future__ import annotations
 from enum import Enum
 from typing import Optional, Iterable, Any, Type
 from pydantic import BaseModel, HttpUrl, Field
 from logging import getLogger
-from .provider_engine import (
-	BaseEngine,
-	AnthropicAIEngine,
-	MistralAIEngine,
-	OpenAIEngine,
-	OpenRouterEngine,
-)
+from .provider_engine.base_engine import BaseEngine
+
 
 log = getLogger(__name__)
 
@@ -33,7 +29,23 @@ class Provider(BaseModel):
 	custom: bool = Field(default=True)
 	env_var_name_api_key: Optional[str] = Field(default=None)
 	env_var_name_organization_key: Optional[str] = Field(default=None)
-	engine_cls: Type[BaseEngine]
+	engine_cls_path: str
+
+	@property
+	def engine_cls(self) -> Type[BaseEngine]:
+		"""
+		Get engine class
+		"""
+		try:
+			module_path, class_name = self.engine_cls_path.rsplit(".", 1)
+			module = __import__(module_path, fromlist=[class_name])
+			return getattr(module, class_name)
+		except ImportError as e:
+			log.error(f"Error importing engine class: {e}")
+			raise e
+		except AttributeError as e:
+			log.error(f"Error getting engine class: {e}")
+			raise e
 
 
 providers = [
@@ -45,7 +57,7 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="ANTHROPIC_API_KEY",
 		env_var_name_organization_key="ANTHROPIC_ORG_KEY",
-		engine_cls=AnthropicAIEngine,
+		engine_cls_path="basilisk.provider_engine.anthropic_engine.AnthropicEngine",
 	),
 	Provider(
 		id="openai",
@@ -56,7 +68,7 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENAI_API_KEY",
 		env_var_name_organization_key="OPENAI_ORG_KEY",
-		engine_cls=OpenAIEngine,
+		engine_cls_path="basilisk.provider_engine.openai_engine.OpenAIEngine",
 	),
 	Provider(
 		id="mistralai",
@@ -66,7 +78,7 @@ providers = [
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="MISTRAL_API_KEY",
-		engine_cls=MistralAIEngine,
+		engine_cls_path="basilisk.provider_engine.mistralai_engine.MistralAIEngine",
 	),
 	Provider(
 		id="openrouter",
@@ -76,7 +88,7 @@ providers = [
 		organization_mode_available=False,
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
-		engine_cls=OpenRouterEngine,
+		engine_cls_path="basilisk.provider_engine.openrouter_engine.OpenRouterEngine",
 	),
 ]
 

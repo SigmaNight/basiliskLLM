@@ -19,7 +19,7 @@ from basilisk import global_vars
 from basilisk.image_file import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
-from basilisk.provider_engine import BaseEngine
+from basilisk.provider_engine.base_engine import BaseEngine
 from basilisk.recording_thread import RecordingThread
 from basilisk.sound_manager import play_sound, stop_sound
 
