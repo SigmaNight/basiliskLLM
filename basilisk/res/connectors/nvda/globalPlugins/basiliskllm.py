@@ -1,10 +1,11 @@
 import socket
+
 import addonHandler
 import api
 import config
 import controlTypes
-import gui
 import globalPluginHandler
+import gui
 import ui
 from scriptHandler import script
 
@@ -60,10 +61,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		)
 
 	def checkScreenCurtain(self):
+		import vision
 		from visionEnhancementProviders.screenCurtain import (
 			ScreenCurtainProvider,
 		)
-		import vision
 
 		screenCurtainId = ScreenCurtainProvider.getSettings().getId()
 		screenCurtainProviderInfo = vision.handler.getProviderInfo(

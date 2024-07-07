@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 import logging
 from functools import cached_property
-from typing import Generator, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Generator, Union
+
 from openai import OpenAI
-from openai.types.chat import ChatCompletionChunk, ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
+
 from basilisk.conversation import (
 	Conversation,
 	Message,

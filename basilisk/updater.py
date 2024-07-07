@@ -1,19 +1,21 @@
-import time
 import platform
 import re
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
-import httpx
 from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import cached_property
 from logging import getLogger
-from typing import Callable, Optional, Any
+from typing import Any, Callable, Optional
 from xml.etree import ElementTree as ET
-from .config import ReleaseChannelEnum, BasiliskConfig
-from .consts import APP_REPO, WORKFLOW_NAME, UNINSTALL_FILE_NAME
+
+import httpx
+
+from .config import BasiliskConfig, ReleaseChannelEnum
+from .consts import APP_REPO, UNINSTALL_FILE_NAME, WORKFLOW_NAME
 from .global_vars import base_path
 
 log = getLogger(__name__)

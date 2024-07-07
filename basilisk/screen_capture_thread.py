@@ -1,10 +1,13 @@
 from __future__ import annotations
-from enum import Enum
+
 import datetime
 import threading
 import typing
-from PIL import ImageGrab
+from enum import Enum
+
 import wx
+from PIL import ImageGrab
+
 from .image_file import ImageFile
 
 if typing.TYPE_CHECKING:

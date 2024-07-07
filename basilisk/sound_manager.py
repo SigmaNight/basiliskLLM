@@ -1,9 +1,11 @@
 import logging
+import threading
 import time
+from pathlib import Path
+
 import wx
 import wx.adv
-import threading
-from pathlib import Path
+
 from .global_vars import resource_path
 
 log = logging.getLogger(__name__)

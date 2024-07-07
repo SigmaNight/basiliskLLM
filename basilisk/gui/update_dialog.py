@@ -1,8 +1,10 @@
 import threading
-import wx
 from logging import getLogger
+
+import wx
+
 from basilisk.config import conf
-from basilisk.updater import get_updater_from_channel, BaseUpdater
+from basilisk.updater import BaseUpdater, get_updater_from_channel
 
 log = getLogger(__name__)
 

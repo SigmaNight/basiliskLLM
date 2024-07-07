@@ -1,7 +1,9 @@
 import logging
 import time
-import httpx
 from functools import cached_property
+
+import httpx
+
 from .base_engine import ProviderAIModel
 from .openai_engine import OpenAIEngine, ProviderCapability
 

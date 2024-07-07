@@ -2,18 +2,20 @@ import logging
 import shutil
 import sys
 import threading
+
 import wx
-import basilisk.global_vars as global_vars
+
 import basilisk.config as config
+import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.file_watcher import init_file_watcher
 from basilisk.localization import init_translation
 from basilisk.logger import (
-	setup_logging,
-	logging_uncaught_exceptions,
 	get_log_file_path,
+	logging_uncaught_exceptions,
+	setup_logging,
 )
 from basilisk.server_thread import ServerThread
 from basilisk.sound_manager import initialize_sound_manager

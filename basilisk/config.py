@@ -1,9 +1,9 @@
 import logging
-import yaml
-import basilisk.global_vars as global_vars
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+
+import yaml
 from platformdirs import user_config_path
 from pydantic import BaseModel, Extra, Field
 from pydantic_settings import (
@@ -12,6 +12,9 @@ from pydantic_settings import (
 	SettingsConfigDict,
 	YamlConfigSettingsSource,
 )
+
+import basilisk.global_vars as global_vars
+
 from .account import AccountManager
 
 log = logging.getLogger(__name__)

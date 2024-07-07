@@ -1,18 +1,22 @@
 from __future__ import annotations
+
 import logging
 import os
 import tempfile
-from typing import TYPE_CHECKING
 import threading
 import wave
-from numpy import array as np_array, append as np_append
+from typing import TYPE_CHECKING
+
 import sounddevice as sd
 import wx
+from numpy import append as np_append
+from numpy import array as np_array
 
 if TYPE_CHECKING:
-	from .provider_engine.base_engine import BaseEngine
 	from basilisk.config import RecordingsSettings
 	from basilisk.conversation import ConversationTab
+
+	from .provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
 

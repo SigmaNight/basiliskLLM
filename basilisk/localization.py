@@ -1,10 +1,12 @@
 import gettext
 import locale
 import logging
-import wx
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import wx
 from babel import Locale
+
 from .consts import APP_NAME, DEFAULT_LANG
 from .global_vars import resource_path
 

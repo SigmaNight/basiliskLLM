@@ -1,24 +1,26 @@
 from __future__ import annotations
+
 import logging
 import os
 import re
 import threading
 import time
-import wx
-import basilisk.config as config
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+import wx
+
+import basilisk.config as config
+from basilisk import global_vars
 from basilisk.conversation import (
 	Conversation,
 	ImageUrlMessageContent,
-	TextMessageContent,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
+	TextMessageContent,
 )
-from basilisk import global_vars
-from basilisk.image_file import ImageFile, URL_PATTERN, get_image_dimensions
+from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.recording_thread import RecordingThread

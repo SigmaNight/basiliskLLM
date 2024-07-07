@@ -2,7 +2,9 @@ import logging
 import re
 import socket
 import threading
+
 import wx
+
 from basilisk.image_file import ImageFile
 from basilisk.screen_capture_thread import CaptureMode
 

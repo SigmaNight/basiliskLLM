@@ -1,10 +1,12 @@
 import argparse
 import os
-import psutil
 import sys
-from basilisk.consts import APP_NAME, TMP_DIR, FILE_LOCK_PATH
-from basilisk.file_watcher import send_focus_signal
+
+import psutil
+
 from basilisk import global_vars
+from basilisk.consts import APP_NAME, FILE_LOCK_PATH, TMP_DIR
+from basilisk.file_watcher import send_focus_signal
 from basilisk.singleton_instance import SingletonInstance
 
 

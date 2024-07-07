@@ -1,10 +1,12 @@
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from os import linesep
-from typing import Any, TYPE_CHECKING
 from functools import cached_property
+from os import linesep
+from typing import TYPE_CHECKING, Any
+
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
-from basilisk.conversation import Conversation, MessageBlock, Message
+from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
