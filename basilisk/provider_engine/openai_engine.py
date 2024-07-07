@@ -3,6 +3,7 @@ import logging
 from functools import cached_property
 from typing import Generator, Union, TYPE_CHECKING
 from openai import OpenAI
+from openai.types.chat import ChatCompletionChunk, ChatCompletion
 from basilisk.conversation import (
 	Conversation,
 	Message,
@@ -11,7 +12,6 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
-	from openai.types.chat import ChatCompletionChunk, ChatCompletion
 	from account import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
