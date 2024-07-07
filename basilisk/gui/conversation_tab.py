@@ -42,9 +42,6 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 			return (wx.ACC_OK, self._name)
 		return super().GetName(childId)
 
-	def SetName(self, name: str):
-		self._name = name
-
 
 class ConversationTab(wx.Panel):
 	def __init__(self, parent: wx.Window):
