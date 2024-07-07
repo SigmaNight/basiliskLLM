@@ -5,6 +5,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING
 
 from anthropic import Anthropic
+
 from basilisk.conversation import (
 	Conversation,
 	Message,

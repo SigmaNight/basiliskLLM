@@ -2,6 +2,7 @@ import threading
 from logging import getLogger
 
 import wx
+
 from basilisk.config import conf
 from basilisk.updater import BaseUpdater, get_updater_from_channel
 

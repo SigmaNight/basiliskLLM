@@ -8,8 +8,9 @@ import time
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import basilisk.config as config
 import wx
+
+import basilisk.config as config
 from basilisk import global_vars
 from basilisk.conversation import (
 	Conversation,

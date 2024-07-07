@@ -2,6 +2,7 @@ import logging
 
 import wx
 from babel import Locale
+
 from basilisk.config import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
