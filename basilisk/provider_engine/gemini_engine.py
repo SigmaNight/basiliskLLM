@@ -48,41 +48,10 @@ class GeminiEngine(BaseEngine):
 		"""
 		return [
 			ProviderAIModel(
-				id="gemini-1.0-pro",
+				id="gemini-1.5-flash-latest",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					"The best model for scaling across a wide range of tasks"
-				),
-				context_window=30720,
-				max_output_tokens=2048,
-				default_temperature=0.9,
-			),
-			ProviderAIModel(
-				id="gemini-1.0-pro-latest",
-				# Translators: This is a ProviderAIModel description
-				description=_(
-					"The best model for scaling across a wide range of tasks. This is the latest model."
-				),
-				context_window=30720,
-				max_output_tokens=2048,
-				default_temperature=0.9,
-			),
-			ProviderAIModel(
-				id="gemini-1.0-pro-vision-latest",
-				# Translators: This is a ProviderAIModel description
-				description=_(
-					'The best image understanding model to handle a broad range of applications'
-				),
-				context_window=12288,
-				max_output_tokens=4096,
-				vision=True,
-				default_temperature=0.4,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-flash",
-				# Translators: This is a ProviderAIModel description
-				description=_(
-					"Fast and versatile multimodal model for scaling across diverse tasks"
+					'Fast and versatile multimodal model for scaling across diverse tasks'
 				),
 				context_window=1048576,
 				max_output_tokens=8192,
@@ -90,10 +59,21 @@ class GeminiEngine(BaseEngine):
 				default_temperature=1.0,
 			),
 			ProviderAIModel(
-				id="gemini-1.5-flash-latest",
+				id="gemini-1.5-pro-latest",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					'Fast and versatile multimodal model for scaling across diverse tasks'
+					"Mid-size multimodal model that supports up to 1 million tokens"
+				),
+				context_window=2097152,
+				max_output_tokens=8192,
+				vision=True,
+				default_temperature=1.0,
+			),
+			ProviderAIModel(
+				id="gemini-1.5-flash",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					"Fast and versatile multimodal model for scaling across diverse tasks"
 				),
 				context_window=1048576,
 				max_output_tokens=8192,
@@ -112,15 +92,35 @@ class GeminiEngine(BaseEngine):
 				default_temperature=1.0,
 			),
 			ProviderAIModel(
-				id="gemini-1.5-pro-latest",
+				id="gemini-1.0-pro-latest",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					"Mid-size multimodal model that supports up to 1 million tokens"
+					"The best model for scaling across a wide range of tasks. This is the latest model."
 				),
-				context_window=2097152,
-				max_output_tokens=8192,
+				context_window=30720,
+				max_output_tokens=2048,
+				default_temperature=0.9,
+			),
+			ProviderAIModel(
+				id="gemini-1.0-pro",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					"The best model for scaling across a wide range of tasks"
+				),
+				context_window=30720,
+				max_output_tokens=2048,
+				default_temperature=0.9,
+			),
+			ProviderAIModel(
+				id="gemini-1.0-pro-vision-latest",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					'The best image understanding model to handle a broad range of applications'
+				),
+				context_window=12288,
+				max_output_tokens=4096,
 				vision=True,
-				default_temperature=1.0,
+				default_temperature=0.4,
 			),
 		]
 
