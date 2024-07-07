@@ -1,10 +1,12 @@
-import sys
 import logging
-import basilisk.global_vars as global_vars
+import sys
 from pathlib import Path
 from types import TracebackType
 from typing import Type
+
 from platformdirs import user_log_path
+
+import basilisk.global_vars as global_vars
 
 
 def get_log_file_path() -> Path:

@@ -1,7 +1,7 @@
-from typing import Optional
-from pydantic import SecretStr
-import wx
 from logging import getLogger
+from typing import Optional
+
+import wx
 from basilisk.account import (
 	Account,
 	AccountOrganization,
@@ -9,7 +9,8 @@ from basilisk.account import (
 	get_account_source_labels,
 )
 from basilisk.config import conf
-from basilisk.provider import providers, get_provider
+from basilisk.provider import get_provider, providers
+from pydantic import SecretStr
 
 log = getLogger(__name__)
 

@@ -63,7 +63,7 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT"]
+extend-select = ["INT","I"]
 
 [tool.commitizen]
 name = "cz_conventional_commits"

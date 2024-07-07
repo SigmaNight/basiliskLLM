@@ -1,13 +1,14 @@
 import logging
+
 import wx
 from babel import Locale
 from basilisk.config import (
-	conf,
+	AutomaticUpdateModeEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,
-	AutomaticUpdateModeEnum,
+	conf,
 )
-from basilisk.localization import get_supported_locales, get_app_locale
+from basilisk.localization import get_app_locale, get_supported_locales
 from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)

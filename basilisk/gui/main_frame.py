@@ -4,6 +4,7 @@ import os
 import signal
 import sys
 import tempfile
+
 import wx
 
 if sys.platform == 'win32':
@@ -13,11 +14,12 @@ from basilisk import global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from basilisk.image_file import ImageFile
 from basilisk.logger import get_log_file_path
-from basilisk.screen_capture_thread import ScreenCaptureThread, CaptureMode
+from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
 from basilisk.updater import BaseUpdater
+
 from .conversation_tab import ConversationTab
 from .taskbar_icon import TaskBarIcon
-from .update_dialog import UpdateDialog, DownloadUpdateDialog
+from .update_dialog import DownloadUpdateDialog, UpdateDialog
 
 log = logging.getLogger(__name__)
 

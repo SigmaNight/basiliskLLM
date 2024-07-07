@@ -1,13 +1,15 @@
 from __future__ import annotations
-from typing import Callable, TYPE_CHECKING
+
 import os
 import time
-from watchdog.observers import Observer
+from typing import TYPE_CHECKING, Callable
+
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 if TYPE_CHECKING:
-	from watchdog.observers import BaseObserverSubclassCallable
 	from watchdog.events import FileSystemEvent
+	from watchdog.observers import BaseObserverSubclassCallable
 from basilisk.consts import TMP_DIR
 
 

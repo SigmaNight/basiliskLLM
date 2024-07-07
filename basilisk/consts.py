@@ -1,6 +1,6 @@
-from enum import Enum
 import os
 import tempfile
+from enum import Enum
 
 APP_NAME = "BasiliskLLM"
 APP_REPO = "aaclause/basiliskLLM"

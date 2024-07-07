@@ -1,4 +1,5 @@
 import sys
+
 import wx.adv
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 

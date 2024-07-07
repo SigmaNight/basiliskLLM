@@ -1,26 +1,30 @@
 from __future__ import annotations
-import basilisk.global_vars as global_vars
+
 from enum import Enum
 from functools import cached_property
 from logging import getLogger
 from os import getenv
 from typing import Any, Iterable, Optional
 from uuid import uuid4
+
 from pydantic import (
+	UUID4,
 	BaseModel,
 	ConfigDict,
 	Field,
+	OnErrorOmit,
 	RootModel,
 	SecretStr,
-	UUID4,
+	ValidationError,
 	field_serializer,
 	field_validator,
-	model_validator,
 	model_serializer,
-	OnErrorOmit,
-	ValidationError,
+	model_validator,
 )
-from .provider import Provider, providers, get_provider
+
+import basilisk.global_vars as global_vars
+
+from .provider import Provider, get_provider, providers
 
 log = getLogger(__name__)
 

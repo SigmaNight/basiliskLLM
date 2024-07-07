@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import logging
 from functools import cached_property
 from typing import TYPE_CHECKING
+
 from anthropic import Anthropic
 from basilisk.conversation import (
 	Conversation,
@@ -11,10 +13,10 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
+	from account import Account
 	from anthropic._streaming import Stream
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
-	from account import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
