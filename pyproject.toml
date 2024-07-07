@@ -91,15 +91,15 @@ excludes = [
     "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
      ]
 include_files = ["basilisk/res"]
-includes = ["numpy"]
-packages = ["numpy", "basilisk.provider_engine"]
+includes = ["numpy", "httplib2.socks"]
+packages = ["numpy", "google.generativeai", "basilisk.provider_engine"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
-    "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
-    "distro", "dotenv", "encodings", "email",
-    "h11", "html", "httpcore", "http", "httpx",
+    "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
+    "distro", "dotenv", "encodings", "email", "google", "googleapiclient", "grpc_status",
+    "h11", "html", "httpcore", "http", "httplib2", "httpx",
     "idna", "importlib", "jiter", "json", "logging",
-    "openai", "numpy", "platformdirs", "pycparser", "PIL", "psutil", "pydantic", "pydantic_core", "pydantic_settings",
-    "re", "sniffio", "tokenizers", "urllib",
+    "openai", "numpy", "PIL", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings",
+    "re", "rsa", "requests", "sniffio", "tokenizers", "tqdm", "uritemplate", "urllib", "urllib3",
     "watchdog", "xml", "yaml", "zipfile", "zoneinfo",
     "basilisk"]
