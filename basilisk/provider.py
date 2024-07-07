@@ -1,12 +1,14 @@
 from __future__ import annotations
+import time
+import logging
 from enum import Enum
+from functools import cached_property
 from typing import Optional, Iterable, Any, Type
 from pydantic import BaseModel, HttpUrl, Field
-from logging import getLogger
 from .provider_engine.base_engine import BaseEngine
 
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class ProviderAPIType(Enum):
@@ -31,15 +33,21 @@ class Provider(BaseModel):
 	env_var_name_organization_key: Optional[str] = Field(default=None)
 	engine_cls_path: str
 
-	@property
+	@cached_property
 	def engine_cls(self) -> Type[BaseEngine]:
 		"""
 		Get engine class
 		"""
+		start = time.time()
 		try:
 			module_path, class_name = self.engine_cls_path.rsplit(".", 1)
 			module = __import__(module_path, fromlist=[class_name])
-			return getattr(module, class_name)
+			end = time.time()
+			cls = getattr(module, class_name)
+			log.debug(
+				f"Loaded engine class '{class_name}' in {end - start:.3f} seconds"
+			)
+			return cls
 		except ImportError as e:
 			log.error(f"Error importing engine class: {e}")
 			raise e

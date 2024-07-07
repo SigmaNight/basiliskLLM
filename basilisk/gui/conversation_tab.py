@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import os
 import re
@@ -5,6 +6,7 @@ import threading
 import time
 import wx
 import basilisk.config as config
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from basilisk.conversation import (
@@ -19,10 +21,11 @@ from basilisk import global_vars
 from basilisk.image_file import ImageFile, URL_PATTERN, get_image_dimensions
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
-from basilisk.provider_engine.base_engine import BaseEngine
 from basilisk.recording_thread import RecordingThread
 from basilisk.sound_manager import play_sound, stop_sound
 
+if TYPE_CHECKING:
+	from basilisk.provider_engine.base_engine import BaseEngine
 log = logging.getLogger(__name__)
 
 
