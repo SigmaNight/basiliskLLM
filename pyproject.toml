@@ -90,7 +90,7 @@ excludes = [
      ]
 include_files = ["basilisk/res"]
 includes = ["numpy"]
-packages = ["numpy"]
+packages = ["numpy", "basilisk.provider_engine"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
