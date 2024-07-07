@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from base64 import b64decode
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -133,6 +134,19 @@ class GeminiEngine(BaseEngine):
 				"System role must be set on the model instance"
 			)
 
+	def convert_image(self, image: dict[str, str]) -> genai.protos.Part:
+		if image["url"].startswith("data:"):
+			image_media_type, image_data = image["url"].split(";", 1)
+			image_media_type = image_media_type.split(":", 1)[1]
+			image_data = image_data.split(",", 1)[1]
+			return genai.protos.Part(
+				inline_data=genai.protos.Blob(
+					mime_type=image_media_type, data=b64decode(image_data)
+				)
+			)
+		else:
+			raise ValueError("Unsupported content type")
+
 	def convert_message_content(
 		self, message: Message
 	) -> list[genai.protos.Part]:
@@ -141,7 +155,7 @@ class GeminiEngine(BaseEngine):
 			if isinstance(content, TextMessageContent):
 				parts.append(genai.protos.Part(text=content.text))
 			elif isinstance(content, ImageUrlMessageContent):
-				parts.append(genai.protos.Part(inline_data=content.url))
+				parts.append(self.convert_image(content.image_url))
 			elif isinstance(content, str):
 				parts.append(genai.protos.Part(text=content))
 			else:
