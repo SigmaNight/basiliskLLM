@@ -67,6 +67,7 @@ class OpenAIEngine(BaseEngine):
 				context_window=128000,
 				max_output_tokens=4096,
 				vision=True,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-turbo",
@@ -77,6 +78,7 @@ class OpenAIEngine(BaseEngine):
 				context_window=128000,
 				max_output_tokens=4096,
 				vision=True,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-3.5-turbo",
@@ -86,6 +88,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=16385,
 				max_output_tokens=4096,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-3.5-turbo-0125",
@@ -95,6 +98,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=16385,
 				max_output_tokens=4096,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-turbo-preview",
@@ -104,6 +108,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=128000,
 				max_output_tokens=4096,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-0125-preview",
@@ -113,6 +118,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=128000,
 				max_output_tokens=4096,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-1106-preview",
@@ -122,6 +128,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=128000,
 				max_output_tokens=4096,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-vision-preview",
@@ -132,6 +139,7 @@ class OpenAIEngine(BaseEngine):
 				context_window=128000,
 				max_output_tokens=4096,
 				vision=True,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-0613",
@@ -140,6 +148,7 @@ class OpenAIEngine(BaseEngine):
 					"More capable than any GPT-3.5 ProviderAIModel, able to do more complex tasks, and optimized for chat"
 				),
 				max_output_tokens=8192,
+				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-32k-0613",
@@ -149,6 +158,7 @@ class OpenAIEngine(BaseEngine):
 				),
 				context_window=32768,
 				max_output_tokens=8192,
+				max_temperature=2.0,
 			),
 		]
 
