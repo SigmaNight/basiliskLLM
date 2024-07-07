@@ -7,9 +7,9 @@ import threading
 import time
 from typing import TYPE_CHECKING
 from uuid import UUID
-from wx.lib.agw.floatspin import FloatSpin
 
 import wx
+from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
 from basilisk import global_vars
