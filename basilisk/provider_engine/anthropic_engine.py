@@ -20,7 +20,7 @@ from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 log = logging.getLogger(__name__)
 
 
-class AnthropicAIEngine(BaseEngine):
+class AnthropicEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
