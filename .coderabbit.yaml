@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+early_access: true
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: false
+  collapse_walkthrough: false
+  path_filters:
+    - "!basilisk/res/**"
+  path_instructions: []
+  tools:
+    github-checks:
+      enabled: true
+    languagetool:
+      enabled: true
+    markdownlint:
+      enabled: true
+    ruff:
+      enabled: true
+    yamllint:
+      enabled: true
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    drafts: false
+    base_branches:
+      - master
+chat:
+  auto_reply: true
