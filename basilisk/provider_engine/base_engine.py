@@ -74,9 +74,7 @@ class BaseEngine(ABC):
 		pass
 
 	@abstractmethod
-	def completion_response_with_stream(
-		self, response: Any, new_block: MessageBlock, debug: bool, **kwargs
-	) -> MessageBlock:
+	def completion_response_with_stream(self, stream: Any, **kwargs):
 		"""
 		Response with stream
 		"""
@@ -84,7 +82,7 @@ class BaseEngine(ABC):
 
 	@abstractmethod
 	def completion_response_without_stream(
-		self, response: Any, new_block: MessageBlock, debug: bool, **kwargs
+		self, response: Any, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""
 		Response without stream
