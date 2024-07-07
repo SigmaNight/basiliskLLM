@@ -2,7 +2,7 @@ from __future__ import annotations
 import logging
 import google.generativeai as genai
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 
 from basilisk.conversation import (
@@ -223,6 +223,9 @@ class GeminiEngine(BaseEngine):
 		return new_block
 
 	def completion_response_with_stream(
-		self, stream: Any, new_block: MessageBlock, **kwargs
-	) -> MessageBlock:
-		raise NotImplementedError("Stream completion not supported for Gemini")
+		self, stream: genai.types.GenerateContentResponse, **kwargs
+	):
+		for chunk in stream:
+			chunk_text = chunk.text
+			if chunk_text:
+				yield self.normalize_linesep(chunk_text)
