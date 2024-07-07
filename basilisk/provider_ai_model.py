@@ -13,7 +13,7 @@ class ProviderAIModel:
 	description: str | None = field(default=None)
 	context_window: int = field(default=0)
 	max_output_tokens: int = field(default=-1)
-	max_temperature: float = field(default=2)
+	max_temperature: float = field(default=2.0)
 	default_temperature: float = field(default=1)
 	vision: bool = field(default=False)
 	preview: bool = field(default=False)

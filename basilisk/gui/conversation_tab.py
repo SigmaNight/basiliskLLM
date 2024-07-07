@@ -463,7 +463,7 @@ class ConversationTab(wx.Panel):
 		if model_index == wx.NOT_FOUND:
 			return
 		model = self.current_engine.models[model_index]
-		self.temperature_spinner.SetMax(int(model.max_temperature))
+		self.temperature_spinner.SetMax(model.max_temperature)
 		self.temperature_spinner.SetValue(model.max_temperature / 2)
 		max_tokens = model.max_output_tokens
 		if max_tokens < 1:

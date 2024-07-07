@@ -39,7 +39,7 @@ class OpenRouterEngine(OpenAIEngine):
 							"max_completion_tokens"
 						)
 						or -1,
-						max_temperature=2,
+						max_temperature=2.0,
 						vision="#multimodal" in model['description'],
 						preview="-preview" in model['id'],
 						extra_info={
