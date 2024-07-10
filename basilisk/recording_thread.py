@@ -40,9 +40,10 @@ class RecordingThread(threading.Thread):
 		self.recordings_settings = recordings_settings
 		self.response_format = response_format
 		self.conversation_tab = conversation_tab
+		self.daemon = True
 		self._recording = False
-		self._stopRecord = False
-		self._wantAbort = 0
+		self._stop_record = False
+		self._want_abort = False
 
 	def run(self):
 		if not self.audio_file_path:
@@ -54,7 +55,7 @@ class RecordingThread(threading.Thread):
 			wx.CallAfter(self.conversation_tab.on_recording_stopped)
 			log.debug("Recording stopped")
 
-			if self._wantAbort:
+			if self._want_abort:
 				return
 			self.save_wav(
 				self.audio_file_path,
@@ -73,17 +74,17 @@ class RecordingThread(threading.Thread):
 			channels=self.recordings_settings.channels,
 			dtype=self.recordings_settings.dtype,
 		) as stream:
-			while not self._stopRecord and self._recording:
+			while not self._stop_record and self._recording:
 				frame, overflowed = stream.read(chunk_size)
 				if overflowed:
 					log.error("Audio buffer has overflowed.")
 				self.audio_data = np_append(self.audio_data, frame)
-				if self._wantAbort:
+				if self._want_abort:
 					break
 		self._recording = False
 
 	def save_wav(self, filename: str, data, sample_rate: int):
-		if self._wantAbort:
+		if self._want_abort:
 			return
 		wavefile = wave.open(filename, "wb")
 		wavefile.setnchannels(self.recordings_settings.channels)
@@ -93,14 +94,14 @@ class RecordingThread(threading.Thread):
 		wavefile.close()
 
 	def stop(self):
-		self._stopRecord = True
+		self._stop_record = True
 		self._recording = False
 
 	def get_filename(self):
 		return os.path.join(tempfile.gettempdir(), "basilisk_last_record.wav")
 
 	def process_transcription(self, audio_file_path: str):
-		if self._wantAbort:
+		if self._want_abort:
 			return
 		try:
 			log.debug("Getting transcription from audio file")
@@ -108,7 +109,7 @@ class RecordingThread(threading.Thread):
 				audio_file_path=audio_file_path,
 				response_format=self.response_format,
 			)
-			if self._wantAbort:
+			if self._want_abort:
 				return
 			wx.CallAfter(
 				self.conversation_tab.on_transcription_received, transcription
@@ -118,5 +119,5 @@ class RecordingThread(threading.Thread):
 			wx.CallAfter(self.conversation_tab.on_transcription_error, str(err))
 
 	def abort(self):
-		self._stopRecord = 1
-		self._wantAbort = 1
+		self._stop_record = True
+		self._want_abort = True

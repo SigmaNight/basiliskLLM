@@ -5,7 +5,7 @@ import os
 import re
 import threading
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Type
 from uuid import UUID
 
 import wx
@@ -24,11 +24,11 @@ from basilisk.conversation import (
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
-from basilisk.recording_thread import RecordingThread
 from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
+	from basilisk.recording_thread import RecordingThread
 log = logging.getLogger(__name__)
 
 
@@ -44,13 +44,15 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 
 
 class ConversationTab(wx.Panel):
+	recording_thread_cls: Optional[Type[RecordingThread]] = None
+
 	def __init__(self, parent: wx.Window):
 		wx.Panel.__init__(self, parent)
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
 		self.last_time = 0
-		self.recording_thread: RecordingThread = None
+		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
 		self.stream_buffer = ""
 		self._messages_already_focused = False
@@ -671,13 +673,17 @@ class ConversationTab(wx.Panel):
 		return content
 
 	def transcribe_audio_file(self, audio_file: str = None):
-		self.recording_thread = RecordingThread(
+		if not self.recording_thread_cls:
+			module = __import__(
+				"basilisk.recording_thread", fromlist=["RecordingThread"]
+			)
+			self.recording_thread_cls = getattr(module, "RecordingThread")
+		self.recording_thread = self.recording_thread_cls(
 			provider_engine=self.current_engine,
 			recordings_settings=config.conf.recordings,
 			conversation_tab=self,
 			audio_file_path=audio_file,
 		)
-		self.recording_thread.daemon = True
 		self.recording_thread.start()
 
 	def on_transcribe_audio_file(self):
