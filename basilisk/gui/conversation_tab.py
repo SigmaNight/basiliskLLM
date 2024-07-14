@@ -5,7 +5,7 @@ import os
 import re
 import threading
 import time
-from typing import TYPE_CHECKING, Optional, Type
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 import wx
@@ -44,8 +44,6 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 
 
 class ConversationTab(wx.Panel):
-	recording_thread_cls: Optional[Type[RecordingThread]] = None
-
 	def __init__(self, parent: wx.Window):
 		wx.Panel.__init__(self, parent)
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
@@ -673,12 +671,14 @@ class ConversationTab(wx.Panel):
 		return content
 
 	def transcribe_audio_file(self, audio_file: str = None):
-		if not self.recording_thread_cls:
+		if not self.recording_thread:
 			module = __import__(
 				"basilisk.recording_thread", fromlist=["RecordingThread"]
 			)
-			self.recording_thread_cls = getattr(module, "RecordingThread")
-		self.recording_thread = self.recording_thread_cls(
+			recording_thread_cls = getattr(module, "RecordingThread")
+		else:
+			recording_thread_cls = self.recording_thread.__class__
+		self.recording_thread = recording_thread_cls(
 			provider_engine=self.current_engine,
 			recordings_settings=config.conf.recordings,
 			conversation_tab=self,
