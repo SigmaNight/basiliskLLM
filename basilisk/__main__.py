@@ -10,9 +10,21 @@ from basilisk.file_watcher import send_focus_signal
 from basilisk.singleton_instance import SingletonInstance
 
 
+def display_already_running_msg():
+	import ctypes
+
+	ctypes.windll.user32.MessageBoxW(
+		0,
+		f"{APP_NAME} is already running. Use the tray icon to interact with the application or AltGr+Shift+B to focus the window.",
+		APP_NAME,
+		0x40 | 0x0,
+	)
+
+
 def parse_args():
 	parser = argparse.ArgumentParser(
-		description="Runs the application with customized configurations."
+		prog=APP_NAME,
+		description="Runs the application with customized configurations.",
 	)
 	parser.add_argument(
 		"--language", "-l", help="Set the application language", default=None
@@ -33,6 +45,7 @@ def parse_args():
 		"-n",
 		help="Show message window if application is already running",
 		action="store_true",
+		dest="show_already_running_msg",
 	)
 	return parser.parse_args()
 
@@ -46,15 +59,8 @@ if __name__ == '__main__':
 		if existing_pid:
 			try:
 				psutil.Process(existing_pid)
-				if "-n" in sys.argv:
-					import ctypes
-
-					ctypes.windll.user32.MessageBoxW(
-						0,
-						f"{APP_NAME} is already running. Use the tray icon to interact with the application or AltGr+Shift+B to focus the window.",
-						APP_NAME,
-						0x40 | 0x0,
-					)
+				if global_vars.args.show_already_running_msg:
+					display_already_running_msg()
 				else:
 					send_focus_signal()
 				sys.exit(0)
