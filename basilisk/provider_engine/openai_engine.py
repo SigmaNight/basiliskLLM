@@ -59,10 +59,21 @@ class OpenAIEngine(BaseEngine):
 		log.debug("Getting openAI models")
 		return [
 			ProviderAIModel(
+				id="gpt-4o-mini",
+				# Translators: This is a ProviderAIModel description
+				description=_(
+					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo. Currently points to gpt-4o-mini-2024-07-18"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
 				id="gpt-4o",
 				# Translators: This is a ProviderAIModel description
 				description=_(
-					"Our most advanced, multimodal flagship model that’s cheaper and faster than GPT-4 Turbo"
+					"Our high-intelligence flagship model for complex, multi-step tasks"
 				),
 				context_window=128000,
 				max_output_tokens=4096,
@@ -87,7 +98,6 @@ class OpenAIEngine(BaseEngine):
 					"Points to one of the most recent iterations of gpt-3.5 ProviderAIModel."
 				),
 				context_window=16385,
-				max_output_tokens=4096,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
@@ -97,7 +107,6 @@ class OpenAIEngine(BaseEngine):
 					"The latest GPT-3.5 Turbo ProviderAIModel with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls."
 				),
 				context_window=16385,
-				max_output_tokens=4096,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
