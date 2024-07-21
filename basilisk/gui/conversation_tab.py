@@ -119,6 +119,7 @@ class ConversationTab(wx.Panel):
 		)
 		self.prompt.Bind(wx.EVT_KEY_DOWN, self.on_prompt_key_down)
 		self.prompt.Bind(wx.EVT_CONTEXT_MENU, self.on_prompt_context_menu)
+		self.prompt.Bind(wx.EVT_TEXT_PASTE, self.on_prompt_paste)
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
@@ -560,6 +561,20 @@ class ConversationTab(wx.Panel):
 		elif modifiers == wx.ACCEL_CTRL and key_code == wx.WXK_RETURN:
 			self.on_submit(event)
 		event.Skip()
+
+	def on_prompt_paste(self, event):
+		if wx.TheClipboard.Open():
+			if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+				log.debug("Pasting files from clipboard")
+				file_data = wx.FileDataObject()
+				wx.TheClipboard.GetData(file_data)
+				paths = file_data.GetFilenames()
+				self.add_images(paths)
+				event.StopPropagation()
+			else:
+				log.debug("Pasting text from clipboard")
+				event.Skip()
+		wx.TheClipboard.Close()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		if event.GetKeyCode() == wx.WXK_RETURN:
