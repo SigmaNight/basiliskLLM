@@ -111,14 +111,22 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, lambda e: self.on_add_image(e, True), add_image_url
 		)
-		self.transcribe_audio_microphone_item = conversation_menu.Append(
+		transcribe_audio_microphone_item = conversation_menu.Append(
 			wx.ID_ANY, _("Transcribe audio from microphone") + "... (Ctrl+R)"
 		)
-		self.Bind(wx.EVT_MENU, lambda e: self.on_transcribe_audio(e, True))
-		self.transcribe_audio_file_item = conversation_menu.Append(
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_transcribe_audio(e, True),
+			transcribe_audio_microphone_item,
+		)
+		transcribe_audio_file_item = conversation_menu.Append(
 			wx.ID_ANY, _("Transcribe audio file") + "... (Ctrl+Shift+R)"
 		)
-		self.Bind(wx.EVT_MENU, lambda e: self.on_transcribe_audio(e, False))
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_transcribe_audio(e, False),
+			transcribe_audio_file_item,
+		)
 		conversation_menu.AppendSeparator()
 		manage_accounts_item = conversation_menu.Append(
 			wx.ID_ANY,
@@ -395,7 +403,7 @@ class MainFrame(wx.Frame):
 				self.SetTitle(f"Conversation {current_tab_count} - {APP_NAME}")
 
 	@property
-	def current_tab(self):
+	def current_tab(self) -> ConversationTab:
 		return self.tabs_panels[self.notebook.GetSelection()]
 
 	def on_add_image(self, event, from_url=False):
