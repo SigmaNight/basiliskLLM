@@ -325,7 +325,9 @@ class ConversationTab(wx.Panel):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
-
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Paste") + " (Ctrl+V)")
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_files, item)
@@ -342,9 +344,35 @@ class ConversationTab(wx.Panel):
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
 			self.on_copy_image_url(None)
+		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
+			self.on_image_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
 			self.on_images_remove(None)
 		event.Skip()
+
+	def on_image_paste(self, event: wx.CommandEvent):
+		if wx.TheClipboard.Open():
+			if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+				log.debug("Pasting files from clipboard")
+				file_data = wx.FileDataObject()
+				wx.TheClipboard.GetData(file_data)
+				paths = file_data.GetFilenames()
+				self.add_images(paths)
+			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
+				log.debug("Pasting text from clipboard")
+				text_data = wx.TextDataObject()
+				wx.TheClipboard.GetData(text_data)
+				url = text_data.GetText()
+				if re.fullmatch(URL_PATTERN, url):
+					self.add_images([ImageFile(location=url)])
+				else:
+					log.info("Invalid URL, paste the text in the prompt")
+					self.prompt.AppendText(text_data.GetText())
+					self.prompt.SetInsertionPointEnd()
+					self.prompt.SetFocus()
+			else:
+				log.info("Unsupported clipboard data")
+			wx.TheClipboard.Close()
 
 	def add_image_files(self, event: wx.CommandEvent = None):
 		file_dialog = wx.FileDialog(
@@ -563,18 +591,7 @@ class ConversationTab(wx.Panel):
 		event.Skip()
 
 	def on_prompt_paste(self, event):
-		if wx.TheClipboard.Open():
-			if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
-				log.debug("Pasting files from clipboard")
-				file_data = wx.FileDataObject()
-				wx.TheClipboard.GetData(file_data)
-				paths = file_data.GetFilenames()
-				self.add_images(paths)
-				event.StopPropagation()
-			else:
-				log.debug("Pasting text from clipboard")
-				event.Skip()
-		wx.TheClipboard.Close()
+		self.on_image_paste(event)
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		if event.GetKeyCode() == wx.WXK_RETURN:
