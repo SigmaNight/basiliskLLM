@@ -67,6 +67,7 @@ skip-magic-trailing-comma = true
 extend-select = ["INT","I"]
 [tool.ruff.lint.isort]
 known-first-party = ["basilisk"]
+split-on-trailing-comma = false
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"
