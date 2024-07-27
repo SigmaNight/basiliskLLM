@@ -371,6 +371,8 @@ class ConversationTab(wx.Panel):
 					self.prompt.AppendText(text)
 					self.prompt.SetInsertionPointEnd()
 					self.prompt.SetFocus()
+			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+				log.debug("Pasting bitmap from clipboard")
 			else:
 				log.info("Unsupported clipboard data")
 			wx.TheClipboard.Close()
