@@ -368,8 +368,7 @@ class ConversationTab(wx.Panel):
 					self.add_image_from_url(text)
 				else:
 					log.info("Pasting text from clipboard")
-					self.prompt.AppendText(text)
-					self.prompt.SetInsertionPointEnd()
+					self.prompt.WriteText(text)
 					self.prompt.SetFocus()
 			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
 				log.debug("Pasting bitmap from clipboard")
