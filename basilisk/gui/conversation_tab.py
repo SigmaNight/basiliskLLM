@@ -119,6 +119,7 @@ class ConversationTab(wx.Panel):
 		)
 		self.prompt.Bind(wx.EVT_KEY_DOWN, self.on_prompt_key_down)
 		self.prompt.Bind(wx.EVT_CONTEXT_MENU, self.on_prompt_context_menu)
+		self.prompt.Bind(wx.EVT_TEXT_PASTE, self.on_prompt_paste)
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
@@ -324,14 +325,18 @@ class ConversationTab(wx.Panel):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
-
+		item = wx.MenuItem(
+			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_files, item)
 
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
 		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_image_url, item)
+		self.Bind(wx.EVT_MENU, self.add_image_url_dlg, item)
 
 		self.images_list.PopupMenu(menu)
 		menu.Destroy()
@@ -341,9 +346,37 @@ class ConversationTab(wx.Panel):
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
 			self.on_copy_image_url(None)
+		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
+			self.on_image_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
 			self.on_images_remove(None)
 		event.Skip()
+
+	def on_image_paste(self, event: wx.CommandEvent):
+		if wx.TheClipboard.Open():
+			if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+				log.debug("Pasting files from clipboard")
+				file_data = wx.FileDataObject()
+				wx.TheClipboard.GetData(file_data)
+				paths = file_data.GetFilenames()
+				self.add_images(paths)
+			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
+				log.debug("Pasting text from clipboard")
+				text_data = wx.TextDataObject()
+				wx.TheClipboard.GetData(text_data)
+				text = text_data.GetText()
+				if re.fullmatch(URL_PATTERN, text):
+					log.info("Pasting URL from clipboard, adding image")
+					self.add_image_from_url(text)
+				else:
+					log.info("Pasting text from clipboard")
+					self.prompt.WriteText(text)
+					self.prompt.SetFocus()
+			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+				log.debug("Pasting bitmap from clipboard")
+			else:
+				log.info("Unsupported clipboard data")
+			wx.TheClipboard.Close()
 
 	def add_image_files(self, event: wx.CommandEvent = None):
 		file_dialog = wx.FileDialog(
@@ -358,7 +391,7 @@ class ConversationTab(wx.Panel):
 			self.add_images(paths)
 		file_dialog.Destroy()
 
-	def add_image_url(self, event: wx.CommandEvent = None):
+	def add_image_url_dlg(self, event: wx.CommandEvent = None):
 		url_dialog = wx.TextEntryDialog(
 			self,
 			# Translators: This is a label for image URL in conversation tab
@@ -370,12 +403,15 @@ class ConversationTab(wx.Panel):
 		url = url_dialog.GetValue()
 		if not url:
 			return
-		url_pattern = re.compile(URL_PATTERN)
-		if re.match(url_pattern, url) is None:
+		if not re.fullmatch(URL_PATTERN, url):
 			wx.MessageBox(
 				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
+		self.add_image_from_url(url)
+		url_dialog.Destroy()
+
+	def add_image_from_url(self, url: str):
 		try:
 			import urllib.request
 
@@ -429,7 +465,6 @@ class ConversationTab(wx.Panel):
 				)
 			]
 		)
-		url_dialog.Destroy()
 
 	def on_images_remove(self, event: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()
@@ -524,12 +559,15 @@ class ConversationTab(wx.Panel):
 		self.on_model_change(None)
 		self.update_ui()
 
-	def add_standard_context_menu_items(self, menu: wx.Menu):
+	def add_standard_context_menu_items(
+		self, menu: wx.Menu, include_paste: bool = True
+	):
 		menu.Append(wx.ID_UNDO)
 		menu.Append(wx.ID_REDO)
 		menu.Append(wx.ID_CUT)
 		menu.Append(wx.ID_COPY)
-		menu.Append(wx.ID_PASTE)
+		if include_paste:
+			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
 	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
@@ -543,8 +581,13 @@ class ConversationTab(wx.Panel):
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Submit") + " (Ctrl+Enter)")
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
+		item = wx.MenuItem(
+			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)
 
-		self.add_standard_context_menu_items(menu)
+		self.add_standard_context_menu_items(menu, include_paste=False)
 		self.prompt.PopupMenu(menu)
 		menu.Destroy()
 
@@ -560,6 +603,9 @@ class ConversationTab(wx.Panel):
 		elif modifiers == wx.ACCEL_CTRL and key_code == wx.WXK_RETURN:
 			self.on_submit(event)
 		event.Skip()
+
+	def on_prompt_paste(self, event):
+		self.on_image_paste(event)
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		if event.GetKeyCode() == wx.WXK_RETURN:
