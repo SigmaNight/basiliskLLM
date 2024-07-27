@@ -325,7 +325,9 @@ class ConversationTab(wx.Panel):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Paste") + " (Ctrl+V)")
+		item = wx.MenuItem(
+			menu, wx.ID_PASTE, _("Paste (image or text)") + " (Ctrl+V)"
+		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
@@ -557,12 +559,15 @@ class ConversationTab(wx.Panel):
 		self.on_model_change(None)
 		self.update_ui()
 
-	def add_standard_context_menu_items(self, menu: wx.Menu):
+	def add_standard_context_menu_items(
+		self, menu: wx.Menu, include_paste: bool = True
+	):
 		menu.Append(wx.ID_UNDO)
 		menu.Append(wx.ID_REDO)
 		menu.Append(wx.ID_CUT)
 		menu.Append(wx.ID_COPY)
-		menu.Append(wx.ID_PASTE)
+		if include_paste:
+			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
 	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
@@ -576,8 +581,12 @@ class ConversationTab(wx.Panel):
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Submit") + " (Ctrl+Enter)")
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
+		item = wx.MenuItem(
+			menu, wx.ID_PASTE, _("Paste (image or text)") + " (Ctrl+V)"
+		)
+		menu.Append(item)
 
-		self.add_standard_context_menu_items(menu)
+		self.add_standard_context_menu_items(menu, include_paste=False)
 		self.prompt.PopupMenu(menu)
 		menu.Destroy()
 
