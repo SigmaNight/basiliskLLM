@@ -334,7 +334,7 @@ class ConversationTab(wx.Panel):
 
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
 		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_image_url, item)
+		self.Bind(wx.EVT_MENU, self.add_image_url_dlg, item)
 
 		self.images_list.PopupMenu(menu)
 		menu.Destroy()
@@ -362,12 +362,13 @@ class ConversationTab(wx.Panel):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
 				wx.TheClipboard.GetData(text_data)
-				url = text_data.GetText()
-				if re.fullmatch(URL_PATTERN, url):
-					self.add_images([ImageFile(location=url)])
+				text = text_data.GetText()
+				if re.fullmatch(URL_PATTERN, text):
+					log.info("Pasting URL from clipboard, adding image")
+					self.add_image_from_url(text)
 				else:
-					log.info("Invalid URL, paste the text in the prompt")
-					self.prompt.AppendText(text_data.GetText())
+					log.info("Pasting text from clipboard")
+					self.prompt.AppendText(text)
 					self.prompt.SetInsertionPointEnd()
 					self.prompt.SetFocus()
 			else:
@@ -387,7 +388,7 @@ class ConversationTab(wx.Panel):
 			self.add_images(paths)
 		file_dialog.Destroy()
 
-	def add_image_url(self, event: wx.CommandEvent = None):
+	def add_image_url_dlg(self, event: wx.CommandEvent = None):
 		url_dialog = wx.TextEntryDialog(
 			self,
 			# Translators: This is a label for image URL in conversation tab
@@ -399,12 +400,15 @@ class ConversationTab(wx.Panel):
 		url = url_dialog.GetValue()
 		if not url:
 			return
-		url_pattern = re.compile(URL_PATTERN)
-		if re.match(url_pattern, url) is None:
+		if not re.fullmatch(URL_PATTERN, url):
 			wx.MessageBox(
 				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
+		self.add_image_from_url(url)
+		url_dialog.Destroy()
+
+	def add_image_from_url(self, url: str):
 		try:
 			import urllib.request
 
@@ -458,7 +462,6 @@ class ConversationTab(wx.Panel):
 				)
 			]
 		)
-		url_dialog.Destroy()
 
 	def on_images_remove(self, event: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()
