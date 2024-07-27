@@ -128,15 +128,6 @@ class MainFrame(wx.Frame):
 			transcribe_audio_file_item,
 		)
 		conversation_menu.AppendSeparator()
-		manage_accounts_item = conversation_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to manage accounts
-			_("Manage &accounts") + "... (Ctrl+Shift+A)",
-		)
-		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
-		preferences_item = conversation_menu.Append(wx.ID_PREFERENCES)
-		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
-		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
 		self.signal_received = False
@@ -146,6 +137,16 @@ class MainFrame(wx.Frame):
 		self.timer.Start(100)
 
 		tool_menu = wx.Menu()
+		manage_accounts_item = tool_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage accounts
+			_("Manage &accounts") + "... (Ctrl+Shift+A)",
+		)
+		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
+		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
+		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
+		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")
+		tool_menu.AppendSeparator()
 		install_nvda_addon = tool_menu.Append(
 			wx.ID_ANY, _("Install NVDA addon")
 		)
