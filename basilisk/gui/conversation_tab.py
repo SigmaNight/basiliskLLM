@@ -326,7 +326,7 @@ class ConversationTab(wx.Panel):
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
 		item = wx.MenuItem(
-			menu, wx.ID_PASTE, _("Paste (image or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
@@ -582,9 +582,10 @@ class ConversationTab(wx.Panel):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
 		item = wx.MenuItem(
-			menu, wx.ID_PASTE, _("Paste (image or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
 		)
 		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)
 
 		self.add_standard_context_menu_items(menu, include_paste=False)
 		self.prompt.PopupMenu(menu)
