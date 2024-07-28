@@ -353,17 +353,17 @@ class ConversationTab(wx.Panel):
 		event.Skip()
 
 	def on_image_paste(self, event: wx.CommandEvent):
-		if wx.TheClipboard.Open():
-			if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
+		with wx.TheClipboard as clipboard:
+			if clipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
 				log.debug("Pasting files from clipboard")
 				file_data = wx.FileDataObject()
-				wx.TheClipboard.GetData(file_data)
+				clipboard.GetData(file_data)
 				paths = file_data.GetFilenames()
 				self.add_images(paths)
-			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
+			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
-				wx.TheClipboard.GetData(text_data)
+				clipboard.GetData(text_data)
 				text = text_data.GetText()
 				if re.fullmatch(URL_PATTERN, text):
 					log.info("Pasting URL from clipboard, adding image")
@@ -372,11 +372,10 @@ class ConversationTab(wx.Panel):
 					log.info("Pasting text from clipboard")
 					self.prompt.WriteText(text)
 					self.prompt.SetFocus()
-			elif wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+			elif clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
 				log.debug("Pasting bitmap from clipboard")
 			else:
 				log.info("Unsupported clipboard data")
-			wx.TheClipboard.Close()
 
 	def add_image_files(self, event: wx.CommandEvent = None):
 		file_dialog = wx.FileDialog(
@@ -486,9 +485,8 @@ class ConversationTab(wx.Panel):
 		if selected == wx.NOT_FOUND:
 			return
 		url = self.image_files[selected].location
-		wx.TheClipboard.Open()
-		wx.TheClipboard.SetData(wx.TextDataObject(url))
-		wx.TheClipboard.Close()
+		with wx.TheClipboard as clipboard:
+			clipboard.SetData(wx.TextDataObject(url))
 
 	def on_model_change(self, event: wx.CommandEvent):
 		model_index = self.model_list.GetFirstSelected()
