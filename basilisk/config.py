@@ -101,9 +101,7 @@ class BasiliskConfig(BaseSettings):
 		yaml_file_encoding="UTF-8",
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
-	accounts: AccountManager = Field(
-		default_factory=lambda: AccountManager(list())
-	)
+	accounts: AccountManager = Field(default_factory=AccountManager)
 	images: ImagesSettings = Field(default_factory=ImagesSettings)
 	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)

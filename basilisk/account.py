@@ -141,7 +141,9 @@ class Account(BaseModel):
 		)
 
 
-class AccountManager(RootModel[list[OnErrorOmit[Account]]]):
+class AccountManager(RootModel):
+	root: list[OnErrorOmit[Account]] = Field(default=list())
+
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
