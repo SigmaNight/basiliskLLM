@@ -43,7 +43,7 @@ numpy = "^2.0.1"
 google-generativeai = "^0.7.2"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.5.4"
+ruff = "^0.5.6"
 pre-commit = "^3.7.1"
 commitizen = "^3.28.0"
 babel = "^2.15.0"
