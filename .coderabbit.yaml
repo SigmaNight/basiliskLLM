@@ -28,6 +28,8 @@ reviews:
     ignore_title_keywords:
       - "WIP"
       - "DO NOT MERGE"
+      - "chore(deps):"
+      - "chore(deps-dev):"
     drafts: false
     base_branches:
       - master
