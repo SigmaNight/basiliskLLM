@@ -30,6 +30,7 @@ reviews:
       - "DO NOT MERGE"
       - "chore(deps):"
       - "chore(deps-dev):"
+      - "ci(deps):"
     drafts: false
     base_branches:
       - master
