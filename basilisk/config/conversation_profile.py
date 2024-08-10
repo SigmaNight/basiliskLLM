@@ -54,6 +54,10 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	_profiles_name: set[str] = PrivateAttr(default_factory=set)
 
 	@property
+	def profiles_name(self) -> set[str]:
+		return self._profiles_name
+
+	@property
 	def default_profile(self) -> ConversationProfile:
 		return self[self.default_profile_name]
 

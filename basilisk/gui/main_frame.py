@@ -68,6 +68,12 @@ class MainFrame(wx.Frame):
 			_("New conversation") + " (Ctrl+N)",
 		)
 		self.Bind(wx.EVT_MENU, self.on_new_conversation, new_conversation_item)
+
+		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
+			self.build_profile_menu(self.on_new_conversation),
+			# Translators: A label for a menu item to create a new conversation from a profile
+			_("New conversation from profile"),
+		)
 		open_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to open a conversation
@@ -182,7 +188,6 @@ class MainFrame(wx.Frame):
 		menu_bar.Append(tool_menu, _("Too&ls"))
 		menu_bar.Append(help_menu, _("&Help"))
 		self.SetMenuBar(menu_bar)
-
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		self.panel = wx.Panel(self)
 		minimize_taskbar = wx.Button(
@@ -472,7 +477,9 @@ class MainFrame(wx.Frame):
 			self, _("Manage conversation profiles")
 		)
 		if profile_dialog.ShowModal() == wx.ID_OK:
-			self.refresh_tabs()
+			self.new_conversation_profile_item.SetSubMenu(
+				self.build_profile_menu(self.on_new_conversation)
+			)
 
 	def on_install_nvda_addon(self, event):
 		import zipfile
@@ -567,3 +574,15 @@ class MainFrame(wx.Frame):
 			log.debug(f"Download dialog shown: {download_dialog.IsShown()}")
 
 		wx.CallAfter(show_dialog)
+
+	def build_profile_menu(self, event_handler) -> wx.Menu:
+		"""
+		Build the conversation profile menu.
+
+			:return: The conversation profile menu.
+		"""
+		profile_menu = wx.Menu()
+		for profile in config.conf.conversation_profiles:
+			profile_item = profile_menu.Append(wx.ID_ANY, profile.name)
+			self.Bind(wx.EVT_MENU, event_handler, profile_item)
+		return profile_menu
