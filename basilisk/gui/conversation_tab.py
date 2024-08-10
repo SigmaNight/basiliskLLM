@@ -57,9 +57,9 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 class ConversationTab(wx.Panel):
 	ROLE_LABELS: dict[MessageRoleEnum, str] = {
 		# Translators: Label indicating that the message is from the user in a conversation
-		MessageRoleEnum.USER: _("User:"),
+		MessageRoleEnum.USER: _("User:") + ' ',
 		# Translators: Label indicating that the message is from the assistant in a conversation
-		MessageRoleEnum.ASSISTANT: _("Assistant:"),
+		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
 	def __init__(self, parent: wx.Window):
@@ -661,12 +661,32 @@ class ConversationTab(wx.Panel):
 	def move_to_start_of_message(self):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
+		if (
+			self.message_segment_manager.current_segment.kind
+			== MessageSegmentType.PREFIX
+		):
+			self.message_segment_manager.next(MessageSegmentType.CONTENT)
+		elif (
+			self.message_segment_manager.current_segment.kind
+			== MessageSegmentType.SUFFIX
+		):
+			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
 
 	def move_to_end_of_message(self):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
-		self.messages.SetInsertionPoint(self.message_segment_manager.end)
+		if (
+			self.message_segment_manager.current_segment.kind
+			== MessageSegmentType.PREFIX
+		):
+			self.message_segment_manager.next(MessageSegmentType.CONTENT)
+		elif (
+			self.message_segment_manager.current_segment.kind
+			== MessageSegmentType.SUFFIX
+		):
+			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
+		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
 
 	def select_message(self):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -869,26 +889,34 @@ class ConversationTab(wx.Panel):
 		return text
 
 	def display_new_block(self, new_block: MessageBlock):
+		absolute_length = self.messages.GetLastPosition()
 		if not self.messages.IsEmpty():
 			self.messages.AppendText(os.linesep)
-			self.message_segment_manager.segments[-1].length += len(os.linesep)
+			relative_length = self.messages.GetLastPosition() - absolute_length
+			absolute_length = self.messages.GetLastPosition()
+			self.message_segment_manager.segments[-1].length += relative_length
 		role_label = (
 			config.conf.conversation.role_label_user
 			or self.ROLE_LABELS[new_block.request.role]
 		)
-		content = self.extract_text_from_message(new_block.request.content)
-		self.messages.AppendText(f"{role_label} {content}")
-		self.messages.AppendText(os.linesep)
+		self.messages.AppendText(role_label)
+		relative_length = self.messages.GetLastPosition() - absolute_length
+		absolute_length = self.messages.GetLastPosition()
 		self.message_segment_manager.append(
 			MessageSegment(
-				length=len(role_label) + 1,
+				length=relative_length,
 				kind=MessageSegmentType.PREFIX,
 				message_block=weakref.ref(new_block),
 			)
 		)
+
+		content = self.extract_text_from_message(new_block.request.content)
+		self.messages.AppendText(f"{content}{os.linesep}")
+		relative_length = self.messages.GetLastPosition() - absolute_length
+		absolute_length = self.messages.GetLastPosition()
 		self.message_segment_manager.append(
 			MessageSegment(
-				length=len(content) + len(os.linesep),
+				length=relative_length,
 				kind=MessageSegmentType.CONTENT,
 				message_block=weakref.ref(new_block),
 			)
@@ -900,18 +928,24 @@ class ConversationTab(wx.Panel):
 				config.conf.conversation.role_label_assistant
 				or self.ROLE_LABELS[new_block.response.role]
 			)
-			content = self.extract_text_from_message(new_block.response.content)
-			self.messages.AppendText(f"{role_label} {content}")
+			self.messages.AppendText(role_label)
+			relative_length = self.messages.GetLastPosition() - absolute_length
+			absolute_length = self.messages.GetLastPosition()
 			self.message_segment_manager.append(
 				MessageSegment(
-					length=len(role_label) + 1,
+					length=relative_length,
 					kind=MessageSegmentType.PREFIX,
 					message_block=weakref.ref(new_block),
 				)
 			)
+
+			content = self.extract_text_from_message(new_block.response.content)
+			self.messages.AppendText(content)
+			relative_length = self.messages.GetLastPosition() - absolute_length
+			absolute_length = self.messages.GetLastPosition()
 			self.message_segment_manager.append(
 				MessageSegment(
-					length=len(content),
+					length=relative_length,
 					kind=MessageSegmentType.CONTENT,
 					message_block=weakref.ref(new_block),
 				)

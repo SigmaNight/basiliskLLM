@@ -1,9 +1,12 @@
+import logging
 import weakref
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
 from basilisk.conversation import MessageBlock
+
+log = logging.getLogger(__name__)
 
 
 class MessageSegmentType(Enum):
@@ -121,6 +124,7 @@ class MessageSegmentManager:
 	def append(self, value: MessageSegment):
 		self.segments.append(value)
 		self._refresh_absolute_position()
+		log.debug(f"Appended {value} to {self}")
 
 	def remove(self, value: MessageSegment):
 		self.segments.remove(value)

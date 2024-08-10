@@ -4,8 +4,6 @@ from typing import List
 
 import wx
 
-from basilisk.utils import get_corrected_position
-
 
 class SearchDirection(Enum):
 	BACKWARD = 0
@@ -216,23 +214,17 @@ class SearchDialog(wx.Dialog):
 			)
 			return
 
-		cursor_pos = get_corrected_position(
-			self._text.GetInsertionPoint(), self._text.GetValue(), reverse=True
-		)
+		cursor_pos = self._text.GetInsertionPoint()
 		match_positions = [(match.start(), match.end()) for match in matches]
 
 		if self._search_direction == SearchDirection.FORWARD:
 			for start, end in match_positions:
 				if start > cursor_pos:
-					start = get_corrected_position(start, self._text.GetValue())
-					end = get_corrected_position(end, self._text.GetValue())
 					self._select_text(start, end)
 					return
 		else:
 			for start, end in reversed(match_positions):
 				if end < cursor_pos:
-					start = get_corrected_position(start, self._text.GetValue())
-					end = get_corrected_position(end, self._text.GetValue())
 					self._select_text(start, end)
 					return
 
