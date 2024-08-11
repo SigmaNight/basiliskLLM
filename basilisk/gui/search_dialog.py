@@ -16,11 +16,39 @@ class SearchMode(Enum):
 	REGEX = 2
 
 
+def adjust_utf16_position(
+	text: str, position: int, reverse: bool = False
+) -> int:
+	"""
+	Adjust the given position in the text to account for characters outside of the Basic Multilingual Plane (BMP).
+
+	Characters outside the BMP are represented by surrogate pairs in UTF-16, taking up two positions instead of one.
+	This function adjusts the given position to account for these surrogate pairs.
+
+	Parameters:
+	text (str): The input string.
+	position (int): The original position in the string.
+	reverse (bool): If True, the function will adjust the position in the reverse direction.
+
+	Returns:
+	int: The adjusted position reflecting the presence of surrogate pairs.
+	"""
+	relevant_text = text[:position]
+	count_high_surrogates = sum(1 for c in relevant_text if ord(c) >= 0x10000)
+	if reverse:
+		count_high_surrogates -= count_high_surrogates
+	count_line_breaks = sum(1 for c in relevant_text if c == '\n')
+	if reverse:
+		count_line_breaks -= count_line_breaks
+	return position + count_high_surrogates + count_line_breaks
+
+
 class SearchDialog(wx.Dialog):
 	def __init__(
 		self,
 		parent: wx.Window,
 		text: wx.TextCtrl,
+		# Translators: Search dialog title
 		title: str = _("Search"),
 		search_list: List[str] = [],
 	) -> None:
@@ -44,7 +72,11 @@ class SearchDialog(wx.Dialog):
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 
 		search_text_sizer = wx.BoxSizer(wx.HORIZONTAL)
-		search_label = wx.StaticText(self, label=_("Search for:"))
+		search_label = wx.StaticText(
+			self,
+			# Translators: Search dialog label
+			label=_("Search for:"),
+		)
 		self._search_text = wx.TextCtrl(self)
 		search_text_sizer.Add(search_label, flag=wx.ALL | wx.CENTER, border=5)
 		search_text_sizer.Add(
@@ -52,29 +84,54 @@ class SearchDialog(wx.Dialog):
 		)
 		main_sizer.Add(search_text_sizer, flag=wx.EXPAND)
 
-		direction_box = wx.StaticBox(self, label="Direction")
+		direction_box = wx.StaticBox(
+			self,
+			# Translators: Search dialog label
+			label=_("Direction"),
+		)
 		direction_sizer = wx.StaticBoxSizer(direction_box, wx.HORIZONTAL)
 
 		self._dir_radio_backward = wx.RadioButton(
-			self, label="Backward", style=wx.RB_GROUP
+			self,
+			# Translators: Search dialog label
+			label=_("Backward"),
+			style=wx.RB_GROUP,
 		)
-		self._dir_radio_forward = wx.RadioButton(self, label="Forward")
+		self._dir_radio_forward = wx.RadioButton(
+			self,
+			# Translators: Search dialog label
+			label=_("Forward"),
+		)
 
 		direction_sizer.Add(self._dir_radio_backward, flag=wx.ALL, border=5)
 		direction_sizer.Add(self._dir_radio_forward, flag=wx.ALL, border=5)
 
 		main_sizer.Add(direction_sizer, flag=wx.ALL | wx.EXPAND, border=10)
 
-		mode_box = wx.StaticBox(self, label="Mode")
+		mode_box = wx.StaticBox(
+			self,
+			# Translators: Search dialog label
+			label=_("Mode"),
+		)
 		mode_sizer = wx.StaticBoxSizer(mode_box, wx.HORIZONTAL)
 
 		self._mode_radio_plain = wx.RadioButton(
-			self, label="Plain Text", style=wx.RB_GROUP
+			self,
+			# Translators: Search dialog label
+			label=_("Plain Text"),
+			# Translators: Search dialog label
+			style=wx.RB_GROUP,
 		)
 		self._mode_radio_extended = wx.RadioButton(
-			self, label="Extended (\n, \t, \r...)"
+			self,
+			# Translators: Search dialog label
+			label=_("Extended") + r" (\n, \t, \r...)",
 		)
-		self._mode_radio_regex = wx.RadioButton(self, label="Regex")
+		self._mode_radio_regex = wx.RadioButton(
+			self,
+			# Translators: Search dialog label
+			label=_("Regular Expression"),
+		)
 
 		mode_sizer.Add(self._mode_radio_plain, flag=wx.ALL, border=5)
 		mode_sizer.Add(self._mode_radio_extended, flag=wx.ALL, border=5)
@@ -83,7 +140,9 @@ class SearchDialog(wx.Dialog):
 		main_sizer.Add(mode_sizer, flag=wx.ALL | wx.EXPAND, border=10)
 
 		self._search_dot_all_checkbox = wx.CheckBox(
-			self, label=_("Dot matches all (.)")
+			self,
+			# Translators: Search dialog label
+			label=_("Dot matches all (.)"),
 		)
 		main_sizer.Add(
 			self._search_dot_all_checkbox, flag=wx.ALL | wx.CENTER, border=5
@@ -91,14 +150,16 @@ class SearchDialog(wx.Dialog):
 		self._search_dot_all_checkbox.Hide()
 
 		self._case_sensitive_checkbox = wx.CheckBox(
-			self, label=_("Case Sensitive")
+			self,
+			# Translators: Search dialog label
+			label=_("Case Sensitive"),
 		)
 		main_sizer.Add(
 			self._case_sensitive_checkbox, flag=wx.ALL | wx.CENTER, border=5
 		)
 
 		button_sizer = wx.StdDialogButtonSizer()
-		self._find_button = wx.Button(self, wx.ID_FIND, _("Find"))
+		self._find_button = wx.Button(self, wx.ID_FIND)
 		self._find_button.SetDefault()
 		button_sizer.AddButton(self._find_button)
 		self._close_button = wx.Button(self, wx.ID_CANCEL)
@@ -184,7 +245,9 @@ class SearchDialog(wx.Dialog):
 		search_text = self._search_text.GetValue().strip()
 		if not search_text:
 			wx.MessageBox(
+				# Translators: Search dialog error message
 				_("Please enter text to search for."),
+				# Translators: Search dialog error title
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
@@ -208,22 +271,32 @@ class SearchDialog(wx.Dialog):
 		matches = self._find_matches(search_text)
 		if not matches:
 			wx.MessageBox(
+				# Translators: Search dialog error message
 				_('"{search_text}" not found.').format(search_text=search_text),
+				# Translators: Search dialog error title
 				_("Search Result"),
 				wx.OK | wx.ICON_INFORMATION,
 			)
 			return
 
 		cursor_pos = self._text.GetInsertionPoint()
+		cursor_pos = adjust_utf16_position(
+			self._text.GetValue(), cursor_pos, reverse=True
+		)
 		match_positions = [(match.start(), match.end()) for match in matches]
 
 		if self._search_direction == SearchDirection.FORWARD:
 			for start, end in match_positions:
+				start = adjust_utf16_position(self._text.GetValue(), start)
+				end = adjust_utf16_position(self._text.GetValue(), end)
 				if start > cursor_pos:
 					self._select_text(start, end)
 					return
 		else:
+			cursor_pos += 1
 			for start, end in reversed(match_positions):
+				start = adjust_utf16_position(self._text.GetValue(), start)
+				end = adjust_utf16_position(self._text.GetValue(), end)
 				if end < cursor_pos:
 					self._select_text(start, end)
 					return
