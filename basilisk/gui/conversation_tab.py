@@ -599,6 +599,9 @@ class ConversationTab(wx.Panel):
 		self._search_dialog._dir_radio_backward.SetValue(
 			direction == SearchDirection.BACKWARD
 		)
+
+		self._search_dialog._search_text.SetFocus()
+		self._search_dialog._search_text.SelectAll()
 		self._search_dialog.ShowModal()
 
 	def on_search_in_messages(self, event: wx.CommandEvent):
