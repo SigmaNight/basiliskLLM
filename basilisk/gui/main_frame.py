@@ -13,7 +13,6 @@ if sys.platform == 'win32':
 import basilisk.config as config
 from basilisk import global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
-from basilisk.conversation_profile import ConversationProfile
 from basilisk.image_file import ImageFile
 from basilisk.logger import get_log_file_path
 from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
@@ -201,6 +200,7 @@ class MainFrame(wx.Frame):
 		sizer.Add(minimize_taskbar, flag=wx.EXPAND)
 
 		self.notebook = wx.Notebook(self.panel)
+		self.notebook.Bind(wx.EVT_CONTEXT_MENU, self.on_notebook_context_menu)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 		self.panel.SetSizer(sizer)
 		self.tabs_panels = []
@@ -402,21 +402,21 @@ class MainFrame(wx.Frame):
 
 	def on_new_default_conversation(self, event: Optional[wx.Event]):
 		log.info(
-			f"Creating a new conversation with default profile ({self.conf.conversation_profiles.default_profile_name})"
+			f"Creating a new conversation with default profile ({config.conversation_profiles().default_profile_name})"
 		)
-		self.new_conversation(config.conf.conversation_profiles.default_profile)
+		self.new_conversation(config.conversation_profiles().default_profile)
 
 	def on_new_conversation(self, event: wx.Event):
 		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
 			event.GetId()
 		)
-		profile = self.conf.conversation_profiles[
+		profile = config.conversation_profiles()[
 			selected_menu_item.GetItemLabelText()
 		]
 		log.info(f"Creating a new conversation with profile: {profile.name}")
 		self.new_conversation(profile)
 
-	def new_conversation(self, profile: ConversationProfile):
+	def new_conversation(self, profile: config.ConversationProfile):
 		self.tabs_panels.append(ConversationTab(self.notebook, profile))
 		self.notebook.AddPage(
 			self.tabs_panels[-1], f"Conversation {len(self.tabs_panels)}"
@@ -611,7 +611,38 @@ class MainFrame(wx.Frame):
 			:return: The conversation profile menu.
 		"""
 		profile_menu = wx.Menu()
-		for profile in config.conf.conversation_profiles:
+		for profile in config.conversation_profiles():
 			profile_item = profile_menu.Append(wx.ID_ANY, profile.name)
 			self.Bind(wx.EVT_MENU, event_handler, profile_item)
 		return profile_menu
+
+	def on_notebook_context_menu(self, event):
+		menu = wx.Menu()
+		apply_conversation_profile_item = menu.AppendSubMenu(
+			self.build_profile_menu(self.on_apply_conversation_profile),
+			# Translators: A label for a menu item to apply a conversation profile to the current conversation
+			text=_("Apply conversation profile"),
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			self.on_apply_conversation_profile,
+			apply_conversation_profile_item,
+		)
+		close_conversation_item = menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to close a conversation
+			item=_("Close conversation") + " (Ctrl+W)",
+		)
+		self.Bind(
+			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
+		)
+		self.PopupMenu(menu)
+
+	def on_apply_conversation_profile(self, event):
+		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
+			event.GetId()
+		)
+		profile = self.conf.conversation_profiles[
+			selected_menu_item.GetItemLabelText()
+		]
+		self.current_tab.apply_profile(profile)

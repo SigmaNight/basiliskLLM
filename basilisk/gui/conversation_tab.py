@@ -23,7 +23,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
-from basilisk.conversation_profile import ConversationProfile
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
 	MessageSegment,
@@ -66,7 +65,6 @@ class ConversationTab(wx.Panel):
 
 	def __init__(self, parent: wx.Window, profile: ConversationProfile):
 		wx.Panel.__init__(self, parent)
-		self.conversation_profile = profile
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
@@ -81,7 +79,7 @@ class ConversationTab(wx.Panel):
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
 		self.select_default_account()
-		self.init_data()
+		self.init_data(profile)
 		self.update_ui()
 
 	def init_ui(self):
@@ -287,11 +285,15 @@ class ConversationTab(wx.Panel):
 		if account_index != wx.NOT_FOUND:
 			self.account_combo.SetSelection(account_index)
 
-	def init_data(self):
+	def apply_profile(self, profile: config.ConversationProfile):
+		self.conversation_profile = profile
+		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
+
+	def init_data(self, profile: config.ConversationProfile):
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.refresh_images_list()
-		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
+		self.apply_profile(profile)
 
 	def update_ui(self):
 		controls = (
