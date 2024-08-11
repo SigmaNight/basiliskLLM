@@ -498,9 +498,17 @@ class MainFrame(wx.Frame):
 			self, _("Manage conversation profiles")
 		)
 		if profile_dialog.ShowModal() == wx.ID_OK:
+			menu: wx.Menu = self.new_conversation_profile_item.GetMenu()
+			item_index = next(
+				i
+				for i, item in enumerate(menu.GetMenuItems())
+				if item.GetId() == self.new_conversation_profile_item.GetId()
+			)
+			menu.Remove(self.new_conversation_profile_item.GetId())
 			self.new_conversation_profile_item.SetSubMenu(
 				self.build_profile_menu(self.on_new_conversation)
 			)
+			menu.Insert(item_index, self.new_conversation_profile_item)
 
 	def on_install_nvda_addon(self, event):
 		import zipfile
