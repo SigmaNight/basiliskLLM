@@ -66,7 +66,7 @@ class SearchDialog(wx.Dialog):
 		self._create_ui()
 		self._bind_events()
 		self._apply_initial_values()
-		self._search_text.SetFocus()
+		self._search_combo.SetFocus()
 
 	def _create_ui(self) -> None:
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -77,10 +77,10 @@ class SearchDialog(wx.Dialog):
 			# Translators: Search dialog label
 			label=_("&Search for:"),
 		)
-		self._search_text = wx.TextCtrl(self)
+		self._search_combo = wx.ComboBox(self, style=wx.CB_DROPDOWN)
 		search_text_sizer.Add(search_label, flag=wx.ALL | wx.CENTER, border=5)
 		search_text_sizer.Add(
-			self._search_text, proportion=1, flag=wx.ALL | wx.EXPAND, border=5
+			self._search_combo, proportion=1, flag=wx.ALL | wx.EXPAND, border=5
 		)
 		main_sizer.Add(search_text_sizer, flag=wx.EXPAND)
 
@@ -193,6 +193,11 @@ class SearchDialog(wx.Dialog):
 		self._case_sensitive_checkbox.SetValue(self._case_sensitive)
 		self._search_dot_all_checkbox.SetValue(self._search_dot_all)
 		self._update_dot_all_visibility()
+		self._update_search_choice()
+
+	def _update_search_choice(self) -> None:
+		self._search_combo.Clear()
+		self._search_combo.AppendItems(self._search_list)
 
 	def _update_dot_all_visibility(self) -> None:
 		if self._mode_radio_regex.GetValue():
@@ -242,7 +247,8 @@ class SearchDialog(wx.Dialog):
 	def _on_find(self, event: wx.Event) -> None:
 		if self.IsModal():
 			self.EndModal(wx.ID_OK)
-		search_text = self._search_text.GetValue().strip()
+
+		search_text = self._search_combo.GetValue().strip()
 		if not search_text:
 			wx.MessageBox(
 				# Translators: Search dialog error message
@@ -253,6 +259,13 @@ class SearchDialog(wx.Dialog):
 			)
 			return
 
+		if search_text not in self._search_list:
+			self._search_list.append(search_text)
+			self._search_combo.Append(search_text)
+			self._search_combo.SetSelection(len(self._search_list) - 1)
+		else:
+			index = self._search_list.index(search_text)
+			self._search_combo.SetSelection(index)
 		self._case_sensitive = self._case_sensitive_checkbox.GetValue()
 		self._search_dot_all = self._search_dot_all_checkbox.GetValue()
 		self._search_direction = (
