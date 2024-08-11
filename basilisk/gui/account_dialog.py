@@ -489,6 +489,7 @@ class AccountDialog(wx.Dialog):
 			_("Source"),
 		)
 		self.account_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected)
+		self.account_list.Bind(wx.EVT_KEY_DOWN, self.on_account_list_key_down)
 		sizer.Add(self.account_list, 1, wx.EXPAND)
 
 		add_btn = wx.Button(panel, label=_("&Add..."))
@@ -562,6 +563,14 @@ class AccountDialog(wx.Dialog):
 
 	def on_item_selected(self, event):
 		self.update_ui()
+
+	def on_account_list_key_down(self, event: wx.KeyEvent):
+		if event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_edit(event)
+		elif event.GetKeyCode() == wx.WXK_DELETE:
+			self.on_remove(event)
+		else:
+			event.Skip()
 
 	def on_manage_organizations(self, event):
 		index = self.account_list.GetFirstSelected()
