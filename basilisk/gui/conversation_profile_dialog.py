@@ -78,21 +78,24 @@ class ConversationProfileDialog(wx.Dialog):
 		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-		self.list_ctrl = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
-		self.list_ctrl.InsertColumn(
+		self.list_profile_ctrl = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
+		self.list_profile_ctrl.InsertColumn(
 			0,
 			# translators: Column header for the name of a conversation profile
 			_("Profile name"),
 			width=140,
 		)
-		self.list_ctrl.InsertColumn(1, "System Prompt", width=240)
-		self.sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 5)
-
+		self.list_profile_ctrl.InsertColumn(1, "System Prompt", width=240)
+		self.sizer.Add(self.list_profile_ctrl, 1, wx.ALL | wx.EXPAND, 5)
+		self.list_profile_ctrl.Bind(
+			wx.EVT_KEY_DOWN, self.on_list_profile_key_down
+		)
 		self.add_button = wx.Button(
 			self.panel,
 			# translators: Button label to add a new conversation profile
 			label=_("Add Profile"),
 		)
+
 		self.edit_button = wx.Button(
 			self.panel,
 			# translators: Button label to edit a conversation profile
@@ -131,7 +134,7 @@ class ConversationProfileDialog(wx.Dialog):
 		self.Bind(
 			wx.EVT_LIST_ITEM_SELECTED,
 			self.on_list_item_selected,
-			self.list_ctrl,
+			self.list_profile_ctrl,
 		)
 		self.Bind(wx.EVT_BUTTON, self.on_close, self.close_button)
 
@@ -156,7 +159,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.save()
 
 	def on_edit(self, event):
-		index = self.list_ctrl.GetFirstSelected()
+		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
 			profile = self.profiles[index]
 			dialog = EditConversationProfileDialog(
@@ -168,19 +171,19 @@ class ConversationProfileDialog(wx.Dialog):
 				self.profiles.save()
 
 	def on_remove(self, event):
-		index = self.list_ctrl.GetFirstSelected()
+		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
 			del self.profiles[index]
 			self.profiles.save()
 			self.update_ui()
 
 	def on_default(self, event):
-		index = self.list_ctrl.GetFirstSelected()
+		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
 			self.profiles.default_profile_name = (self.profiles[index].name)
 
 	def on_list_item_selected(self, event):
-		index = self.list_ctrl.GetFirstSelected()
+		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
 			profile = self.profiles[index]
 			self.default_button.SetValue(
@@ -192,7 +195,15 @@ class ConversationProfileDialog(wx.Dialog):
 			self.default_button.Disable()
 			self.edit_button.Disable()
 			self.remove_button.Disable()
-			
+
 	def on_close(self, event):
 		self.EndModal(wx.ID_CLOSE)
+
+	def on_list_profile_key_down(self, event: wx.KeyEvent):
+		if event.GetKeyCode() == wx.WXK_DELETE:
+			self.on_remove(event)
+		elif event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_edit(event)
+		event.Skip()
+
 
