@@ -75,7 +75,7 @@ class SearchDialog(wx.Dialog):
 		search_label = wx.StaticText(
 			self,
 			# Translators: Search dialog label
-			label=_("Search for:"),
+			label=_("&Search for:"),
 		)
 		self._search_text = wx.TextCtrl(self)
 		search_text_sizer.Add(search_label, flag=wx.ALL | wx.CENTER, border=5)
@@ -94,13 +94,13 @@ class SearchDialog(wx.Dialog):
 		self._dir_radio_backward = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("Backward"),
+			label=_("&Backward"),
 			style=wx.RB_GROUP,
 		)
 		self._dir_radio_forward = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("Forward"),
+			label=_("&Forward"),
 		)
 
 		direction_sizer.Add(self._dir_radio_backward, flag=wx.ALL, border=5)
@@ -118,19 +118,19 @@ class SearchDialog(wx.Dialog):
 		self._mode_radio_plain = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("Plain Text"),
+			label=_("&Plain Text"),
 			# Translators: Search dialog label
 			style=wx.RB_GROUP,
 		)
 		self._mode_radio_extended = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("Extended") + r" (\n, \t, \r...)",
+			label=_("E&xxtended") + r" (\n, \t, \r...)",
 		)
 		self._mode_radio_regex = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("Regular Expression"),
+			label=_("Re&gular Expression"),
 		)
 
 		mode_sizer.Add(self._mode_radio_plain, flag=wx.ALL, border=5)
@@ -142,7 +142,7 @@ class SearchDialog(wx.Dialog):
 		self._search_dot_all_checkbox = wx.CheckBox(
 			self,
 			# Translators: Search dialog label
-			label=_("Dot matches all (.)"),
+			label=_("Dot matches &all (.)"),
 		)
 		main_sizer.Add(
 			self._search_dot_all_checkbox, flag=wx.ALL | wx.CENTER, border=5
@@ -152,7 +152,7 @@ class SearchDialog(wx.Dialog):
 		self._case_sensitive_checkbox = wx.CheckBox(
 			self,
 			# Translators: Search dialog label
-			label=_("Case Sensitive"),
+			label=_("&Case Sensitive"),
 		)
 		main_sizer.Add(
 			self._case_sensitive_checkbox, flag=wx.ALL | wx.CENTER, border=5
