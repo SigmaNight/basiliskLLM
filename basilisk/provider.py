@@ -104,7 +104,7 @@ providers = [
 	Provider(
 		id="gemini",
 		name="Gemini",
-		base_url="https://https://generativelanguage.googleapis.com",
+		base_url="https://generativelanguage.googleapis.com",
 		api_type=ProviderAPIType.GEMINI,
 		organization_mode_available=False,
 		require_api_key=True,
