@@ -46,7 +46,7 @@ pillow = "^10.4.0"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.6"
 pre-commit = "^3.8.0"
-commitizen = "^3.28.0"
+commitizen = "^3.29.0"
 babel = "^2.15.0"
 setuptools-scm = "^8.0.4"
 
