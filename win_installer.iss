@@ -9,8 +9,8 @@
 AppVersion={#MyAppVersion}
 AppName=basiliskLLM
 AppVerName={#SetupSetting("AppName")} {#SetupSetting("AppVersion")}
-ArchitecturesAllowed={#AppArch}
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed={#AppArch}compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 Output=yes
 OutputDir=output_setup
 OutputBaseFilename=setup_{#SetupSetting("AppName")}_{#SetupSetting("AppVersion")}_{#AppArch}
