@@ -24,7 +24,7 @@ class ConversationProfile(BaseModel):
 
 	@classmethod
 	def get_default(cls) -> ConversationProfile:
-		return cls(name="default", system_prompt="default system prompt")
+		return cls(name="default", system_prompt="")
 
 	def __eq__(self, value: ConversationProfile) -> bool:
 		return self.name == value.name
