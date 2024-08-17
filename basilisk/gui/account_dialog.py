@@ -8,12 +8,20 @@ from basilisk.account import (
 	Account,
 	AccountOrganization,
 	AccountSource,
+	ApiKeyStorageMethodEnum,
 	get_account_source_labels,
 )
 from basilisk.config import conf
 from basilisk.provider import get_provider, providers
 
 log = getLogger(__name__)
+
+api_storage_methods = {
+	# Translators: A label for the API key storage method in the account dialog
+	ApiKeyStorageMethodEnum.plain: _("Plain text"),
+	# Translators: A label for the API key storage method in the account dialog
+	ApiKeyStorageMethodEnum.system: _("System keyring"),
+}
 
 
 class EditAccountOrganizationDialog(wx.Dialog):
@@ -306,21 +314,50 @@ class EditAccountDialog(wx.Dialog):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
 
-		label = wx.StaticText(panel, label=_("&Name:"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(
+			panel,
+			# Translators: A label in account dialog
+			label=_("&Name:"),
+			style=wx.ALIGN_LEFT,
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.name = wx.TextCtrl(panel)
 		sizer.Add(self.name, 0, wx.EXPAND)
 
-		label = wx.StaticText(panel, label=_("&Provider:"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(
+			panel,
+			# Translators: A label in account dialog
+			label=_("&Provider:"),
+			style=wx.ALIGN_LEFT,
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
-		choices = [provider.name for provider in providers]
+		provider_choices = [provider.name for provider in providers]
 		self.provider = wx.ComboBox(
-			panel, choices=choices, style=wx.CB_READONLY
+			panel, choices=provider_choices, style=wx.CB_READONLY
 		)
 		self.provider.Bind(wx.EVT_COMBOBOX, lambda e: self.update_ui())
 		sizer.Add(self.provider, 0, wx.EXPAND)
 
-		label = wx.StaticText(panel, label=_("API &key:"), style=wx.ALIGN_LEFT)
+		label = wx.StaticText(
+			panel,
+			style=wx.ALIGN_LEFT,
+			# Translators: A label in account dialog
+			label=_("API &key storage method:"),
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		self.api_key_storage_method = wx.ComboBox(
+			panel,
+			choices=list(api_storage_methods.values()),
+			style=wx.CB_READONLY,
+		)
+		sizer.Add(self.api_key_storage_method, 0, wx.EXPAND)
+		self.api_key_storage_method.Disable()
+		label = wx.StaticText(
+			panel,
+			style=wx.ALIGN_LEFT,
+			# Translators: A label in account dialog
+			label=_("API &key:"),
+		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.api_key = wx.TextCtrl(panel)
 		self.api_key.Disable()
@@ -356,7 +393,13 @@ class EditAccountDialog(wx.Dialog):
 					index = i
 					break
 			self.provider.SetSelection(index)
-			if self.account.api_key:
+			if self.account.api_key and self.account.api_key_storage_method:
+				index = -1
+				for i, method in enumerate(api_storage_methods.keys()):
+					if method == self.account.api_key_storage_method:
+						index = i
+						break
+				self.api_key_storage_method.SetSelection(index)
 				self.api_key.SetValue(self.account.api_key.get_secret_value())
 			self.organization.Enable(
 				self.account.provider.organization_mode_available
@@ -399,7 +442,9 @@ class EditAccountDialog(wx.Dialog):
 			return
 		provider_name = self.provider.GetValue()
 		provider = get_provider(name=provider_name)
-		self.api_key.Enable(provider.require_api_key)
+		if provider.require_api_key:
+			self.api_key.Enable()
+			self.api_key_storage_method.Enable()
 		if self.account:
 			self.organization.Enable(provider.organization_mode_available)
 
@@ -417,11 +462,19 @@ class EditAccountDialog(wx.Dialog):
 			return
 		provider_name = self.provider.GetValue()
 		provider = get_provider(name=provider_name)
-		if provider.require_api_key and not self.api_key.GetValue():
-			msg = _("Please enter an API key. It is required for this provider")
-			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			self.api_key.SetFocus()
-			return
+		if provider.require_api_key:
+			if self.api_key_storage_method.GetSelection() == -1:
+				msg = _("Please select an API key storage method")
+				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
+				self.api_key_storage_method.SetFocus()
+				return
+			if not self.api_key.GetValue():
+				msg = _(
+					"Please enter an API key. It is required for this provider"
+				)
+				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
+				self.api_key.SetFocus()
+				return
 		organization_index = self.organization.GetSelection()
 		active_organization = None
 		if organization_index > 0:
@@ -431,12 +484,19 @@ class EditAccountDialog(wx.Dialog):
 		if self.account:
 			self.account.name = self.name.GetValue()
 			self.account.provider = provider
-			self.account.api_key = SecretStr(self.api_key.GetValue())
+			if provider.require_api_key:
+				self.account.api_key_storage_method = list(
+					api_storage_methods.keys()
+				)[self.api_key_storage_method.GetSelection()]
+				self.account.api_key = SecretStr(self.api_key.GetValue())
 			self.account.active_organization_id = active_organization
 		else:
 			self.account = Account(
 				name=self.name.GetValue(),
 				provider=provider,
+				apii_key_storage_method=list(api_storage_methods.keys())[
+					self.api_key_storage_method.GetSelection()
+				],
 				api_key=SecretStr(self.api_key.GetValue()),
 				active_organization_id=active_organization,
 				source=AccountSource.CONFIG,
