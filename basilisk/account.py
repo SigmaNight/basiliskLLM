@@ -7,6 +7,7 @@ from os import getenv
 from typing import Any, Iterable, Optional
 from uuid import uuid4
 
+import keyring
 from pydantic import (
 	UUID4,
 	BaseModel,
@@ -15,7 +16,6 @@ from pydantic import (
 	OnErrorOmit,
 	RootModel,
 	SecretStr,
-	ValidationError,
 	field_serializer,
 	field_validator,
 	model_serializer,
@@ -27,6 +27,11 @@ import basilisk.global_vars as global_vars
 from .provider import Provider, get_provider, providers
 
 log = getLogger(__name__)
+
+
+class ApiKeyStorageMethodEnum(Enum):
+	plain = "plain"
+	system = "system"
 
 
 class AccountSource(Enum):
@@ -57,15 +62,32 @@ class Account(BaseModel):
 	provider: Provider = Field(
 		validation_alias="provider_id", serialization_alias="provider_id"
 	)
+	api_key_storage_method: Optional[ApiKeyStorageMethodEnum] = Field(
+		default=ApiKeyStorageMethodEnum.plain
+	)
 	api_key: Optional[SecretStr] = Field(default=None)
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
+	@staticmethod
+	def get_keyring_service_name(provider_name: str, account_name: str) -> str:
+		return f"basilisk_{provider_name}_{account_name}"
+
 	def __init__(self, **data: Any):
 		try:
+			if (
+				data.get("api_key_storage_method", "plain")
+				!= ApiKeyStorageMethodEnum.plain.value
+			):
+				keyring_service_name = self.get_keyring_service_name(
+					data["provider_id"], data["name"]
+				)
+				data["api_key"] = keyring.get_password(
+					data["api_key_storage_method"], keyring_service_name
+				)
 			super().__init__(**data)
-		except ValidationError as e:
+		except Exception as e:
 			log.error(
 				f"Error in account {e} the account will not be accessible"
 			)
@@ -76,8 +98,19 @@ class Account(BaseModel):
 		return value.id
 
 	@field_serializer("api_key", when_used="json")
-	def dump_secret(self, value: SecretStr) -> str:
-		return value.get_secret_value()
+	def dump_secret(self, value: SecretStr) -> Optional[str]:
+		if self.api_key_storage_method == ApiKeyStorageMethodEnum.plain:
+			return value.get_secret_value()
+		elif self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
+			keyring_service_name = self.get_keyring_service_name(
+				self.provider.id, self.name
+			)
+			keyring.set_password(
+				self.api_key_storage_method.value,
+				keyring_service_name,
+				value.get_secret_value(),
+			)
+		return None
 
 	@field_validator("provider", mode="plain")
 	@classmethod
@@ -140,6 +173,15 @@ class Account(BaseModel):
 			self.active_organization.key if self.active_organization else None
 		)
 
+	def delete_keyring_password(self):
+		if self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
+			keyring_service_name = self.get_keyring_service_name(
+				self.provider.id, self.name
+			)
+			keyring.delete_password(
+				self.api_key_storage_method.value, keyring_service_name
+			)
+
 
 class AccountManager(RootModel):
 	root: list[OnErrorOmit[Account]] = Field(default=list())
@@ -197,7 +239,12 @@ class AccountManager(RootModel):
 			lambda x: x.source == AccountSource.CONFIG, self.root
 		)
 		return [
-			acc.model_dump(mode="json", by_alias=True, exclude_none=True)
+			acc.model_dump(
+				mode="json",
+				by_alias=True,
+				exclude_none=True,
+				exclude_defaults=True,
+			)
 			for acc in accounts_config
 		]
 
@@ -215,6 +262,7 @@ class AccountManager(RootModel):
 		return filter(lambda x: x.provider.name == provider_name, self.root)
 
 	def remove(self, account: Account):
+		account.delete_keyring_password()
 		self.root.remove(account)
 
 	def clear(self):
