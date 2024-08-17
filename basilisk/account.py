@@ -16,6 +16,7 @@ from pydantic import (
 	OnErrorOmit,
 	RootModel,
 	SecretStr,
+	ValidationInfo,
 	field_serializer,
 	field_validator,
 	model_serializer,
@@ -76,26 +77,35 @@ class Account(BaseModel):
 
 	def __init__(self, **data: Any):
 		try:
-			if (
-				data.get("api_key_storage_method", "plain")
-				!= ApiKeyStorageMethodEnum.plain.value
-			):
-				keyring_service_name = self.get_keyring_service_name(
-					data["provider_id"], data["name"]
-				)
-				data["api_key"] = keyring.get_password(
-					data["api_key_storage_method"], keyring_service_name
-				)
 			super().__init__(**data)
 		except Exception as e:
 			log.error(
-				f"Error in account {e} the account will not be accessible"
+				f"Error in account {e} the account will not be accessible",
+				exc_info=e,
 			)
 			raise e
 
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
 		return value.id
+
+	@field_validator("api_key", mode="after")
+	@classmethod
+	def validate_api_key(
+		cls, value: Optional[SecretStr], info: ValidationInfo
+	) -> Optional[SecretStr]:
+		data = info.data
+		if data["api_key_storage_method"] == ApiKeyStorageMethodEnum.plain:
+			return value
+		keyring_service_name = cls.get_keyring_service_name(
+			data["provider"].id, data["name"]
+		)
+		value = SecretStr(
+			keyring.get_password(
+				data["api_key_storage_method"].value, keyring_service_name
+			)
+		)
+		return value
 
 	@field_serializer("api_key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> Optional[str]:
