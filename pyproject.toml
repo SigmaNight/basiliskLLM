@@ -90,19 +90,22 @@ excludes = [
     "numpy._core.tests", "numpy.f2py", "numpy.fft", "numpy.ma", "numpy.polynomial", "numpy.random", "numpy.testing",
     "pip", "pydoc_data", "packaging",
     "setuptools", "setuptools_scm", "sqlite3",
-    "tarfile", "tomllib", "test", "tkinter", "unittest",
-    "win32api", "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
+    "tomllib", "test", "tkinter", "unittest",
+    "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
      ]
 include_files = ["basilisk/res"]
-includes = ["numpy", "httplib2.socks"]
-packages = ["numpy", "google.generativeai", "basilisk.provider_engine"]
+includes = ["numpy", "httplib2.socks", "win32timezone"]
+packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
     "distro", "dotenv", "encodings", "email", "google", "googleapiclient", "grpc_status",
     "h11", "html", "httpcore", "http", "httplib2", "httpx",
-    "idna", "importlib", "jiter", "json", "logging",
-    "openai", "numpy", "PIL", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings",
-    "re", "rsa", "requests", "sniffio", "tokenizers", "tqdm", "uritemplate", "urllib", "urllib3",
-    "watchdog", "xml", "yaml", "zipfile", "zoneinfo",
+    "idna", "importlib", "importlib_metadata",
+    "jaraco", "jiter", "json", "keyring", "logging",
+    "openai", "numpy", "more_itertools",
+    "PIL", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin32_system32",
+    "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tqdm", "uritemplate", "urllib", "urllib3",
+    "watchdog", "win32api", "win32ctypes", "win32timezone",
+    "xml", "yaml", "zipfile", "zipp", "zoneinfo",
     "basilisk"]
