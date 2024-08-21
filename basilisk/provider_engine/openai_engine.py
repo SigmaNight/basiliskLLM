@@ -57,12 +57,13 @@ class OpenAIEngine(BaseEngine):
 		"""
 		super().models
 		log.debug("Getting openAI models")
+		# See <https://platform.openai.com/docs/models>
 		return [
 			ProviderAIModel(
 				id="gpt-4o-mini",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo. Currently points to gpt-4o-mini-2024-07-18"
+					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
 				context_window=128000,
 				max_output_tokens=16384,
@@ -71,7 +72,51 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4o",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
+				description=_(
+					"Points to one of the most recent iterations of gpt-4o-mini model"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="chatgpt-4o-latest",
+				# Translators: This is a model description
+				description=_(
+					"Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4o-mini-2024-07-18",
+				# Translators: This is a model description
+				description=_(
+					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4o-2024-08-06",
+				# Translators: This is a model description
+				description=_(
+					"Latest snapshot that supports Structured Outputs"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4o-2024-05-13",
+				# Translators: This is a model description
 				description=_(
 					"Our high-intelligence flagship model for complex, multi-step tasks"
 				),
@@ -82,7 +127,7 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4-turbo",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"The latest GPT-4 Turbo model with vision capabilities"
 				),
@@ -93,27 +138,27 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-3.5-turbo",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"Points to one of the most recent iterations of gpt-3.5 ProviderAIModel."
+					"Points to one of the most recent iterations of gpt-3.5 model"
 				),
 				context_window=16385,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-3.5-turbo-0125",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"The latest GPT-3.5 Turbo ProviderAIModel with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls."
+					"The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
 				),
 				context_window=16385,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-turbo-preview",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"Points to one of the most recent iterations of gpt-4 ProviderAIModel."
+					"Points to one of the most recent iterations of gpt-4 model"
 				),
 				context_window=128000,
 				max_output_tokens=4096,
@@ -121,9 +166,9 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4-0125-preview",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"The latest GPT-4 ProviderAIModel intended to reduce cases of “laziness” where the ProviderAIModel doesn’t complete a task."
+					"The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
 				),
 				context_window=128000,
 				max_output_tokens=4096,
@@ -131,9 +176,9 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4-1106-preview",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"GPT-4 Turbo ProviderAIModel featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more."
+					"GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
 				),
 				context_window=128000,
 				max_output_tokens=4096,
@@ -141,9 +186,9 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4-vision-preview",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities."
+					"GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities"
 				),
 				context_window=128000,
 				max_output_tokens=4096,
@@ -152,18 +197,18 @@ class OpenAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gpt-4-0613",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"More capable than any GPT-3.5 ProviderAIModel, able to do more complex tasks, and optimized for chat"
+					"More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 				),
 				max_output_tokens=8192,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
 				id="gpt-4-32k-0613",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
-					"Same capabilities as the standard gpt-4 mode but with 4x the context length."
+					"Same capabilities as the standard gpt-4 mode but with 4x the context length"
 				),
 				context_window=32768,
 				max_output_tokens=8192,

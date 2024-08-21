@@ -49,7 +49,7 @@ class GeminiEngine(BaseEngine):
 		return [
 			ProviderAIModel(
 				id="gemini-1.5-flash-latest",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					'Fast and versatile multimodal model for scaling across diverse tasks'
 				),
@@ -60,7 +60,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.5-pro-latest",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"Mid-size multimodal model that supports up to 1 million tokens"
 				),
@@ -71,7 +71,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.5-flash",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"Fast and versatile multimodal model for scaling across diverse tasks"
 				),
@@ -82,7 +82,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.5-pro",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"Mid-size multimodal model that supports up to 1 million tokens"
 				),
@@ -93,7 +93,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.0-pro-latest",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"The best model for scaling across a wide range of tasks. This is the latest model."
 				),
@@ -103,7 +103,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.0-pro",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					"The best model for scaling across a wide range of tasks"
 				),
@@ -113,7 +113,7 @@ class GeminiEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="gemini-1.0-pro-vision-latest",
-				# Translators: This is a ProviderAIModel description
+				# Translators: This is a model description
 				description=_(
 					'The best image understanding model to handle a broad range of applications'
 				),
