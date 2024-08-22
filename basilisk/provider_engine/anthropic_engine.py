@@ -48,6 +48,7 @@ class AnthropicEngine(BaseEngine):
 		"""
 		super().models
 		log.debug("Getting Anthropic models")
+		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
 				id="claude-3-5-sonnet-20240620",
