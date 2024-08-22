@@ -68,9 +68,7 @@ class GeneralSettings(BaseModel):
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
 		default=AutomaticUpdateModeEnum.NOTIFY
 	)
-	release_channel: ReleaseChannelEnum = Field(
-		default=ReleaseChannelEnum.STABLE
-	)
+	release_channel: ReleaseChannelEnum = Field(default=ReleaseChannelEnum.BETA)
 	last_update_check: datetime | None = Field(default=None)
 	quit_on_close: bool = Field(default=False)
 
