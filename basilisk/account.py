@@ -31,7 +31,7 @@ from .provider import Provider, get_provider, providers
 log = getLogger(__name__)
 
 
-class ApiKeyStorageMethodEnum(Enum):
+class KeyStorageMethodEnum(Enum):
 	plain = "plain"
 	system = "system"
 
@@ -45,12 +45,45 @@ class AccountOrganization(BaseModel):
 	model_config = ConfigDict(populate_by_name=True)
 	id: UUID4 = Field(default_factory=uuid4)
 	name: str
+	key_storage_method: KeyStorageMethodEnum = Field(
+		default=KeyStorageMethodEnum.plain
+	)
 	key: SecretStr
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
+	@field_validator("key", mode="before")
+	@classmethod
+	def validate_key(
+		cls, value: Optional[Any], info: ValidationInfo
+	) -> SecretStr:
+		if isinstance(value, SecretStr):
+			return value
+		data = info.data
+		if data["key_storage_method"] == KeyStorageMethodEnum.plain:
+			if not isinstance(value, str):
+				raise ValueError("Key must be a string")
+			return SecretStr(value)
+		elif data["key_storage_method"] == KeyStorageMethodEnum.system:
+			value = keyring.get_password(APP_NAME, str(data["id"]))
+			if not value:
+				raise ValueError("Key not found in keyring")
+			return SecretStr(value)
+		else:
+			raise ValueError("Invalid key storage method")
+
 	@field_serializer("key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> str:
-		return value.get_secret_value()
+		if self.key_storage_method == KeyStorageMethodEnum.plain:
+			return value.get_secret_value()
+		elif self.key_storage_method == KeyStorageMethodEnum.system:
+			keyring.set_password(
+				APP_NAME, str(self.id), value.get_secret_value()
+			)
+		return None
+
+	def delete_keyring_password(self):
+		if self.key_storage_method == KeyStorageMethodEnum.system:
+			keyring.delete_password(APP_NAME, str(self.id))
 
 
 class Account(BaseModel):
@@ -64,8 +97,8 @@ class Account(BaseModel):
 	provider: Provider = Field(
 		validation_alias="provider_id", serialization_alias="provider_id"
 	)
-	api_key_storage_method: Optional[ApiKeyStorageMethodEnum] = Field(
-		default=ApiKeyStorageMethodEnum.plain
+	api_key_storage_method: Optional[KeyStorageMethodEnum] = Field(
+		default=KeyStorageMethodEnum.plain
 	)
 	api_key: Optional[SecretStr] = Field(default=None)
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
@@ -94,11 +127,11 @@ class Account(BaseModel):
 		if isinstance(value, SecretStr):
 			return value
 		data = info.data
-		if data["api_key_storage_method"] == ApiKeyStorageMethodEnum.plain:
+		if data["api_key_storage_method"] == KeyStorageMethodEnum.plain:
 			if not isinstance(value, str):
 				raise ValueError("API key must be a string")
 			return SecretStr(value)
-		elif data["api_key_storage_method"] == ApiKeyStorageMethodEnum.system:
+		elif data["api_key_storage_method"] == KeyStorageMethodEnum.system:
 			value = keyring.get_password(APP_NAME, str(data["id"]))
 			if not value:
 				raise ValueError("API key not found in keyring")
@@ -108,9 +141,9 @@ class Account(BaseModel):
 
 	@field_serializer("api_key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> Optional[str]:
-		if self.api_key_storage_method == ApiKeyStorageMethodEnum.plain:
+		if self.api_key_storage_method == KeyStorageMethodEnum.plain:
 			return value.get_secret_value()
-		elif self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
+		elif self.api_key_storage_method == KeyStorageMethodEnum.system:
 			keyring.set_password(
 				APP_NAME, str(self.id), value.get_secret_value()
 			)
@@ -167,9 +200,9 @@ class Account(BaseModel):
 
 	@property
 	def active_organization_name(self) -> Optional[str]:
-		if not self.active_organization:
-			return None
-		return self.active_organization.name
+		return (
+			self.active_organization.name if self.active_organization else None
+		)
 
 	@property
 	def active_organization_key(self) -> Optional[SecretStr]:
@@ -178,7 +211,10 @@ class Account(BaseModel):
 		)
 
 	def delete_keyring_password(self):
-		if self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
+		if self.organisations:
+			for org in self.organisations:
+				org.delete_keyring_password()
+		if self.api_key_storage_method == KeyStorageMethodEnum.system:
 			keyring.delete_password(APP_NAME, str(self.id))
 
 
