@@ -25,6 +25,7 @@ from pydantic import (
 
 import basilisk.global_vars as global_vars
 
+from .consts import APP_NAME
 from .provider import Provider, get_provider, providers
 
 log = getLogger(__name__)
@@ -71,10 +72,6 @@ class Account(BaseModel):
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
-	@staticmethod
-	def get_keyring_service_name(provider_name: str, account_name: str) -> str:
-		return f"basilisk_{provider_name}_{account_name}"
-
 	def __init__(self, **data: Any):
 		try:
 			super().__init__(**data)
@@ -97,14 +94,7 @@ class Account(BaseModel):
 		data = info.data
 		if data["api_key_storage_method"] == ApiKeyStorageMethodEnum.plain:
 			return value
-		keyring_service_name = cls.get_keyring_service_name(
-			data["provider"].id, data["name"]
-		)
-		value = SecretStr(
-			keyring.get_password(
-				data["api_key_storage_method"].value, keyring_service_name
-			)
-		)
+		value = SecretStr(keyring.get_password(APP_NAME, str(data["id"])))
 		return value
 
 	@field_serializer("api_key", when_used="json")
@@ -112,13 +102,8 @@ class Account(BaseModel):
 		if self.api_key_storage_method == ApiKeyStorageMethodEnum.plain:
 			return value.get_secret_value()
 		elif self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
-			keyring_service_name = self.get_keyring_service_name(
-				self.provider.id, self.name
-			)
 			keyring.set_password(
-				self.api_key_storage_method.value,
-				keyring_service_name,
-				value.get_secret_value(),
+				APP_NAME, str(self.id), value.get_secret_value()
 			)
 		return None
 
@@ -185,12 +170,7 @@ class Account(BaseModel):
 
 	def delete_keyring_password(self):
 		if self.api_key_storage_method == ApiKeyStorageMethodEnum.system:
-			keyring_service_name = self.get_keyring_service_name(
-				self.provider.id, self.name
-			)
-			keyring.delete_password(
-				self.api_key_storage_method.value, keyring_service_name
-			)
+			keyring.delete_password(APP_NAME, str(self.id))
 
 
 class AccountManager(RootModel):
