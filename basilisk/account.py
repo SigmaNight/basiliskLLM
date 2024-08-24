@@ -86,16 +86,25 @@ class Account(BaseModel):
 	def serialize_provider(value: Provider) -> str:
 		return value.id
 
-	@field_validator("api_key", mode="after")
+	@field_validator("api_key", mode="before")
 	@classmethod
 	def validate_api_key(
-		cls, value: Optional[SecretStr], info: ValidationInfo
+		cls, value: Optional[Any], info: ValidationInfo
 	) -> Optional[SecretStr]:
+		if isinstance(value, SecretStr):
+			return value
 		data = info.data
 		if data["api_key_storage_method"] == ApiKeyStorageMethodEnum.plain:
-			return value
-		value = SecretStr(keyring.get_password(APP_NAME, str(data["id"])))
-		return value
+			if not isinstance(value, str):
+				raise ValueError("API key must be a string")
+			return SecretStr(value)
+		elif data["api_key_storage_method"] == ApiKeyStorageMethodEnum.system:
+			value = keyring.get_password(APP_NAME, str(data["id"]))
+			if not value:
+				raise ValueError("API key not found in keyring")
+			return SecretStr(value)
+		else:
+			raise ValueError("Invalid API key storage method")
 
 	@field_serializer("api_key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> Optional[str]:

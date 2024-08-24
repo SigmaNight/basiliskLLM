@@ -494,7 +494,7 @@ class EditAccountDialog(wx.Dialog):
 			self.account = Account(
 				name=self.name.GetValue(),
 				provider=provider,
-				apii_key_storage_method=list(api_storage_methods.keys())[
+				api_key_storage_method=list(api_storage_methods.keys())[
 					self.api_key_storage_method.GetSelection()
 				],
 				api_key=SecretStr(self.api_key.GetValue()),
