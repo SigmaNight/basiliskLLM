@@ -131,7 +131,7 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		]
 		if self.organization:
 			self.organization.name = self.name.GetValue()
-			self.organization.key_storage_method = (key_storage_method,)
+			self.organization.key_storage_method = key_storage_method
 			self.organization.key = SecretStr(self.key.GetValue())
 		else:
 			self.organization = AccountOrganization(
