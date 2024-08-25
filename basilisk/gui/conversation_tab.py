@@ -903,13 +903,24 @@ class ConversationTab(wx.Panel):
 		)
 
 		content = self.extract_text_from_message(new_block.request.content)
-		self.messages.AppendText(f"{content}{os.linesep}")
+		self.messages.AppendText(content)
 		relative_length = self.messages.GetLastPosition() - absolute_length
 		absolute_length = self.messages.GetLastPosition()
 		self.message_segment_manager.append(
 			MessageSegment(
 				length=relative_length,
 				kind=MessageSegmentType.CONTENT,
+				message_block=weakref.ref(new_block),
+			)
+		)
+
+		self.messages.AppendText(os.linesep)
+		relative_length = self.messages.GetLastPosition() - absolute_length
+		absolute_length = self.messages.GetLastPosition()
+		self.message_segment_manager.append(
+			MessageSegment(
+				length=relative_length,
+				kind=MessageSegmentType.SUFFIX,
 				message_block=weakref.ref(new_block),
 			)
 		)
