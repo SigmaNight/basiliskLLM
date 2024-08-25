@@ -663,8 +663,9 @@ class AccountDialog(wx.Dialog):
 			self, _("Manage organizations"), account
 		)
 		if dialog.ShowModal() == wx.ID_OK:
+			dialog.account.reset_active_organization()
 			self.account_manager[index] = dialog.account
-			self.account_list.SetStringItem(
+			self.account_list.SetItem(
 				index, 2, self._get_organization_name(dialog.account)
 			)
 		dialog.Destroy()
@@ -713,15 +714,14 @@ class AccountDialog(wx.Dialog):
 		dialog = EditAccountDialog(self, _("Edit account"), account=account)
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
-			if "active_organization" in account.__dict__:
-				del account.__dict__["active_organization"]
+			account.reset_active_organization()
 			self.account_manager[index] = account
-			self.account_list.SetStringItem(index, 0, account.name)
-			self.account_list.SetStringItem(index, 1, account.provider.name)
-			self.account_list.SetStringItem(
+			self.account_list.SetItem(index, 0, account.name)
+			self.account_list.SetItem(index, 1, account.provider.name)
+			self.account_list.SetItem(
 				index, 2, self._get_organization_name(account)
 			)
-			self.account_list.SetStringItem(
+			self.account_list.SetItem(
 				index,
 				3,
 				self.account_source_labels.get(account.source, _("Unknown")),

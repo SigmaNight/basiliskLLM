@@ -198,6 +198,12 @@ class Account(BaseModel):
 			None,
 		)
 
+	def reset_active_organization(self):
+		try:
+			del self.active_organization
+		except AttributeError:
+			pass
+
 	@property
 	def active_organization_name(self) -> Optional[str]:
 		return (
