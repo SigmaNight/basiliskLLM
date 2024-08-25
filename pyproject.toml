@@ -43,6 +43,7 @@ numpy = "^2.1.0"
 google-generativeai = "^0.7.2"
 pillow = "^10.4.0"
 keyring = "^25.3.0"
+more-itertools = "^10.4.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.1"
@@ -66,7 +67,9 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT","I"]
+extend-select = ["INT","I","C90"]
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 [tool.ruff.lint.isort]
 known-first-party = ["basilisk"]
 split-on-trailing-comma = false
