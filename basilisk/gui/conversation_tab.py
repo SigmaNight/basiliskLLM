@@ -23,6 +23,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
+from basilisk.gui.html_view_window import show_html_view_window
 from basilisk.gui.search_dialog import SearchDialog, SearchDirection
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
@@ -677,6 +678,14 @@ class ConversationTab(wx.Panel):
 	def on_select_message(self, event: wx.MouseEvent):
 		self.select_message()
 
+	def on_show_as_html(self, event: wx.CommandEvent):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		start = self.message_segment_manager.start
+		end = self.message_segment_manager.end
+		content = self.messages.GetRange(start, end)
+		show_html_view_window(self, content, "markdown")
+
 	def on_copy_message(self, event: wx.CommandEvent):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.select_message()
@@ -686,39 +695,37 @@ class ConversationTab(wx.Panel):
 	def on_messages_key_down(self, event: wx.KeyEvent):
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
+
+		base_key_map = {
+			ord('J'): self.go_to_previous_message,
+			ord('K'): self.go_to_next_message,
+			ord('P'): self.print_position,
+			ord('S'): self.on_select_message,
+			ord('H'): self.on_show_as_html,
+			ord('C'): self.on_copy_message,
+			ord('B'): self.move_to_start_of_message,
+			ord('N'): self.move_to_end_of_message,
+			wx.WXK_DELETE: self.on_remove_message_block,
+			wx.WXK_F3: self.on_search_in_messages_next,
+			ord('F'): self.on_search_in_messages,
+		}
+
+		ctrl_key_map = {ord('F'): self.on_search_in_messages}
+
+		shift_key_map = {wx.WXK_F3: self.on_search_in_messages_previous}
+
 		if modifiers == wx.MOD_NONE:
-			if key_code == ord('J'):
-				self.go_to_previous_message()
-			elif key_code == ord('K'):
-				self.go_to_next_message()
-			elif key_code == ord('P'):
-				self.print_position()
-			elif key_code == ord('S'):
-				self.on_select_message(event)
-			elif key_code == ord('C'):
-				self.on_copy_message(event)
-			elif key_code == ord('B'):
-				self.move_to_start_of_message()
-			elif key_code == ord('N'):
-				self.move_to_end_of_message()
-			elif key_code == wx.WXK_DELETE:
-				self.on_remove_message_block(event)
-			elif key_code == wx.WXK_F3:
-				self.on_search_in_messages_next(event)
-			elif key_code == ord('F'):
-				self.on_search_in_messages(event)
-			else:
-				event.Skip()
+			key_map = base_key_map
 		elif modifiers == wx.MOD_CONTROL:
-			if key_code == ord('F'):
-				self.on_search_in_messages(event)
-			else:
-				event.Skip()
+			key_map = ctrl_key_map
 		elif modifiers == wx.MOD_SHIFT:
-			if key_code == wx.WXK_F3:
-				self.on_search_in_messages_previous(event)
-			else:
-				event.Skip()
+			key_map = shift_key_map
+		else:
+			event.Skip()
+			return
+
+		if key_code in key_map:
+			key_map[key_code]()
 		else:
 			event.Skip()
 
@@ -745,10 +752,16 @@ class ConversationTab(wx.Panel):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("S	earch in messages (forward)") + " (F3)"
+			menu, wx.ID_ANY, _("Search in messages (forward)") + " (F3)"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+
+		item = wx.MenuItem(
+			menu, wx.ID_ANY, _("Show as &HTML (from Markdown) (h)")
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
 
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Copy message") + " (c)")
 		menu.Append(item)
