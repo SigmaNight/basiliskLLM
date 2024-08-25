@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 import wx
+from more_itertools import first, locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
@@ -508,12 +509,10 @@ class ConversationTab(wx.Panel):
 			account_id = config.conf.accounts[account_index].id
 		self.account_combo.Clear()
 		self.account_combo.AppendItems(self.get_display_accounts(True))
-		account_index = wx.NOT_FOUND
-		if account_id:
-			for i, account in enumerate(config.conf.accounts):
-				if account.id == account_id:
-					account_index = i
-					break
+		account_index = first(
+			locate(config.conf.accounts, lambda a: a.id == account_id),
+			wx.NOT_FOUND,
+		)
 		if account_index != wx.NOT_FOUND:
 			self.account_combo.SetSelection(account_index)
 		elif self.account_combo.GetCount() > 0:

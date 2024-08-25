@@ -2,6 +2,7 @@ from logging import getLogger
 from typing import Optional
 
 import wx
+from more_itertools import first, locate
 from pydantic import SecretStr
 
 from basilisk.account import (
@@ -99,11 +100,13 @@ class EditAccountOrganizationDialog(wx.Dialog):
 			return
 
 		self.name.SetValue(self.organization.name)
-		index = -1
-		for i, method in enumerate(key_storage_methods.keys()):
-			if method == self.organization.key_storage_method:
-				index = i
-				break
+		index = first(
+			locate(
+				key_storage_methods.keys(),
+				lambda x: x == self.organization.key_storage_method,
+			),
+			-1,
+		)
 		self.key_storage_method.SetSelection(index)
 		self.key.SetValue(self.organization.key.get_secret_value())
 
@@ -425,18 +428,19 @@ class EditAccountDialog(wx.Dialog):
 			self.api_key_storage_method.SetSelection(0)
 			return
 		self.name.SetValue(self.account.name)
-		index = -1
-		for i, provider in enumerate(providers):
-			if provider.name == self.account.provider.name:
-				index = i
-				break
+		index = first(
+			locate(providers, lambda x: x.name == self.account.provider.name),
+			-1,
+		)
 		self.provider.SetSelection(index)
 		if self.account.api_key and self.account.api_key_storage_method:
-			index = -1
-			for i, method in enumerate(key_storage_methods.keys()):
-				if method == self.account.api_key_storage_method:
-					index = i
-					break
+			index = first(
+				locate(
+					key_storage_methods.keys(),
+					lambda x: x == self.account.api_key_storage_method,
+				),
+				-1,
+			)
 			self.api_key_storage_method.SetSelection(index)
 			self.api_key.SetValue(self.account.api_key.get_secret_value())
 		self.organization.Enable(
@@ -450,11 +454,16 @@ class EditAccountDialog(wx.Dialog):
 			]
 			self.organization.SetItems(choices)
 		if self.account.active_organization_id:
-			index = -1
-			for i, organization in enumerate(self.account.organizations):
-				if organization.id == self.account.active_organization_id:
-					index = i + 1
-					break
+			index = (
+				first(
+					locate(
+						self.account.organizations,
+						lambda x: x.id == self.account.active_organization_id,
+					),
+					-1,
+				)
+				+ 1
+			)
 			self.organization.SetSelection(index)
 
 	def update_ui(self):
