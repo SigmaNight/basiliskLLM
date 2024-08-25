@@ -337,7 +337,7 @@ class ConversationTab(wx.Panel):
 
 		if selected != wx.NOT_FOUND:
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Remove selected image") + " (Del)"
+				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
@@ -604,15 +604,15 @@ class ConversationTab(wx.Panel):
 		self._search_dialog._search_text.SelectAll()
 		self._search_dialog.ShowModal()
 
-	def on_search_in_messages(self, event: wx.CommandEvent):
+	def on_search_in_messages(self, event: wx.CommandEvent = None):
 		self._do_search_in_messages()
 
-	def on_search_in_messages_previous(self, event: wx.CommandEvent):
+	def on_search_in_messages_previous(self, event: wx.CommandEvent = None):
 		if not self._search_dialog:
 			return self._do_search_in_messages(SearchDirection.BACKWARD)
 		self._search_dialog.search_previous()
 
-	def on_search_in_messages_next(self, event: wx.CommandEvent):
+	def on_search_in_messages_next(self, event: wx.CommandEvent = None):
 		if not self._search_dialog:
 			return self._do_search_in_messages()
 		self._search_dialog.search_next()
@@ -698,10 +698,10 @@ class ConversationTab(wx.Panel):
 		end = self.message_segment_manager.end
 		self.messages.SetSelection(start, end)
 
-	def on_select_message(self, event: wx.MouseEvent):
+	def on_select_message(self, event: wx.CommandEvent = None):
 		self.select_message()
 
-	def on_show_as_html(self, event: wx.CommandEvent):
+	def on_show_as_html(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		start = self.message_segment_manager.start
@@ -709,46 +709,36 @@ class ConversationTab(wx.Panel):
 		content = self.messages.GetRange(start, end)
 		show_html_view_window(self, content, "markdown")
 
-	def on_copy_message(self, event: wx.CommandEvent):
+	def on_copy_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.select_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
 
-	def on_messages_key_down(self, event: wx.KeyEvent):
+	def on_messages_key_down(self, event: wx.KeyEvent = None):
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 
-		base_key_map = {
-			ord('J'): self.go_to_previous_message,
-			ord('K'): self.go_to_next_message,
-			ord('P'): self.print_position,
-			ord('S'): self.on_select_message,
-			ord('H'): self.on_show_as_html,
-			ord('C'): self.on_copy_message,
-			ord('B'): self.move_to_start_of_message,
-			ord('N'): self.move_to_end_of_message,
-			wx.WXK_DELETE: self.on_remove_message_block,
-			wx.WXK_F3: self.on_search_in_messages_next,
-			ord('F'): self.on_search_in_messages,
+		key_actions = {
+			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
+			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
+			(wx.MOD_NONE, ord('P')): self.print_position,
+			(wx.MOD_NONE, ord('S')): self.on_select_message,
+			(wx.MOD_NONE, ord('H')): self.on_show_as_html,
+			(wx.MOD_NONE, ord('C')): self.on_copy_message,
+			(wx.MOD_NONE, ord('B')): self.move_to_start_of_message,
+			(wx.MOD_NONE, ord('N')): self.move_to_end_of_message,
+			(wx.MOD_NONE, wx.WXK_DELETE): self.on_remove_message_block,
+			(wx.MOD_NONE, wx.WXK_F3): self.on_search_in_messages_next,
+			(wx.MOD_NONE, ord('F')): self.on_search_in_messages,
+			(wx.MOD_CONTROL, ord('F')): self.on_search_in_messages,
+			(wx.MOD_SHIFT, wx.WXK_F3): self.on_search_in_messages_previous,
 		}
 
-		ctrl_key_map = {ord('F'): self.on_search_in_messages}
+		action = key_actions.get((modifiers, key_code))
 
-		shift_key_map = {wx.WXK_F3: self.on_search_in_messages_previous}
-
-		if modifiers == wx.MOD_NONE:
-			key_map = base_key_map
-		elif modifiers == wx.MOD_CONTROL:
-			key_map = ctrl_key_map
-		elif modifiers == wx.MOD_SHIFT:
-			key_map = shift_key_map
-		else:
-			event.Skip()
-			return
-
-		if key_code in key_map:
-			key_map[key_code]()
+		if action:
+			action()
 		else:
 			event.Skip()
 
@@ -801,7 +791,7 @@ class ConversationTab(wx.Panel):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Remove message block") + " (Del)"
+			menu, wx.ID_ANY, _("Remove message block") + " (Shift+Del)"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
