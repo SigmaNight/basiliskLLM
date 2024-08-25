@@ -874,85 +874,78 @@ class ConversationTab(wx.Panel):
 				text += item.text
 		return text
 
+	def append_text_and_create_segment(
+		self, text, segment_type, new_block_ref, absolute_length
+	):
+		self.messages.AppendText(text)
+		relative_length = self.messages.GetLastPosition() - absolute_length
+		absolute_length = self.messages.GetLastPosition()
+		self.message_segment_manager.append(
+			MessageSegment(
+				length=relative_length,
+				kind=segment_type,
+				message_block=new_block_ref,
+			)
+		)
+		return absolute_length
+
 	def display_new_block(self, new_block: MessageBlock):
 		absolute_length = self.messages.GetLastPosition()
+		new_block_ref = weakref.ref(new_block)
+
 		if not self.messages.IsEmpty():
-			self.messages.AppendText(os.linesep)
-			relative_length = self.messages.GetLastPosition() - absolute_length
-			absolute_length = self.messages.GetLastPosition()
-			self.message_segment_manager.append(
-				MessageSegment(
-					length=relative_length,
-					kind=MessageSegmentType.SUFFIX,
-					message_block=weakref.ref(new_block),
-				)
+			absolute_length = self.append_text_and_create_segment(
+				os.linesep,
+				MessageSegmentType.SUFFIX,
+				new_block_ref,
+				absolute_length,
 			)
+
 		role_label = (
 			config.conf.conversation.role_label_user
 			or self.ROLE_LABELS[new_block.request.role]
 		)
-		self.messages.AppendText(role_label)
-		relative_length = self.messages.GetLastPosition() - absolute_length
-		absolute_length = self.messages.GetLastPosition()
-		self.message_segment_manager.append(
-			MessageSegment(
-				length=relative_length,
-				kind=MessageSegmentType.PREFIX,
-				message_block=weakref.ref(new_block),
-			)
+		absolute_length = self.append_text_and_create_segment(
+			role_label,
+			MessageSegmentType.PREFIX,
+			new_block_ref,
+			absolute_length,
 		)
 
 		content = self.extract_text_from_message(new_block.request.content)
-		self.messages.AppendText(content)
-		relative_length = self.messages.GetLastPosition() - absolute_length
-		absolute_length = self.messages.GetLastPosition()
-		self.message_segment_manager.append(
-			MessageSegment(
-				length=relative_length,
-				kind=MessageSegmentType.CONTENT,
-				message_block=weakref.ref(new_block),
-			)
+		absolute_length = self.append_text_and_create_segment(
+			content, MessageSegmentType.CONTENT, new_block_ref, absolute_length
 		)
 
-		self.messages.AppendText(os.linesep)
-		relative_length = self.messages.GetLastPosition() - absolute_length
-		absolute_length = self.messages.GetLastPosition()
-		self.message_segment_manager.append(
-			MessageSegment(
-				length=relative_length,
-				kind=MessageSegmentType.SUFFIX,
-				message_block=weakref.ref(new_block),
-			)
+		absolute_length = self.append_text_and_create_segment(
+			os.linesep,
+			MessageSegmentType.SUFFIX,
+			new_block_ref,
+			absolute_length,
 		)
 
 		pos = self.messages.GetInsertionPoint()
+
 		if new_block.response:
 			role_label = (
 				config.conf.conversation.role_label_assistant
 				or self.ROLE_LABELS[new_block.response.role]
 			)
-			self.messages.AppendText(role_label)
-			relative_length = self.messages.GetLastPosition() - absolute_length
-			absolute_length = self.messages.GetLastPosition()
-			self.message_segment_manager.append(
-				MessageSegment(
-					length=relative_length,
-					kind=MessageSegmentType.PREFIX,
-					message_block=weakref.ref(new_block),
-				)
+			absolute_length = self.append_text_and_create_segment(
+				role_label,
+				MessageSegmentType.PREFIX,
+				new_block_ref,
+				absolute_length,
 			)
 
 			content = self.extract_text_from_message(new_block.response.content)
-			self.messages.AppendText(content)
-			relative_length = self.messages.GetLastPosition() - absolute_length
-			absolute_length = self.messages.GetLastPosition()
-			self.message_segment_manager.append(
-				MessageSegment(
-					length=relative_length,
-					kind=MessageSegmentType.CONTENT,
-					message_block=weakref.ref(new_block),
-				)
+			absolute_length = self.append_text_and_create_segment(
+				content,
+				MessageSegmentType.CONTENT,
+				new_block_ref,
+				absolute_length,
 			)
+
 		self.messages.SetInsertionPoint(pos)
 
 	def refresh_messages(self):
