@@ -176,6 +176,14 @@ class PreferencesDialog(wx.Dialog):
 		)
 		conversation_group_sizer.Add(self.role_label_assistant, 0, wx.ALL, 5)
 
+		self.nav_msg_select = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Message Selection on Previous/Next Navigation"),
+		)
+		self.nav_msg_select.SetValue(conf.conversation.nav_msg_select)
+		conversation_group_sizer.Add(self.nav_msg_select, 0, wx.ALL, 5)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))
@@ -297,6 +305,7 @@ class PreferencesDialog(wx.Dialog):
 		conf.conversation.role_label_assistant = (
 			self.role_label_assistant.GetValue()
 		)
+		conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
 
 		conf.images.resize = self.image_resize.GetValue()
 		conf.images.max_height = int(self.image_max_height.GetValue())

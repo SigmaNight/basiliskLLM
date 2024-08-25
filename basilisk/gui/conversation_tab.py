@@ -617,13 +617,17 @@ class ConversationTab(wx.Panel):
 			return self._do_search_in_messages()
 		self._search_dialog.search_next()
 
-	def go_to_previous_message(self):
-		log.debug("Going to previous message")
+	def navigate_message(self, previous: bool):
 		self.message_segment_manager.absolute_position = (
 			self.messages.GetInsertionPoint()
 		)
 		try:
-			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
+			if previous:
+				self.message_segment_manager.previous(
+					MessageSegmentType.CONTENT
+				)
+			else:
+				self.message_segment_manager.next(MessageSegmentType.CONTENT)
 		except IndexError:
 			wx.Bell()
 			return
@@ -632,26 +636,15 @@ class ConversationTab(wx.Panel):
 		except IndexError:
 			wx.Bell()
 		else:
-			log.debug(f"Setting insertion point to {pos}")
 			self.messages.SetInsertionPoint(pos)
+			if config.conf.conversation.nav_msg_select:
+				self.select_current_message()
+
+	def go_to_previous_message(self):
+		self.navigate_message(True)
 
 	def go_to_next_message(self):
-		log.debug("Going to next message")
-		self.message_segment_manager.absolute_position = (
-			self.messages.GetInsertionPoint()
-		)
-		try:
-			self.message_segment_manager.next(MessageSegmentType.CONTENT)
-		except IndexError:
-			wx.Bell()
-			return
-		try:
-			pos = self.message_segment_manager.start
-		except IndexError:
-			wx.Bell()
-		else:
-			log.debug(f"Setting insertion point to {pos}")
-			self.messages.SetInsertionPoint(pos)
+		self.navigate_message(False)
 
 	def print_position(self):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -691,7 +684,7 @@ class ConversationTab(wx.Panel):
 			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
 
-	def select_message(self):
+	def select_current_message(self):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		start = self.message_segment_manager.start
@@ -699,7 +692,7 @@ class ConversationTab(wx.Panel):
 		self.messages.SetSelection(start, end)
 
 	def on_select_message(self, event: wx.CommandEvent = None):
-		self.select_message()
+		self.select_current_message()
 
 	def on_show_as_html(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -711,7 +704,7 @@ class ConversationTab(wx.Panel):
 
 	def on_copy_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
-		self.select_message()
+		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
 
