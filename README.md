@@ -4,11 +4,21 @@ In Development - It's still in its infancy. Use with caution!
 
 ## So, What's the Idea Here?
 
-**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into Anthropic, Mistral, OpenAI, OpenRouter, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
+**BasiliskLLM** is like the cool uncle of LLM interaction tools. Drawing "inspiration" (a.k.a. brilliant ideas stolen in the dead of night) from [OpenAI's NVDA add-on](https://github.com/aaclause/nvda-OpenAI/), it aims to do what every project dreams of: actually be useful. Our noble mission? To make chatting with large language models (LLMs) so easy, even your grandma could do it blindfolded. Whether you're into Anthropic, Gemini, Mistral, OpenAI, OpenRouter, or running your own secretive AI in the basement, we've got you covered. Yes, even you, screen reader users. We see you.
 
 ### And the Name? Seriously?
 
 Why does anyone name anything? Partially as a joke, partially hoping it becomes a self-fulfilling prophecy. Why this particular name? It's a nod to the infamous **Roko's basilisk**, which if you're curious (or bored), you can dive into [here](https://en.wikipedia.org/wiki/Roko%27s_basilisk) and [here](https://www.lesswrong.com/tag/rokos-basilisk). Spoiler alert: it's the ultimate rabbit hole.
+
+## key feature
+
+- **Multi-Chat Support**: Chat with multiple LLMs at the same time.
+- **describe image**: describe the image in the chat. Image source can be a screenshot, a regular file, or a URL.
+- **speech to text**: transcribe the text from the micorphone and audio file in the prompt
+- **multi convesation**: you can have multiple conversation at the same time.
+- **auto update**: the app will check for new version and update automatically.
+- **NVDA add-on**: you can send the image of the current object directly to the active chat from any application.
+- **secure your credential**: you can secure your credential using the windows credential manager.
 
 ## Download and installation
 
@@ -56,6 +66,18 @@ poetry install
 ```shell
 poetry run python -m basilisk
 ```
+
+## account configuration
+
+The app will ask you to configure your account when you run it for the first time. You can also configure your account by clicking on the `Tool` menu and selecting `Manage Account`.
+An account configuration window will appear where you can enter your API key and select the AI provider you want to use. You can also configure the credential manager to store your API key securely.
+You can obtain an API key from the AI provider you want to use. The app supports the following AI providers:
+
+- [Anthropic](https://www.anthropic.com/api)
+- [Gemini](htps://makersuite.google.com/app/apikey)
+- [Mistral AI](https://mistral.ai/)
+- [OpenAI](https://platform.openai.com/)
+- [OpenRouter](https://openrouter.ai/)
 
 ## Shortcuts
 
