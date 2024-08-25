@@ -880,7 +880,13 @@ class ConversationTab(wx.Panel):
 			self.messages.AppendText(os.linesep)
 			relative_length = self.messages.GetLastPosition() - absolute_length
 			absolute_length = self.messages.GetLastPosition()
-			self.message_segment_manager.segments[-1].length += relative_length
+			self.message_segment_manager.append(
+				MessageSegment(
+					length=relative_length,
+					kind=MessageSegmentType.SUFFIX,
+					message_block=weakref.ref(new_block),
+				)
+			)
 		role_label = (
 			config.conf.conversation.role_label_user
 			or self.ROLE_LABELS[new_block.request.role]
