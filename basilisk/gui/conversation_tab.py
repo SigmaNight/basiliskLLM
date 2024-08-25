@@ -1209,11 +1209,15 @@ class ConversationTab(wx.Panel):
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
+	def _update_last_segment_length(self):
+		last_position = self.messages.GetLastPosition()
+		self.message_segment_manager.absolute_position = last_position
+		last_segment = self.message_segment_manager.segments[-1]
+		last_segment.length += last_position - self.message_segment_manager.end
+
 	def _post_completion_with_stream(self, new_block: MessageBlock):
-		self.message_segment_manager.segments[-1].length = len(
-			new_block.response.content
-		)
 		self._flush_stream_buffer()
+		self._update_last_segment_length()
 		self._end_task()
 		self._messages_already_focused = False
 
