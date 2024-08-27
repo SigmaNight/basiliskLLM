@@ -640,10 +640,10 @@ class ConversationTab(wx.Panel):
 			if config.conf.conversation.nav_msg_select:
 				self.select_current_message()
 
-	def go_to_previous_message(self):
+	def go_to_previous_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(True)
 
-	def go_to_next_message(self):
+	def go_to_next_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(False)
 
 	def print_position(self):
@@ -708,7 +708,21 @@ class ConversationTab(wx.Panel):
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
 
+	def on_remove_message_block(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		message_block = (
+			self.message_segment_manager.current_segment.message_block()
+		)
+		if message_block:
+			self.conversation.messages.remove(message_block)
+			self.refresh_messages()
+			self.messages.SetInsertionPoint(cursor_pos)
+
 	def on_messages_key_down(self, event: wx.KeyEvent = None):
+		if not self.conversation.messages:
+			event.Skip()
+			return
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 
@@ -735,59 +749,55 @@ class ConversationTab(wx.Panel):
 		else:
 			event.Skip()
 
-	def on_remove_message_block(self, event: wx.CommandEvent):
-		cursor_pos = self.messages.GetInsertionPoint()
-		self.message_segment_manager.absolute_position = cursor_pos
-		message_block = (
-			self.message_segment_manager.current_segment.message_block()
-		)
-		if message_block:
-			self.conversation.messages.remove(message_block)
-			self.refresh_messages()
-			self.messages.SetInsertionPoint(cursor_pos)
-
 	def on_messages_context_menu(self, event: wx.ContextMenuEvent):
 		menu = wx.Menu()
 
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Search in messages...") + " (F)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Search in messages (backward)") + " (Shift+F3)"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Search in messages (forward)") + " (F3)"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+		if self.conversation.messages:
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Search in messages...") + " (F)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				_("Search in messages (backward)") + " (Shift+F3)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Search in messages (forward)") + " (F3)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
 
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Show as &HTML (from Markdown) (h)")
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Show as &HTML (from Markdown) (h)")
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
 
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Copy message") + " (c)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_copy_message, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Select message") + " (s)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_select_message, item)
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Go to previous message") + " (j)"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Go to next message") + " (k)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Remove message block") + " (Shift+Del)"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
+			item = wx.MenuItem(menu, wx.ID_ANY, _("Copy message") + " (c)")
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
+			item = wx.MenuItem(menu, wx.ID_ANY, _("Select message") + " (s)")
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_select_message, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Go to previous message") + " (j)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Go to next message") + " (k)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Remove message block") + " (Shift+Del)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
 		self.add_standard_context_menu_items(menu)
 		self.messages.PopupMenu(menu)
 		menu.Destroy()
