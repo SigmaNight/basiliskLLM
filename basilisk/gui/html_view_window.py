@@ -59,6 +59,9 @@ class HtmlViewWindow(wx.Frame):
 		self._copy_button.Bind(wx.EVT_BUTTON, self._on_copy)
 
 		self._web_view = wx.html2.WebView.New(panel)
+		self._web_view.Bind(
+			wx.html2.EVT_WEBVIEW_LOADED, lambda _: self._web_view.SetFocus()
+		)
 		self._web_view.SetPage(self._content, "")
 
 		actions_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -102,6 +105,3 @@ def show_html_view_window(
 	"""
 	window = HtmlViewWindow(parent, content, content_format, title)
 	window.Show()
-	# TODO: Resolve the timing issue of setting focus to the HTML content view.
-	#       Setting focus too early results in NVDA (at least) not detecting the webview. Delaying it works.
-	wx.CallLater(500, window._web_view.SetFocus)
