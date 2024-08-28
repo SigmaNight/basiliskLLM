@@ -693,6 +693,8 @@ class ConversationTab(wx.Panel):
 			self.conversation.messages.remove(message_block)
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
+		else:
+			wx.Bell()
 
 	def on_messages_key_down(self, event: wx.KeyEvent = None):
 		if not self.conversation.messages:
@@ -709,7 +711,7 @@ class ConversationTab(wx.Panel):
 			(wx.MOD_NONE, ord('C')): self.on_copy_message,
 			(wx.MOD_NONE, ord('B')): self.move_to_start_of_message,
 			(wx.MOD_NONE, ord('N')): self.move_to_end_of_message,
-			(wx.MOD_NONE, wx.WXK_DELETE): self.on_remove_message_block,
+			(wx.MOD_SHIFT, wx.WXK_DELETE): self.on_remove_message_block,
 			(wx.MOD_NONE, wx.WXK_F3): self.on_search_in_messages_next,
 			(wx.MOD_NONE, ord('F')): self.on_search_in_messages,
 			(wx.MOD_CONTROL, ord('F')): self.on_search_in_messages,

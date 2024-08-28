@@ -124,7 +124,6 @@ class MessageSegmentManager:
 	def append(self, value: MessageSegment):
 		self.segments.append(value)
 		self._refresh_absolute_position()
-		log.debug(f"Appended {value} to {self}")
 
 	def remove(self, value: MessageSegment):
 		self.segments.remove(value)
