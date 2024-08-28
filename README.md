@@ -10,15 +10,15 @@ In Development - It's still in its infancy. Use with caution!
 
 Why does anyone name anything? Partially as a joke, partially hoping it becomes a self-fulfilling prophecy. Why this particular name? It's a nod to the infamous **Roko's basilisk**, which if you're curious (or bored), you can dive into [here](https://en.wikipedia.org/wiki/Roko%27s_basilisk) and [here](https://www.lesswrong.com/tag/rokos-basilisk). Spoiler alert: it's the ultimate rabbit hole.
 
-## key feature
+## Key features
 
 - **Multi-Chat Support**: Chat with multiple LLMs at the same time.
-- **describe image**: describe the image in the chat. Image source can be a screenshot, a regular file, or a URL.
-- **speech to text**: transcribe the text from the micorphone and audio file in the prompt
-- **multi convesation**: you can have multiple conversation at the same time.
-- **auto update**: the app will check for new version and update automatically.
-- **NVDA add-on**: you can send the image of the current object directly to the active chat from any application.
-- **secure your credential**: you can secure your credential using the windows credential manager.
+- **Describe Image**: Describe the image in the chat. The image source can be a screenshot, a regular file, or a URL.
+- **Speech to Text**: Transcribe text from the microphone or an audio file into the prompt.
+- **Multi-Conversation**: You can have multiple conversations at the same time.
+- **Auto Update**: The app will check for new versions and update automatically.
+- **NVDA Add-on**: You can send the image of the current object directly to the active chat from any application.
+- **Secure Your Credentials**: You can secure your credentials using the Windows Credential Manager.
 
 ## Download and installation
 
@@ -29,10 +29,10 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 
 ### Available Assets for Each Release
 
-- **Setup for Windows x64:** Traditional installer for 64-bit Windows systems.
-- **Setup for Windows x86:** Traditional installer for 32-bit Windows systems.
-- **Portable Version for Windows x64:** No installation required, just extract and run `basilisk.exe`.
-- **Portable Version for Windows x86:** No installation required, just extract and run `basilisk.exe`.
+- **Setup for Windows x64**: Traditional installer for 64-bit Windows systems.
+- **Setup for Windows x86**: Traditional installer for 32-bit Windows systems.
+- **Portable Version for Windows x64**: No installation required, just extract and run `basilisk.exe`.
+- **Portable Version for Windows x86**: No installation required, just extract and run `basilisk.exe`.
 
 ### Installation Using the Setup Installer
 
@@ -69,9 +69,11 @@ poetry run python -m basilisk
 
 ## account configuration
 
-The app will ask you to configure your account when you run it for the first time. You can also configure your account by clicking on the `Tool` menu and selecting `Manage Account`.
-An account configuration window will appear where you can enter your API key and select the AI provider you want to use. You can also configure the credential manager to store your API key securely.
-You can obtain an API key from the AI provider you want to use. The app supports the following AI providers:
+When you run the app for the first time, it will prompt you to configure your account. Alternatively, you can configure your account by clicking on the 'Tool' menu and selecting 'Manage Account.'
+
+A configuration window will appear, allowing you to enter your API key and select the AI provider you wish to use. You can also configure the Credential Manager to securely store your API key.
+
+You can obtain an API key from your chosen AI provider. The app supports the following AI providers:
 
 - [Anthropic](https://www.anthropic.com/api)
 - [Gemini](htps://makersuite.google.com/app/apikey)
@@ -81,23 +83,36 @@ You can obtain an API key from the AI provider you want to use. The app supports
 
 ## Shortcuts
 
+Except for global shortcuts, keyboard shortcuts are displayed alongside the labels of their corresponding elements.
+
 ### Global shortcuts
 
 These shortcuts work anywhere in Windows.
 
-- `AltGr+Shift+B`: Minimize to tray or show the BasiliskLLM window.
-- `AltGr+Shift+W`: take a screenshot of the current window and send the image to the active chat.
-- `AltGr+Shift+F`: take a screenshot of the full screen and send the image to the active chat.
+- **`AltGr+Shift+B`**: Minimize to tray or show the BasiliskLLM window.
+- **`AltGr+Shift+W`**: Take a screenshot of the current window and send the image to the active chat.
+- **`AltGr+Shift+F`**: Take a screenshot of the full screen and send the image to the active chat.
 
-Note: you can also minimize the window using Alt+F4.
+**Note**: You can also minimize the window using `Alt+F4`.
 
 ### BasiliskLLM window shortcuts
 
 These shortcuts work only when the BasiliskLLM window is focused.
 
-- `Ctrl+1` to `Ctrl+9`: Select the corresponding tab. Each tab is a different chat.
-- `Ctrl+n`: Create a new chat.
-- `Ctrl+w`: Close the current chat.
+- **`Ctrl+1` to `Ctrl+9`**: Select the corresponding tab. Each tab is a different chat.
+- **`Ctrl+n`**: Create a new chat.
+- **`Ctrl+w`**: Close the current chat.
+
+### Contextual Shortcuts
+
+The multiline "System prompt," "Messages," and "Prompt" fields come equipped with context menus filled with commands that can be quickly executed using keyboard shortcuts. The same applies to the models list. These shortcuts are active when the relevant field is in focus.
+
+Examples of Contextual Shortcuts in the Messages Area:
+
+- **`j`**: Move to the previous message.
+- **`k`**: Move to the next message.
+
+**Note**: Context menu can be opened using the `Shift+F10` key combination, the `Applications` key, or by right-clicking on the field.
 
 ## NVDA Add-on Connector
 
@@ -106,8 +121,8 @@ For those using NVDA, you can install the NVDA add-on connector to send the imag
 To install the NVDA add-on connector, navigate to the Tools menu > Install NVDA add-on.
 Once the add-on is installed, you can use the following shortcuts:
 
-- NVDA+SHIFT+k: Capture the current navigator object and send it to BasiliskLLM.
-- NVDA+SHIFT+l: Send the current image source to BasiliskLLM (url or base64).
+- **`NVDA+SHIFT+k`**: Capture the current navigator object and send it to BasiliskLLM.
+- **`NVDA+SHIFT+l`**: Send the current image source to BasiliskLLM (url or base64).
 
 ## Automatic update of the Application (Windows only)
 
