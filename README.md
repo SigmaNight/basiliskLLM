@@ -16,7 +16,7 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 - **Describe Image**: Describe the image in the chat. The image source can be a screenshot, a regular file, or a URL.
 - **Speech to Text**: Transcribe text from the microphone or an audio file into the prompt.
 - **Multi-Conversation**: You can have multiple conversations at the same time.
-- **Auto Update**: The app will check for new versions and update automatically.
+- **Auto-Update**: The app will check for new versions and update automatically.
 - **NVDA Add-on**: You can send the image of the current object directly to the active chat from any application.
 - **Secure Your Credentials**: You can secure your credentials using the Windows Credential Manager.
 
