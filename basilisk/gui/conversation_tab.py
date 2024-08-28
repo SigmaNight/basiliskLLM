@@ -646,47 +646,22 @@ class ConversationTab(wx.Panel):
 	def go_to_next_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(False)
 
-	def print_position(self):
+	def move_to_start_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
-		log.debug(
-			f"Current position: {self.message_segment_manager.position}, start: {self.message_segment_manager.start}, {self.message_segment_manager.current_segment}"
-		)
-		log.debug(f"{self.message_segment_manager.segments}")
-
-	def move_to_start_of_message(self):
-		cursor_pos = self.messages.GetInsertionPoint()
-		self.message_segment_manager.absolute_position = cursor_pos
-		if (
-			self.message_segment_manager.current_segment.kind
-			== MessageSegmentType.PREFIX
-		):
-			self.message_segment_manager.next(MessageSegmentType.CONTENT)
-		elif (
-			self.message_segment_manager.current_segment.kind
-			== MessageSegmentType.SUFFIX
-		):
-			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
+		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
 
-	def move_to_end_of_message(self):
+	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
-		if (
-			self.message_segment_manager.current_segment.kind
-			== MessageSegmentType.PREFIX
-		):
-			self.message_segment_manager.next(MessageSegmentType.CONTENT)
-		elif (
-			self.message_segment_manager.current_segment.kind
-			== MessageSegmentType.SUFFIX
-		):
-			self.message_segment_manager.previous(MessageSegmentType.CONTENT)
+		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
 
 	def select_current_message(self):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
 		start = self.message_segment_manager.start
 		end = self.message_segment_manager.end
 		self.messages.SetSelection(start, end)
@@ -729,7 +704,6 @@ class ConversationTab(wx.Panel):
 		key_actions = {
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
-			(wx.MOD_NONE, ord('P')): self.print_position,
 			(wx.MOD_NONE, ord('S')): self.on_select_message,
 			(wx.MOD_NONE, ord('H')): self.on_show_as_html,
 			(wx.MOD_NONE, ord('C')): self.on_copy_message,
@@ -754,7 +728,10 @@ class ConversationTab(wx.Panel):
 
 		if self.conversation.messages:
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Search in messages...") + " (F)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Search in messages...") + " (&f)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
@@ -766,35 +743,76 @@ class ConversationTab(wx.Panel):
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Search in messages (forward)") + " (F3)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Search in messages (forward)") + " (F3)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Show as &HTML (from Markdown) (h)")
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Show as HTML (from Markdown) (&h)"),
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
 
-			item = wx.MenuItem(menu, wx.ID_ANY, _("Copy message") + " (c)")
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Copy current message") + " (&c)",
+			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
-			item = wx.MenuItem(menu, wx.ID_ANY, _("Select message") + " (s)")
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Select current message") + " (&s)",
+			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_select_message, item)
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Go to previous message") + " (j)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Go to previous message") + " (&j)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Go to next message") + " (k)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Go to next message") + " (&k)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Remove message block") + " (Shift+Del)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Move to start of message") + " (&b)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Move to end of message") + " (&n)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("&Remove message block") + " (Shift+Del)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)

@@ -138,6 +138,12 @@ class MessageSegmentManager:
 	def index(self, value: MessageSegment) -> int:
 		return self.segments.index(value)
 
+	def focus_content_block(self):
+		if self.current_segment.kind == MessageSegmentType.PREFIX:
+			self.next(MessageSegmentType.CONTENT)
+		elif self.current_segment.kind == MessageSegmentType.SUFFIX:
+			self.previous(MessageSegmentType.CONTENT)
+
 	def _refresh_absolute_position(self):
 		"""Refresh the absolute position based on the current index"""
 		self._absolute_position = 0
