@@ -124,6 +124,92 @@ class TestMessagePositionManager(unittest.TestCase):
 		for pos in self.manager:
 			self.assertIn(pos, self.segments)
 
+	def test_focus_content_block_prefix(self):
+		self.manager.position = 1
+		self.manager.focus_content_block()
+		self.assertEqual(self.manager.position, 2)
+
+	def test_focus_content_block_suffix(self):
+		self.manager.append(
+			MessageSegment(length=10, kind=MessageSegmentType.SUFFIX)
+		)
+		self.manager.position = 3
+		self.manager.focus_content_block()
+		self.assertEqual(self.manager.position, 2)
+
+	def test_focus_content_block_noop(self):
+		self.manager.focus_content_block()
+		self.assertEqual(self.manager.position, 0)
+
+	def test_empty_segments(self):
+		manager = MessageSegmentManager([])
+		with self.assertRaises(IndexError):
+			manager.next()
+		with self.assertRaises(IndexError):
+			manager.previous()
+
+	def test_single_segment_next(self):
+		manager = MessageSegmentManager(
+			[MessageSegment(length=7, kind=MessageSegmentType.CONTENT)]
+		)
+		with self.assertRaises(IndexError):
+			manager.next()
+
+	def test_single_segment_previous(self):
+		manager = MessageSegmentManager(
+			[MessageSegment(length=7, kind=MessageSegmentType.CONTENT)]
+		)
+		with self.assertRaises(IndexError):
+			manager.previous()
+
+	def test_current_segment(self):
+		self.assertEqual(self.manager.current_segment, self.segments[0])
+		self.manager.next()
+		self.assertEqual(self.manager.current_segment, self.segments[1])
+
+	def test_position_setter_invalid(self):
+		with self.assertRaises(ValueError):
+			self.manager.position = -1
+		with self.assertRaises(ValueError):
+			self.manager.position = 100
+
+	def test_absolute_position_setter_large(self):
+		self.manager.absolute_position = 999
+		self.assertEqual(self.manager.absolute_position, 42)
+
+	def test_getitem_setitem_delitem(self):
+		segment = MessageSegment(length=50, kind=MessageSegmentType.SUFFIX)
+		self.manager[1] = segment
+		self.assertEqual(self.manager[1], segment)
+
+		del self.manager[1]
+		self.assertNotIn(segment, self.manager.segments)
+		self.assertEqual(len(self.manager), 2)
+
+	def test_clear(self):
+		self.manager.clear()
+		self.assertEqual(len(self.manager.segments), 0)
+		self.assertEqual(self.manager.position, -1)
+		self.assertEqual(self.manager.absolute_position, -1)
+
+	def test_insert_at_beginning(self):
+		segment = MessageSegment(length=5, kind=MessageSegmentType.PREFIX)
+		self.manager.insert(0, segment)
+		self.assertEqual(self.manager[0], segment)
+		self.assertEqual(self.manager.position, 0)
+		self.assertEqual(self.manager.absolute_position, 5)
+
+	def test_multiple_content_segments(self):
+		self.segments.append(
+			MessageSegment(length=10, kind=MessageSegmentType.CONTENT)
+		)
+		self.manager = MessageSegmentManager(self.segments)
+		self.manager.position = 1
+		self.manager.next(MessageSegmentType.CONTENT)
+		self.assertEqual(self.manager.position, 2)
+		self.manager.next(MessageSegmentType.CONTENT)
+		self.assertEqual(self.manager.position, 3)
+
 
 if __name__ == "__main__":
 	unittest.main()
