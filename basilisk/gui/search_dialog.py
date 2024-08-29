@@ -125,7 +125,7 @@ class SearchDialog(wx.Dialog):
 		self._mode_radio_extended = wx.RadioButton(
 			self,
 			# Translators: Search dialog label
-			label=_("E&xxtended") + r" (\n, \t, \r...)",
+			label=_("E&xtended") + r" (\n, \t, \r...)",
 		)
 		self._mode_radio_regex = wx.RadioButton(
 			self,

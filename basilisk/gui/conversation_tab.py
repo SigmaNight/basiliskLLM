@@ -733,31 +733,29 @@ class ConversationTab(wx.Panel):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Search in messages...") + " (&f)",
+				_("Find...") + " (&f)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
-				_("Search in messages (backward)") + " (Shift+F3)",
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
-			item = wx.MenuItem(
-				menu,
-				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Search in messages (forward)") + " (F3)",
+				_("Find Next") + " (F3)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
 
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Show as HTML (from Markdown) (&h)"),
+				_("Show as HTML (from Markdown)") + " (&h)",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
