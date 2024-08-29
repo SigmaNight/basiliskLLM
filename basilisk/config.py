@@ -73,6 +73,12 @@ class GeneralSettings(BaseModel):
 	quit_on_close: bool = Field(default=False)
 
 
+class ConversationSettings(BaseModel):
+	role_label_user: str | None = Field(default=None)
+	role_label_assistant: str | None = Field(default=None)
+	nav_msg_select: bool = Field(default=False)
+
+
 class ImagesSettings(BaseModel):
 	max_height: int = Field(default=720)
 	max_width: int = Field(default=0)
@@ -100,6 +106,9 @@ class BasiliskConfig(BaseSettings):
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
 	accounts: AccountManager = Field(default_factory=AccountManager)
+	conversation: ConversationSettings = Field(
+		default_factory=ConversationSettings
+	)
 	images: ImagesSettings = Field(default_factory=ImagesSettings)
 	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)

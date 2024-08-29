@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import time
+import weakref
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
@@ -22,7 +23,14 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
+from basilisk.gui.html_view_window import show_html_view_window
+from basilisk.gui.search_dialog import SearchDialog, SearchDirection
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
+from basilisk.message_segment_manager import (
+	MessageSegment,
+	MessageSegmentManager,
+	MessageSegmentType,
+)
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
@@ -30,6 +38,8 @@ from basilisk.sound_manager import play_sound, stop_sound
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 	from basilisk.recording_thread import RecordingThread
+
+
 log = logging.getLogger(__name__)
 
 
@@ -45,17 +55,26 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 
 
 class ConversationTab(wx.Panel):
+	ROLE_LABELS: dict[MessageRoleEnum, str] = {
+		# Translators: Label indicating that the message is from the user in a conversation
+		MessageRoleEnum.USER: _("User:") + ' ',
+		# Translators: Label indicating that the message is from the assistant in a conversation
+		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
+	}
+
 	def __init__(self, parent: wx.Window):
 		wx.Panel.__init__(self, parent)
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
 		self.last_time = 0
+		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
 		self.stream_buffer = ""
 		self._messages_already_focused = False
 		self._stop_completion = False
+		self._search_dialog = None
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
 		self.init_data()
@@ -105,6 +124,8 @@ class ConversationTab(wx.Panel):
 			| wx.TE_WORDWRAP
 			| wx.HSCROLL,
 		)
+		self.messages.Bind(wx.EVT_CONTEXT_MENU, self.on_messages_context_menu)
+		self.messages.Bind(wx.EVT_KEY_DOWN, self.on_messages_key_down)
 		sizer.Add(self.messages, proportion=1, flag=wx.EXPAND)
 
 		label = wx.StaticText(
@@ -316,7 +337,7 @@ class ConversationTab(wx.Panel):
 
 		if selected != wx.NOT_FOUND:
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Remove selected image") + " (Del)"
+				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
@@ -567,6 +588,240 @@ class ConversationTab(wx.Panel):
 			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
+	def _do_search_in_messages(
+		self, direction: SearchDirection = SearchDirection.FORWARD
+	):
+		if not self._search_dialog:
+			self._search_dialog = SearchDialog(self, self.messages)
+		self._search_dialog._dir_radio_forward.SetValue(
+			direction == SearchDirection.FORWARD
+		)
+		self._search_dialog._dir_radio_backward.SetValue(
+			direction == SearchDirection.BACKWARD
+		)
+
+		self._search_dialog._search_combo.SetFocus()
+		self._search_dialog._search_combo.SelectAll()
+		self._search_dialog.ShowModal()
+
+	def on_search_in_messages(self, event: wx.CommandEvent = None):
+		self._do_search_in_messages()
+
+	def on_search_in_messages_previous(self, event: wx.CommandEvent = None):
+		if not self._search_dialog:
+			return self._do_search_in_messages(SearchDirection.BACKWARD)
+		self._search_dialog.search_previous()
+
+	def on_search_in_messages_next(self, event: wx.CommandEvent = None):
+		if not self._search_dialog:
+			return self._do_search_in_messages()
+		self._search_dialog.search_next()
+
+	def navigate_message(self, previous: bool):
+		self.message_segment_manager.absolute_position = (
+			self.messages.GetInsertionPoint()
+		)
+		try:
+			if previous:
+				self.message_segment_manager.previous(
+					MessageSegmentType.CONTENT
+				)
+			else:
+				self.message_segment_manager.next(MessageSegmentType.CONTENT)
+		except IndexError:
+			wx.Bell()
+			return
+		try:
+			pos = self.message_segment_manager.start
+		except IndexError:
+			wx.Bell()
+		else:
+			self.messages.SetInsertionPoint(pos)
+			if config.conf.conversation.nav_msg_select:
+				self.select_current_message()
+
+	def go_to_previous_message(self, event: wx.CommandEvent = None):
+		self.navigate_message(True)
+
+	def go_to_next_message(self, event: wx.CommandEvent = None):
+		self.navigate_message(False)
+
+	def move_to_start_of_message(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
+		self.messages.SetInsertionPoint(self.message_segment_manager.start)
+
+	def move_to_end_of_message(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
+		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
+
+	def select_current_message(self):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
+		start = self.message_segment_manager.start
+		end = self.message_segment_manager.end
+		self.messages.SetSelection(start, end)
+
+	def on_select_message(self, event: wx.CommandEvent = None):
+		self.select_current_message()
+
+	def on_show_as_html(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		start = self.message_segment_manager.start
+		end = self.message_segment_manager.end
+		content = self.messages.GetRange(start, end)
+		show_html_view_window(self, content, "markdown")
+
+	def on_copy_message(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.select_current_message()
+		self.messages.Copy()
+		self.messages.SetInsertionPoint(cursor_pos)
+
+	def on_remove_message_block(self, event: wx.CommandEvent = None):
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		message_block = (
+			self.message_segment_manager.current_segment.message_block()
+		)
+		if message_block:
+			self.conversation.messages.remove(message_block)
+			self.refresh_messages()
+			self.messages.SetInsertionPoint(cursor_pos)
+		else:
+			wx.Bell()
+
+	def on_messages_key_down(self, event: wx.KeyEvent = None):
+		if not self.conversation.messages:
+			event.Skip()
+			return
+		modifiers = event.GetModifiers()
+		key_code = event.GetKeyCode()
+
+		key_actions = {
+			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
+			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
+			(wx.MOD_NONE, ord('S')): self.on_select_message,
+			(wx.MOD_NONE, ord('H')): self.on_show_as_html,
+			(wx.MOD_NONE, ord('C')): self.on_copy_message,
+			(wx.MOD_NONE, ord('B')): self.move_to_start_of_message,
+			(wx.MOD_NONE, ord('N')): self.move_to_end_of_message,
+			(wx.MOD_SHIFT, wx.WXK_DELETE): self.on_remove_message_block,
+			(wx.MOD_NONE, wx.WXK_F3): self.on_search_in_messages_next,
+			(wx.MOD_NONE, ord('F')): self.on_search_in_messages,
+			(wx.MOD_CONTROL, ord('F')): self.on_search_in_messages,
+			(wx.MOD_SHIFT, wx.WXK_F3): self.on_search_in_messages_previous,
+		}
+
+		action = key_actions.get((modifiers, key_code))
+
+		if action:
+			action()
+		else:
+			event.Skip()
+
+	def on_messages_context_menu(self, event: wx.ContextMenuEvent):
+		menu = wx.Menu()
+
+		if self.conversation.messages:
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Search in messages...") + " (&f)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				_("Search in messages (backward)") + " (Shift+F3)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Search in messages (forward)") + " (F3)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Show as HTML (from Markdown) (&h)"),
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Copy current message") + " (&c)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Select current message") + " (&s)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_select_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Go to previous message") + " (&j)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Go to next message") + " (&k)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Move to start of message") + " (&b)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Move to end of message") + " (&n)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("&Remove message block") + " (Shift+Del)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
+		self.add_standard_context_menu_items(menu)
+		self.messages.PopupMenu(menu)
+		menu.Destroy()
+
 	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
 		menu = wx.Menu()
 		item = wx.MenuItem(
@@ -649,23 +904,83 @@ class ConversationTab(wx.Panel):
 				text += item.text
 		return text
 
-	def display_new_block(self, new_block: MessageBlock):
-		if not self.messages.IsEmpty():
-			self.messages.AppendText(os.linesep)
-		content = self.extract_text_from_message(new_block.request.content)
-		self.messages.AppendText(f"{new_block.request.role.value}: {content}")
-		self.messages.AppendText(os.linesep)
-		pos = self.messages.GetInsertionPoint()
-		if new_block.response:
-			self.messages.AppendText(
-				f"{new_block.response.role.value}: {new_block.response.content}"
+	def append_text_and_create_segment(
+		self, text, segment_type, new_block_ref, absolute_length
+	):
+		self.messages.AppendText(text)
+		relative_length = self.messages.GetLastPosition() - absolute_length
+		absolute_length = self.messages.GetLastPosition()
+		self.message_segment_manager.append(
+			MessageSegment(
+				length=relative_length,
+				kind=segment_type,
+				message_block=new_block_ref,
 			)
-			if new_block.response.content:
-				self.messages.AppendText(os.linesep)
+		)
+		return absolute_length
+
+	def display_new_block(self, new_block: MessageBlock):
+		absolute_length = self.messages.GetLastPosition()
+		new_block_ref = weakref.ref(new_block)
+
+		if not self.messages.IsEmpty():
+			absolute_length = self.append_text_and_create_segment(
+				os.linesep,
+				MessageSegmentType.SUFFIX,
+				new_block_ref,
+				absolute_length,
+			)
+
+		role_label = (
+			config.conf.conversation.role_label_user
+			or self.ROLE_LABELS[new_block.request.role]
+		)
+		absolute_length = self.append_text_and_create_segment(
+			role_label,
+			MessageSegmentType.PREFIX,
+			new_block_ref,
+			absolute_length,
+		)
+
+		content = self.extract_text_from_message(new_block.request.content)
+		absolute_length = self.append_text_and_create_segment(
+			content, MessageSegmentType.CONTENT, new_block_ref, absolute_length
+		)
+
+		absolute_length = self.append_text_and_create_segment(
+			os.linesep,
+			MessageSegmentType.SUFFIX,
+			new_block_ref,
+			absolute_length,
+		)
+
+		pos = self.messages.GetInsertionPoint()
+
+		if new_block.response:
+			role_label = (
+				config.conf.conversation.role_label_assistant
+				or self.ROLE_LABELS[new_block.response.role]
+			)
+			absolute_length = self.append_text_and_create_segment(
+				role_label,
+				MessageSegmentType.PREFIX,
+				new_block_ref,
+				absolute_length,
+			)
+
+			content = self.extract_text_from_message(new_block.response.content)
+			absolute_length = self.append_text_and_create_segment(
+				content,
+				MessageSegmentType.CONTENT,
+				new_block_ref,
+				absolute_length,
+			)
+
 		self.messages.SetInsertionPoint(pos)
 
-	def update_messages(self):
+	def refresh_messages(self):
 		self.messages.Clear()
+		self.message_segment_manager.clear()
 		self.image_files.clear()
 		self.refresh_images_list()
 		for block in self.conversation.messages:
@@ -934,8 +1249,15 @@ class ConversationTab(wx.Panel):
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
+	def _update_last_segment_length(self):
+		last_position = self.messages.GetLastPosition()
+		self.message_segment_manager.absolute_position = last_position
+		last_segment = self.message_segment_manager.segments[-1]
+		last_segment.length += last_position - self.message_segment_manager.end
+
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._flush_stream_buffer()
+		self._update_last_segment_length()
 		self._end_task()
 		self._messages_already_focused = False
 
