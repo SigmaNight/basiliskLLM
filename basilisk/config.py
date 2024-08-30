@@ -2,10 +2,12 @@ import logging
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
+from typing import Optional
 
 import yaml
 from platformdirs import user_config_path
 from pydantic import BaseModel, Extra, Field
+from pydantic.types import UUID4
 from pydantic_settings import (
 	BaseSettings,
 	PydanticBaseSettingsSource,
@@ -71,6 +73,7 @@ class GeneralSettings(BaseModel):
 	release_channel: ReleaseChannelEnum = Field(default=ReleaseChannelEnum.BETA)
 	last_update_check: datetime | None = Field(default=None)
 	quit_on_close: bool = Field(default=False)
+	default_account: Optional[UUID4] = Field(default=None)
 
 
 class ConversationSettings(BaseModel):

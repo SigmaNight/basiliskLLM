@@ -760,6 +760,8 @@ class AccountDialog(wx.Dialog):
 			msg = _("Cannot remove account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
+		if account.id == conf.general.default_account:
+			conf.general.default_account = None
 		self.account_manager.remove(account)
 		self.account_list.DeleteItem(index)
 

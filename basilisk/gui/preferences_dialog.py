@@ -3,6 +3,7 @@ import logging
 import wx
 from babel import Locale
 
+from basilisk.account import AccountSource
 from basilisk.config import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
@@ -54,6 +55,11 @@ auto_update_modes = {
 class PreferencesDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
+		self.account_choices = [
+			account
+			for account in conf.accounts
+			if account.source == AccountSource.CONFIG
+		]
 		self.parent = parent
 		self.init_ui()
 		self.Centre()
@@ -104,6 +110,25 @@ class PreferencesDialog(wx.Dialog):
 		)
 		self.quit_on_close.SetValue(conf.general.quit_on_close)
 		sizer.Add(self.quit_on_close, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			panel,
+			# Translators: A label for the default account selection in the preferences dialog
+			label=_("Default &account"),
+			style=wx.ALIGN_LEFT,
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+
+		choices = [acc.name for acc in self.account_choices]
+		self.default_account = wx.ComboBox(
+			panel, choices=choices, style=wx.CB_READONLY
+		)
+		if conf.general.default_account:
+			for i, account in enumerate(self.account_choices):
+				if account.id == conf.general.default_account:
+					self.default_account.SetSelection(i)
+					break
+		sizer.Add(self.default_account, 0, wx.ALL, 5)
 
 		update_group = wx.StaticBox(panel, label=_("Update"))
 		update_group_sizer = wx.StaticBoxSizer(update_group, wx.VERTICAL)
@@ -294,6 +319,12 @@ class PreferencesDialog(wx.Dialog):
 			self.language.GetSelection()
 		]
 		conf.general.quit_on_close = self.quit_on_close.GetValue()
+		if self.default_account.GetSelection() >= 0:
+			conf.general.default_account = self.account_choices[
+				self.default_account.GetSelection()
+			].id
+		else:
+			conf.general.default_account = None
 		conf.general.release_channel = list(release_channels.keys())[
 			self.release_channel.GetSelection()
 		]
