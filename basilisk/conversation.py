@@ -45,3 +45,4 @@ class MessageBlock(BaseModel):
 class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
 	messages: list[MessageBlock] = Field(default_factory=list)
+	title: str | None = Field(default=None)

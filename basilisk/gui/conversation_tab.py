@@ -62,8 +62,11 @@ class ConversationTab(wx.Panel):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
-	def __init__(self, parent: wx.Window):
+	def __init__(
+		self, parent: wx.Window, title: str = _("Untitled conversation")
+	):
 		wx.Panel.__init__(self, parent)
+		self.title = title
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
