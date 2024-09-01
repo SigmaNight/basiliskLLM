@@ -4,6 +4,7 @@ import os
 import signal
 import sys
 import tempfile
+from typing import Optional
 
 import wx
 
@@ -12,6 +13,7 @@ if sys.platform == 'win32':
 import basilisk.config as config
 from basilisk import global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
+from basilisk.conversation_profile import ConversationProfile
 from basilisk.image_file import ImageFile
 from basilisk.logger import get_log_file_path
 from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
@@ -46,7 +48,7 @@ class MainFrame(wx.Frame):
 			self.tray_icon = TaskBarIcon(self)
 			self.register_hot_key()
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
-		self.on_new_conversation(None)
+		self.on_new_default_conversation(None)
 
 	def init_ui(self):
 		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
@@ -67,7 +69,9 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to create a new conversation
 			_("New conversation") + " (Ctrl+N)",
 		)
-		self.Bind(wx.EVT_MENU, self.on_new_conversation, new_conversation_item)
+		self.Bind(
+			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
+		)
 
 		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
 			self.build_profile_menu(self.on_new_conversation),
@@ -209,7 +213,9 @@ class MainFrame(wx.Frame):
 	def init_accelerators(self):
 		self.Bind(wx.EVT_CLOSE, self.on_close)
 		self.Bind(
-			wx.EVT_MENU, self.on_new_conversation, id=self.ID_NEW_CONVERSATION
+			wx.EVT_MENU,
+			self.on_new_default_conversation,
+			id=self.ID_NEW_CONVERSATION,
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -394,9 +400,24 @@ class MainFrame(wx.Frame):
 
 		return on_goto_tab
 
-	def on_new_conversation(self, event):
-		log.debug("Creating a new conversation")
-		self.tabs_panels.append(ConversationTab(self.notebook))
+	def on_new_default_conversation(self, event: Optional[wx.Event]):
+		log.info(
+			f"Creating a new conversation with default profile ({self.conf.conversation_profiles.default_profile_name})"
+		)
+		self.new_conversation(config.conf.conversation_profiles.default_profile)
+
+	def on_new_conversation(self, event: wx.Event):
+		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
+			event.GetId()
+		)
+		profile = self.conf.conversation_profiles[
+			selected_menu_item.GetItemLabelText()
+		]
+		log.info(f"Creating a new conversation with profile: {profile.name}")
+		self.new_conversation(profile)
+
+	def new_conversation(self, profile: ConversationProfile):
+		self.tabs_panels.append(ConversationTab(self.notebook, profile))
 		self.notebook.AddPage(
 			self.tabs_panels[-1], f"Conversation {len(self.tabs_panels)}"
 		)
@@ -410,7 +431,7 @@ class MainFrame(wx.Frame):
 			self.tabs_panels.pop(current_tab)
 			current_tab_count = self.notebook.GetPageCount()
 			if current_tab_count == 0:
-				self.on_new_conversation(None)
+				self.on_new_default_conversation(None)
 			else:
 				for tab_index in range(current_tab_count):
 					self.notebook.SetPageText(

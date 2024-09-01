@@ -23,8 +23,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
-from basilisk.gui.html_view_window import show_html_view_window
-from basilisk.gui.search_dialog import SearchDialog, SearchDirection
+from basilisk.conversation_profile import ConversationProfile
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
 	MessageSegment,
@@ -34,6 +33,9 @@ from basilisk.message_segment_manager import (
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
+
+from .html_view_window import show_html_view_window
+from .search_dialog import SearchDialog, SearchDirection
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -62,8 +64,9 @@ class ConversationTab(wx.Panel):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
-	def __init__(self, parent: wx.Window):
+	def __init__(self, parent: wx.Window, profile: ConversationProfile):
 		wx.Panel.__init__(self, parent)
+		self.conversation_profile = profile
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
@@ -288,6 +291,7 @@ class ConversationTab(wx.Panel):
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.refresh_images_list()
+		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
 
 	def update_ui(self):
 		controls = (
