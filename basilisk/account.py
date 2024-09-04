@@ -217,8 +217,8 @@ class Account(BaseModel):
 		)
 
 	def delete_keyring_password(self):
-		if self.organisations:
-			for org in self.organisations:
+		if self.organizations:
+			for org in self.organizations:
 				org.delete_keyring_password()
 		if self.api_key_storage_method == KeyStorageMethodEnum.system:
 			keyring.delete_password(APP_NAME, str(self.id))
