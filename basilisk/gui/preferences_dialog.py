@@ -266,8 +266,9 @@ class PreferencesDialog(wx.Dialog):
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-		btn = wx.Button(panel, wx.ID_OK, _("Save"))
+		btn = wx.Button(panel, wx.ID_SAVE)
 		btn.Bind(wx.EVT_BUTTON, self.on_ok)
+		btn.SetDefault()
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		btn = wx.Button(panel, wx.ID_CANCEL, _("Cancel"))
