@@ -84,7 +84,14 @@ class BasiliskConfig(BasiliskBaseSettings):
 
 	def save(self):
 		save_config_file(
-			self.model_dump(mode="json", by_alias=True), config_file_name
+			self.model_dump(
+				mode="json",
+				by_alias=True,
+				exclude_defaults=True,
+				exclude_none=True,
+				exclude_unset=True,
+			),
+			config_file_name,
 		)
 
 

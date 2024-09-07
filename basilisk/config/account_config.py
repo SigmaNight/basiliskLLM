@@ -326,7 +326,13 @@ class AccountManager(BasiliskBaseSettings):
 
 	def save(self):
 		save_config_file(
-			self.model_dump(mode="json", by_alias=True),
+			self.model_dump(
+				mode="json",
+				by_alias=True,
+				exclude_defaults=True,
+				exclude_none=True,
+				exclude_unset=True,
+			),
 			file_path=config_file_name,
 		)
 
