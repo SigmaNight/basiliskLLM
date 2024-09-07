@@ -1,10 +1,8 @@
 import logging
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 
 import yaml
-from platformdirs import user_config_path
 from pydantic import BaseModel, Extra, Field
 from pydantic_settings import (
 	BaseSettings,
@@ -13,9 +11,8 @@ from pydantic_settings import (
 	YamlConfigSettingsSource,
 )
 
-import basilisk.global_vars as global_vars
-
 from .account import AccountManager
+from .config_helper import get_config_file_paths, search_existing_path
 
 log = logging.getLogger(__name__)
 
@@ -42,23 +39,7 @@ class AutomaticUpdateModeEnum(Enum):
 	INSTALL = "install"
 
 
-config_file_path = Path("config.yml")
-search_config_paths = []
-if global_vars.user_data_path:
-	search_config_paths.append(global_vars.user_data_path / config_file_path)
-search_config_paths.append(
-	user_config_path(
-		"basilisk", "basilisk_llm", roaming=True, ensure_exists=True
-	)
-	/ config_file_path
-)
-
-
-def search_existing_path(paths: list[Path]) -> Path:
-	for p in paths:
-		if p.exists() or p.parent.exists():
-			return p
-	return paths[-1]
+config_file_paths = get_config_file_paths("config.yml")
 
 
 class GeneralSettings(BaseModel):
@@ -101,7 +82,7 @@ class BasiliskConfig(BaseSettings):
 	model_config = SettingsConfigDict(
 		env_prefix="BASILISK_",
 		extra=Extra.allow,
-		yaml_file=search_existing_path(search_config_paths),
+		yaml_file=search_existing_path(config_file_paths),
 		yaml_file_encoding="UTF-8",
 	)
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
@@ -131,7 +112,7 @@ class BasiliskConfig(BaseSettings):
 	def save(self) -> None:
 		basilisk_dict = self.model_dump(mode="json", by_alias=True)
 		log.debug("Saving config: %s", basilisk_dict)
-		conf_save_path = search_existing_path(search_config_paths)
+		conf_save_path = search_existing_path(config_file_paths)
 		with conf_save_path.open(mode='w', encoding="UTF-8") as config_file:
 			yaml.dump(basilisk_dict, config_file, indent=2, sort_keys=False)
 		log.debug("Config saved to %s", conf_save_path)
