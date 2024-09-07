@@ -13,13 +13,14 @@ from pydantic import (
 	BaseModel,
 	ConfigDict,
 	Field,
+	FieldSerializationInfo,
 	OnErrorOmit,
 	RootModel,
 	SecretStr,
+	SerializerFunctionWrapHandler,
 	ValidationInfo,
 	field_serializer,
 	field_validator,
-	model_serializer,
 	model_validator,
 )
 
@@ -274,20 +275,18 @@ class AccountManager(RootModel):
 				)
 			)
 
-	@model_serializer(mode="plain", when_used="json")
-	def serialize_account_config(self) -> list[dict[str, Any]]:
+	@field_serializer("root", mode="wrap", when_used="json")
+	@classmethod
+	def serialize_accounts(
+		cls,
+		accounts: list[Account],
+		handler: SerializerFunctionWrapHandler,
+		info: FieldSerializationInfo,
+	) -> list[dict[str, Any]]:
 		accounts_config = filter(
-			lambda x: x.source == AccountSource.CONFIG, self.root
+			lambda x: x.source == AccountSource.CONFIG, accounts
 		)
-		return [
-			acc.model_dump(
-				mode="json",
-				by_alias=True,
-				exclude_none=True,
-				exclude_defaults=True,
-			)
-			for acc in accounts_config
-		]
+		return handler(list(accounts_config), info)
 
 	def add(self, account: Account):
 		if not isinstance(account, Account):
