@@ -63,8 +63,7 @@ def get_settings_config_dict(file_path: str) -> SettingsConfigDict:
 	)
 
 
-def save_config_file(conf: BaseSettings, file_path: str) -> None:
-	conf_dict = conf.model_dump(mode="json", by_alias=True)
+def save_config_file(conf_dict: dict, file_path: str) -> None:
 	log.debug("Saving config file: %s", file_path)
 	conf_save_path = search_existing_path(get_config_file_paths(file_path))
 	with conf_save_path.open(mode='w', encoding="UTF-8") as config_file:

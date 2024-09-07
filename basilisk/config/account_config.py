@@ -325,7 +325,10 @@ class AccountManager(BasiliskBaseSettings):
 		self.accounts[index] = value
 
 	def save(self):
-		save_config_file(self, file_path=config_file_name)
+		save_config_file(
+			self.model_dump(mode="json", by_alias=True),
+			file_path=config_file_name,
+		)
 
 
 @cache

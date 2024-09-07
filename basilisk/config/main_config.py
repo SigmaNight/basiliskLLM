@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from functools import cache
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .config_enums import (
 	AutomaticUpdateModeEnum,
@@ -67,8 +67,25 @@ class BasiliskConfig(BasiliskBaseSettings):
 	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)
 
+	@model_validator(mode="before")
+	@classmethod
+	def migrate_accounts(cls, value: dict) -> dict:
+		accounts = value.pop("accounts", None)
+		if not accounts:
+			return value
+		log.info("Migrating accounts to its own config file")
+		from .account_config import AccountManager
+
+		account_dict = {"accounts": accounts}
+		account_manager = AccountManager.model_validate(account_dict)
+		account_manager.save()
+		save_config_file(value, config_file_name)
+		return value
+
 	def save(self):
-		save_config_file(self, config_file_name)
+		save_config_file(
+			self.model_dump(mode="json", by_alias=True), config_file_name
+		)
 
 
 @cache
