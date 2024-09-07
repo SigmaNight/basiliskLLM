@@ -1,21 +1,21 @@
-from logging import getLogger
+import logging
 from typing import Optional
 
 import wx
 from more_itertools import first, locate
 from pydantic import SecretStr
 
-from basilisk.account import (
+from basilisk.config import (
 	Account,
 	AccountOrganization,
 	AccountSource,
 	KeyStorageMethodEnum,
+	accounts,
 	get_account_source_labels,
 )
-from basilisk.config import conf
 from basilisk.provider import get_provider, providers
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 key_storage_methods = {
 	# Translators: A label for the API key storage method in the account dialog
@@ -624,7 +624,7 @@ class AccountDialog(wx.Dialog):
 		sizer.Add(bSizer, 0, wx.ALL, 5)
 
 	def init_data(self):
-		self.account_manager = conf.accounts.model_copy(deep=True)
+		self.account_manager = accounts().model_copy(deep=True)
 
 	def _get_organization_name(self, account):
 		if not account.active_organization:
@@ -764,10 +764,11 @@ class AccountDialog(wx.Dialog):
 		self.account_list.DeleteItem(index)
 
 	def on_save(self, event):
-		conf.accounts.clear()
+		global_manager = accounts()
+		global_manager.clear()
 		for account in self.account_manager:
-			conf.accounts.add(account)
-		conf.save()
+			global_manager.add(account)
+		global_manager.save()
 		self.EndModal(wx.ID_OK)
 
 	def onCancel(self, event):

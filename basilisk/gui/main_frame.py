@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
-		self.conf: config.BasiliskConfig = kwargs.pop("conf")
+		self.conf: config.BasiliskConfig = kwargs.pop("conf", config.conf())
 		self.tmp_files = []
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
@@ -338,7 +338,7 @@ class MainFrame(wx.Frame):
 		self.Raise()
 
 	def on_close(self, event):
-		if config.conf.general.quit_on_close:
+		if self.conf.general.quit_on_close:
 			self.on_quit(event)
 		else:
 			self.on_minimize(event)

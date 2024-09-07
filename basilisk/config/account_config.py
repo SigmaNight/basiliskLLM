@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from enum import Enum
-from functools import cached_property
-from logging import getLogger
+import logging
+from functools import cache, cached_property
 from os import getenv
 from typing import Any, Iterable, Optional
 from uuid import uuid4
@@ -15,7 +14,6 @@ from pydantic import (
 	Field,
 	FieldSerializationInfo,
 	OnErrorOmit,
-	RootModel,
 	SecretStr,
 	SerializerFunctionWrapHandler,
 	ValidationInfo,
@@ -25,21 +23,17 @@ from pydantic import (
 )
 
 import basilisk.global_vars as global_vars
+from basilisk.consts import APP_NAME
+from basilisk.provider import Provider, get_provider, providers
 
-from .consts import APP_NAME
-from .provider import Provider, get_provider, providers
+from .config_enums import AccountSource, KeyStorageMethodEnum
+from .config_helper import (
+	BasiliskBaseSettings,
+	get_settings_config_dict,
+	save_config_file,
+)
 
-log = getLogger(__name__)
-
-
-class KeyStorageMethodEnum(Enum):
-	plain = "plain"
-	system = "system"
-
-
-class AccountSource(Enum):
-	ENV_VAR = "env_var"
-	CONFIG = "config"
+log = logging.getLogger(__name__)
 
 
 class AccountOrganization(BaseModel):
@@ -225,13 +219,18 @@ class Account(BaseModel):
 			keyring.delete_password(APP_NAME, str(self.id))
 
 
-class AccountManager(RootModel):
-	root: list[OnErrorOmit[Account]] = Field(default=list())
+config_file_name = "accounts.yml"
 
+
+class AccountManager(BasiliskBaseSettings):
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
 	"""
+
+	model_config = get_settings_config_dict(config_file_name)
+
+	accounts: list[OnErrorOmit[Account]] = Field(default=list())
 
 	def model_post_init(self, __context: Any) -> None:
 		"""Load accounts from environment variables"""
@@ -264,7 +263,7 @@ class AccountManager(RootModel):
 				)
 			else:
 				active_organization = None
-			self.root.append(
+			self.add(
 				Account(
 					name=f"{provider.name} account",
 					provider=provider,
@@ -275,7 +274,7 @@ class AccountManager(RootModel):
 				)
 			)
 
-	@field_serializer("root", mode="wrap", when_used="json")
+	@field_serializer("accounts", mode="wrap", when_used="json")
 	@classmethod
 	def serialize_accounts(
 		cls,
@@ -291,7 +290,7 @@ class AccountManager(RootModel):
 	def add(self, account: Account):
 		if not isinstance(account, Account):
 			raise ValueError("Account must be an instance of Account")
-		self.root.append(account)
+		self.accounts.append(account)
 		log.debug(
 			f"Added account for {account.provider.name} ({account.name}, source: {account.source})"
 		)
@@ -299,32 +298,32 @@ class AccountManager(RootModel):
 	def get_accounts_by_provider(
 		self, provider_name: Optional[str] = None
 	) -> Iterable[Account]:
-		return filter(lambda x: x.provider.name == provider_name, self.root)
+		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
 	def remove(self, account: Account):
 		account.delete_keyring_password()
-		self.root.remove(account)
+		self.accounts.remove(account)
 
 	def clear(self):
-		self.root.clear()
+		self.accounts.clear()
 
 	def __len__(self):
-		return len(self.root)
+		return len(self.accounts)
 
 	def __iter__(self):
-		return iter(self.root)
+		return iter(self.accounts)
 
 	def __getitem__(self, index) -> Account:
-		return self.root[index]
+		return self.accounts[index]
 
 	def __setitem__(self, index, value):
-		self.root[index] = value
+		self.accounts[index] = value
+
+	def save(self):
+		save_config_file(self, file_path=config_file_name)
 
 
-def get_account_source_labels() -> dict[AccountSource, str]:
-	return {
-		# Translators: Account source label
-		AccountSource.ENV_VAR: _("Environment variable"),
-		# Translators: Account source label
-		AccountSource.CONFIG: _("Configuration file"),
-	}
+@cache
+def get_account_config() -> AccountManager:
+	log.debug("Loading account config")
+	return AccountManager()

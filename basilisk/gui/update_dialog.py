@@ -168,7 +168,7 @@ class UpdateDialog(wx.Dialog):
 		self.on_update_available()
 
 	def init_without_updater(self):
-		self.updater = get_updater_from_channel(conf)
+		self.updater = get_updater_from_channel(conf())
 		if not self.updater.is_update_enable:
 			log.error("Update are disabled for source application")
 			wx.MessageDialog(

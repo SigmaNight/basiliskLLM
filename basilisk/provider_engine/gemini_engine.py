@@ -19,7 +19,7 @@ from basilisk.conversation import (
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 if TYPE_CHECKING:
-	from basilisk.account import Account
+	from basilisk.config import Account
 
 logger = logging.getLogger(__name__)
 

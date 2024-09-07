@@ -7,8 +7,8 @@ from basilisk.config import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,
-	conf,
 )
+from basilisk.config import conf as get_conf
 from basilisk.localization import get_app_locale, get_supported_locales
 from basilisk.logger import set_log_level
 
@@ -55,6 +55,7 @@ class PreferencesDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
+		self.conf = get_conf()
 		self.init_ui()
 		self.Centre()
 		self.Show()
@@ -71,7 +72,7 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.ALIGN_LEFT,
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level_value = LOG_LEVELS[conf.general.log_level]
+		log_level_value = LOG_LEVELS[self.conf.general.log_level]
 		self.log_level = wx.ComboBox(
 			panel,
 			choices=list(LOG_LEVELS.values()),
@@ -79,10 +80,10 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
-		app_locale = get_app_locale(conf.general.language)
+		app_locale = get_app_locale(self.conf.general.language)
 		self.init_languages(app_locale)
 		value = self.languages.get(
-			conf.general.language, self.languages["auto"]
+			self.conf.general.language, self.languages["auto"]
 		)
 		label = wx.StaticText(
 			panel,
@@ -102,7 +103,7 @@ class PreferencesDialog(wx.Dialog):
 		self.quit_on_close = wx.CheckBox(
 			panel, label=_("Quit on &close, don't minimize")
 		)
-		self.quit_on_close.SetValue(conf.general.quit_on_close)
+		self.quit_on_close.SetValue(self.conf.general.quit_on_close)
 		sizer.Add(self.quit_on_close, 0, wx.ALL, 5)
 
 		update_group = wx.StaticBox(panel, label=_("Update"))
@@ -113,7 +114,9 @@ class PreferencesDialog(wx.Dialog):
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
 
-		release_channel_value = release_channels[conf.general.release_channel]
+		release_channel_value = release_channels[
+			self.conf.general.release_channel
+		]
 		self.release_channel = wx.ComboBox(
 			panel,
 			choices=list(release_channels.values()),
@@ -127,7 +130,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
 		auto_update_mode_value = auto_update_modes[
-			conf.general.automatic_update_mode
+			self.conf.general.automatic_update_mode
 		]
 		self.auto_update_mode = wx.ComboBox(
 			panel,
@@ -145,7 +148,7 @@ class PreferencesDialog(wx.Dialog):
 			label=_("Advanced mode"),
 			style=wx.ALIGN_LEFT,
 		)
-		self.advanced_mode.SetValue(conf.general.advanced_mode)
+		self.advanced_mode.SetValue(self.conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
 		conversation_group = wx.StaticBox(panel, label=_("Conversation"))
@@ -160,7 +163,8 @@ class PreferencesDialog(wx.Dialog):
 		)
 		conversation_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.role_label_user = wx.TextCtrl(
-			conversation_group, value=conf.conversation.role_label_user or ""
+			conversation_group,
+			value=self.conf.conversation.role_label_user or "",
 		)
 		conversation_group_sizer.Add(self.role_label_user, 0, wx.ALL, 5)
 
@@ -172,7 +176,7 @@ class PreferencesDialog(wx.Dialog):
 		conversation_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.role_label_assistant = wx.TextCtrl(
 			conversation_group,
-			value=conf.conversation.role_label_assistant or "",
+			value=self.conf.conversation.role_label_assistant or "",
 		)
 		conversation_group_sizer.Add(self.role_label_assistant, 0, wx.ALL, 5)
 
@@ -181,7 +185,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Message Selection on Previous/Next Navigation"),
 		)
-		self.nav_msg_select.SetValue(conf.conversation.nav_msg_select)
+		self.nav_msg_select.SetValue(self.conf.conversation.nav_msg_select)
 		conversation_group_sizer.Add(self.nav_msg_select, 0, wx.ALL, 5)
 
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
@@ -194,7 +198,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Resize images before uploading"),
 		)
-		self.image_resize.SetValue(conf.images.resize)
+		self.image_resize.SetValue(self.conf.images.resize)
 		self.image_resize.Bind(wx.EVT_CHECKBOX, self.on_resize)
 		images_group_sizer.Add(self.image_resize, 0, wx.ALL, 5)
 
@@ -207,7 +211,10 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_max_height = wx.SpinCtrl(
-			images_group, value=str(conf.images.max_height), min=0, max=10000
+			images_group,
+			value=str(self.conf.images.max_height),
+			min=0,
+			max=10000,
 		)
 		images_group_sizer.Add(self.image_max_height, 0, wx.ALL, 5)
 
@@ -220,7 +227,10 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_max_width = wx.SpinCtrl(
-			images_group, value=str(conf.images.max_width), min=0, max=10000
+			images_group,
+			value=str(self.conf.images.max_width),
+			min=0,
+			max=10000,
 		)
 		images_group_sizer.Add(self.image_max_width, 0, wx.ALL, 5)
 
@@ -233,7 +243,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_quality = wx.SpinCtrl(
-			images_group, value=str(conf.images.quality), min=1, max=100
+			images_group, value=str(self.conf.images.quality), min=1, max=100
 		)
 		images_group_sizer.Add(self.image_quality, 0, wx.ALL, 5)
 
@@ -248,7 +258,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Enable server mode (requires restart)"),
 		)
-		self.server_enable.SetValue(conf.server.enable)
+		self.server_enable.SetValue(self.conf.server.enable)
 		server_group_sizer.Add(self.server_enable, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
@@ -258,7 +268,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		server_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.server_port = wx.SpinCtrl(
-			server_group, value=str(conf.server.port), min=1, max=65535
+			server_group, value=str(self.conf.server.port), min=1, max=65535
 		)
 		server_group_sizer.Add(self.server_port, 0, wx.ALL, 5)
 
@@ -288,36 +298,36 @@ class PreferencesDialog(wx.Dialog):
 
 	def on_ok(self, event):
 		log.debug("Saving configuration")
-		conf.general.log_level = list(LOG_LEVELS.keys())[
+		self.conf.general.log_level = list(LOG_LEVELS.keys())[
 			self.log_level.GetSelection()
 		]
-		conf.general.language = list(self.languages.keys())[
+		self.conf.general.language = list(self.languages.keys())[
 			self.language.GetSelection()
 		]
-		conf.general.quit_on_close = self.quit_on_close.GetValue()
-		conf.general.release_channel = list(release_channels.keys())[
+		self.conf.general.quit_on_close = self.quit_on_close.GetValue()
+		self.conf.general.release_channel = list(release_channels.keys())[
 			self.release_channel.GetSelection()
 		]
-		conf.general.automatic_update_mode = list(auto_update_modes.keys())[
-			self.auto_update_mode.GetSelection()
-		]
-		conf.general.advanced_mode = self.advanced_mode.GetValue()
-		conf.conversation.role_label_user = self.role_label_user.GetValue()
-		conf.conversation.role_label_assistant = (
+		self.conf.general.automatic_update_mode = list(
+			auto_update_modes.keys()
+		)[self.auto_update_mode.GetSelection()]
+		self.conf.general.advanced_mode = self.advanced_mode.GetValue()
+		self.conf.conversation.role_label_user = self.role_label_user.GetValue()
+		self.conf.conversation.role_label_assistant = (
 			self.role_label_assistant.GetValue()
 		)
-		conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
+		self.conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
 
-		conf.images.resize = self.image_resize.GetValue()
-		conf.images.max_height = int(self.image_max_height.GetValue())
-		conf.images.max_width = int(self.image_max_width.GetValue())
-		conf.images.quality = int(self.image_quality.GetValue())
+		self.conf.images.resize = self.image_resize.GetValue()
+		self.conf.images.max_height = int(self.image_max_height.GetValue())
+		self.conf.images.max_width = int(self.image_max_width.GetValue())
+		self.conf.images.quality = int(self.image_quality.GetValue())
 
-		conf.server.enable = self.server_enable.GetValue()
-		conf.server.port = int(self.server_port.GetValue())
+		self.conf.server.enable = self.server_enable.GetValue()
+		self.conf.server.port = int(self.server_port.GetValue())
 
-		conf.save()
-		set_log_level(conf.general.log_level.name)
+		self.conf.save()
+		set_log_level(self.conf.general.log_level.name)
 
 		self.EndModal(wx.ID_OK)
 
