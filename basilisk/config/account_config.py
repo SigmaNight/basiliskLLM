@@ -232,10 +232,14 @@ class AccountManager(BasiliskBaseSettings):
 
 	accounts: list[OnErrorOmit[Account]] = Field(default=list())
 
-	def model_post_init(self, __context: Any) -> None:
+	@field_validator("accounts", mode="after")
+	@classmethod
+	def add_accounts_from_env_vars(
+		cls, accounts: list[Account]
+	) -> list[Account]:
 		"""Load accounts from environment variables"""
 		if global_vars.args.no_env_account:
-			return
+			return accounts
 		for provider in providers:
 			organizations = []
 			api_key = None
@@ -263,7 +267,7 @@ class AccountManager(BasiliskBaseSettings):
 				)
 			else:
 				active_organization = None
-			self.add(
+			accounts.append(
 				Account(
 					name=f"{provider.name} account",
 					provider=provider,
@@ -273,6 +277,7 @@ class AccountManager(BasiliskBaseSettings):
 					source=AccountSource.ENV_VAR,
 				)
 			)
+		return accounts
 
 	@field_serializer("accounts", mode="wrap", when_used="json")
 	@classmethod
