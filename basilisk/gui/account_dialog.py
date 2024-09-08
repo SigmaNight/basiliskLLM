@@ -598,6 +598,11 @@ class AccountDialog(wx.Dialog):
 		self.remove_btn.Disable()
 		sizer.Add(self.remove_btn, 0, wx.ALL, 5)
 
+		self.default_account_btn = wx.ToggleButton(
+			panel, label=_("Default account")
+		)
+		self.default_account_btn.Disable()
+		sizer.Add(self.default_account_btn, 0, wx.ALL, 5)
 		self.Bind(
 			wx.EVT_BUTTON,
 			self.on_manage_organizations,
@@ -606,7 +611,11 @@ class AccountDialog(wx.Dialog):
 		self.Bind(wx.EVT_BUTTON, self.on_add, add_btn)
 		self.Bind(wx.EVT_BUTTON, self.on_edit, self.edit_btn)
 		self.Bind(wx.EVT_BUTTON, self.on_remove, self.remove_btn)
-
+		self.Bind(
+			wx.EVT_TOGGLEBUTTON,
+			self.on_default_account,
+			self.default_account_btn,
+		)
 		btn = wx.Button(panel, wx.ID_CLOSE)
 		btn.Bind(wx.EVT_BUTTON, self.on_close)
 
@@ -642,6 +651,10 @@ class AccountDialog(wx.Dialog):
 		self.remove_btn.Enable(editable)
 		self.manage_organizations.Enable(
 			editable and account.provider.organization_mode_available
+		)
+		self.default_account_btn.Enable()
+		self.default_account_btn.SetValue(
+			self.account_manager.default_account == account
 		)
 
 	def on_item_selected(self, event):
@@ -749,6 +762,20 @@ class AccountDialog(wx.Dialog):
 		self.account_manager.remove(account)
 		self.account_manager.save()
 		self.account_list.DeleteItem(index)
+
+	def on_default_account(self, event):
+		index = self.account_list.GetFirstSelected()
+		if index == -1:
+			return
+		account = self.account_manager[index]
+		if self.account_manager.default_account == account:
+			return
+		if self.default_account_btn.GetValue():
+			self.account_manager.set_default_account(account)
+		else:
+			self.account_manager.set_default_account(None)
+		self.account_manager.save()
+		self.update_ui()
 
 	def on_close(self, event):
 		self.EndModal(wx.ID_OK)
