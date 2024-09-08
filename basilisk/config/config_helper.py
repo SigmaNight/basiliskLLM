@@ -26,6 +26,12 @@ class BasiliskBaseSettings(BaseSettings):
 		dotenv_settings: PydanticBaseSettingsSource,
 		file_secret_settings: PydanticBaseSettingsSource,
 	) -> tuple[PydanticBaseSettingsSource, ...]:
+		"""Customise the source and order of settings loading.
+		Settings are loaded in the following order:
+		1. YAML file
+		2. Environment variables
+		3. Initial settings
+		"""
 		return (
 			YamlConfigSettingsSource(settings_cls),
 			env_settings,
