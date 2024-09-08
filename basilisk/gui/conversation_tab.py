@@ -77,6 +77,7 @@ class ConversationTab(wx.Panel):
 		self._search_dialog = None
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
+		self.select_default_account()
 		self.init_data()
 		self.update_ui()
 
@@ -273,6 +274,15 @@ class ConversationTab(wx.Panel):
 		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizerAndFit(sizer)
+
+	def select_default_account(self):
+		accounts = config.accounts()
+		account_index = first(
+			locate(accounts, lambda a: a == accounts.default_account),
+			wx.NOT_FOUND,
+		)
+		if account_index != wx.NOT_FOUND:
+			self.account_combo.SetSelection(account_index)
 
 	def init_data(self):
 		self.on_account_change(None)
