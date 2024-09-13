@@ -60,17 +60,6 @@ class OpenAIEngine(BaseEngine):
 		# See <https://platform.openai.com/docs/models>
 		return [
 			ProviderAIModel(
-				id="gpt-4o-mini",
-				# Translators: This is a model description
-				description=_(
-					"Points to one of the most recent iterations of gpt-4o-mini model"
-				),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
 				id="gpt-4o",
 				# Translators: This is a model description
 				description=_(
@@ -93,14 +82,54 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="gpt-4o-mini-2024-07-18",
+				id="gpt-4o-mini",
 				# Translators: This is a model description
 				description=_(
-					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
+					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
 				context_window=128000,
 				max_output_tokens=16384,
 				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="o1-preview",
+				# Translators: This is a model description
+				description=_(
+					"Points to the most recent snapshot of the o1 model"
+				),
+				context_window=128000,
+				max_output_tokens=32768,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="o1-mini",
+				# Translators: This is a model description
+				description=_("Points to the most recent o1-mini snapshot"),
+				context_window=128000,
+				max_output_tokens=65536,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4-turbo",
+				# Translators: This is a model description
+				description=_(
+					"The latest GPT-4 Turbo model with vision capabilities"
+				),
+				context_window=128000,
+				max_output_tokens=4096,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-3.5-turbo",
+				# Translators: This is a model description
+				description=_(
+					"Points to one of the most recent iterations of gpt-3.5 model"
+				),
+				context_window=16385,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
@@ -126,23 +155,14 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="gpt-4-turbo",
+				id="gpt-4o-mini-2024-07-18",
 				# Translators: This is a model description
 				description=_(
-					"The latest GPT-4 Turbo model with vision capabilities"
+					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
 				),
 				context_window=128000,
-				max_output_tokens=4096,
+				max_output_tokens=16384,
 				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo",
-				# Translators: This is a model description
-				description=_(
-					"Points to one of the most recent iterations of gpt-3.5 model"
-				),
-				context_window=16385,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
