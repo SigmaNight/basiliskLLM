@@ -7,9 +7,17 @@ version: 2
 updates:
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
+    allow:
+      - dependency-type: "all"
     schedule:
       interval: "weekly"
+      day: "saturday"
+      time: "12:42"
+      timezone: "Europe/Paris"
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+      day: "saturday"
+      time: "12:42"
+      timezone: "Europe/Paris"
