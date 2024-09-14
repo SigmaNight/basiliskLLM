@@ -11,7 +11,7 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 if TYPE_CHECKING:
-	from basilisk.account import Account
+	from basilisk.config import Account
 
 
 class BaseEngine(ABC):

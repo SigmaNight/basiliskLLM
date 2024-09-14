@@ -1,21 +1,21 @@
-from logging import getLogger
+import logging
 from typing import Optional
 
 import wx
 from more_itertools import first, locate
 from pydantic import SecretStr
 
-from basilisk.account import (
+from basilisk.config import (
 	Account,
 	AccountOrganization,
 	AccountSource,
 	KeyStorageMethodEnum,
+	accounts,
 	get_account_source_labels,
 )
-from basilisk.config import conf
 from basilisk.provider import get_provider, providers
 
-log = getLogger(__name__)
+log = logging.getLogger(__name__)
 
 key_storage_methods = {
 	# Translators: A label for the API key storage method in the account dialog
@@ -561,25 +561,21 @@ class AccountDialog(wx.Dialog):
 		label = wx.StaticText(panel, label=_("Accounts"), style=wx.ALIGN_LEFT)
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.account_list = wx.ListCtrl(panel, style=wx.LC_REPORT)
-		self.account_list.InsertColumn(
-			0,
+		self.account_list.AppendColumn(
 			# Translators: A label in account dialog
-			_("Name"),
+			_("Name")
 		)
-		self.account_list.InsertColumn(
-			1,
+		self.account_list.AppendColumn(
 			# Translators: A label in account dialog
-			_("Provider"),
+			_("Provider")
 		)
-		self.account_list.InsertColumn(
-			2,
+		self.account_list.AppendColumn(
 			# Translators: A label in account dialog
-			_("Active organization"),
+			_("Active organization")
 		)
-		self.account_list.InsertColumn(
-			3,
+		self.account_list.AppendColumn(
 			# Translators: A label in account dialog
-			_("Source"),
+			_("Source")
 		)
 		self.account_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected)
 		self.account_list.Bind(wx.EVT_KEY_DOWN, self.on_account_list_key_down)
@@ -602,6 +598,11 @@ class AccountDialog(wx.Dialog):
 		self.remove_btn.Disable()
 		sizer.Add(self.remove_btn, 0, wx.ALL, 5)
 
+		self.default_account_btn = wx.ToggleButton(
+			panel, label=_("Default account")
+		)
+		self.default_account_btn.Disable()
+		sizer.Add(self.default_account_btn, 0, wx.ALL, 5)
 		self.Bind(
 			wx.EVT_BUTTON,
 			self.on_manage_organizations,
@@ -610,39 +611,37 @@ class AccountDialog(wx.Dialog):
 		self.Bind(wx.EVT_BUTTON, self.on_add, add_btn)
 		self.Bind(wx.EVT_BUTTON, self.on_edit, self.edit_btn)
 		self.Bind(wx.EVT_BUTTON, self.on_remove, self.remove_btn)
+		self.Bind(
+			wx.EVT_TOGGLEBUTTON,
+			self.on_default_account,
+			self.default_account_btn,
+		)
+		btn = wx.Button(panel, wx.ID_CLOSE)
+		btn.Bind(wx.EVT_BUTTON, self.on_close)
 
-		bSizer = wx.BoxSizer(wx.HORIZONTAL)
-
-		btn = wx.Button(panel, wx.ID_SAVE)
-		btn.Bind(wx.EVT_BUTTON, self.on_save)
-		bSizer.Add(btn, 0, wx.ALL, 5)
-
-		btn = wx.Button(panel, wx.ID_CANCEL)
-		btn.Bind(wx.EVT_BUTTON, self.onCancel)
-		bSizer.Add(btn, 0, wx.ALL, 5)
-
-		sizer.Add(bSizer, 0, wx.ALL, 5)
+		sizer.Add(btn, 0, wx.ALL, 5)
 
 	def init_data(self):
-		self.account_manager = conf.accounts.model_copy(deep=True)
+		self.account_manager = accounts()
 
-	def _get_organization_name(self, account):
+	def _get_organization_name(self, account: Account) -> str:
 		if not account.active_organization:
 			return _("No (personal)")
 		return account.active_organization.name
 
+	def add_account_to_list_ctrl(self, account: Account):
+		self.account_list.Append(
+			(
+				account.name,
+				account.provider.name,
+				self._get_organization_name(account),
+				self.account_source_labels.get(account.source, _("Unknown")),
+			)
+		)
+
 	def update_data(self):
 		for account in self.account_manager:
-			self.account_list.Append(
-				(
-					account.name,
-					account.provider.name,
-					self._get_organization_name(account),
-					self.account_source_labels.get(
-						account.source, _("Unknown")
-					),
-				)
-			)
+			self.add_account_to_list_ctrl(account)
 
 	def update_ui(self):
 		account = self.account_manager[self.account_list.GetFirstSelected()]
@@ -652,6 +651,10 @@ class AccountDialog(wx.Dialog):
 		self.remove_btn.Enable(editable)
 		self.manage_organizations.Enable(
 			editable and account.provider.organization_mode_available
+		)
+		self.default_account_btn.Enable()
+		self.default_account_btn.SetValue(
+			self.account_manager.default_account == account
 		)
 
 	def on_item_selected(self, event):
@@ -669,11 +672,12 @@ class AccountDialog(wx.Dialog):
 		index = self.account_list.GetFirstSelected()
 		account = self.account_manager[index]
 		dialog = AccountOrganizationDialog(
-			self, _("Manage organizations"), account
+			self, _("Manage organizations"), account.model_copy(deep=True)
 		)
 		if dialog.ShowModal() == wx.ID_OK:
 			dialog.account.reset_active_organization()
 			self.account_manager[index] = dialog.account
+			self.account_manager.save()
 			self.account_list.SetItem(
 				index, 2, self._get_organization_name(dialog.account)
 			)
@@ -690,16 +694,8 @@ class AccountDialog(wx.Dialog):
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
 			self.account_manager.add(account)
-			self.account_list.Append(
-				(
-					account.name,
-					account.provider.name,
-					self._get_organization_name(account),
-					self.account_source_labels.get(
-						account.source, _("Unknown")
-					),
-				)
-			)
+			self.account_manager.save()
+			self.add_account_to_list_ctrl(account)
 		dialog.Destroy()
 		for i in range(self.account_list.GetItemCount()):
 			self.account_list.Select(i, False)
@@ -720,11 +716,14 @@ class AccountDialog(wx.Dialog):
 			msg = _("Cannot edit account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
-		dialog = EditAccountDialog(self, _("Edit account"), account=account)
+		dialog = EditAccountDialog(
+			self, _("Edit account"), account=account.model_copy(deep=True)
+		)
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
 			account.reset_active_organization()
 			self.account_manager[index] = account
+			self.account_manager.save()
 			self.account_list.SetItem(index, 0, account.name)
 			self.account_list.SetItem(index, 1, account.provider.name)
 			self.account_list.SetItem(
@@ -761,14 +760,22 @@ class AccountDialog(wx.Dialog):
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
 		self.account_manager.remove(account)
+		self.account_manager.save()
 		self.account_list.DeleteItem(index)
 
-	def on_save(self, event):
-		conf.accounts.clear()
-		for account in self.account_manager:
-			conf.accounts.add(account)
-		conf.save()
-		self.EndModal(wx.ID_OK)
+	def on_default_account(self, event):
+		index = self.account_list.GetFirstSelected()
+		if index == -1:
+			return
+		account = self.account_manager[index]
+		if self.account_manager.default_account == account:
+			return
+		if self.default_account_btn.GetValue():
+			self.account_manager.set_default_account(account)
+		else:
+			self.account_manager.set_default_account(None)
+		self.account_manager.save()
+		self.update_ui()
 
-	def onCancel(self, event):
-		self.EndModal(wx.ID_CANCEL)
+	def on_close(self, event):
+		self.EndModal(wx.ID_OK)

@@ -28,7 +28,7 @@ class MainApp(wx.App):
 	def OnInit(self) -> bool:
 		sys.excepthook = logging_uncaught_exceptions
 
-		self.conf = config.initialize_config()
+		self.conf = config.conf()
 		log_level = (
 			global_vars.args.log_level or self.conf.general.log_level.name
 		)

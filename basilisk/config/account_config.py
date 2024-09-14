@@ -1,44 +1,40 @@
 from __future__ import annotations
 
-from enum import Enum
-from functools import cached_property
-from logging import getLogger
+import logging
+from functools import cache, cached_property
 from os import getenv
-from typing import Any, Iterable, Optional
-from uuid import uuid4
+from typing import Any, Iterable, Optional, Union
+from uuid import UUID, uuid4
 
 import keyring
+from more_itertools import locate
 from pydantic import (
 	UUID4,
 	BaseModel,
 	ConfigDict,
 	Field,
+	FieldSerializationInfo,
 	OnErrorOmit,
-	RootModel,
 	SecretStr,
+	SerializerFunctionWrapHandler,
 	ValidationInfo,
 	field_serializer,
 	field_validator,
-	model_serializer,
 	model_validator,
 )
 
 import basilisk.global_vars as global_vars
+from basilisk.consts import APP_NAME
+from basilisk.provider import Provider, get_provider, providers
 
-from .consts import APP_NAME
-from .provider import Provider, get_provider, providers
+from .config_enums import AccountSource, KeyStorageMethodEnum
+from .config_helper import (
+	BasiliskBaseSettings,
+	get_settings_config_dict,
+	save_config_file,
+)
 
-log = getLogger(__name__)
-
-
-class KeyStorageMethodEnum(Enum):
-	plain = "plain"
-	system = "system"
-
-
-class AccountSource(Enum):
-	ENV_VAR = "env_var"
-	CONFIG = "config"
+log = logging.getLogger(__name__)
 
 
 class AccountOrganization(BaseModel):
@@ -223,19 +219,75 @@ class Account(BaseModel):
 		if self.api_key_storage_method == KeyStorageMethodEnum.system:
 			keyring.delete_password(APP_NAME, str(self.id))
 
+	def __eq__(self, value: Account) -> bool:
+		return self.id == value.id
 
-class AccountManager(RootModel):
-	root: list[OnErrorOmit[Account]] = Field(default=list())
 
+config_file_name = "accounts.yml"
+
+
+class AccountManager(BasiliskBaseSettings):
 	"""
 	Manage multiple accounts for different providers
 	A provider can have several accounts
 	"""
 
-	def model_post_init(self, __context: Any) -> None:
+	model_config = get_settings_config_dict(config_file_name)
+
+	accounts: list[OnErrorOmit[Account]] = Field(default=list())
+
+	default_account_info: Optional[Union[UUID, str]] = Field(
+		default=None, union_mode="left_to_right"
+	)
+
+	@cached_property
+	def default_account(self) -> Account:
+		index = 0
+		if isinstance(self.default_account_info, UUID):
+			try:
+				return self[self.default_account_info]
+			except KeyError:
+				log.warning(
+					f"Default account not found for id {self.default_account_info} using the first account"
+				)
+		elif isinstance(
+			self.default_account_info, str
+		) and self.default_account_info.startswith("env:"):
+			provider_name = self.default_account_info[4:]
+			index = next(
+				locate(
+					self.accounts,
+					lambda x: x.provider.name == provider_name
+					and x.source == AccountSource.ENV_VAR,
+				),
+				None,
+			)
+			if index is None:
+				log.warning(
+					f"Default account not found in env variable for provider {provider_name} using the first account"
+				)
+				index = 0
+		return self.accounts[index]
+
+	def set_default_account(self, value: Optional[Account]):
+		if not value or not isinstance(value, Account):
+			self.default_account_info = None
+			del self.__dict__["default_account"]
+			return
+		if value.source == AccountSource.ENV_VAR:
+			self.default_account_info = f"env:{value.provider.name}"
+		else:
+			self.default_account_info = value.id
+		self.__dict__["default_account"] = value
+
+	@field_validator("accounts", mode="after")
+	@classmethod
+	def add_accounts_from_env_vars(
+		cls, accounts: list[Account]
+	) -> list[Account]:
 		"""Load accounts from environment variables"""
 		if global_vars.args.no_env_account:
-			return
+			return accounts
 		for provider in providers:
 			organizations = []
 			api_key = None
@@ -263,7 +315,7 @@ class AccountManager(RootModel):
 				)
 			else:
 				active_organization = None
-			self.root.append(
+			accounts.append(
 				Account(
 					name=f"{provider.name} account",
 					provider=provider,
@@ -273,26 +325,25 @@ class AccountManager(RootModel):
 					source=AccountSource.ENV_VAR,
 				)
 			)
+		return accounts
 
-	@model_serializer(mode="plain", when_used="json")
-	def serialize_account_config(self) -> list[dict[str, Any]]:
+	@field_serializer("accounts", mode="wrap", when_used="json")
+	@classmethod
+	def serialize_accounts(
+		cls,
+		accounts: list[Account],
+		handler: SerializerFunctionWrapHandler,
+		info: FieldSerializationInfo,
+	) -> list[dict[str, Any]]:
 		accounts_config = filter(
-			lambda x: x.source == AccountSource.CONFIG, self.root
+			lambda x: x.source == AccountSource.CONFIG, accounts
 		)
-		return [
-			acc.model_dump(
-				mode="json",
-				by_alias=True,
-				exclude_none=True,
-				exclude_defaults=True,
-			)
-			for acc in accounts_config
-		]
+		return handler(list(accounts_config), info)
 
 	def add(self, account: Account):
 		if not isinstance(account, Account):
 			raise ValueError("Account must be an instance of Account")
-		self.root.append(account)
+		self.accounts.append(account)
 		log.debug(
 			f"Added account for {account.provider.name} ({account.name}, source: {account.source})"
 		)
@@ -300,32 +351,53 @@ class AccountManager(RootModel):
 	def get_accounts_by_provider(
 		self, provider_name: Optional[str] = None
 	) -> Iterable[Account]:
-		return filter(lambda x: x.provider.name == provider_name, self.root)
+		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
 	def remove(self, account: Account):
 		account.delete_keyring_password()
-		self.root.remove(account)
+		self.accounts.remove(account)
 
 	def clear(self):
-		self.root.clear()
+		self.accounts.clear()
 
 	def __len__(self):
-		return len(self.root)
+		return len(self.accounts)
 
 	def __iter__(self):
-		return iter(self.root)
+		return iter(self.accounts)
 
-	def __getitem__(self, index) -> Account:
-		return self.root[index]
+	def __getitem__(self, index: Union[int, UUID]) -> Account:
+		if isinstance(index, int):
+			return self.accounts[index]
+		elif isinstance(index, UUID):
+			try:
+				return next(filter(lambda x: x.id == index, self.accounts))
+			except StopIteration:
+				raise KeyError(f"Account with id {index} not found")
 
-	def __setitem__(self, index, value):
-		self.root[index] = value
+	def __setitem__(self, index: Union[int, UUID], value: Account):
+		if isinstance(index, int):
+			self.accounts[index] = value
+		elif isinstance(index, UUID):
+			index = next(locate(self.accounts, lambda x: x.id == index), None)
+			if index is None:
+				self.accounts.append(value)
+			else:
+				self.accounts[index] = value
+
+	def save(self):
+		save_config_file(
+			self.model_dump(
+				mode="json",
+				by_alias=True,
+				exclude_defaults=True,
+				exclude_none=True,
+			),
+			file_path=config_file_name,
+		)
 
 
-def get_account_source_labels() -> dict[AccountSource, str]:
-	return {
-		# Translators: Account source label
-		AccountSource.ENV_VAR: _("Environment variable"),
-		# Translators: Account source label
-		AccountSource.CONFIG: _("Configuration file"),
-	}
+@cache
+def get_account_config() -> AccountManager:
+	log.debug("Loading account config")
+	return AccountManager()

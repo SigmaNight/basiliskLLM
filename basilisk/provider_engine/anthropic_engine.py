@@ -14,10 +14,11 @@ from basilisk.conversation import (
 )
 
 if TYPE_CHECKING:
-	from account import Account
 	from anthropic._streaming import Stream
 	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
+
+	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)

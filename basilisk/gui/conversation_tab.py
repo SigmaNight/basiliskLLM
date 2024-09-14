@@ -77,6 +77,7 @@ class ConversationTab(wx.Panel):
 		self._search_dialog = None
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
+		self.select_default_account()
 		self.init_data()
 		self.update_ui()
 
@@ -274,6 +275,15 @@ class ConversationTab(wx.Panel):
 
 		self.SetSizerAndFit(sizer)
 
+	def select_default_account(self):
+		accounts = config.accounts()
+		account_index = first(
+			locate(accounts, lambda a: a == accounts.default_account),
+			wx.NOT_FOUND,
+		)
+		if account_index != wx.NOT_FOUND:
+			self.account_combo.SetSelection(account_index)
+
 	def init_data(self):
 		self.on_account_change(None)
 		self.on_model_change(None)
@@ -289,15 +299,16 @@ class ConversationTab(wx.Panel):
 			self.top_p_spinner,
 			self.stream_mode,
 		)
+		advanced_mode = config.conf().general.advanced_mode
 		for control in controls:
-			control.Enable(config.conf.general.advanced_mode)
-			control.Show(config.conf.general.advanced_mode)
+			control.Enable(advanced_mode)
+			control.Show(advanced_mode)
 		self.Layout()
 
 	def on_account_change(self, event: wx.CommandEvent):
 		account_index = self.account_combo.GetSelection()
 		if account_index == wx.NOT_FOUND:
-			if not config.conf.accounts:
+			if not config.accounts():
 				if (
 					wx.MessageBox(
 						_(
@@ -313,7 +324,7 @@ class ConversationTab(wx.Panel):
 					)
 					self.on_config_change()
 			return
-		account = config.conf.accounts[account_index]
+		account = config.accounts()[account_index]
 		self.accounts_engines.setdefault(
 			account.id, account.provider.engine_cls(account)
 		)
@@ -527,11 +538,11 @@ class ConversationTab(wx.Panel):
 		account_index = self.account_combo.GetSelection()
 		account_id = None
 		if account_index != wx.NOT_FOUND:
-			account_id = config.conf.accounts[account_index].id
+			account_id = config.accounts()[account_index].id
 		self.account_combo.Clear()
 		self.account_combo.AppendItems(self.get_display_accounts(True))
 		account_index = first(
-			locate(config.conf.accounts, lambda a: a.id == account_id),
+			locate(config.accounts(), lambda a: a.id == account_id),
 			wx.NOT_FOUND,
 		)
 		if account_index != wx.NOT_FOUND:
@@ -637,7 +648,7 @@ class ConversationTab(wx.Panel):
 			wx.Bell()
 		else:
 			self.messages.SetInsertionPoint(pos)
-			if config.conf.conversation.nav_msg_select:
+			if config.conf().conversation.nav_msg_select:
 				self.select_current_message()
 
 	def go_to_previous_message(self, event: wx.CommandEvent = None):
@@ -877,7 +888,7 @@ class ConversationTab(wx.Panel):
 
 	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
 		accounts = []
-		for account in config.conf.accounts:
+		for account in config.accounts():
 			if force_refresh:
 				if "active_organization" in account.__dict__:
 					del account.__dict__["active_organization"]
@@ -930,7 +941,7 @@ class ConversationTab(wx.Panel):
 			)
 
 		role_label = (
-			config.conf.conversation.role_label_user
+			config.conf().conversation.role_label_user
 			or self.ROLE_LABELS[new_block.request.role]
 		)
 		absolute_length = self.append_text_and_create_segment(
@@ -956,7 +967,7 @@ class ConversationTab(wx.Panel):
 
 		if new_block.response:
 			role_label = (
-				config.conf.conversation.role_label_assistant
+				config.conf().conversation.role_label_assistant
 				or self.ROLE_LABELS[new_block.response.role]
 			)
 			absolute_length = self.append_text_and_create_segment(
@@ -987,7 +998,7 @@ class ConversationTab(wx.Panel):
 	@property
 	def current_engine(self) -> BaseEngine:
 		account_index = self.account_combo.GetSelection()
-		account = config.conf.accounts[account_index]
+		account = config.accounts()[account_index]
 		return self.accounts_engines[account.id]
 
 	@property
@@ -1016,10 +1027,10 @@ class ConversationTab(wx.Panel):
 					"type": "image_url",
 					"image_url": {
 						"url": image_file.get_url(
-							resize=config.conf.images.resize,
-							max_width=config.conf.images.max_width,
-							max_height=config.conf.images.max_height,
-							quality=config.conf.images.quality,
+							resize=config.conf().images.resize,
+							max_width=config.conf().images.max_width,
+							max_height=config.conf().images.max_height,
+							quality=config.conf().images.quality,
 						)
 					},
 				}
@@ -1036,7 +1047,7 @@ class ConversationTab(wx.Panel):
 			recording_thread_cls = self.recording_thread.__class__
 		self.recording_thread = recording_thread_cls(
 			provider_engine=self.current_engine,
-			recordings_settings=config.conf.recordings,
+			recordings_settings=config.conf().recordings,
 			conversation_tab=self,
 			audio_file_path=audio_file,
 		)

@@ -14,7 +14,8 @@ from xml.etree import ElementTree as ET
 
 import httpx
 
-from .config import BasiliskConfig, ReleaseChannelEnum
+from basilisk.config import BasiliskConfig, ReleaseChannelEnum
+
 from .consts import APP_REPO, UNINSTALL_FILE_NAME, WORKFLOW_NAME
 from .global_vars import base_path
 
