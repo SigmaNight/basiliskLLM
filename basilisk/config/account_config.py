@@ -392,7 +392,6 @@ class AccountManager(BasiliskBaseSettings):
 				by_alias=True,
 				exclude_defaults=True,
 				exclude_none=True,
-				exclude_unset=True,
 			),
 			file_path=config_file_name,
 		)
