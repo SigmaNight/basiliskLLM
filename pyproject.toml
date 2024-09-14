@@ -28,7 +28,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.12"
 anthropic = "^0.34.2"
-cx-freeze = "^7.2.0"
+cx-freeze = "^7.2.1"
 openai = "^1.45.0"
 pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.1"
