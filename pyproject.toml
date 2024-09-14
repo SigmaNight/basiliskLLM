@@ -47,7 +47,7 @@ more-itertools = "^10.5.0"
 markdown2 = "^2.5.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.6.4"
+ruff = "^0.6.5"
 pre-commit = "^3.8.0"
 commitizen = "^3.29.0"
 babel = "^2.15.0"
