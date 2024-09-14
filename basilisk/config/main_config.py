@@ -36,6 +36,7 @@ class ConversationSettings(BaseModel):
 	role_label_user: str | None = Field(default=None)
 	role_label_assistant: str | None = Field(default=None)
 	nav_msg_select: bool = Field(default=False)
+	shift_enter_mode: bool = Field(default=False)
 
 
 class ImagesSettings(BaseModel):
