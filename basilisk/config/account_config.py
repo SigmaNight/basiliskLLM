@@ -258,7 +258,7 @@ class AccountManager(BasiliskBaseSettings):
 				locate(
 					self.accounts,
 					lambda x: x.provider.name == provider_name
-					and x.account_source == AccountSource.ENV_VAR,
+					and x.source == AccountSource.ENV_VAR,
 				),
 				None,
 			)
