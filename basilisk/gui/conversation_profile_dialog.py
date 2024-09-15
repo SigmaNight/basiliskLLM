@@ -3,7 +3,7 @@ from typing import Optional
 
 import wx
 
-from basilisk.config import conversation_profiles, ConversationProfile
+from basilisk.config import ConversationProfile, conversation_profiles
 
 log = getLogger(__name__)
 
@@ -114,8 +114,7 @@ class ConversationProfileDialog(wx.Dialog):
 			label=_("Default Profile"),
 		)
 		self.default_button.Disable()
-		self.close_button = wx.Button(
-			self.panel, id=wx.ID_CLOSE)
+		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
 
 		self.button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.button_sizer.Add(self.add_button, 0, wx.ALL, 5)
@@ -180,14 +179,15 @@ class ConversationProfileDialog(wx.Dialog):
 	def on_default(self, event):
 		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
-			self.profiles.default_profile_name = (self.profiles[index].name)
+			self.profiles.default_profile_name = self.profiles[index].name
 
 	def on_list_item_selected(self, event):
 		index = self.list_profile_ctrl.GetFirstSelected()
 		if index != wx.NOT_FOUND:
 			profile = self.profiles[index]
 			self.default_button.SetValue(
-				profile == self.profiles.default_profile)
+				profile == self.profiles.default_profile
+			)
 			self.default_button.Enable()
 			self.edit_button.Enable()
 			self.remove_button.Enable()
@@ -205,5 +205,3 @@ class ConversationProfileDialog(wx.Dialog):
 		elif event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_edit(event)
 		event.Skip()
-
-

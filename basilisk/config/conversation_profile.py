@@ -1,22 +1,29 @@
 from __future__ import annotations
+
 import logging
 from functools import cache
 from typing import Iterable
 
-from more_itertools import locate, all_unique
+from more_itertools import locate
 from pydantic import (
 	BaseModel,
 	Field,
+	FieldSerializationInfo,
 	JsonValue,
 	PrivateAttr,
+	SerializerFunctionWrapHandler,
 	field_serializer,
 	model_validator,
-	FieldSerializationInfo,
-	SerializerFunctionWrapHandler,
 )
-from .config_helper import BasiliskBaseSettings, get_settings_config_dict, save_config_file
+
+from .config_helper import (
+	BasiliskBaseSettings,
+	get_settings_config_dict,
+	save_config_file,
+)
 
 log = logging.getLogger(__name__)
+
 
 class ConversationProfile(BaseModel):
 	name: str
@@ -29,7 +36,9 @@ class ConversationProfile(BaseModel):
 	def __eq__(self, value: ConversationProfile) -> bool:
 		return self.name == value.name
 
+
 config_file_name = "profiles.yml"
+
 
 class ConversationProfileManager(BasiliskBaseSettings):
 	model_config = get_settings_config_dict(config_file_name)
@@ -41,7 +50,8 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	@field_serializer("profiles", mode="wrap", when_used="json")
 	@classmethod
 	def serialize_profiles(
-		cls, value: list[ConversationProfile],
+		cls,
+		value: list[ConversationProfile],
 		handler: SerializerFunctionWrapHandler,
 		info: FieldSerializationInfo,
 	) -> list[dict[str, JsonValue]]:
@@ -63,7 +73,9 @@ class ConversationProfileManager(BasiliskBaseSettings):
 
 	@property
 	def default_profile_index(self) -> int:
-		return next(locate(self.profiles, lambda p: p.name == self.default_profile_name))
+		return next(
+			locate(self.profiles, lambda p: p.name == self.default_profile_name)
+		)
 
 	@model_validator(mode="after")
 	def check_unique_names(self) -> ConversationProfileManager:
@@ -131,7 +143,12 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		self._profiles_name.add(value.name)
 
 	def save(self):
-		save_config_file(self.model_dump(mode="json", exclude_defaults=True, exclude_none=True), config_file_name)
+		save_config_file(
+			self.model_dump(
+				mode="json", exclude_defaults=True, exclude_none=True
+			),
+			config_file_name,
+		)
 
 
 @cache

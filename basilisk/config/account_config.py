@@ -196,8 +196,8 @@ class Account(BaseModel):
 
 	def reset_active_organization(self):
 		try:
-			del self.active_organization
-		except AttributeError:
+			del self.__dict__["active_organization"]
+		except KeyError:
 			pass
 
 	@property
