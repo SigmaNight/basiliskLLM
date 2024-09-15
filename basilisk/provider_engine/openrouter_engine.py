@@ -1,5 +1,7 @@
 import logging
 import time
+from datetime import datetime
+from decimal import Decimal, getcontext
 from functools import cached_property
 
 import httpx
@@ -9,12 +11,33 @@ from .openai_engine import OpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
+getcontext().prec = 20
+
 
 class OpenRouterEngine(OpenAIEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
+
+	def summarize_pricing(self, pricing: dict[str, dict[str, str]]) -> str:
+		if not isinstance(pricing, dict):
+			return ""
+		out = "\n"
+		for usage_type, price in pricing.items():
+			if price is None or price == '0':
+				continue
+			if usage_type == "image":
+				price_1k = round(Decimal(price) * Decimal(1000), 3)
+				if price_1k == 0:
+					continue
+				out += f"  {usage_type}: ${price_1k}/K input imgs (${price}/input img)\n"
+			else:
+				price_1m = round(Decimal(price) * Decimal(1000000), 2)
+				out += (
+					f"  {usage_type}: ${price_1m}/M tokens (${price}/token)\n"
+				)
+		return out.rstrip()
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
@@ -29,6 +52,29 @@ class OpenRouterEngine(OpenAIEngine):
 		if response.status_code == 200:
 			data = response.json()
 			for model in sorted(data["data"], key=lambda m: m["name"].lower()):
+				extra_info = {}
+				for k, v in sorted(model.items()):
+					match k:
+						case (
+							"id"
+							| "name"
+							| "description"
+							| "context_length"
+							| "top_provider"
+						):
+							continue
+						case "pricing":
+							summary = self.summarize_pricing(v)
+							if summary:
+								extra_info["Pricing"] = summary
+						case "created":
+							extra_info[k] = datetime.fromtimestamp(v).strftime(
+								"%Y-%m-%d %H:%M:%S"
+							)
+						case _:
+							if v is None:
+								continue
+							extra_info[k.replace('_', ' ')] = v
 				models.append(
 					ProviderAIModel(
 						id=model["id"],
@@ -42,19 +88,7 @@ class OpenRouterEngine(OpenAIEngine):
 						max_temperature=2.0,
 						vision="text+image->text"
 						in model.get("architecture", {}).get("modality", ''),
-						preview="-preview" in model['id'],
-						extra_info={
-							k: v
-							for k, v in model.items()
-							if k
-							not in (
-								"id",
-								"name",
-								"description",
-								"context_length",
-								"top_provider",
-							)
-						},
+						extra_info=extra_info,
 					)
 				)
 			log.debug(
