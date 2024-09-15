@@ -40,7 +40,8 @@ class OpenRouterEngine(OpenAIEngine):
 						)
 						or -1,
 						max_temperature=2.0,
-						vision="#multimodal" in model['description'],
+						vision="text+image->text"
+						in model.get("architecture", {}).get("modality", ''),
 						preview="-preview" in model['id'],
 						extra_info={
 							k: v
