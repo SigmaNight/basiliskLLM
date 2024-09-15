@@ -853,17 +853,26 @@ class ConversationTab(wx.Panel):
 		menu.Destroy()
 
 	def on_prompt_key_down(self, event: wx.KeyEvent):
-		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
-		if (
-			modifiers == wx.ACCEL_CTRL
-			and key_code == wx.WXK_UP
-			and not self.prompt.GetValue()
-		):
-			self.insert_previous_prompt()
-		elif modifiers == wx.ACCEL_CTRL and key_code == wx.WXK_RETURN:
-			self.on_submit(event)
-		event.Skip()
+		key_code = event.GetKeyCode()
+		match (modifiers, key_code):
+			case (wx.MOD_NONE, wx.WXK_RETURN):
+				if config.conf().conversation.shift_enter_mode:
+					self.on_submit(event)
+				else:
+					event.Skip()
+			case (wx.WXK_SHIFT, wx.WXK_RETURN):
+				if config.conf().conversation.shift_enter_mode:
+					self.prompt.AppendText(os.linesep)
+				else:
+					event.Skip()
+			case (wx.MOD_CONTROL, wx.WXK_UP):
+				if self.prompt.GetValue():
+					self.insert_previous_prompt()
+			case (wx.MOD_CONTROL, wx.WXK_RETURN):
+				self.on_submit(event)
+			case _:
+				event.Skip()
 
 	def on_prompt_paste(self, event):
 		self.on_image_paste(event)
@@ -1130,6 +1139,8 @@ class ConversationTab(wx.Panel):
 		self.submit_btn.Enable()
 
 	def on_submit(self, event: wx.CommandEvent):
+		if not self.submit_btn.IsEnabled():
+			return
 		if not self.prompt.GetValue() and not self.image_files:
 			self.prompt.SetFocus()
 			return

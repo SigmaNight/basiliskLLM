@@ -188,6 +188,14 @@ class PreferencesDialog(wx.Dialog):
 		self.nav_msg_select.SetValue(self.conf.conversation.nav_msg_select)
 		conversation_group_sizer.Add(self.nav_msg_select, 0, wx.ALL, 5)
 
+		self.shift_enter_mode = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Send message with Enter, insert newline with Shift+Enter"),
+		)
+		self.shift_enter_mode.SetValue(self.conf.conversation.shift_enter_mode)
+		conversation_group_sizer.Add(self.shift_enter_mode, 0, wx.ALL, 5)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))
@@ -317,6 +325,9 @@ class PreferencesDialog(wx.Dialog):
 			self.role_label_assistant.GetValue()
 		)
 		self.conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
+		self.conf.conversation.shift_enter_mode = (
+			self.shift_enter_mode.GetValue()
+		)
 
 		self.conf.images.resize = self.image_resize.GetValue()
 		self.conf.images.max_height = int(self.image_max_height.GetValue())
