@@ -17,8 +17,6 @@ default_stages:
 default_install_hook_types:
   - "pre-commit"
   - "commit-msg"
-  - "post-checkout"
-  - "post-merge"
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -42,10 +40,6 @@ repos:
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
         args: ["--no-update"]
-      - id: poetry-install
-        stages:
-          - "post-checkout"
-          - "post-merge"
 -   repo: https://github.com/commitizen-tools/commitizen
     rev: v3.29.0
     hooks:
