@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from functools import cache
-from typing import Iterable
+from functools import cache, cached_property
+from typing import Iterable, Optional
 
 from more_itertools import locate
 from pydantic import (
@@ -16,6 +16,7 @@ from pydantic import (
 	model_validator,
 )
 
+from .account_config import Account, AccountInfo, get_account_config
 from .config_helper import (
 	BasiliskBaseSettings,
 	get_settings_config_dict,
@@ -28,10 +29,25 @@ log = logging.getLogger(__name__)
 class ConversationProfile(BaseModel):
 	name: str
 	system_prompt: str = Field(default="")
+	account_info: Optional[AccountInfo] = Field(default=None)
 
 	@classmethod
 	def get_default(cls) -> ConversationProfile:
 		return cls(name="default", system_prompt="")
+
+	@cached_property
+	def account(self) -> Optional[Account]:
+		if self.account_info is None:
+			return None
+		return get_account_config().get_account_from_info(self.account_info)
+
+	def set_account(self, account: Optional[Account]):
+		if account is None:
+			self.account_info = None
+			del self.__dict__["account"]
+		else:
+			self.account_info = account.get_account_info()
+			self.__dict__["account"] = account
 
 	def __eq__(self, value: ConversationProfile) -> bool:
 		return self.name == value.name

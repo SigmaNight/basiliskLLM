@@ -1,4 +1,4 @@
-from .account_config import Account, AccountOrganization
+from .account_config import Account, AccountManager, AccountOrganization
 from .account_config import get_account_config as accounts
 from .config_enums import (
 	AccountSource,
@@ -18,6 +18,7 @@ from .main_config import get_basilisk_config as conf
 __all__ = [
 	"accounts",
 	"Account",
+	"AccountManager",
 	"AccountOrganization",
 	"get_account_source_labels",
 	"conf",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from functools import cache, cached_property
 from os import getenv
-from typing import Any, Iterable, Optional, Union
+from typing import Annotated, Any, Iterable, Optional, Union
 from uuid import UUID, uuid4
 
 import keyring
@@ -80,6 +80,10 @@ class AccountOrganization(BaseModel):
 	def delete_keyring_password(self):
 		if self.key_storage_method == KeyStorageMethodEnum.system:
 			keyring.delete_password(APP_NAME, str(self.id))
+
+
+AccountInfoStr = Annotated[str, Field(pattern="^env:[a-z]+")]
+AccountInfo = Union[UUID4, AccountInfoStr]
 
 
 class Account(BaseModel):
@@ -219,6 +223,11 @@ class Account(BaseModel):
 		if self.api_key_storage_method == KeyStorageMethodEnum.system:
 			keyring.delete_password(APP_NAME, str(self.id))
 
+	def get_account_info(self) -> AccountInfo:
+		if self.source == AccountSource.ENV_VAR:
+			return f"env:{self.provider.name}"
+		return self.id
+
 	def __eq__(self, value: Account) -> bool:
 		return self.id == value.id
 
@@ -236,23 +245,27 @@ class AccountManager(BasiliskBaseSettings):
 
 	accounts: list[OnErrorOmit[Account]] = Field(default=list())
 
-	default_account_info: Optional[Union[UUID, str]] = Field(
+	default_account_info: Optional[AccountInfo] = Field(
 		default=None, union_mode="left_to_right"
 	)
 
 	@cached_property
 	def default_account(self) -> Account:
-		index = 0
-		if isinstance(self.default_account_info, UUID):
+		account = self.get_account_from_info(self.default_account_info)
+		if not account:
+			log.warning(
+				f"Default account not found for id {self.default_account_info} using the first account"
+			)
+			account = self[0]
+		return account
+
+	def get_account_from_info(self, value: AccountInfo) -> Optional[Account]:
+		if isinstance(value, UUID):
 			try:
-				return self[self.default_account_info]
+				return self[value]
 			except KeyError:
-				log.warning(
-					f"Default account not found for id {self.default_account_info} using the first account"
-				)
-		elif isinstance(
-			self.default_account_info, str
-		) and self.default_account_info.startswith("env:"):
+				return None
+		elif isinstance(value, str):
 			provider_name = self.default_account_info[4:]
 			index = next(
 				locate(
@@ -263,10 +276,7 @@ class AccountManager(BasiliskBaseSettings):
 				None,
 			)
 			if index is None:
-				log.warning(
-					f"Default account not found in env variable for provider {provider_name} using the first account"
-				)
-				index = 0
+				return None
 		return self.accounts[index]
 
 	def set_default_account(self, value: Optional[Account]):
@@ -274,10 +284,7 @@ class AccountManager(BasiliskBaseSettings):
 			self.default_account_info = None
 			del self.__dict__["default_account"]
 			return
-		if value.source == AccountSource.ENV_VAR:
-			self.default_account_info = f"env:{value.provider.name}"
-		else:
-			self.default_account_info = value.id
+		self.default_account_info = value.get_account_info()
 		self.__dict__["default_account"] = value
 
 	@field_validator("accounts", mode="after")
