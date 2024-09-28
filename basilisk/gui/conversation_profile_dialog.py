@@ -5,10 +5,12 @@ import wx
 
 from basilisk.config import ConversationProfile, conversation_profiles
 
+from .base_conversation import BaseConversation
+
 log = getLogger(__name__)
 
 
-class EditConversationProfileDialog(wx.Dialog):
+class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 	def __init__(
 		self,
 		parent,
@@ -22,42 +24,41 @@ class EditConversationProfileDialog(wx.Dialog):
 		self.init_data()
 
 	def init_ui(self):
-		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-		self.name_label = wx.StaticText(
-			self.panel,
+		label = wx.StaticText(
+			self,
 			# translators: Label for the name of a conversation profile
 			label=_("profile name:"),
 		)
-		self.name_text = wx.TextCtrl(self.panel)
-		self.sizer.Add(self.name_label, 0, wx.ALL, 5)
-		self.sizer.Add(self.name_text, 0, wx.ALL | wx.EXPAND, 5)
+		self.sizer.Add(label, 0, wx.ALL, 5)
 
-		self.prompt_label = wx.StaticText(self.panel, label="System Prompt:")
-		self.prompt_text = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE)
-		self.sizer.Add(self.prompt_label, 0, wx.ALL, 5)
-		self.sizer.Add(self.prompt_text, 1, wx.ALL | wx.EXPAND, 5)
+		self.profile_name_txt = wx.TextCtrl(self)
+		self.sizer.Add(self.profile_name_txt, 0, wx.ALL | wx.EXPAND, 5)
 
-		self.ok_button = wx.Button(self.panel, wx.ID_OK, label="OK")
-		self.cancel_button = wx.Button(self.panel, wx.ID_CANCEL, label="Cancel")
+		label = self.create_system_prompt_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
+
+		self.ok_button = wx.Button(self, wx.ID_OK, label="OK")
+		self.cancel_button = wx.Button(self, wx.ID_CANCEL, label="Cancel")
 		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
-		self.panel.SetSizerAndFit(self.sizer)
+		self.SetSizerAndFit(self.sizer)
 		self.Bind(wx.EVT_BUTTON, self.on_ok, self.ok_button)
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, self.cancel_button)
 
 	def init_data(self):
 		if self.profile:
-			self.name_text.SetValue(self.profile.name)
-			self.prompt_text.SetValue(self.profile.system_prompt)
+			self.profile_name_txt.SetValue(self.profile.name)
+			self.system_prompt_txt.SetValue(self.profile.system_prompt)
 
 	def on_ok(self, event):
 		if not self.profile:
 			self.profile = ConversationProfile.model_construct()
-		self.profile.name = self.name_text.GetValue()
-		self.profile.system_prompt = self.prompt_text.GetValue()
+		self.profile.name = self.profile_name_txt.GetValue()
+		self.profile.system_prompt = self.system_prompt_txt.GetValue()
 
 		self.EndModal(wx.ID_OK)
 
@@ -141,10 +142,10 @@ class ConversationProfileDialog(wx.Dialog):
 		self.update_ui()
 
 	def update_ui(self):
-		self.list_ctrl.DeleteAllItems()
+		self.list_profile_ctrl.DeleteAllItems()
 		for i, profile in enumerate(self.profiles):
-			self.list_ctrl.InsertItem(index=i, label=profile.name)
-			self.list_ctrl.SetItem(i, 1, profile.system_prompt)
+			self.list_profile_ctrl.InsertItem(index=i, label=profile.name)
+			self.list_profile_ctrl.SetItem(i, 1, profile.system_prompt)
 
 	def on_add(self, event):
 		dialog = EditConversationProfileDialog(
