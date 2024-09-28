@@ -141,6 +141,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
+		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.max_tokens_label = self.create_max_tokens_widget()
 		sizer.Add(self.max_tokens_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
@@ -237,6 +238,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.model_list.InsertItem(i, model[0])
 			self.model_list.SetItem(i, 1, model[1])
 			self.model_list.SetItem(i, 2, model[2])
+			self.model_list.SetItem(i, 3, model[3])
 		self.model_list.SetItemState(
 			0,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
@@ -437,6 +439,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 			max_tokens = model.context_window
 		self.max_tokens_spin_ctrl.SetMax(max_tokens)
 		self.max_tokens_spin_ctrl.SetValue(0)
+
+	def on_model_key_down(self, event: wx.KeyEvent):
+		if event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_show_model_details(None)
+		else:
+			event.Skip()
+
+	def on_model_context_menu(self, event: wx.ContextMenuEvent):
+		menu = wx.Menu()
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		self.model_list.PopupMenu(menu)
+		menu.Destroy()
 
 	def refresh_accounts(self):
 		account_index = self.account_combo.GetSelection()
@@ -781,11 +797,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_prompt_paste(self, event):
 		self.on_image_paste(event)
 
-	def on_model_key_down(self, event: wx.KeyEvent):
-		if event.GetKeyCode() == wx.WXK_RETURN:
-			self.on_submit(event)
-		event.Skip()
-
 	def on_key_down(self, event: wx.KeyEvent):
 		if (
 			event.GetModifiers() == wx.ACCEL_CTRL
@@ -907,6 +918,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		return [m.display_model for m in self.current_engine.models]
+
+	def on_show_model_details(self, event: wx.CommandEvent):
+		from .read_only_message_dialog import ReadOnlyMessageDialog
+
+		model_index = self.model_list.GetFirstSelected()
+		if model_index == wx.NOT_FOUND:
+			return
+		model = self.current_engine.models[model_index]
+		details = model.display_details
+		dlg = ReadOnlyMessageDialog(
+			self,
+			# Translators: This is a label for a title dialog
+			title=_("Model details"),
+			message=details,
+		)
+		dlg.ShowModal()
+		dlg.Destroy()
 
 	def get_content_for_completion(
 		self, images_files: list[ImageFile] = None, prompt: str = None

@@ -83,12 +83,18 @@ class BaseConversation:
 	def create_model_widget(self) -> wx.StaticText:
 		label = wx.StaticText(self, label=_("M&odels:"))
 		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+		# Translators: This label appears in the main window's list of models
 		self.model_list.InsertColumn(0, _("Name"))
-		self.model_list.InsertColumn(1, _("Context window"))
-		self.model_list.InsertColumn(2, _("Max tokens"))
+		# Translators: This label appears in the main window's list of models to indicate whether the model supports images
+		self.model_list.InsertColumn(1, _("Vision"))
+		# Translators: This label appears in the main window's list of models
+		self.model_list.InsertColumn(2, _("Context window"))
+		# Translators: This label appears in the main window's list of models
+		self.model_list.InsertColumn(3, _("Max tokens"))
 		self.model_list.SetColumnWidth(0, 200)
 		self.model_list.SetColumnWidth(1, 100)
-
+		self.model_list.SetColumnWidth(2, 100)
+		self.model_list.SetColumnWidth(3, 100)
 		return label
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
