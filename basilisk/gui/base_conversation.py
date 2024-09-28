@@ -1,3 +1,5 @@
+from typing import Optional
+
 import wx
 from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
@@ -30,14 +32,25 @@ class BaseConversation:
 			self.select_default_account()
 		return label
 
+	def get_selected_account(self) -> Optional[config.Account]:
+		accounts = config.accounts()
+		account_index = self.account_combo.GetSelection()
+		if account_index == wx.NOT_FOUND:
+			return None
+		return accounts[account_index]
+
+	def set_account_combo(
+		self,
+		account: config.Account,
+		accounts: config.AccountManager = config.accounts(),
+	):
+		index = next(locate(accounts, lambda a: a == account), wx.NOT_FOUND)
+		if index != wx.NOT_FOUND:
+			self.account_combo.SetSelection(index)
+
 	def select_default_account(self):
 		accounts = config.accounts()
-		account_index = next(
-			locate(accounts, lambda a: a == accounts.default_account),
-			wx.NOT_FOUND,
-		)
-		if account_index != wx.NOT_FOUND:
-			self.account_combo.SetSelection(account_index)
+		self.set_account_combo(accounts.default_account, accounts)
 
 	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
 		accounts = []

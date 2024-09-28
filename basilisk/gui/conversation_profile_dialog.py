@@ -36,6 +36,14 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile_name_txt = wx.TextCtrl(self)
 		self.sizer.Add(self.profile_name_txt, 0, wx.ALL | wx.EXPAND, 5)
 
+		label = self.create_account_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.sizer.Add(self.account_combo, 0, wx.ALL | wx.EXPAND, 5)
+		self.include_account_checkbox = wx.CheckBox(
+			self,
+			# translators: Label for including an account in a conversation profile
+			label=_("Include account in profile"),
+		)
 		label = self.create_system_prompt_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
@@ -53,13 +61,21 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		if self.profile:
 			self.profile_name_txt.SetValue(self.profile.name)
 			self.system_prompt_txt.SetValue(self.profile.system_prompt)
+			if self.profile.account:
+				self.set_account_combo(self.profile.account)
+				self.include_account_checkbox.SetValue(True)
+			else:
+				self.include_account_checkbox.SetValue(False)
 
 	def on_ok(self, event):
 		if not self.profile:
 			self.profile = ConversationProfile.model_construct()
 		self.profile.name = self.profile_name_txt.GetValue()
 		self.profile.system_prompt = self.system_prompt_txt.GetValue()
-
+		if self.include_account_checkbox.GetValue():
+			self.profile.set_account(self.get_selected_account())
+		else:
+			self.profile.set_account(None)
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):

@@ -212,25 +212,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 
 	def on_account_change(self, event: wx.CommandEvent):
-		account_index = self.account_combo.GetSelection()
-		if account_index == wx.NOT_FOUND:
-			if not config.accounts():
-				if (
-					wx.MessageBox(
-						_(
-							"Please add an account first. Do you want to add an account now?"
-						),
-						_("No account configured"),
-						wx.YES_NO | wx.ICON_QUESTION,
-					)
-					== wx.YES
-				):
-					self.GetParent().GetParent().GetParent().on_manage_accounts(
-						None
-					)
-					self.on_config_change()
+		account = self.get_selected_account()
+		if not account and not config.accounts():
+			first_account_msg = wx.MessageBox(
+				# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
+				_(
+					"Please add an account first. Do you want to add an account now?"
+				),
+				# translators: This is a title for the message box
+				_("No account configured"),
+				wx.YES_NO | wx.ICON_QUESTION,
+			)
+			if first_account_msg == wx.YES:
+				self.GetParent().GetParent().GetParent().on_manage_accounts(
+					None
+				)
+				self.on_config_change()
 			return
-		account = config.accounts()[account_index]
 		self.accounts_engines.setdefault(
 			account.id, account.provider.engine_cls(account)
 		)
