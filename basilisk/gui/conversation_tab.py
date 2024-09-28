@@ -7,7 +7,6 @@ import threading
 import time
 import weakref
 from typing import TYPE_CHECKING, Optional
-from uuid import UUID
 
 import wx
 from more_itertools import first, locate
@@ -54,6 +53,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def __init__(self, parent: wx.Window, profile: config.ConversationProfile):
 		wx.Panel.__init__(self, parent)
+		BaseConversation.__init__(self)
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
@@ -65,7 +65,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._messages_already_focused = False
 		self._stop_completion = False
 		self._search_dialog = None
-		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
 		self.init_data(profile)
 		self.update_ui()
@@ -74,7 +73,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
 		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
 
 		label = self.create_system_prompt_widget()
@@ -213,7 +211,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 
 	def on_account_change(self, event: wx.CommandEvent):
-		account = self.get_selected_account()
+		account = super().on_account_change(event)
 		if not account and not config.accounts():
 			first_account_msg = wx.MessageBox(
 				# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
@@ -230,15 +228,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 				)
 				self.on_config_change()
 			return
-		self.accounts_engines.setdefault(
-			account.id, account.provider.engine_cls(account)
-		)
-		self.model_list.DeleteAllItems()
-		for i, model in enumerate(self.get_display_models()):
-			self.model_list.InsertItem(i, model[0])
-			self.model_list.SetItem(i, 1, model[1])
-			self.model_list.SetItem(i, 2, model[2])
-			self.model_list.SetItem(i, 3, model[3])
 		self.model_list.SetItemState(
 			0,
 			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
@@ -904,20 +893,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.display_new_block(block)
 
 	@property
-	def current_engine(self) -> BaseEngine:
-		account_index = self.account_combo.GetSelection()
-		account = config.accounts()[account_index]
-		return self.accounts_engines[account.id]
-
-	@property
 	def current_model(self) -> ProviderAIModel:
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return
 		return self.current_engine.models[model_index]
-
-	def get_display_models(self) -> list[tuple[str, str, str]]:
-		return [m.display_model for m in self.current_engine.models]
 
 	def on_show_model_details(self, event: wx.CommandEvent):
 		from .read_only_message_dialog import ReadOnlyMessageDialog

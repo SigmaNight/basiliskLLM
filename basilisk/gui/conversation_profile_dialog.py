@@ -20,6 +20,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 	):
 		super().__init__(parent, title=title, size=size)
 		self.profile = profile
+		BaseConversation.__init__(self)
 		self.init_ui()
 		self.init_data()
 
@@ -47,7 +48,9 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = self.create_system_prompt_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
-
+		label = self.create_model_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
 		self.ok_button = wx.Button(self, wx.ID_OK, label="OK")
 		self.cancel_button = wx.Button(self, wx.ID_CANCEL, label="Cancel")
 		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
@@ -66,6 +69,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 				self.include_account_checkbox.SetValue(True)
 			else:
 				self.include_account_checkbox.SetValue(False)
+		self.on_account_change(None)
 
 	def on_ok(self, event):
 		if not self.profile:

@@ -1,10 +1,16 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
+from uuid import UUID
 
 import wx
 from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+
+if TYPE_CHECKING:
+	from basilisk.provider_engine.base_engine import BaseEngine
 
 
 class FloatSpinTextCtrlAccessible(wx.Accessible):
@@ -19,6 +25,13 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 
 
 class BaseConversation:
+	def __init__(self):
+		self.accounts_engines: dict[UUID, BaseEngine] = {}
+
+	@property
+	def current_engine(self) -> BaseEngine:
+		return self.accounts_engines[self.get_selected_account().id]
+
 	def create_account_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
 			self,
@@ -28,6 +41,7 @@ class BaseConversation:
 		self.account_combo = wx.ComboBox(
 			self, style=wx.CB_READONLY, choices=self.get_display_accounts()
 		)
+		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
 		if len(self.account_combo.GetItems()) > 0:
 			self.select_default_account()
 		return label
@@ -67,6 +81,16 @@ class BaseConversation:
 			accounts.append(f"{name} ({organization}) - {provider_name}")
 		return accounts
 
+	def on_account_change(self, event) -> Optional[config.Account]:
+		account = self.get_selected_account()
+		if not account:
+			return None
+		self.accounts_engines.setdefault(
+			account.id, account.provider.engine_cls(account)
+		)
+		self.update_model_list()
+		return account
+
 	def create_system_prompt_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
 			self,
@@ -96,6 +120,14 @@ class BaseConversation:
 		self.model_list.SetColumnWidth(2, 100)
 		self.model_list.SetColumnWidth(3, 100)
 		return label
+
+	def update_model_list(self):
+		self.model_list.DeleteAllItems()
+		for model in self.get_display_models():
+			self.model_list.Append(model)
+
+	def get_display_models(self) -> list[tuple[str, str, str]]:
+		return [m.display_model for m in self.current_engine.models]
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
