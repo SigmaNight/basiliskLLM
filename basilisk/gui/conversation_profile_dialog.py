@@ -62,8 +62,8 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
 		self.create_stream_widget()
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
-		self.ok_button = wx.Button(self, wx.ID_OK, label="OK")
-		self.cancel_button = wx.Button(self, wx.ID_CANCEL, label="Cancel")
+		self.ok_button = wx.Button(self, wx.ID_OK)
+		self.cancel_button = wx.Button(self, wx.ID_CANCEL)
 		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 
