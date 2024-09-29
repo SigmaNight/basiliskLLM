@@ -257,6 +257,7 @@ class ConversationProfileDialog(wx.Dialog):
 		index = self.current_profile_index
 		if index is not None:
 			self.profiles.default_profile_name = self.profiles[index].name
+			self.profiles.save()
 
 	def on_list_item_selected(self, event):
 		profile = self.current_profile
