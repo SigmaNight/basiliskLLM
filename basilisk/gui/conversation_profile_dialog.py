@@ -22,7 +22,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile = profile
 		BaseConversation.__init__(self)
 		self.init_ui()
-		self.init_data()
+		self.apply_profile(self.profile)
 
 	def init_ui(self):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -71,25 +71,15 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.Bind(wx.EVT_BUTTON, self.on_ok, self.ok_button)
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, self.cancel_button)
 
-	def init_data(self):
-		if self.profile:
-			self.profile_name_txt.SetValue(self.profile.name)
-			self.system_prompt_txt.SetValue(self.profile.system_prompt)
-			if self.profile.account or self.profile.ai_model_info:
-				self.include_account_checkbox.SetValue(
-					self.profile.account is not None
-				)
-				self.set_account_and_model_from_profile(self.profile)
-				if self.profile.max_tokens:
-					self.max_tokens_spin_ctrl.SetValue(self.profile.max_tokens)
-				if self.profile.temperature:
-					self.temperature_spinner.SetValue(self.profile.temperature)
-				if self.profile.top_p:
-					self.top_p_spinner.SetValue(self.profile.top_p)
-				self.stream_mode.SetValue(self.profile.stream_mode)
-				return
-		else:
-			self.select_default_account()
+	def apply_profile(self, profile: Optional[ConversationProfile]):
+		if not profile:
+			return
+		super().apply_profile(profile)
+		self.profile_name_txt.SetValue(profile.name)
+		if profile.account or profile.ai_model_info:
+			self.include_account_checkbox.SetValue(
+				self.profile.account is not None
+			)
 
 	def on_ok(self, event):
 		if not self.profile:

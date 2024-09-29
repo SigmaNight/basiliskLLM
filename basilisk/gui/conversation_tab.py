@@ -182,10 +182,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.SetSizerAndFit(sizer)
 
-	def apply_profile(self, profile: config.ConversationProfile):
-		self.conversation_profile = profile
-		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
-
 	def init_data(self, profile: config.ConversationProfile):
 		self.refresh_images_list()
 		self.select_default_account()
