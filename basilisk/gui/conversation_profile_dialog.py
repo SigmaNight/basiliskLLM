@@ -246,12 +246,22 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.save()
 
 	def on_remove(self, event):
-		index = self.current_profile_index
-		if index is not None:
+		profile = self.current_profile
+		if profile is None:
 			return
-		del self.profiles[index]
-		self.profiles.save()
-		self.update_ui()
+		confirm_msg = wx.MessageBox(
+			# translators: Message box title for removing a conversation profile
+			_("Are you sure you want to remove the profile: %s ?")
+			% profile.name,
+			# translators: Message box title for removing a conversation profile
+			_("Remove Profile %s") % profile.name,
+			style=wx.YES_NO | wx.ICON_QUESTION,
+		)
+		if confirm_msg == wx.YES:
+			self.profiles.remove(profile)
+			self.profiles.save()
+			self.update_ui()
+			self.on_list_item_selected(None)
 
 	def on_default(self, event):
 		index = self.current_profile_index

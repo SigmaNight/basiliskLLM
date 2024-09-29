@@ -149,6 +149,8 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		self._profiles_name.add(profile.name)
 
 	def remove(self, profile: ConversationProfile):
+		if profile.name == self.default_profile_name:
+			self.default_profile_name = None
 		self.profiles.remove(profile)
 		self._profiles_name.remove(profile.name)
 
