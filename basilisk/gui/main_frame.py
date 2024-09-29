@@ -64,11 +64,27 @@ class MainFrame(wx.Frame):
 
 		conversation_menu = wx.Menu()
 		name_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("Name conversation") + "...	F2"
+			wx.ID_ANY,
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation") + "...	F2",
 		)
 		self.Bind(
-			wx.EVT_MENU, self.on_name_conversation, name_conversation_item
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, False),
+			name_conversation_item,
 		)
+
+		auto_name_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to automatically name a conversation
+			_("&Auto name conversation") + "...	Shift+F2",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, True),
+			auto_name_conversation_item,
+		)
+		conversation_menu.AppendSeparator()
 		new_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to create a new conversation
@@ -389,26 +405,34 @@ class MainFrame(wx.Frame):
 	def refresh_tab_title(self, include_frame: bool = False):
 		current_tab = self.current_tab
 		title = current_tab.conversation.title or current_tab.title
-		log.debug(f"Setting title: {title}")
 		self.notebook.SetPageText(self.notebook.GetSelection(), title)
 		if include_frame:
 			self.refresh_frame_title()
 
-	def on_name_conversation(self, event: wx.Event):
-		name = wx.TextEntryDialog(
-			self,
-			# Translators: A label for a dialog to name a conversation
-			message=_("Enter a name for this conversation:"),
-			# Translators: A label for a dialog to name a conversation
-			caption=_("Name conversation"),
-			value=self.current_tab.conversation.title or self.current_tab.title,
-		)
-		if name.ShowModal() != wx.ID_OK or not name.GetValue():
+	def on_name_conversation(self, event: wx.Event, auto: bool = False):
+		from .name_conversation_dialog import NameConversationDialog
+
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		title = self.current_tab.conversation.title or self.current_tab.title
+		if auto:
+			title = current_tab.generate_conversation_title()
+			if not title:
+				return
+			title = title.strip().replace('\n', ' ')
+		dialog = NameConversationDialog(self, title=title, auto=auto)
+		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
+			dialog.Destroy()
 			return
 
 		current_tab = self.current_tab
-		current_tab.conversation.title = name.GetValue()
+		current_tab.conversation.title = dialog.get_name()
 		self.refresh_tab_title(True)
+		dialog.Destroy()
 
 	def on_new_conversation(self, event):
 		log.debug("Creating a new conversation")

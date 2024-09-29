@@ -6,7 +6,8 @@ import re
 import threading
 import time
 import weakref
-from typing import TYPE_CHECKING, Optional
+from functools import wraps
+from typing import TYPE_CHECKING, Callable, Optional
 from uuid import UUID
 
 import wx
@@ -16,6 +17,7 @@ from wx.lib.agw.floatspin import FloatSpin
 import basilisk.config as config
 from basilisk import global_vars
 from basilisk.conversation import (
+	PROMPT_TITLE,
 	Conversation,
 	ImageUrlMessageContent,
 	Message,
@@ -52,6 +54,21 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 		if self._name:
 			return (wx.ACC_OK, self._name)
 		return super().GetName(childId)
+
+
+def ensure_no_task_running(method: Callable):
+	@wraps(method)
+	def wrapper(instance, *args, **kwargs):
+		if instance.task:
+			wx.MessageBox(
+				_("A task is already running. Please wait for it to complete."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		return method(instance, *args, **kwargs)
+
+	return wrapper
 
 
 class ConversationTab(wx.Panel):
@@ -1175,6 +1192,7 @@ class ConversationTab(wx.Panel):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
+	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		if not self.submit_btn.IsEnabled():
 			return
@@ -1227,13 +1245,6 @@ class ConversationTab(wx.Panel):
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
-		if self.task:
-			wx.MessageBox(
-				_("A task is already running. Please wait for it to complete."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
 		thread = self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
@@ -1341,3 +1352,34 @@ class ConversationTab(wx.Panel):
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
 		self._stop_completion = False
+
+	@ensure_no_task_running
+	def generate_conversation_title(self):
+		"""Generate a title for the conversation tab based on the content of the conversation. Use the current model and account names."""
+		if not self.conversation.messages:
+			return
+		model = self.current_model
+		if not model:
+			return
+		play_sound("progress", loop=True)
+		new_block = MessageBlock(
+			request=Message(role=MessageRoleEnum.USER, content=PROMPT_TITLE),
+			model=model,
+			temperature=self.temperature_spinner.GetValue(),
+			top_p=self.top_p_spinner.GetValue(),
+			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
+			stream=self.stream_mode.GetValue(),
+		)
+		engine = self.current_engine
+		completion_kw = {
+			"system_message": None,
+			"conversation": self.conversation,
+			"new_block": new_block,
+			"stream": False,
+		}
+		response = engine.completion(**completion_kw)
+		new_block = engine.completion_response_without_stream(
+			response=response, **completion_kw
+		)
+		stop_sound()
+		return new_block.response.content
