@@ -82,7 +82,7 @@ class AccountOrganization(BaseModel):
 			keyring.delete_password(APP_NAME, str(self.id))
 
 
-AccountInfoStr = Annotated[str, Field(pattern="^env:[a-z]+")]
+AccountInfoStr = Annotated[str, Field(pattern="^env:[a-zA-Z]+")]
 AccountInfo = Union[UUID4, AccountInfoStr]
 
 

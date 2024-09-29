@@ -32,7 +32,7 @@ class ConversationProfile(BaseModel):
 	name: str
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
-	ai_model_info: Optional[str] = Field(default=None, pattern=r"^.+/.+$")
+	ai_model_info: Optional[str] = Field(default=None, pattern=r"^[a-zA-Z]/.+$")
 	max_tokens: Optional[int] = Field(default=None)
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
