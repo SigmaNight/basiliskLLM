@@ -13,8 +13,11 @@ from pydantic import (
 	PrivateAttr,
 	SerializerFunctionWrapHandler,
 	field_serializer,
+	field_validator,
 	model_validator,
 )
+
+from basilisk.provider import Provider, get_provider
 
 from .account_config import Account, AccountInfo, get_account_config
 from .config_helper import (
@@ -30,6 +33,16 @@ class ConversationProfile(BaseModel):
 	name: str
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
+	ai_model_info: Optional[str] = Field(default=None, pattern=r"^.+/.+$")
+
+	@field_validator("ai_model_info")
+	@classmethod
+	def provider_must_exist(cls, value: str):
+		if value is None:
+			return None
+		provider_id, model_id = value.split("/", 1)
+		get_provider(id=provider_id)
+		return value
 
 	@classmethod
 	def get_default(cls) -> ConversationProfile:
@@ -49,8 +62,37 @@ class ConversationProfile(BaseModel):
 			self.account_info = account.get_account_info()
 			self.__dict__["account"] = account
 
+	@property
+	def ai_model_id(self) -> Optional[str]:
+		if self.ai_model_info is None:
+			return None
+		return self.ai_model_info.split("/", 1)[1]
+
+	@property
+	def ai_provider(self) -> Optional[Provider]:
+		if self.account is None and self.ai_model_info is None:
+			return None
+		if self.account:
+			return self.account.provider
+		if self.ai_model_info:
+			provider_id, model_id = self.ai_model_info.split("/", 1)
+			return get_provider(id=provider_id)
+
+	def set_model_info(self, provider_id: str, model_id: str):
+		self.ai_model_info = f"{provider_id}/{model_id}"
+
 	def __eq__(self, value: ConversationProfile) -> bool:
 		return self.name == value.name
+
+	@model_validator(mode="after")
+	def check_same_provider(self) -> ConversationProfile:
+		if self.account is not None and self.ai_model_info is not None:
+			provider_id, model_id = self.ai_model_info.split("/", 1)
+			if provider_id != self.account.provider.id:
+				raise ValueError(
+					"Model provider must be the same as account provider"
+				)
+		return self
 
 
 config_file_name = "profiles.yml"
