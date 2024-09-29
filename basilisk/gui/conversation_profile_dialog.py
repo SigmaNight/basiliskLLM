@@ -30,7 +30,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = wx.StaticText(
 			self,
 			# translators: Label for the name of a conversation profile
-			label=_("profile name:"),
+			label=_("profile &name:"),
 		)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 
@@ -43,7 +43,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.include_account_checkbox = wx.CheckBox(
 			self,
 			# translators: Label for including an account in a conversation profile
-			label=_("Include account in profile"),
+			label=_("&Include account in profile"),
 		)
 		label = self.create_system_prompt_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
@@ -161,25 +161,25 @@ class ConversationProfileDialog(wx.Dialog):
 		self.add_btn = wx.Button(
 			self.panel,
 			# translators: Button label to add a new conversation profile
-			label=_("Add Profile"),
+			label=_("&Add Profile"),
 		)
 
 		self.edit_btn = wx.Button(
 			self.panel,
 			# translators: Button label to edit a conversation profile
-			label=_("Edit Profile"),
+			label=_("&Edit Profile"),
 		)
 		self.edit_btn.Disable()
 		self.remove_btn = wx.Button(
 			self.panel,
 			# translators: Button label to remove a conversation profile
-			label=_("Remove Profile"),
+			label=_("&Remove Profile"),
 		)
 		self.remove_btn.Disable()
 		self.default_btn = wx.ToggleButton(
 			self.panel,
 			# translators: Button label to set a conversation profile as the default
-			label=_("Default Profile"),
+			label=_("&Default Profile"),
 		)
 		self.default_btn.Disable()
 		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)

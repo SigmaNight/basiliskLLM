@@ -64,28 +64,7 @@ class MainFrame(wx.Frame):
 		menu_bar = wx.MenuBar()
 
 		conversation_menu = wx.Menu()
-		name_conversation_item = conversation_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to name a conversation
-			_("Name conversation") + "...	F2",
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda e: self.on_name_conversation(e, False),
-			name_conversation_item,
-		)
 
-		auto_name_conversation_item = conversation_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to automatically name a conversation
-			_("&Auto name conversation") + "...	Shift+F2",
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda e: self.on_name_conversation(e, True),
-			auto_name_conversation_item,
-		)
-		conversation_menu.AppendSeparator()
 		new_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to create a new conversation
@@ -106,6 +85,11 @@ class MainFrame(wx.Frame):
 			_("Open conversation") + "... (Ctrl+O)",
 		)
 		open_conversation_item.Enable(False)
+		conversation_menu.AppendSubMenu(
+			self.build_name_conversation_menu(),
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation"),
+		)
 		save_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation
@@ -681,6 +665,34 @@ class MainFrame(wx.Frame):
 			self.Bind(wx.EVT_MENU, event_handler, profile_item)
 		return profile_menu
 
+	def build_name_conversation_menu(self) -> wx.Menu:
+		"""
+		Build the name conversation menu.
+
+			:return: The name conversation menu.
+		"""
+		name_conversation_menu = wx.Menu()
+		manual_item = name_conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to name a conversation
+			_("Manual name conversation") + "...	F2",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, False),
+			manual_item,
+		)
+
+		auto_item = name_conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to automatically name a conversation
+			_("&Auto name conversation") + "...	Shift+F2",
+		)
+		self.Bind(
+			wx.EVT_MENU, lambda e: self.on_name_conversation(e, True), auto_item
+		)
+		return name_conversation_menu
+
 	def on_notebook_context_menu(self, event):
 		menu = wx.Menu()
 		apply_conversation_profile_item = menu.AppendSubMenu(
@@ -692,6 +704,11 @@ class MainFrame(wx.Frame):
 			wx.EVT_MENU,
 			self.on_apply_conversation_profile,
 			apply_conversation_profile_item,
+		)
+		menu.AppendSubMenu(
+			self.build_name_conversation_menu(),
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation"),
 		)
 		close_conversation_item = menu.Append(
 			wx.ID_ANY,
