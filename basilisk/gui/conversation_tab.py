@@ -50,7 +50,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
-	def __init__(self, parent: wx.Window, profile: config.ConversationProfile):
+	def __init__(
+		self, parent: wx.Window, profile: Optional[config.ConversationProfile]
+	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
@@ -182,7 +184,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.SetSizerAndFit(sizer)
 
-	def init_data(self, profile: config.ConversationProfile):
+	def init_data(self, profile: Optional[config.ConversationProfile]):
 		self.refresh_images_list()
 		self.apply_profile(profile)
 

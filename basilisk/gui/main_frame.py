@@ -404,6 +404,7 @@ class MainFrame(wx.Frame):
 		log.info(
 			f"Creating a new conversation with default profile ({config.conversation_profiles().default_profile_name})"
 		)
+
 		self.new_conversation(config.conversation_profiles().default_profile)
 
 	def on_new_conversation(self, event: wx.Event):
@@ -416,7 +417,7 @@ class MainFrame(wx.Frame):
 		log.info(f"Creating a new conversation with profile: {profile.name}")
 		self.new_conversation(profile)
 
-	def new_conversation(self, profile: config.ConversationProfile):
+	def new_conversation(self, profile: Optional[config.ConversationProfile]):
 		self.tabs_panels.append(ConversationTab(self.notebook, profile))
 		self.notebook.AddPage(
 			self.tabs_panels[-1], f"Conversation {len(self.tabs_panels)}"
