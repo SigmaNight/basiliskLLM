@@ -184,7 +184,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def init_data(self, profile: config.ConversationProfile):
 		self.refresh_images_list()
-		self.select_default_account()
 		self.apply_profile(profile)
 
 	def update_ui(self):

@@ -7,12 +7,9 @@ from typing import Iterable, Optional
 from more_itertools import locate
 from pydantic import (
 	BaseModel,
+	ConfigDict,
 	Field,
-	FieldSerializationInfo,
-	JsonValue,
 	PrivateAttr,
-	SerializerFunctionWrapHandler,
-	field_serializer,
 	field_validator,
 	model_validator,
 )
@@ -30,6 +27,8 @@ log = logging.getLogger(__name__)
 
 
 class ConversationProfile(BaseModel):
+	model_config = ConfigDict(revalidate_instances="always")
+
 	name: str
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
@@ -85,7 +84,9 @@ class ConversationProfile(BaseModel):
 	def set_model_info(self, provider_id: str, model_id: str):
 		self.ai_model_info = f"{provider_id}/{model_id}"
 
-	def __eq__(self, value: ConversationProfile) -> bool:
+	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
+		if value is None:
+			return False
 		return self.name == value.name
 
 	@model_validator(mode="after")
@@ -105,39 +106,14 @@ config_file_name = "profiles.yml"
 class ConversationProfileManager(BasiliskBaseSettings):
 	model_config = get_settings_config_dict(config_file_name)
 
-	profiles: list[ConversationProfile] = Field(
-		default=[ConversationProfile.get_default()]
-	)
+	profiles: list[ConversationProfile] = Field(default_factory=list)
 
-	@field_serializer("profiles", mode="wrap", when_used="json")
-	@classmethod
-	def serialize_profiles(
-		cls,
-		value: list[ConversationProfile],
-		handler: SerializerFunctionWrapHandler,
-		info: FieldSerializationInfo,
-	) -> list[dict[str, JsonValue]]:
-		default_profile = ConversationProfile.get_default()
-		profiles = filter(lambda p: p != default_profile, value)
-		return handler(list(profiles), info)
-
-	default_profile_name: str = Field(default="default")
-
+	default_profile_name: Optional[str] = Field(default=None)
 	_profiles_name: set[str] = PrivateAttr(default_factory=set)
 
 	@property
 	def profiles_name(self) -> set[str]:
 		return self._profiles_name
-
-	@property
-	def default_profile(self) -> ConversationProfile:
-		return self[self.default_profile_name]
-
-	@property
-	def default_profile_index(self) -> int:
-		return next(
-			locate(self.profiles, lambda p: p.name == self.default_profile_name)
-		)
 
 	@model_validator(mode="after")
 	def check_unique_names(self) -> ConversationProfileManager:
@@ -147,13 +123,16 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			self._profiles_name.add(profile.name)
 		return self
 
+	@property
+	def default_profile(self) -> Optional[ConversationProfile]:
+		if self.default_profile_name is None:
+			return None
+		return self[self.default_profile_name]
+
 	@model_validator(mode="after")
-	def _check_default_profile(self) -> ConversationProfileManager:
-		if (
-			self.default_profile_name not in self._profiles_name
-			and self.default_profile_name == "default"
-		):
-			self.add(ConversationProfile.get_default())
+	def check_default_profile(self) -> ConversationProfileManager:
+		if self.default_profile_name is None:
+			return self
 		if self.default_profile_name not in self._profiles_name:
 			raise ValueError(
 				f"Default profile not found: {self.default_profile_name}"

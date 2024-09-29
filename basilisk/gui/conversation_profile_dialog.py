@@ -85,6 +85,15 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		if not self.profile:
 			self.profile = ConversationProfile.model_construct()
 		self.profile.name = self.profile_name_txt.GetValue()
+		if not self.profile.name:
+			wx.MessageBox(
+				# translators: Message box title for a conversation profile name
+				_("Profile name cannot be empty"),
+				# translators: Message box title for a conversation profile name
+				_("Profile name"),
+				style=wx.OK | wx.ICON_ERROR,
+			)
+			return
 		self.profile.system_prompt = self.system_prompt_txt.GetValue()
 		account = self.current_account
 		model = self.current_model
@@ -114,6 +123,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		else:
 			self.profile.top_p = None
 		self.profile.stream_mode = self.stream_mode.GetValue()
+		ConversationProfile.model_validate(self.profile)
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):
@@ -145,55 +155,66 @@ class ConversationProfileDialog(wx.Dialog):
 		self.list_profile_ctrl.Bind(
 			wx.EVT_KEY_DOWN, self.on_list_profile_key_down
 		)
-		self.add_button = wx.Button(
+		self.list_profile_ctrl.Bind(
+			wx.EVT_LIST_ITEM_SELECTED, self.on_list_item_selected
+		)
+		self.add_btn = wx.Button(
 			self.panel,
 			# translators: Button label to add a new conversation profile
 			label=_("Add Profile"),
 		)
 
-		self.edit_button = wx.Button(
+		self.edit_btn = wx.Button(
 			self.panel,
 			# translators: Button label to edit a conversation profile
 			label=_("Edit Profile"),
 		)
-		self.edit_button.Disable()
-		self.remove_button = wx.Button(
+		self.edit_btn.Disable()
+		self.remove_btn = wx.Button(
 			self.panel,
 			# translators: Button label to remove a conversation profile
 			label=_("Remove Profile"),
 		)
-		self.remove_button.Disable()
-		self.default_button = wx.ToggleButton(
+		self.remove_btn.Disable()
+		self.default_btn = wx.ToggleButton(
 			self.panel,
 			# translators: Button label to set a conversation profile as the default
 			label=_("Default Profile"),
 		)
-		self.default_button.Disable()
+		self.default_btn.Disable()
 		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
 
-		self.button_sizer = wx.BoxSizer(wx.HORIZONTAL)
-		self.button_sizer.Add(self.add_button, 0, wx.ALL, 5)
-		self.button_sizer.Add(self.edit_button, 0, wx.ALL, 5)
-		self.button_sizer.Add(self.remove_button, 0, wx.ALL, 5)
-		self.button_sizer.Add(self.default_button, 0, wx.ALL, 5)
-		self.button_sizer.Add(self.close_button, 0, wx.ALL, 5)
+		self.btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.btn_sizer.Add(self.add_btn, 0, wx.ALL, 5)
+		self.btn_sizer.Add(self.edit_btn, 0, wx.ALL, 5)
+		self.btn_sizer.Add(self.remove_btn, 0, wx.ALL, 5)
+		self.btn_sizer.Add(self.default_btn, 0, wx.ALL, 5)
+		self.btn_sizer.Add(self.close_button, 0, wx.ALL, 5)
 
-		self.sizer.Add(self.button_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+		self.sizer.Add(self.btn_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 		self.panel.SetSizerAndFit(self.sizer)
 
-		self.Bind(wx.EVT_BUTTON, self.on_add, self.add_button)
-		self.Bind(wx.EVT_BUTTON, self.on_edit, self.edit_button)
-		self.Bind(wx.EVT_BUTTON, self.on_remove, self.remove_button)
-		self.Bind(wx.EVT_TOGGLEBUTTON, self.on_default, self.default_button)
-		self.Bind(
-			wx.EVT_LIST_ITEM_SELECTED,
-			self.on_list_item_selected,
-			self.list_profile_ctrl,
-		)
-		self.Bind(wx.EVT_BUTTON, self.on_close, self.close_button)
+		self.add_btn.Bind(wx.EVT_BUTTON, self.on_add)
+		self.edit_btn.Bind(wx.EVT_BUTTON, self.on_edit)
+		self.remove_btn.Bind(wx.EVT_BUTTON, self.on_remove)
+		self.default_btn.Bind(wx.EVT_TOGGLEBUTTON, self.on_default)
+		self.close_button.Bind(wx.EVT_BUTTON, self.on_close)
 
 	def init_data(self):
 		self.update_ui()
+
+	@property
+	def current_profile_index(self) -> Optional[int]:
+		index = self.list_profile_ctrl.GetFirstSelected()
+		return index if index != wx.NOT_FOUND else None
+
+	@property
+	def current_profile(self) -> Optional[ConversationProfile]:
+		return (
+			self.profiles[self.current_profile_index]
+			if self.current_profile_index is not None
+			else None
+		)
 
 	def update_ui(self):
 		self.list_profile_ctrl.DeleteAllItems()
@@ -213,43 +234,37 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.save()
 
 	def on_edit(self, event):
-		index = self.list_profile_ctrl.GetFirstSelected()
-		if index != wx.NOT_FOUND:
-			profile = self.profiles[index]
-			dialog = EditConversationProfileDialog(
-				self, "Edit Conversation Profile", profile=profile
-			)
-			if dialog.ShowModal() == wx.ID_OK:
-				self.profiles[index] = dialog.profile
-				self.update_ui()
-				self.profiles.save()
+		profile = self.current_profile
+		if not profile:
+			return
+		dialog = EditConversationProfileDialog(
+			self, "Edit Conversation Profile", profile=profile
+		)
+		if dialog.ShowModal() == wx.ID_OK:
+			self.profiles[profile.name] = dialog.profile
+			self.update_ui()
+			self.profiles.save()
 
 	def on_remove(self, event):
-		index = self.list_profile_ctrl.GetFirstSelected()
-		if index != wx.NOT_FOUND:
-			del self.profiles[index]
-			self.profiles.save()
-			self.update_ui()
+		index = self.current_profile_index
+		if index is not None:
+			return
+		del self.profiles[index]
+		self.profiles.save()
+		self.update_ui()
 
 	def on_default(self, event):
-		index = self.list_profile_ctrl.GetFirstSelected()
-		if index != wx.NOT_FOUND:
+		index = self.current_profile_index
+		if index is not None:
 			self.profiles.default_profile_name = self.profiles[index].name
 
 	def on_list_item_selected(self, event):
-		index = self.list_profile_ctrl.GetFirstSelected()
-		if index != wx.NOT_FOUND:
-			profile = self.profiles[index]
-			self.default_button.SetValue(
-				profile == self.profiles.default_profile
-			)
-			self.default_button.Enable()
-			self.edit_button.Enable()
-			self.remove_button.Enable()
-		else:
-			self.default_button.Disable()
-			self.edit_button.Disable()
-			self.remove_button.Disable()
+		profile = self.current_profile
+		enable = profile is not None
+		self.default_btn.Enable(enable)
+		self.edit_btn.Enable(enable)
+		self.remove_btn.Enable(enable)
+		self.default_btn.SetValue(profile == self.profiles.default_profile)
 
 	def on_close(self, event):
 		self.EndModal(wx.ID_CLOSE)
