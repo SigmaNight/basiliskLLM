@@ -90,7 +90,16 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 				# translators: Message box title for a conversation profile name
 				_("Profile name cannot be empty"),
 				# translators: Message box title for a conversation profile name
-				_("Profile name"),
+				_("Profile name error"),
+				style=wx.OK | wx.ICON_ERROR,
+			)
+			return
+		if self.profile.name in conversation_profiles().profiles_name:
+			wx.MessageBox(
+				# translators: Message box title for a conversation profile name
+				_("Profile name already exists"),
+				# translators: Message box title for a conversation profile name
+				_("Profile name error"),
 				style=wx.OK | wx.ICON_ERROR,
 			)
 			return
