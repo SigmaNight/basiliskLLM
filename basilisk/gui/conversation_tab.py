@@ -27,7 +27,6 @@ from basilisk.message_segment_manager import (
 	MessageSegmentManager,
 	MessageSegmentType,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -189,9 +188,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
 
 	def init_data(self, profile: config.ConversationProfile):
-		self.on_account_change(None)
 		self.on_model_change(None)
 		self.refresh_images_list()
+		self.select_default_account()
 		self.apply_profile(profile)
 
 	def update_ui(self):
@@ -227,6 +226,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 					None
 				)
 				self.on_config_change()
+			return
+		if not account:
 			return
 		self.model_list.SetItemState(
 			0,
@@ -891,13 +892,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
-
-	@property
-	def current_model(self) -> ProviderAIModel:
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		return self.current_engine.models[model_index]
 
 	def on_show_model_details(self, event: wx.CommandEvent):
 		from .read_only_message_dialog import ReadOnlyMessageDialog

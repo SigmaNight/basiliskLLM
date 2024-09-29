@@ -64,22 +64,32 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		if self.profile:
 			self.profile_name_txt.SetValue(self.profile.name)
 			self.system_prompt_txt.SetValue(self.profile.system_prompt)
-			if self.profile.account:
-				self.set_account_combo(self.profile.account)
-				self.include_account_checkbox.SetValue(True)
-			else:
-				self.include_account_checkbox.SetValue(False)
-		self.on_account_change(None)
+			if self.profile.account or self.profile.ai_model_info:
+				self.include_account_checkbox.SetValue(
+					self.profile.account is not None
+				)
+				self.set_account_and_model_from_profile(self.profile)
+				return
+		else:
+			self.select_default_account()
 
 	def on_ok(self, event):
 		if not self.profile:
 			self.profile = ConversationProfile.model_construct()
 		self.profile.name = self.profile_name_txt.GetValue()
 		self.profile.system_prompt = self.system_prompt_txt.GetValue()
+		account = self.current_account
+		model = self.current_model
 		if self.include_account_checkbox.GetValue():
-			self.profile.set_account(self.get_selected_account())
+			self.profile.set_account(account)
 		else:
 			self.profile.set_account(None)
+		if account and model:
+			self.profile.set_model_info(
+				self.current_account.provider.id, self.current_model.id
+			)
+		else:
+			self.profile.ai_model_info = None
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):

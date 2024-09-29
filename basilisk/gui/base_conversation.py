@@ -8,6 +8,7 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+from basilisk.provider_ai_model import ProviderAIModel
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -30,7 +31,7 @@ class BaseConversation:
 
 	@property
 	def current_engine(self) -> BaseEngine:
-		return self.accounts_engines[self.get_selected_account().id]
+		return self.accounts_engines[self.current_account.id]
 
 	def create_account_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
@@ -42,11 +43,10 @@ class BaseConversation:
 			self, style=wx.CB_READONLY, choices=self.get_display_accounts()
 		)
 		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
-		if len(self.account_combo.GetItems()) > 0:
-			self.select_default_account()
 		return label
 
-	def get_selected_account(self) -> Optional[config.Account]:
+	@property
+	def current_account(self) -> Optional[config.Account]:
 		accounts = config.accounts()
 		account_index = self.account_combo.GetSelection()
 		if account_index == wx.NOT_FOUND:
@@ -61,8 +61,11 @@ class BaseConversation:
 		index = next(locate(accounts, lambda a: a == account), wx.NOT_FOUND)
 		if index != wx.NOT_FOUND:
 			self.account_combo.SetSelection(index)
+			self.on_account_change(None)
 
 	def select_default_account(self):
+		if len(self.account_combo.GetItems()) == 0:
+			return
 		accounts = config.accounts()
 		self.set_account_combo(accounts.default_account, accounts)
 
@@ -82,7 +85,7 @@ class BaseConversation:
 		return accounts
 
 	def on_account_change(self, event) -> Optional[config.Account]:
-		account = self.get_selected_account()
+		account = self.current_account
 		if not account:
 			return None
 		self.accounts_engines.setdefault(
@@ -128,6 +131,39 @@ class BaseConversation:
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		return [m.display_model for m in self.current_engine.models]
+
+	def set_model_list(self, model: ProviderAIModel):
+		models = self.current_engine.models
+		index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+		if index != wx.NOT_FOUND:
+			self.model_list.SetItemState(
+				index,
+				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+			)
+
+	@property
+	def current_model(self) -> Optional[ProviderAIModel]:
+		model_index = self.model_list.GetFirstSelected()
+		if model_index == wx.NOT_FOUND:
+			return None
+		return self.current_engine.models[model_index]
+
+	def set_account_and_model_from_profile(self, profile: config.Profile):
+		if not profile.account and not profile.ai_model_info:
+			return
+		if profile.account:
+			self.set_account_combo(profile.account)
+		if profile.ai_model_info and not profile.account:
+			account = next(
+				config.accounts().get_accounts_by_provider(profile.provider),
+				None,
+			)
+			if account:
+				self.set_account_combo(account)
+		model = self.current_engine.get_model(profile.ai_model_id)
+		if model:
+			self.set_model_list(model)
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
