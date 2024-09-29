@@ -178,7 +178,9 @@ class BaseConversation:
 				"no account in profile, trying to find account by provider"
 			)
 			account = next(
-				config.accounts().get_accounts_by_provider(profile.provider),
+				config.accounts().get_accounts_by_provider(
+					profile.ai_provider.name
+				),
 				None,
 			)
 			if account:
