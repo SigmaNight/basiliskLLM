@@ -178,7 +178,7 @@ class MainFrame(wx.Frame):
 		conversation_profile_item = tool_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to manage conversation profiles
-			_("Manage conversation &profiles") + "...",
+			_("Manage conversation &profiles") + "...	Ctrl+Shift+O",
 		)
 		self.Bind(
 			wx.EVT_MENU,
