@@ -60,7 +60,8 @@ class ConversationProfile(BaseModel):
 	def set_account(self, account: Optional[Account]):
 		if account is None:
 			self.account_info = None
-			del self.__dict__["account"]
+			if "account" in self.__dict__:
+				del self.__dict__["account"]
 		else:
 			self.account_info = account.get_account_info()
 			self.__dict__["account"] = account
