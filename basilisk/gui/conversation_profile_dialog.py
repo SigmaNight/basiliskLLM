@@ -60,7 +60,8 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = self.create_top_p_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
-
+		self.create_stream_widget()
+		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
 		self.ok_button = wx.Button(self, wx.ID_OK, label="OK")
 		self.cancel_button = wx.Button(self, wx.ID_CANCEL, label="Cancel")
 		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
@@ -85,6 +86,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 					self.temperature_spinner.SetValue(self.profile.temperature)
 				if self.profile.top_p:
 					self.top_p_spinner.SetValue(self.profile.top_p)
+				self.stream_mode.SetValue(self.profile.stream_mode)
 				return
 		else:
 			self.select_default_account()
@@ -121,7 +123,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			self.profile.top_p = top_p
 		else:
 			self.profile.top_p = None
-
+		self.profile.stream_mode = self.stream_mode.GetValue()
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):

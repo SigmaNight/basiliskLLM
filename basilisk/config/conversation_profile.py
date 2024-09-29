@@ -37,6 +37,7 @@ class ConversationProfile(BaseModel):
 	max_tokens: Optional[int] = Field(default=None)
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
+	stream_mode: bool = Field(default=True)
 
 	@field_validator("ai_model_info")
 	@classmethod
