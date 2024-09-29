@@ -169,6 +169,7 @@ class BaseConversation:
 
 	def set_account_and_model_from_profile(self, profile: config.Profile):
 		if not profile.account and not profile.ai_model_info:
+			self.select_default_account()
 			return
 		if profile.account:
 			self.set_account_combo(profile.account)
