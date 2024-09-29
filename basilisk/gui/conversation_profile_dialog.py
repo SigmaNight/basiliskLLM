@@ -72,9 +72,9 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, self.cancel_button)
 
 	def apply_profile(self, profile: Optional[ConversationProfile]):
-		if not profile:
-			return
 		super().apply_profile(profile)
+		if not profile:
+			return None
 		self.profile_name_txt.SetValue(profile.name)
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(
