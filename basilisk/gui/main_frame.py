@@ -431,7 +431,6 @@ class MainFrame(wx.Frame):
 			dialog.Destroy()
 			return
 
-		current_tab = self.current_tab
 		current_tab.conversation.title = dialog.get_name()
 		self.refresh_tab_title(True)
 		dialog.Destroy()
