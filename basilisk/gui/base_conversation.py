@@ -159,10 +159,7 @@ class BaseConversation:
 			return
 		self.temperature_spinner.SetMax(model.max_temperature)
 		self.temperature_spinner.SetValue(model.default_temperature)
-		max_tokens = model.max_output_tokens
-		if max_tokens < 1:
-			max_tokens = model.context_window
-		self.max_tokens_spin_ctrl.SetMax(max_tokens)
+		self.max_tokens_spin_ctrl.SetMax(model.max_io_tokens)
 		self.max_tokens_spin_ctrl.SetValue(0)
 
 	def set_account_and_model_from_profile(self, profile: config.Profile):

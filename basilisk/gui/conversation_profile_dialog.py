@@ -79,6 +79,12 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 					self.profile.account is not None
 				)
 				self.set_account_and_model_from_profile(self.profile)
+				if self.profile.max_tokens:
+					self.max_tokens_spin_ctrl.SetValue(self.profile.max_tokens)
+				if self.profile.temperature:
+					self.temperature_spinner.SetValue(self.profile.temperature)
+				if self.profile.top_p:
+					self.top_p_spinner.SetValue(self.profile.top_p)
 				return
 		else:
 			self.select_default_account()
@@ -100,6 +106,22 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			)
 		else:
 			self.profile.ai_model_info = None
+		max_tokens = self.max_tokens_spin_ctrl.GetValue()
+		if max_tokens > 0:
+			self.profile.max_tokens = max_tokens
+		else:
+			self.profile.max_tokens = None
+		temperature = self.temperature_spinner.GetValue()
+		if temperature != model.default_temperature:
+			self.profile.temperature = temperature
+		else:
+			self.profile.temperature = None
+		top_p = self.top_p_spinner.GetValue()
+		if top_p != 1.0:
+			self.profile.top_p = top_p
+		else:
+			self.profile.top_p = None
+
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):
