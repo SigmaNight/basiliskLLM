@@ -409,10 +409,12 @@ class MainFrame(wx.Frame):
 		return on_goto_tab
 
 	def on_new_default_conversation(self, event: Optional[wx.Event]):
-		log.info(
-			f"Creating a new conversation with default profile ({config.conversation_profiles().default_profile_name})"
-		)
-		self.new_conversation(config.conversation_profiles().default_profile)
+		profile = config.conversation_profiles().default_profile
+		if profile:
+			log.info(
+				f"Creating a new conversation with default profile ({profile.name})"
+			)
+		self.new_conversation(profile)
 
 	def on_new_conversation(self, event: wx.Event):
 		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(

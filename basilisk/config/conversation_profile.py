@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import logging
 from functools import cache, cached_property
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
+from uuid import uuid4
 
-from more_itertools import locate
 from pydantic import (
+	UUID4,
 	BaseModel,
 	ConfigDict,
 	Field,
-	PrivateAttr,
+	OnErrorOmit,
 	field_validator,
 	model_validator,
 )
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 
 class ConversationProfile(BaseModel):
 	model_config = ConfigDict(revalidate_instances="always")
-
+	id: UUID4 = Field(default_factory=uuid4)
 	name: str
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
@@ -39,6 +40,16 @@ class ConversationProfile(BaseModel):
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
 	stream_mode: bool = Field(default=True)
+
+	def __init__(self, **data: Any):
+		try:
+			super().__init__(**data)
+		except Exception as e:
+			log.error(
+				f"Error in account {e} the account will not be accessible",
+				exc_info=e,
+			)
+			raise e
 
 	@field_validator("ai_model_info")
 	@classmethod
@@ -90,7 +101,7 @@ class ConversationProfile(BaseModel):
 	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
 		if value is None:
 			return False
-		return self.name == value.name
+		return self.id == value.id and self.name == value.name
 
 	@model_validator(mode="after")
 	def check_same_provider(self) -> ConversationProfile:
@@ -120,53 +131,55 @@ config_file_name = "profiles.yml"
 class ConversationProfileManager(BasiliskBaseSettings):
 	model_config = get_settings_config_dict(config_file_name)
 
-	profiles: list[ConversationProfile] = Field(default_factory=list)
+	profiles: list[OnErrorOmit[ConversationProfile]] = Field(
+		default_factory=list
+	)
 
-	default_profile_name: Optional[str] = Field(default=None)
-	_profiles_name: set[str] = PrivateAttr(default_factory=set)
+	default_profile_id: Optional[UUID4] = Field(default=None)
 
-	@property
-	def profiles_name(self) -> set[str]:
-		return self._profiles_name
+	def get_profile(self, **kwargs: dict) -> Optional[ConversationProfile]:
+		return next(
+			filter(
+				lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
+				self.profiles,
+			),
+			None,
+		)
 
-	@model_validator(mode="after")
-	def check_unique_names(self) -> ConversationProfileManager:
-		for profile in self.profiles:
-			if profile.name in self._profiles_name:
-				raise ValueError(f"Duplicate profile name: {profile.name}")
-			self._profiles_name.add(profile.name)
-		return self
-
-	@property
+	@cached_property
 	def default_profile(self) -> Optional[ConversationProfile]:
-		if self.default_profile_name is None:
+		if self.default_profile_id is None:
 			return None
-		return self[self.default_profile_name]
+		return self.get_profile(id=self.default_profile_id)
+
+	def set_default_profile(self, value: Optional[ConversationProfile]):
+		if value is None:
+			self.default_profile_id = None
+		else:
+			self.default_profile_id = value.id
+		if "default_profile" in self.__dict__:
+			del self.__dict__["default_profile"]
 
 	@model_validator(mode="after")
 	def check_default_profile(self) -> ConversationProfileManager:
-		if self.default_profile_name is None:
+		if self.default_profile_id is None:
 			return self
-		if self.default_profile_name not in self._profiles_name:
-			raise ValueError(
-				f"Default profile not found: {self.default_profile_name}"
-			)
+		if self.default_profile is None:
+			raise ValueError("Default profile not found")
 		return self
 
 	def __iter__(self) -> Iterable[ConversationProfile]:
 		return iter(self.profiles)
 
 	def add(self, profile: ConversationProfile):
-		if profile.name in self._profiles_name:
-			raise ValueError(f"Duplicate profile name: {profile.name}")
 		self.profiles.append(profile)
-		self._profiles_name.add(profile.name)
 
 	def remove(self, profile: ConversationProfile):
-		if profile.name == self.default_profile_name:
-			self.default_profile_name = None
+		if profile == self.default_profile:
+			self.default_profile_id = None
+			if "default_profile" in self.__dict__:
+				del self.__dict__["default_profile"]
 		self.profiles.remove(profile)
-		self._profiles_name.remove(profile.name)
 
 	def __len__(self) -> int:
 		return len(self.profiles)
@@ -174,10 +187,8 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	def __getitem__(self, index: int) -> ConversationProfile:
 		if isinstance(index, int):
 			return self.profiles[index]
-		elif isinstance(index, str):
-			if index not in self._profiles_name:
-				raise KeyError(f"Profile not found: {index}")
-			return next(filter(lambda p: p.name == index, self.profiles))
+		elif isinstance(index, UUID4):
+			return next(filter(lambda p: p.id == index, self.profiles))
 		else:
 			raise TypeError(f"Invalid index type: {type(index)}")
 
@@ -186,18 +197,16 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		self.remove(profile)
 
 	def __setitem__(self, index: int, value: ConversationProfile):
-		if isinstance(index, str):
-			value.name = index
-			if index not in self._profiles_name:
+		if isinstance(index, int):
+			self.profiles[index] = value
+		elif isinstance(index, UUID4):
+			profile = next(filter(lambda p: p.id == index, self.profiles), None)
+			if not profile:
 				self.add(value)
-				return
-			index = next(locate(self.profiles, lambda p: p.name == index))
-		if index >= len(self):
-			raise IndexError(f"Index out of range: {index}")
-		old_profile_name = self.profiles[index].name
-		self.profiles[index] = value
-		self._profiles_name.remove(old_profile_name)
-		self._profiles_name.add(value.name)
+			else:
+				profile = value
+		else:
+			raise TypeError(f"Invalid index type: {type(index)}")
 
 	def save(self):
 		save_config_file(

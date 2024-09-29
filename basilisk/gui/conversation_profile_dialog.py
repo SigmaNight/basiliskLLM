@@ -94,15 +94,6 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 				style=wx.OK | wx.ICON_ERROR,
 			)
 			return
-		if self.profile.name in conversation_profiles().profiles_name:
-			wx.MessageBox(
-				# translators: Message box title for a conversation profile name
-				_("Profile name already exists"),
-				# translators: Message box title for a conversation profile name
-				_("Profile name error"),
-				style=wx.OK | wx.ICON_ERROR,
-			)
-			return
 		self.profile.system_prompt = self.system_prompt_txt.GetValue()
 		account = self.current_account
 		model = self.current_model
@@ -273,10 +264,9 @@ class ConversationProfileDialog(wx.Dialog):
 			self.on_list_item_selected(None)
 
 	def on_default(self, event):
-		index = self.current_profile_index
-		if index is not None:
-			self.profiles.default_profile_name = self.profiles[index].name
-			self.profiles.save()
+		profile = self.current_profile
+		self.profile.set_default_profile(profile)
+		self.profiles.save()
 
 	def on_list_item_selected(self, event):
 		profile = self.current_profile
