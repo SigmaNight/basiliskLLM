@@ -108,17 +108,17 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		else:
 			self.profile.ai_model_info = None
 		max_tokens = self.max_tokens_spin_ctrl.GetValue()
-		if max_tokens > 0:
+		if model and max_tokens > 0:
 			self.profile.max_tokens = max_tokens
 		else:
 			self.profile.max_tokens = None
 		temperature = self.temperature_spinner.GetValue()
-		if temperature != model.default_temperature:
+		if model and temperature != model.default_temperature:
 			self.profile.temperature = temperature
 		else:
 			self.profile.temperature = None
 		top_p = self.top_p_spinner.GetValue()
-		if top_p != 1.0:
+		if model and top_p != 1.0:
 			self.profile.top_p = top_p
 		else:
 			self.profile.top_p = None

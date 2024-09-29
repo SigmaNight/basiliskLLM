@@ -102,6 +102,17 @@ class ConversationProfile(BaseModel):
 				)
 		return self
 
+	@model_validator(mode="after")
+	def check_model_params(self) -> ConversationProfile:
+		if self.ai_model_info is None:
+			if self.max_tokens is not None:
+				raise ValueError("Max tokens must be None without model")
+			if self.temperature is not None:
+				raise ValueError("Temperature must be None without model")
+			if self.top_p is not None:
+				raise ValueError("Top P must be None without model")
+		return self
+
 
 config_file_name = "profiles.yml"
 
