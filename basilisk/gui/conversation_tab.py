@@ -1385,5 +1385,12 @@ class ConversationTab(wx.Panel):
 				response=response, **completion_kw
 			)
 			return new_block.response.content
+		except Exception as e:
+			wx.MessageBox(
+				_("An error occurred during title generation: ") + str(e),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
 		finally:
 			stop_sound()
