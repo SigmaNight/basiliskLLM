@@ -44,6 +44,7 @@ class NameConversationDialog(wx.Dialog):
 		hbox = wx.BoxSizer(wx.HORIZONTAL)
 
 		self.ok_button = wx.Button(self, wx.ID_OK)
+		self.ok_button.SetDefault()
 		self.cancel_button = wx.Button(self, wx.ID_CANCEL)
 		hbox.Add(self.ok_button, flag=wx.RIGHT, border=10)
 		hbox.Add(self.cancel_button, flag=wx.RIGHT, border=10)
