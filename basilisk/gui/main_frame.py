@@ -420,7 +420,7 @@ class MainFrame(wx.Frame):
 				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
-		title = self.current_tab.conversation.title or self.current_tab.title
+		title = current_tab.conversation.title or current_tab.title
 		if auto:
 			title = current_tab.generate_conversation_title()
 			if not title:
