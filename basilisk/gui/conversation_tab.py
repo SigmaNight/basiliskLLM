@@ -138,8 +138,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
-		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.max_tokens_label = self.create_max_tokens_widget()
 		sizer.Add(self.max_tokens_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
@@ -407,20 +405,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url = self.image_files[selected].location
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(url))
-
-	def on_model_key_down(self, event: wx.KeyEvent):
-		if event.GetKeyCode() == wx.WXK_RETURN:
-			self.on_show_model_details(None)
-		else:
-			event.Skip()
-
-	def on_model_context_menu(self, event: wx.ContextMenuEvent):
-		menu = wx.Menu()
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
-		self.model_list.PopupMenu(menu)
-		menu.Destroy()
 
 	def refresh_accounts(self):
 		account_index = self.account_combo.GetSelection()
@@ -870,23 +854,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
-
-	def on_show_model_details(self, event: wx.CommandEvent):
-		from .read_only_message_dialog import ReadOnlyMessageDialog
-
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		model = self.current_engine.models[model_index]
-		details = model.display_details
-		dlg = ReadOnlyMessageDialog(
-			self,
-			# Translators: This is a label for a title dialog
-			title=_("Model details"),
-			message=details,
-		)
-		dlg.ShowModal()
-		dlg.Destroy()
 
 	def get_content_for_completion(
 		self, images_files: list[ImageFile] = None, prompt: str = None

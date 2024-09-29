@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
@@ -12,6 +13,8 @@ from basilisk.provider_ai_model import ProviderAIModel
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
+
+log = logging.getLogger(__name__)
 
 
 class FloatSpinTextCtrlAccessible(wx.Accessible):
@@ -122,6 +125,8 @@ class BaseConversation:
 		self.model_list.SetColumnWidth(1, 100)
 		self.model_list.SetColumnWidth(2, 100)
 		self.model_list.SetColumnWidth(3, 100)
+		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
+		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		return label
 
@@ -168,6 +173,9 @@ class BaseConversation:
 		if profile.account:
 			self.set_account_combo(profile.account)
 		if profile.ai_model_info and not profile.account:
+			log.debug(
+				"no account in profile, trying to find account by provider"
+			)
 			account = next(
 				config.accounts().get_accounts_by_provider(profile.provider),
 				None,
@@ -177,6 +185,35 @@ class BaseConversation:
 		model = self.current_engine.get_model(profile.ai_model_id)
 		if model:
 			self.set_model_list(model)
+
+	def on_model_key_down(self, event: wx.KeyEvent):
+		if event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_show_model_details(None)
+		else:
+			event.Skip()
+
+	def on_model_context_menu(self, event: wx.ContextMenuEvent):
+		menu = wx.Menu()
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		self.model_list.PopupMenu(menu)
+		menu.Destroy()
+
+	def on_show_model_details(self, event: wx.CommandEvent):
+		from .read_only_message_dialog import ReadOnlyMessageDialog
+
+		model = self.current_model
+		if not model:
+			return
+		dlg = ReadOnlyMessageDialog(
+			self,
+			# Translators: This is a label for a title dialog
+			title=_("Model details"),
+			message=model.display_details,
+		)
+		dlg.ShowModal()
+		dlg.Destroy()
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
@@ -243,6 +280,7 @@ class BaseConversation:
 
 	def apply_profile(self, profile: Optional[config.ConversationProfile]):
 		if not profile:
+			log.debug("no profile to apply, select default account")
 			self.select_default_account()
 			return
 		self.system_prompt_txt.SetValue(profile.system_prompt)
