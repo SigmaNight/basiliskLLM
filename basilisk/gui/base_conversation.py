@@ -122,6 +122,7 @@ class BaseConversation:
 		self.model_list.SetColumnWidth(1, 100)
 		self.model_list.SetColumnWidth(2, 100)
 		self.model_list.SetColumnWidth(3, 100)
+		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		return label
 
 	def update_model_list(self):
@@ -132,15 +133,18 @@ class BaseConversation:
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		return [m.display_model for m in self.current_engine.models]
 
-	def set_model_list(self, model: ProviderAIModel):
+	def set_model_list(self, model: Optional[ProviderAIModel]):
 		models = self.current_engine.models
-		index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+		index = 0
+		if model:
+			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
 		if index != wx.NOT_FOUND:
 			self.model_list.SetItemState(
 				index,
 				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 			)
+			self.on_model_change(None)
 
 	@property
 	def current_model(self) -> Optional[ProviderAIModel]:
@@ -148,6 +152,18 @@ class BaseConversation:
 		if model_index == wx.NOT_FOUND:
 			return None
 		return self.current_engine.models[model_index]
+
+	def on_model_change(self, event):
+		model = self.current_model
+		if not model:
+			return
+		self.temperature_spinner.SetMax(model.max_temperature)
+		self.temperature_spinner.SetValue(model.default_temperature)
+		max_tokens = model.max_output_tokens
+		if max_tokens < 1:
+			max_tokens = model.context_window
+		self.max_tokens_spin_ctrl.SetMax(max_tokens)
+		self.max_tokens_spin_ctrl.SetValue(0)
 
 	def set_account_and_model_from_profile(self, profile: config.Profile):
 		if not profile.account and not profile.ai_model_info:

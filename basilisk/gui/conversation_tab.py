@@ -136,7 +136,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.max_tokens_label = self.create_max_tokens_widget()
@@ -188,7 +187,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.system_prompt_txt.SetValue(self.conversation_profile.system_prompt)
 
 	def init_data(self, profile: config.ConversationProfile):
-		self.on_model_change(None)
 		self.refresh_images_list()
 		self.select_default_account()
 		self.apply_profile(profile)
@@ -229,11 +227,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		if not account:
 			return
-		self.model_list.SetItemState(
-			0,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-		)
+		self.set_model_list(None)
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
@@ -416,19 +410,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url = self.image_files[selected].location
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(url))
-
-	def on_model_change(self, event: wx.CommandEvent):
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		model = self.current_engine.models[model_index]
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		max_tokens = model.max_output_tokens
-		if max_tokens < 1:
-			max_tokens = model.context_window
-		self.max_tokens_spin_ctrl.SetMax(max_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		if event.GetKeyCode() == wx.WXK_RETURN:
