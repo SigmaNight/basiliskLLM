@@ -10,7 +10,12 @@ class NameConversationDialog(wx.Dialog):
 		self.parent = parent
 		self.auto = auto
 		self.title = title
+		self._create_ui()
 
+		if auto:
+			self.on_generate(None)
+
+	def _create_ui(self):
 		vbox = wx.BoxSizer(wx.VERTICAL)
 
 		label = wx.StaticText(
@@ -21,7 +26,12 @@ class NameConversationDialog(wx.Dialog):
 		vbox.Add(label, flag=wx.ALL, border=10)
 
 		self.text_ctrl = wx.TextCtrl(self, value=self.title)
-		vbox.Add(self.text_ctrl, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
+		vbox.Add(
+			self.text_ctrl,
+			proportion=1,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=10,
+		)
 
 		self.generate_button = wx.Button(
 			self,
@@ -39,18 +49,25 @@ class NameConversationDialog(wx.Dialog):
 		hbox.Add(self.cancel_button, flag=wx.RIGHT, border=10)
 
 		vbox.Add(hbox, flag=wx.ALIGN_CENTER | wx.ALL, border=10)
-		self.SetSizer(vbox)
 
-		if auto:
-			self.on_generate(None)
+		self.SetSizer(vbox)
 
 	def get_name(self):
 		return self.text_ctrl.GetValue()
 
 	def on_generate(self, event):
-		title = self.parent.current_tab.generate_conversation_title()
-		if title:
-			title = title.strip().replace('\n', ' ')
-			self.text_ctrl.SetValue(title)
+		try:
+			title = self.parent.current_tab.generate_conversation_title()
+			if title:
+				title = title.strip().replace('\n', ' ')
+				self.text_ctrl.SetValue(title)
+		except Exception as e:
+			wx.MessageBox(
+				# Translators: A message box title.
+				_("Error"),
+				# Translators: An error message.
+				_("An error occurred while generating the name: %s") % e,
+				style=wx.ICON_ERROR,
+			)
 		if self.generate_button.HasFocus():
 			self.text_ctrl.SetFocus()

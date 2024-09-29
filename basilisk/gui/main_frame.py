@@ -404,6 +404,8 @@ class MainFrame(wx.Frame):
 
 	def refresh_tab_title(self, include_frame: bool = False):
 		current_tab = self.current_tab
+		if not current_tab:
+			return
 		title = current_tab.conversation.title or current_tab.title
 		self.notebook.SetPageText(self.notebook.GetSelection(), title)
 		if include_frame:

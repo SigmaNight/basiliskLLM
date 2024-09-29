@@ -1362,24 +1362,28 @@ class ConversationTab(wx.Panel):
 		if not model:
 			return
 		play_sound("progress", loop=True)
-		new_block = MessageBlock(
-			request=Message(role=MessageRoleEnum.USER, content=PROMPT_TITLE),
-			model=model,
-			temperature=self.temperature_spinner.GetValue(),
-			top_p=self.top_p_spinner.GetValue(),
-			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-			stream=self.stream_mode.GetValue(),
-		)
-		engine = self.current_engine
-		completion_kw = {
-			"system_message": None,
-			"conversation": self.conversation,
-			"new_block": new_block,
-			"stream": False,
-		}
-		response = engine.completion(**completion_kw)
-		new_block = engine.completion_response_without_stream(
-			response=response, **completion_kw
-		)
-		stop_sound()
-		return new_block.response.content
+		try:
+			new_block = MessageBlock(
+				request=Message(
+					role=MessageRoleEnum.USER, content=PROMPT_TITLE
+				),
+				model=model,
+				temperature=self.temperature_spinner.GetValue(),
+				top_p=self.top_p_spinner.GetValue(),
+				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
+				stream=self.stream_mode.GetValue(),
+			)
+			engine = self.current_engine
+			completion_kw = {
+				"system_message": None,
+				"conversation": self.conversation,
+				"new_block": new_block,
+				"stream": False,
+			}
+			response = engine.completion(**completion_kw)
+			new_block = engine.completion_response_without_stream(
+				response=response, **completion_kw
+			)
+			return new_block.response.content
+		finally:
+			stop_sound()
