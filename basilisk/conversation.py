@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 from .provider_ai_model import ProviderAIModel
 
+PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main language based on the topics and context. Max 70 characters. Do not surround the text with quotation marks."
+
 
 class MessageRoleEnum(Enum):
 	ASSISTANT = "assistant"
@@ -45,3 +47,4 @@ class MessageBlock(BaseModel):
 class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
 	messages: list[MessageBlock] = Field(default_factory=list)
+	title: str | None = Field(default=None)

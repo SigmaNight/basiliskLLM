@@ -28,6 +28,7 @@ class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
 		self.conf: config.BasiliskConfig = kwargs.pop("conf", config.conf())
 		self.tmp_files = []
+		self.last_conversation_id = 0
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
 		self.init_ui()
@@ -62,6 +63,28 @@ class MainFrame(wx.Frame):
 		menu_bar = wx.MenuBar()
 
 		conversation_menu = wx.Menu()
+		name_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation") + "...	F2",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, False),
+			name_conversation_item,
+		)
+
+		auto_name_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to automatically name a conversation
+			_("&Auto name conversation") + "...	Shift+F2",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, True),
+			auto_name_conversation_item,
+		)
+		conversation_menu.AppendSeparator()
 		new_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to create a new conversation
@@ -369,7 +392,8 @@ class MainFrame(wx.Frame):
 
 	def on_tab_changed(self, event):
 		tab_index = event.GetSelection()
-		self.SetTitle(f"Conversation {tab_index + 1} - {APP_NAME}")
+		if tab_index < len(self.tabs_panels):
+			self.refresh_tab_title(True)
 
 	def make_on_goto_tab(self, tab_index):
 		def on_goto_tab(event):
@@ -378,14 +402,50 @@ class MainFrame(wx.Frame):
 
 		return on_goto_tab
 
+	def refresh_tab_title(self, include_frame: bool = False):
+		current_tab = self.current_tab
+		if not current_tab:
+			return
+		title = current_tab.conversation.title or current_tab.title
+		self.notebook.SetPageText(self.notebook.GetSelection(), title)
+		if include_frame:
+			self.refresh_frame_title()
+
+	def on_name_conversation(self, event: wx.Event, auto: bool = False):
+		from .name_conversation_dialog import NameConversationDialog
+
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		title = current_tab.conversation.title or current_tab.title
+		if auto:
+			title = current_tab.generate_conversation_title()
+			if not title:
+				return
+			title = title.strip().replace('\n', ' ')
+		dialog = NameConversationDialog(self, title=title, auto=auto)
+		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
+			dialog.Destroy()
+			return
+
+		current_tab.conversation.title = dialog.get_name()
+		self.refresh_tab_title(True)
+		dialog.Destroy()
+
 	def on_new_conversation(self, event):
 		log.debug("Creating a new conversation")
-		self.tabs_panels.append(ConversationTab(self.notebook))
-		self.notebook.AddPage(
-			self.tabs_panels[-1], f"Conversation {len(self.tabs_panels)}"
+		self.last_conversation_id += 1
+		default_conversation_title = f"Conversation {self.last_conversation_id}"
+		self.tabs_panels.append(
+			ConversationTab(self.notebook, title=default_conversation_title)
 		)
-		self.notebook.SetSelection(len(self.tabs_panels) - 1)
-		self.SetTitle(f"Conversation {len(self.tabs_panels)} - {APP_NAME}")
+		self.notebook.AddPage(
+			self.tabs_panels[-1], default_conversation_title, select=True
+		)
+		self.refresh_frame_title()
 
 	def on_close_conversation(self, event):
 		current_tab = self.notebook.GetSelection()
@@ -396,12 +456,8 @@ class MainFrame(wx.Frame):
 			if current_tab_count == 0:
 				self.on_new_conversation(None)
 			else:
-				for tab_index in range(current_tab_count):
-					self.notebook.SetPageText(
-						tab_index, f"Conversation {tab_index + 1}"
-					)
 				self.notebook.SetSelection(current_tab_count - 1)
-				self.SetTitle(f"Conversation {current_tab_count} - {APP_NAME}")
+			self.refresh_frame_title()
 
 	@property
 	def current_tab(self) -> ConversationTab:
@@ -432,6 +488,13 @@ class MainFrame(wx.Frame):
 			current_tab.toggle_recording(event)
 		else:
 			current_tab.on_transcribe_audio_file()
+
+	def refresh_frame_title(self):
+		current_tab = self.current_tab
+		if not current_tab:
+			return
+		tab_title = current_tab.conversation.title or current_tab.title
+		self.SetTitle(f"{tab_title} - {APP_NAME}")
 
 	def refresh_tabs(self):
 		for tab in self.tabs_panels:
