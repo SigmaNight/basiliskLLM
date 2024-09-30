@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from functools import cache, cached_property
 from typing import Any, Iterable, Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pydantic import (
 	UUID4,
@@ -199,7 +199,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	def __setitem__(self, index: int, value: ConversationProfile):
 		if isinstance(index, int):
 			self.profiles[index] = value
-		elif isinstance(index, UUID4):
+		elif isinstance(index, UUID):
 			profile = next(filter(lambda p: p.id == index, self.profiles), None)
 			if not profile:
 				self.add(value)

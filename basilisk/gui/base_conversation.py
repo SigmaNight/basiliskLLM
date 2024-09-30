@@ -77,14 +77,7 @@ class BaseConversation:
 		for account in config.accounts():
 			if force_refresh:
 				account.reset_active_organization()
-			name = account.name
-			organization = (
-				account.active_organization.name
-				if account.active_organization
-				else _("Personal")
-			)
-			provider_name = account.provider.name
-			accounts.append(f"{name} ({organization}) - {provider_name}")
+			accounts.append(account.display_name)
 		return accounts
 
 	def on_account_change(self, event) -> Optional[config.Account]:

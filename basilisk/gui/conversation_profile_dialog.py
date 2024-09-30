@@ -142,7 +142,12 @@ class ConversationProfileDialog(wx.Dialog):
 	def init_ui(self):
 		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
-
+		label = wx.StaticText(
+			self.panel,
+			# translators: Label for the conversation profile dialog
+			label=_("Conversation &Profiles"),
+		)
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.list_profile_ctrl = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
 		self.list_profile_ctrl.InsertColumn(
 			0,
@@ -150,7 +155,6 @@ class ConversationProfileDialog(wx.Dialog):
 			_("Profile name"),
 			width=140,
 		)
-		self.list_profile_ctrl.InsertColumn(1, "System Prompt", width=240)
 		self.sizer.Add(self.list_profile_ctrl, 1, wx.ALL | wx.EXPAND, 5)
 		self.list_profile_ctrl.Bind(
 			wx.EVT_KEY_DOWN, self.on_list_profile_key_down
@@ -158,6 +162,14 @@ class ConversationProfileDialog(wx.Dialog):
 		self.list_profile_ctrl.Bind(
 			wx.EVT_LIST_ITEM_SELECTED, self.on_list_item_selected
 		)
+		self.summary_label = wx.StaticText(self.panel, label="Profile &Summary")
+		self.sizer.Add(self.summary_label, 0, wx.ALL, 5)
+		self.summary_label.Disable()
+		self.summary_text = wx.TextCtrl(
+			self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY
+		)
+		self.sizer.Add(self.summary_text, 1, wx.ALL | wx.EXPAND, 5)
+		self.summary_text.Disable()
 		self.add_btn = wx.Button(
 			self.panel,
 			# translators: Button label to add a new conversation profile
@@ -218,9 +230,8 @@ class ConversationProfileDialog(wx.Dialog):
 
 	def update_ui(self):
 		self.list_profile_ctrl.DeleteAllItems()
-		for i, profile in enumerate(self.profiles):
-			self.list_profile_ctrl.InsertItem(index=i, label=profile.name)
-			self.list_profile_ctrl.SetItem(i, 1, profile.system_prompt)
+		for profile_name in map(lambda x: x.name, self.profiles):
+			self.list_profile_ctrl.Append([profile_name])
 
 	def on_add(self, event):
 		dialog = EditConversationProfileDialog(
@@ -241,9 +252,15 @@ class ConversationProfileDialog(wx.Dialog):
 			self, "Edit Conversation Profile", profile=profile
 		)
 		if dialog.ShowModal() == wx.ID_OK:
-			self.profiles[profile.name] = dialog.profile
+			self.profiles[profile.id] = dialog.profile
 			self.update_ui()
+			self.update_summary(dialog.profile)
 			self.profiles.save()
+
+	def update_summary(self, profile: Optional[ConversationProfile] = None):
+		if not profile:
+			profile = self.current_profile
+		self.summary_text.SetValue(self.build_profile_summary(profile))
 
 	def on_remove(self, event):
 		profile = self.current_profile
@@ -268,9 +285,31 @@ class ConversationProfileDialog(wx.Dialog):
 		self.profile.set_default_profile(profile)
 		self.profiles.save()
 
+	def build_profile_summary(self, profile: ConversationProfile) -> str:
+		if profile is None:
+			return ""
+		summary = _("Name: %s\n") % profile.name
+		if profile.account:
+			summary += _("Account name: %s\n") % profile.account.display_name
+		if profile.ai_model_info:
+			summary += _("Model: %s\n") % profile.ai_model_info
+		if profile.max_tokens:
+			summary += _("Max tokens: %s\n") % profile.max_tokens
+		if profile.temperature:
+			summary += _("Temperature: %s\n") % profile.temperature
+		if profile.top_p:
+			summary += _("Top P: %s\n") % profile.top_p
+		summary += _("Stream mode: %s\n") % profile.stream_mode
+		if profile.system_prompt:
+			summary += _("System prompt: %s\n") % profile.system_prompt
+		return summary
+
 	def on_list_item_selected(self, event):
 		profile = self.current_profile
 		enable = profile is not None
+		self.summary_label.Enable(enable)
+		self.summary_text.Enable(enable)
+		self.update_summary()
 		self.default_btn.Enable(enable)
 		self.edit_btn.Enable(enable)
 		self.remove_btn.Enable(enable)

@@ -231,6 +231,16 @@ class Account(BaseModel):
 	def __eq__(self, value: Account) -> bool:
 		return self.id == value.id
 
+	@property
+	def display_name(self) -> str:
+		organization = (
+			self.active_organization.name
+			if self.active_organization
+			else _("Personal")
+		)
+		provider_name = self.provider.name
+		return f"{self.name} ({organization}) - {provider_name}"
+
 
 config_file_name = "accounts.yml"
 
@@ -276,8 +286,8 @@ class AccountManager(BasiliskBaseSettings):
 				None,
 			)
 			if index is None:
-				return None
-		return self.accounts[index]
+				return self.accounts[0]
+			return self.accounts[index]
 
 	def set_default_account(self, value: Optional[Account]):
 		if not value or not isinstance(value, Account):
