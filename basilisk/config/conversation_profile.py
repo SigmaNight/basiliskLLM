@@ -46,7 +46,7 @@ class ConversationProfile(BaseModel):
 			super().__init__(**data)
 		except Exception as e:
 			log.error(
-				f"Error in account {e} the account will not be accessible",
+				f"Error in conversation profile {e}; the profile will not be accessible",
 				exc_info=e,
 			)
 			raise e
