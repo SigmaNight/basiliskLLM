@@ -288,19 +288,29 @@ class ConversationProfileDialog(wx.Dialog):
 	def build_profile_summary(self, profile: ConversationProfile) -> str:
 		if profile is None:
 			return ""
+		# translators: Summary of a conversation profile
 		summary = _("Name: %s\n") % profile.name
 		if profile.account:
+			# translators: Summary of a conversation profile
 			summary += _("Account name: %s\n") % profile.account.display_name
 		if profile.ai_model_info:
+			# translators: Summary of a conversation profile
 			summary += _("Model: %s\n") % profile.ai_model_info
 		if profile.max_tokens:
+			# translators: Summary of a conversation profile
 			summary += _("Max tokens: %s\n") % profile.max_tokens
 		if profile.temperature:
+			# translators: Summary of a conversation profile
 			summary += _("Temperature: %s\n") % profile.temperature
 		if profile.top_p:
+			# translators: Summary of a conversation profile
 			summary += _("Top P: %s\n") % profile.top_p
-		summary += _("Stream mode: %s\n") % profile.stream_mode
+		# translators: Summary of a conversation profile
+		stream_mode_value = _("yes") if profile.stream_mode else _("no")
+		# translators: Summary of a conversation profile
+		summary += _("Stream mode: %s\n") % stream_mode_value
 		if profile.system_prompt:
+			# translators: Summary of a conversation profile
 			summary += _("System prompt: %s\n") % profile.system_prompt
 		return summary
 
