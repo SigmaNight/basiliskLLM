@@ -64,12 +64,12 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
 		self.ok_button = wx.Button(self, wx.ID_OK)
 		self.cancel_button = wx.Button(self, wx.ID_CANCEL)
-		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-
-		self.SetSizerAndFit(self.sizer)
 		self.Bind(wx.EVT_BUTTON, self.on_ok, self.ok_button)
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, self.cancel_button)
+		self.SetDefaultItem(self.ok_button)
+		self.sizer.Add(self.ok_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+		self.SetSizerAndFit(self.sizer)
 
 	def apply_profile(self, profile: Optional[ConversationProfile]):
 		super().apply_profile(profile)
@@ -195,7 +195,7 @@ class ConversationProfileDialog(wx.Dialog):
 		)
 		self.default_btn.Disable()
 		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
-
+		self.SetDefaultItem(self.close_button)
 		self.btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.btn_sizer.Add(self.add_btn, 0, wx.ALL, 5)
 		self.btn_sizer.Add(self.edit_btn, 0, wx.ALL, 5)
@@ -243,23 +243,29 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.add(dialog.profile)
 			self.update_ui()
 			self.profiles.save()
+			self.on_list_item_selected(None)
 
 	def on_edit(self, event):
-		profile = self.current_profile
-		if not profile:
+		profile_index = self.current_profile_index
+		if not profile_index:
 			return
 		dialog = EditConversationProfileDialog(
-			self, "Edit Conversation Profile", profile=profile
+			self,
+			"Edit Conversation Profile",
+			profile=self.profiles[profile_index],
 		)
 		if dialog.ShowModal() == wx.ID_OK:
-			self.profiles[profile.id] = dialog.profile
-			self.update_ui()
-			self.update_summary(dialog.profile)
+			self.profiles[profile_index] = dialog.profile
 			self.profiles.save()
+			self.update_ui()
+			self.list_profile_ctrl.SetItemState(
+				profile_index,
+				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+			)
+			self.on_list_item_selected(None)
 
-	def update_summary(self, profile: Optional[ConversationProfile] = None):
-		if not profile:
-			profile = self.current_profile
+	def update_summary(self, profile: ConversationProfile):
 		self.summary_text.SetValue(self.build_profile_summary(profile))
 
 	def on_remove(self, event):
@@ -282,7 +288,7 @@ class ConversationProfileDialog(wx.Dialog):
 
 	def on_default(self, event):
 		profile = self.current_profile
-		self.profile.set_default_profile(profile)
+		self.profiles.set_default_profile(profile)
 		self.profiles.save()
 
 	def build_profile_summary(self, profile: ConversationProfile) -> str:
@@ -319,7 +325,7 @@ class ConversationProfileDialog(wx.Dialog):
 		enable = profile is not None
 		self.summary_label.Enable(enable)
 		self.summary_text.Enable(enable)
-		self.update_summary()
+		self.update_summary(profile)
 		self.default_btn.Enable(enable)
 		self.edit_btn.Enable(enable)
 		self.remove_btn.Enable(enable)
