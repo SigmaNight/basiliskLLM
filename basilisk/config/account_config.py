@@ -276,7 +276,7 @@ class AccountManager(BasiliskBaseSettings):
 			except KeyError:
 				return None
 		elif isinstance(value, str):
-			provider_name = self.default_account_info[4:]
+			provider_name = value[4:]
 			index = next(
 				locate(
 					self.accounts,
