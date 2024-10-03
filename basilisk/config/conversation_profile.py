@@ -101,7 +101,7 @@ class ConversationProfile(BaseModel):
 	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
 		if value is None:
 			return False
-		return self.id == value.id and self.name == value.name
+		return self.id == value.id
 
 	@model_validator(mode="after")
 	def check_same_provider(self) -> ConversationProfile:
