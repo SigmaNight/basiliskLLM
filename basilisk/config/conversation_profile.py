@@ -187,7 +187,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	def __getitem__(self, index: int) -> ConversationProfile:
 		if isinstance(index, int):
 			return self.profiles[index]
-		elif isinstance(index, UUID4):
+		elif isinstance(index, UUID):
 			profile = self.get_profile(id=index)
 			if profile is None:
 				raise KeyError(f"No profile found with id {index}")
@@ -203,11 +203,12 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		if isinstance(index, int):
 			self.profiles[index] = value
 		elif isinstance(index, UUID):
-			profile = next(filter(lambda p: p.id == index, self.profiles), None)
+			profile = self.get_profile(id=index)
 			if not profile:
 				self.add(value)
 			else:
-				profile = value
+				idx = self.profiles.index(profile)
+				self.profiles[idx] = value
 		else:
 			raise TypeError(f"Invalid index type: {type(index)}")
 
