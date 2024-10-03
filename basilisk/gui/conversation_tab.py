@@ -236,9 +236,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.YES_NO | wx.ICON_QUESTION,
 			)
 			if first_account_msg == wx.YES:
-				self.GetParent().GetParent().GetParent().on_manage_accounts(
-					None
-				)
+				main_frame = wx.GetTopLevelParent(self)
+				main_frame.on_manage_accounts(None)
 				self.on_config_change()
 			return
 		if not account:
