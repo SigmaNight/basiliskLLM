@@ -33,8 +33,11 @@ class BaseConversation:
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 
 	@property
-	def current_engine(self) -> BaseEngine:
-		return self.accounts_engines[self.current_account.id]
+	def current_engine(self) -> Optional[BaseEngine]:
+		account = self.current_account
+		if not account:
+			return None
+		return self.accounts_engines[account.id]
 
 	def create_account_widget(self) -> wx.StaticText:
 		label = wx.StaticText(
@@ -59,8 +62,10 @@ class BaseConversation:
 	def set_account_combo(
 		self,
 		account: config.Account,
-		accounts: config.AccountManager = config.accounts(),
+		accounts: Optional[config.AccountManager] = None,
 	):
+		if accounts is None:
+			accounts = config.accounts()
 		index = next(locate(accounts, lambda a: a == account), wx.NOT_FOUND)
 		if index != wx.NOT_FOUND:
 			self.account_combo.SetSelection(index)
@@ -129,10 +134,16 @@ class BaseConversation:
 			self.model_list.Append(model)
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
-		return [m.display_model for m in self.current_engine.models]
+		engine = self.current_engine
+		if not engine:
+			return []
+		return [m.display_model for m in engine.models]
 
 	def set_model_list(self, model: Optional[ProviderAIModel]):
-		models = self.current_engine.models
+		engine = self.current_engine
+		if not engine:
+			return
+		models = engine.models
 		index = 0
 		if model:
 			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
@@ -146,10 +157,13 @@ class BaseConversation:
 
 	@property
 	def current_model(self) -> Optional[ProviderAIModel]:
+		engine = self.current_engine
+		if not engine:
+			return None
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return None
-		return self.current_engine.models[model_index]
+		return engine.models[model_index]
 
 	def on_model_change(self, event):
 		model = self.current_model
@@ -178,7 +192,10 @@ class BaseConversation:
 			)
 			if account:
 				self.set_account_combo(account)
-		model = self.current_engine.get_model(profile.ai_model_id)
+		engine = self.current_engine
+		if not engine:
+			return
+		model = engine.get_model(profile.ai_model_id)
 		if model:
 			self.set_model_list(model)
 
@@ -281,10 +298,10 @@ class BaseConversation:
 			return
 		self.system_prompt_txt.SetValue(profile.system_prompt)
 		self.set_account_and_model_from_profile(profile)
-		if profile.max_tokens:
+		if profile.max_tokens is not None:
 			self.max_tokens_spin_ctrl.SetValue(profile.max_tokens)
-		if profile.temperature:
+		if profile.temperature is not None:
 			self.temperature_spinner.SetValue(profile.temperature)
-		if profile.top_p:
+		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
