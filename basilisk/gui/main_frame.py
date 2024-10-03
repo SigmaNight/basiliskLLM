@@ -420,9 +420,15 @@ class MainFrame(wx.Frame):
 		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
 			event.GetId()
 		)
-		profile = config.conversation_profiles()[
-			selected_menu_item.GetItemLabelText()
-		]
+		profile_name = selected_menu_item.GetItemLabel()
+		profile = config.conversation_profiles().get_profile(name=profile_name)
+		if not profile:
+			wx.MessageBox(
+				_("Profile '%s' not found") % profile_name,
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
 		log.info(f"Creating a new conversation with profile: {profile.name}")
 		self.new_conversation(profile)
 
