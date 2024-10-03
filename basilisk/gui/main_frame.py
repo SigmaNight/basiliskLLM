@@ -697,15 +697,10 @@ class MainFrame(wx.Frame):
 
 	def on_notebook_context_menu(self, event):
 		menu = wx.Menu()
-		apply_conversation_profile_item = menu.AppendSubMenu(
+		menu.AppendSubMenu(
 			self.build_profile_menu(self.on_apply_conversation_profile),
 			# Translators: A label for a menu item to apply a conversation profile to the current conversation
 			text=_("Apply conversation profile"),
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			self.on_apply_conversation_profile,
-			apply_conversation_profile_item,
 		)
 		menu.AppendSubMenu(
 			self.build_name_conversation_menu(),
@@ -713,7 +708,7 @@ class MainFrame(wx.Frame):
 			_("Name conversation"),
 		)
 		close_conversation_item = menu.Append(
-			wx.ID_ANY,
+			wx.ID_CLOSE,
 			# Translators: A label for a menu item to close a conversation
 			item=_("Close conversation") + " (Ctrl+W)",
 		)
@@ -726,7 +721,13 @@ class MainFrame(wx.Frame):
 		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
 			event.GetId()
 		)
-		profile = self.conf.conversation_profiles[
-			selected_menu_item.GetItemLabelText()
-		]
+		profile_name = selected_menu_item.GetItemLabelText()
+		profile = config.conversation_profiles().get_profile(name=profile_name)
+		if not profile:
+			wx.MessageBox(
+				_("Profile '%s' not found") % profile_name,
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
 		self.current_tab.apply_profile(profile)
