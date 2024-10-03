@@ -33,14 +33,15 @@ class ProviderAIModel:
 
 	@property
 	def display_details(self) -> str:
-		details = (
-			f"{self.display_name}\n"
-			f"{_('Vision')}: {'yes' if self.vision else 'no'}\n"
-			f"{_('Context window')}: {self.context_window}\n"
-		)
+		details = f"{self.display_name}\n"
+		vision_value = _("yes") if self.vision else _("no")
+		# translator: AI model details
+		details += _("Vision: %s\n") % vision_value
+		# translator: AI model details
+		details += _("context window: %d\n") % self.context_window
 		if self.max_output_tokens > 0:
-			details += f"{_('Max output tokens')}: {self.max_output_tokens}\n\n"
-
+			# translator: AI model details
+			details += _("Max output tokens: %d\n\n") % self.max_output_tokens
 		details += self.description
 		if self.extra_info:
 			details += "\n\n" + "\n".join(
