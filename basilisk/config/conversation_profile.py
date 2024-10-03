@@ -188,7 +188,10 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		if isinstance(index, int):
 			return self.profiles[index]
 		elif isinstance(index, UUID4):
-			return next(filter(lambda p: p.id == index, self.profiles))
+			profile = next(filter(lambda p: p.id == index, self.profiles), None)
+			if profile is None:
+				raise KeyError(f"No profile found with id {index}")
+			return profile
 		else:
 			raise TypeError(f"Invalid index type: {type(index)}")
 
