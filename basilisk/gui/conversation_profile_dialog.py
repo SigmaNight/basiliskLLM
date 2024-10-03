@@ -247,7 +247,7 @@ class ConversationProfileDialog(wx.Dialog):
 
 	def on_edit(self, event):
 		profile_index = self.current_profile_index
-		if not profile_index:
+		if profile_index is None:
 			return
 		dialog = EditConversationProfileDialog(
 			self,
@@ -288,6 +288,8 @@ class ConversationProfileDialog(wx.Dialog):
 
 	def on_default(self, event):
 		profile = self.current_profile
+		if profile is None:
+			return
 		self.profiles.set_default_profile(profile)
 		self.profiles.save()
 
