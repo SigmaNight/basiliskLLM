@@ -416,18 +416,28 @@ class MainFrame(wx.Frame):
 			)
 		self.new_conversation(profile)
 
-	def on_new_conversation(self, event: wx.Event):
+	def get_selected_profile_from_menu(
+		self, event: wx.Event
+	) -> Optional[config.ConversationProfile]:
 		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
 			event.GetId()
 		)
-		profile_name = selected_menu_item.GetItemLabel()
+		profile_name = selected_menu_item.GetItemLabelText()
 		profile = config.conversation_profiles().get_profile(name=profile_name)
 		if not profile:
 			wx.MessageBox(
+				# Translators: An error message when a conversation profile is not found
 				_("Profile '%s' not found") % profile_name,
+				# Translators: An error message title
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
+			return None
+		return profile
+
+	def on_new_conversation(self, event: wx.Event):
+		profile = self.get_selected_profile_from_menu(event)
+		if not profile:
 			return
 		log.info(f"Creating a new conversation with profile: {profile.name}")
 		self.new_conversation(profile)
@@ -727,16 +737,8 @@ class MainFrame(wx.Frame):
 		self.PopupMenu(menu)
 
 	def on_apply_conversation_profile(self, event):
-		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
-			event.GetId()
-		)
-		profile_name = selected_menu_item.GetItemLabelText()
-		profile = config.conversation_profiles().get_profile(name=profile_name)
+		profile = self.get_selected_profile_from_menu(event)
 		if not profile:
-			wx.MessageBox(
-				_("Profile '%s' not found") % profile_name,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
 			return
+		log.info(f"Applying profile: {profile.name} to conversation")
 		self.current_tab.apply_profile(profile)
