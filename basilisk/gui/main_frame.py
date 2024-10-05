@@ -4,8 +4,10 @@ import os
 import signal
 import sys
 import tempfile
+from typing import Optional
 
 import wx
+from more_itertools import locate
 
 if sys.platform == 'win32':
 	import win32con
@@ -37,7 +39,6 @@ class MainFrame(wx.Frame):
 		self.ID_ADD_IMAGE_FILE = wx.NewIdRef()
 		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
 		self.ID_MANAGE_ACCOUNTS = wx.NewIdRef()
-		self.ID_PREFERENCES = wx.NewIdRef()
 		self.ID_VIEW_LOG = wx.NewIdRef()
 		self.ID_TOGGLE_RECORDING = wx.NewIdRef()
 		self.ID_TRANSCRIBE_AUDIO = wx.NewIdRef()
@@ -47,7 +48,7 @@ class MainFrame(wx.Frame):
 			self.tray_icon = TaskBarIcon(self)
 			self.register_hot_key()
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
-		self.on_new_conversation(None)
+		self.on_new_default_conversation(None)
 
 	def init_ui(self):
 		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
@@ -63,40 +64,31 @@ class MainFrame(wx.Frame):
 		menu_bar = wx.MenuBar()
 
 		conversation_menu = wx.Menu()
-		name_conversation_item = conversation_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to name a conversation
-			_("Name conversation") + "...	F2",
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda e: self.on_name_conversation(e, False),
-			name_conversation_item,
-		)
 
-		auto_name_conversation_item = conversation_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to automatically name a conversation
-			_("&Auto name conversation") + "...	Shift+F2",
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda e: self.on_name_conversation(e, True),
-			auto_name_conversation_item,
-		)
-		conversation_menu.AppendSeparator()
 		new_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to create a new conversation
 			_("New conversation") + " (Ctrl+N)",
 		)
-		self.Bind(wx.EVT_MENU, self.on_new_conversation, new_conversation_item)
+		self.Bind(
+			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
+		)
+		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
+			self.build_profile_menu(self.on_new_conversation),
+			# Translators: A label for a menu item to create a new conversation from a profile
+			_("New conversation from profile"),
+		)
 		open_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to open a conversation
 			_("Open conversation") + "... (Ctrl+O)",
 		)
 		open_conversation_item.Enable(False)
+		conversation_menu.AppendSubMenu(
+			self.build_name_conversation_menu(),
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation"),
+		)
 		save_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation
@@ -166,9 +158,20 @@ class MainFrame(wx.Frame):
 			_("Manage &accounts") + "... (Ctrl+Shift+A)",
 		)
 		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
+		conversation_profile_item = tool_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage conversation profiles
+			_("Manage conversation &profiles") + "...\tCtrl+Shift+P",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			self.on_manage_conversation_profiles,
+			conversation_profile_item,
+		)
+
 		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
-		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")
+		update_item_label_suffix(preferences_item, "...\tCtrl+,")
 		tool_menu.AppendSeparator()
 		install_nvda_addon = tool_menu.Append(
 			wx.ID_ANY, _("Install NVDA addon")
@@ -194,7 +197,6 @@ class MainFrame(wx.Frame):
 		menu_bar.Append(tool_menu, _("Too&ls"))
 		menu_bar.Append(help_menu, _("&Help"))
 		self.SetMenuBar(menu_bar)
-
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		self.panel = wx.Panel(self)
 		minimize_taskbar = wx.Button(
@@ -204,6 +206,7 @@ class MainFrame(wx.Frame):
 		sizer.Add(minimize_taskbar, flag=wx.EXPAND)
 
 		self.notebook = wx.Notebook(self.panel)
+		self.notebook.Bind(wx.EVT_CONTEXT_MENU, self.on_notebook_context_menu)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 		self.panel.SetSizer(sizer)
 		self.tabs_panels = []
@@ -216,7 +219,9 @@ class MainFrame(wx.Frame):
 	def init_accelerators(self):
 		self.Bind(wx.EVT_CLOSE, self.on_close)
 		self.Bind(
-			wx.EVT_MENU, self.on_new_conversation, id=self.ID_NEW_CONVERSATION
+			wx.EVT_MENU,
+			self.on_new_default_conversation,
+			id=self.ID_NEW_CONVERSATION,
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -232,7 +237,6 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_manage_accounts, id=self.ID_MANAGE_ACCOUNTS
 		)
-		self.Bind(wx.EVT_MENU, self.on_preferences, id=self.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_view_log, id=self.ID_VIEW_LOG)
 		self.Bind(
 			wx.EVT_MENU,
@@ -253,7 +257,6 @@ class MainFrame(wx.Frame):
 			(wx.ACCEL_CTRL, ord('I'), self.ID_ADD_IMAGE_FILE),
 			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('A'), self.ID_MANAGE_ACCOUNTS),
-			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), self.ID_PREFERENCES),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_F1, self.ID_VIEW_LOG),
 			(wx.ACCEL_CTRL, ord('R'), self.ID_TOGGLE_RECORDING),
 			(
@@ -402,6 +405,40 @@ class MainFrame(wx.Frame):
 
 		return on_goto_tab
 
+	def on_new_default_conversation(self, event: Optional[wx.Event]):
+		profile = config.conversation_profiles().default_profile
+		if profile:
+			log.info(
+				f"Creating a new conversation with default profile ({profile.name})"
+			)
+		self.new_conversation(profile)
+
+	def get_selected_profile_from_menu(
+		self, event: wx.Event
+	) -> Optional[config.ConversationProfile]:
+		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
+			event.GetId()
+		)
+		profile_name = selected_menu_item.GetItemLabelText()
+		profile = config.conversation_profiles().get_profile(name=profile_name)
+		if not profile:
+			wx.MessageBox(
+				# Translators: An error message when a conversation profile is not found
+				_("Profile '%s' not found") % profile_name,
+				# Translators: An error message title
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return None
+		return profile
+
+	def on_new_conversation(self, event: wx.Event):
+		profile = self.get_selected_profile_from_menu(event)
+		if not profile:
+			return
+		log.info(f"Creating a new conversation with profile: {profile.name}")
+		self.new_conversation(profile)
+
 	def refresh_tab_title(self, include_frame: bool = False):
 		current_tab = self.current_tab
 		if not current_tab:
@@ -435,12 +472,13 @@ class MainFrame(wx.Frame):
 		self.refresh_tab_title(True)
 		dialog.Destroy()
 
-	def on_new_conversation(self, event):
-		log.debug("Creating a new conversation")
+	def new_conversation(self, profile: Optional[config.ConversationProfile]):
 		self.last_conversation_id += 1
 		default_conversation_title = f"Conversation {self.last_conversation_id}"
 		self.tabs_panels.append(
-			ConversationTab(self.notebook, title=default_conversation_title)
+			ConversationTab(
+				self.notebook, title=default_conversation_title, profile=profile
+			)
 		)
 		self.notebook.AddPage(
 			self.tabs_panels[-1], default_conversation_title, select=True
@@ -454,7 +492,7 @@ class MainFrame(wx.Frame):
 			self.tabs_panels.pop(current_tab)
 			current_tab_count = self.notebook.GetPageCount()
 			if current_tab_count == 0:
-				self.on_new_conversation(None)
+				self.on_new_default_conversation(None)
 			else:
 				self.notebook.SetSelection(current_tab_count - 1)
 			self.refresh_frame_title()
@@ -516,6 +554,30 @@ class MainFrame(wx.Frame):
 		if preferences_dialog.ShowModal() == wx.ID_OK:
 			self.refresh_tabs()
 		preferences_dialog.Destroy()
+
+	def on_manage_conversation_profiles(self, event):
+		from .conversation_profile_dialog import ConversationProfileDialog
+
+		profile_dialog = ConversationProfileDialog(
+			self, _("Manage conversation profiles")
+		)
+		profile_dialog.ShowModal()
+		if profile_dialog.menu_update:
+			menu: wx.Menu = self.new_conversation_profile_item.GetMenu()
+			item_index = next(
+				locate(
+					menu.GetMenuItems(),
+					lambda x: x.GetId()
+					== self.new_conversation_profile_item.GetId(),
+				)
+			)
+			menu.Remove(self.new_conversation_profile_item.GetId())
+			self.new_conversation_profile_item.GetSubMenu().Destroy()
+			self.new_conversation_profile_item.SetSubMenu(
+				self.build_profile_menu(self.on_new_conversation)
+			)
+			menu.Insert(item_index, self.new_conversation_profile_item)
+		profile_dialog.Destroy()
 
 	def on_install_nvda_addon(self, event):
 		import zipfile
@@ -610,3 +672,73 @@ class MainFrame(wx.Frame):
 			log.debug(f"Download dialog shown: {download_dialog.IsShown()}")
 
 		wx.CallAfter(show_dialog)
+
+	def build_profile_menu(self, event_handler) -> wx.Menu:
+		"""
+		Build the conversation profile menu.
+
+			:return: The conversation profile menu.
+		"""
+		profile_menu = wx.Menu()
+		for profile in config.conversation_profiles():
+			profile_item = profile_menu.Append(wx.ID_ANY, profile.name)
+			self.Bind(wx.EVT_MENU, event_handler, profile_item)
+		return profile_menu
+
+	def build_name_conversation_menu(self) -> wx.Menu:
+		"""
+		Build the name conversation menu.
+
+			:return: The name conversation menu.
+		"""
+		name_conversation_menu = wx.Menu()
+		manual_item = name_conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to name a conversation
+			_("Manual name conversation") + "...\tF2",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			lambda e: self.on_name_conversation(e, False),
+			manual_item,
+		)
+
+		auto_item = name_conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to automatically name a conversation
+			_("&Auto name conversation") + "...\tShift+F2",
+		)
+		self.Bind(
+			wx.EVT_MENU, lambda e: self.on_name_conversation(e, True), auto_item
+		)
+		return name_conversation_menu
+
+	def on_notebook_context_menu(self, event):
+		menu = wx.Menu()
+		menu.AppendSubMenu(
+			self.build_profile_menu(self.on_apply_conversation_profile),
+			# Translators: A label for a menu item to apply a conversation profile to the current conversation
+			text=_("Apply conversation profile"),
+		)
+		menu.AppendSubMenu(
+			self.build_name_conversation_menu(),
+			# Translators: A label for a menu item to name a conversation
+			_("Name conversation"),
+		)
+		close_conversation_item = menu.Append(
+			wx.ID_CLOSE,
+			# Translators: A label for a menu item to close a conversation
+			item=_("Close conversation") + " (Ctrl+W)",
+		)
+		self.Bind(
+			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
+		)
+		self.PopupMenu(menu)
+		menu.Destroy()
+
+	def on_apply_conversation_profile(self, event):
+		profile = self.get_selected_profile_from_menu(event)
+		if not profile:
+			return
+		log.info(f"Applying profile: {profile.name} to conversation")
+		self.current_tab.apply_profile(profile)

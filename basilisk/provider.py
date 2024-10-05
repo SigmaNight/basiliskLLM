@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
 from typing import Any, Iterable, Optional, Type
-
-from pydantic import BaseModel, Field, HttpUrl
 
 from .provider_engine.base_engine import BaseEngine
 
@@ -20,21 +19,22 @@ class ProviderAPIType(Enum):
 	GEMINI = "gemini"
 
 
-class Provider(BaseModel):
+@dataclass
+class Provider:
 	"""
 	Manage API key
 	"""
 
 	id: str
 	name: str
-	base_url: Optional[HttpUrl] = Field(default=None)
 	api_type: ProviderAPIType
-	organization_mode_available: bool = Field(default=False)
-	require_api_key: bool = Field(default=True)
-	custom: bool = Field(default=True)
-	env_var_name_api_key: Optional[str] = Field(default=None)
-	env_var_name_organization_key: Optional[str] = Field(default=None)
 	engine_cls_path: str
+	base_url: Optional[str] = field(default=None)
+	organization_mode_available: bool = field(default=False)
+	require_api_key: bool = field(default=True)
+	custom: bool = field(default=True)
+	env_var_name_api_key: Optional[str] = field(default=None)
+	env_var_name_organization_key: Optional[str] = field(default=None)
 
 	@cached_property
 	def engine_cls(self) -> Type[BaseEngine]:

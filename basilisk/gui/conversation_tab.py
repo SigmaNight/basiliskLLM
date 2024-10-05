@@ -8,11 +8,9 @@ import time
 import weakref
 from functools import wraps
 from typing import TYPE_CHECKING, Callable, Optional
-from uuid import UUID
 
 import wx
 from more_itertools import first, locate
-from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
 from basilisk import global_vars
@@ -25,17 +23,18 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
-from basilisk.gui.html_view_window import show_html_view_window
-from basilisk.gui.search_dialog import SearchDialog, SearchDirection
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
 	MessageSegmentType,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
+
+from .base_conversation import BaseConversation
+from .html_view_window import show_html_view_window
+from .search_dialog import SearchDialog, SearchDirection
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -43,17 +42,6 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger(__name__)
-
-
-class FloatSpinTextCtrlAccessible(wx.Accessible):
-	def __init__(self, win: wx.Window = None, name: str = None):
-		super().__init__(win)
-		self._name = name
-
-	def GetName(self, childId):
-		if self._name:
-			return (wx.ACC_OK, self._name)
-		return super().GetName(childId)
 
 
 def ensure_no_task_running(method: Callable):
@@ -71,7 +59,7 @@ def ensure_no_task_running(method: Callable):
 	return wrapper
 
 
-class ConversationTab(wx.Panel):
+class ConversationTab(wx.Panel, BaseConversation):
 	ROLE_LABELS: dict[MessageRoleEnum, str] = {
 		# Translators: Label indicating that the message is from the user in a conversation
 		MessageRoleEnum.USER: _("User:") + ' ',
@@ -80,9 +68,13 @@ class ConversationTab(wx.Panel):
 	}
 
 	def __init__(
-		self, parent: wx.Window, title: str = _("Untitled conversation")
+		self,
+		parent: wx.Window,
+		title: str = _("Untitled conversation"),
+		profile: Optional[config.ConversationProfile] = None,
 	):
 		wx.Panel.__init__(self, parent)
+		BaseConversation.__init__(self)
 		self.title = title
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
@@ -95,40 +87,18 @@ class ConversationTab(wx.Panel):
 		self._messages_already_focused = False
 		self._stop_completion = False
 		self._search_dialog = None
-		self.accounts_engines: dict[UUID, BaseEngine] = {}
 		self.init_ui()
-		self.select_default_account()
-		self.init_data()
+		self.init_data(profile)
 		self.update_ui()
 
 	def init_ui(self):
 		sizer = wx.BoxSizer(wx.VERTICAL)
-
-		label = wx.StaticText(
-			self,
-			# Translators: This is a label for account in the main window
-			label=_("&Account:"),
-		)
+		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.account_combo = wx.ComboBox(
-			self, style=wx.CB_READONLY, choices=self.get_display_accounts()
-		)
-		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
-		if len(self.account_combo.GetItems()) > 0:
-			self.account_combo.SetSelection(0)
 		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
 
-		label = wx.StaticText(
-			self,
-			# Translators: This is a label for system prompt in the main window
-			label=_("S&ystem prompt:"),
-		)
+		label = self.create_system_prompt_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.system_prompt_txt = wx.TextCtrl(
-			self,
-			size=(800, 100),
-			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
-		)
 		sizer.Add(self.system_prompt_txt, proportion=1, flag=wx.EXPAND)
 
 		label = wx.StaticText(
@@ -186,88 +156,19 @@ class ConversationTab(wx.Panel):
 		self.images_list.SetColumnWidth(2, 100)
 		self.images_list.SetColumnWidth(3, 200)
 		sizer.Add(self.images_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-
-		label = wx.StaticText(self, label=_("M&odels:"))
+		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
-		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(0, _("Name"))
-		# Translators: This label appears in the main window's list of models to indicate whether the model supports images
-		self.model_list.InsertColumn(1, _("Vision"))
-		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(2, _("Context window"))
-		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(3, _("Max tokens"))
-		self.model_list.SetColumnWidth(0, 200)
-		self.model_list.SetColumnWidth(1, 100)
-		self.model_list.SetColumnWidth(2, 100)
-		self.model_list.SetColumnWidth(3, 100)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
-		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
-		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
-
-		self.max_tokens_label = wx.StaticText(
-			self,
-			# Translators: This is a label for max tokens in the main window
-			label=_("Max to&kens:"),
-		)
+		self.max_tokens_label = self.create_max_tokens_widget()
 		sizer.Add(self.max_tokens_label, proportion=0, flag=wx.EXPAND)
-		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value='0', min=0, max=2000000
-		)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
-
-		self.temperature_label = wx.StaticText(
-			self,
-			# Translators: This is a label for temperature in the main window
-			label=_("&Temperature:"),
-		)
+		self.temperature_label = self.create_temperature_widget()
 		sizer.Add(self.temperature_label, proportion=0, flag=wx.EXPAND)
-		self.temperature_spinner = FloatSpin(
-			self,
-			min_val=0.0,
-			max_val=2.0,
-			increment=0.01,
-			value=0.5,
-			digits=2,
-			name="temperature",
-		)
-		float_spin_accessible = FloatSpinTextCtrlAccessible(
-			win=self.temperature_spinner._textctrl,
-			name=self.temperature_label.GetLabel().replace("&", ""),
-		)
-		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
 		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
-
-		self.top_p_label = wx.StaticText(
-			self,
-			# Translators: This is a label for top P in the main window
-			label=_("Probabilit&y Mass (top P):"),
-		)
+		self.top_p_label = self.create_top_p_widget()
 		sizer.Add(self.top_p_label, proportion=0, flag=wx.EXPAND)
-		self.top_p_spinner = FloatSpin(
-			self,
-			min_val=0.0,
-			max_val=1.0,
-			increment=0.01,
-			value=1.0,
-			digits=2,
-			name="Top P",
-		)
-		float_spin_accessible = FloatSpinTextCtrlAccessible(
-			win=self.top_p_spinner._textctrl,
-			name=self.top_p_label.GetLabel().replace("&", ""),
-		)
-		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
-
-		self.stream_mode = wx.CheckBox(
-			self,
-			# Translators: This is a label for stream mode in the main window
-			label=_("&Stream mode"),
-		)
-		self.stream_mode.SetValue(True)
+		self.create_stream_widget()
 		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
 
 		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -302,19 +203,11 @@ class ConversationTab(wx.Panel):
 
 		self.SetSizerAndFit(sizer)
 
-	def select_default_account(self):
-		accounts = config.accounts()
-		account_index = first(
-			locate(accounts, lambda a: a == accounts.default_account),
-			wx.NOT_FOUND,
-		)
-		if account_index != wx.NOT_FOUND:
-			self.account_combo.SetSelection(account_index)
+		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
-	def init_data(self):
-		self.on_account_change(None)
-		self.on_model_change(None)
+	def init_data(self, profile: Optional[config.ConversationProfile]):
 		self.refresh_images_list()
+		self.apply_profile(profile, True)
 
 	def update_ui(self):
 		controls = (
@@ -332,40 +225,44 @@ class ConversationTab(wx.Panel):
 			control.Show(advanced_mode)
 		self.Layout()
 
+	def on_choose_profile(self, event: wx.KeyEvent):
+		menu = wx.GetTopLevelParent(self).build_profile_menu(
+			wx.GetTopLevelParent(self).on_apply_conversation_profile
+		)
+
+		self.PopupMenu(menu)
+		menu.Destroy()
+
+	def on_char_hook(self, event: wx.KeyEvent):
+		modifiers = event.GetModifiers()
+		key_code = event.GetKeyCode()
+		actions = {(wx.MOD_CONTROL, ord('P')): self.on_choose_profile}
+		action = actions.get((modifiers, key_code))
+		if action:
+			action(event)
+		else:
+			event.Skip()
+
 	def on_account_change(self, event: wx.CommandEvent):
-		account_index = self.account_combo.GetSelection()
-		if account_index == wx.NOT_FOUND:
-			if not config.accounts():
-				if (
-					wx.MessageBox(
-						_(
-							"Please add an account first. Do you want to add an account now?"
-						),
-						_("No account configured"),
-						wx.YES_NO | wx.ICON_QUESTION,
-					)
-					== wx.YES
-				):
-					self.GetParent().GetParent().GetParent().on_manage_accounts(
-						None
-					)
-					self.on_config_change()
+		account = super().on_account_change(event)
+		if not account and not config.accounts():
+			first_account_msg = wx.MessageBox(
+				# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
+				_(
+					"Please add an account first. Do you want to add an account now?"
+				),
+				# translators: This is a title for the message box
+				_("No account configured"),
+				wx.YES_NO | wx.ICON_QUESTION,
+			)
+			if first_account_msg == wx.YES:
+				main_frame = wx.GetTopLevelParent(self)
+				main_frame.on_manage_accounts(None)
+				self.on_config_change()
 			return
-		account = config.accounts()[account_index]
-		self.accounts_engines.setdefault(
-			account.id, account.provider.engine_cls(account)
-		)
-		self.model_list.DeleteAllItems()
-		for i, model in enumerate(self.get_display_models()):
-			self.model_list.InsertItem(i, model[0])
-			self.model_list.SetItem(i, 1, model[1])
-			self.model_list.SetItem(i, 2, model[2])
-			self.model_list.SetItem(i, 3, model[3])
-		self.model_list.SetItemState(
-			0,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-			wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
-		)
+		if not account:
+			return
+		self.set_model_list(None)
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
@@ -548,33 +445,6 @@ class ConversationTab(wx.Panel):
 		url = self.image_files[selected].location
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(url))
-
-	def on_model_change(self, event: wx.CommandEvent):
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		model = self.current_engine.models[model_index]
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		max_tokens = model.max_output_tokens
-		if max_tokens < 1:
-			max_tokens = model.context_window
-		self.max_tokens_spin_ctrl.SetMax(max_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
-
-	def on_model_key_down(self, event: wx.KeyEvent):
-		if event.GetKeyCode() == wx.WXK_RETURN:
-			self.on_show_model_details(None)
-		else:
-			event.Skip()
-
-	def on_model_context_menu(self, event: wx.ContextMenuEvent):
-		menu = wx.Menu()
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
-		self.model_list.PopupMenu(menu)
-		menu.Destroy()
 
 	def refresh_accounts(self):
 		account_index = self.account_combo.GetSelection()
@@ -909,7 +779,7 @@ class ConversationTab(wx.Panel):
 				else:
 					event.Skip()
 			case (wx.MOD_CONTROL, wx.WXK_UP):
-				if self.prompt.GetValue():
+				if not self.prompt.GetValue():
 					self.insert_previous_prompt()
 			case (wx.MOD_CONTROL, wx.WXK_RETURN):
 				self.on_submit(event)
@@ -919,34 +789,10 @@ class ConversationTab(wx.Panel):
 	def on_prompt_paste(self, event):
 		self.on_image_paste(event)
 
-	def on_key_down(self, event: wx.KeyEvent):
-		if (
-			event.GetModifiers() == wx.ACCEL_CTRL
-			and event.GetKeyCode() == wx.WXK_RETURN
-		):
-			self.on_submit(event)
-		event.Skip()
-
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
-
-	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
-		accounts = []
-		for account in config.accounts():
-			if force_refresh:
-				if "active_organization" in account.__dict__:
-					del account.__dict__["active_organization"]
-			name = account.name
-			organization = (
-				account.active_organization.name
-				if account.active_organization
-				else _("Personal")
-			)
-			provider_name = account.provider.name
-			accounts.append(f"{name} ({organization}) - {provider_name}")
-		return accounts
 
 	def extract_text_from_message(
 		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
@@ -1040,39 +886,6 @@ class ConversationTab(wx.Panel):
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
-
-	@property
-	def current_engine(self) -> BaseEngine:
-		account_index = self.account_combo.GetSelection()
-		account = config.accounts()[account_index]
-		return self.accounts_engines[account.id]
-
-	@property
-	def current_model(self) -> ProviderAIModel:
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		return self.current_engine.models[model_index]
-
-	def get_display_models(self) -> list[tuple[str, str, str]]:
-		return [m.display_model for m in self.current_engine.models]
-
-	def on_show_model_details(self, event: wx.CommandEvent):
-		from .read_only_message_dialog import ReadOnlyMessageDialog
-
-		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
-			return
-		model = self.current_engine.models[model_index]
-		details = model.display_details
-		dlg = ReadOnlyMessageDialog(
-			self,
-			# Translators: This is a label for a title dialog
-			title=_("Model details"),
-			message=details,
-		)
-		dlg.ShowModal()
-		dlg.Destroy()
 
 	def get_content_for_completion(
 		self, images_files: list[ImageFile] = None, prompt: str = None

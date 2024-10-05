@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import cached_property
 from os import linesep
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
@@ -35,6 +35,17 @@ class BaseEngine(ABC):
 		Get models
 		"""
 		pass
+
+	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
+		"""
+		Get model
+		"""
+		model_list = [model for model in self.models if model.id == model_id]
+		if not model_list:
+			return None
+		if len(model_list) > 1:
+			raise ValueError(f"Multiple models with id {model_id}")
+		return model_list[0]
 
 	@staticmethod
 	def get_messages(
