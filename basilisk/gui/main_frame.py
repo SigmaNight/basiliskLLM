@@ -161,7 +161,7 @@ class MainFrame(wx.Frame):
 		conversation_profile_item = tool_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to manage conversation profiles
-			_("Manage conversation &profiles") + "...	Ctrl+Shift+O",
+			_("Manage conversation &profiles") + "...\tCtrl+Shift+O",
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -682,7 +682,7 @@ class MainFrame(wx.Frame):
 		manual_item = name_conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to name a conversation
-			_("Manual name conversation") + "...	F2",
+			_("Manual name conversation") + "...\tF2",
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -693,7 +693,7 @@ class MainFrame(wx.Frame):
 		auto_item = name_conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to automatically name a conversation
-			_("&Auto name conversation") + "...	Shift+F2",
+			_("&Auto name conversation") + "...\tShift+F2",
 		)
 		self.Bind(
 			wx.EVT_MENU, lambda e: self.on_name_conversation(e, True), auto_item
