@@ -40,7 +40,7 @@ class BaseEngine(ABC):
 		"""
 		Get model
 		"""
-		model_list = (model for model in self.models if model.id == model_id)
+		model_list = [model for model in self.models if model.id == model_id]
 		if not model_list:
 			return None
 		if len(model_list) > 1:
