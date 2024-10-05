@@ -22,7 +22,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		BaseConversation.__init__(self)
 		self.profile = profile
 		self.init_ui()
-		self.apply_profile(self.profile)
+		self.apply_profile(self.profile, True)
 
 	def init_ui(self):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -71,8 +71,12 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.ALIGN_CENTER, 5)
 		self.SetSizerAndFit(self.sizer)
 
-	def apply_profile(self, profile: Optional[ConversationProfile]):
-		super().apply_profile(profile)
+	def apply_profile(
+		self,
+		profile: Optional[ConversationProfile],
+		fall_back_default_account: bool = False,
+	):
+		super().apply_profile(profile, fall_back_default_account)
 		if not profile:
 			return None
 		self.profile_name_txt.SetValue(profile.name)

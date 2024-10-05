@@ -174,8 +174,15 @@ class BaseConversation:
 		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
 		self.max_tokens_spin_ctrl.SetValue(0)
 
-	def set_account_and_model_from_profile(self, profile: config.Profile):
-		if not profile.account and not profile.ai_model_info:
+	def set_account_and_model_from_profile(
+		self, profile: config.Profile, fall_back_default_account: bool = False
+	):
+		if (
+			not profile.account
+			and not profile.ai_model_info
+			and fall_back_default_account
+		):
+			log.debug("no account or model in profile, select default account")
 			self.select_default_account()
 			return
 		if profile.account:
@@ -291,13 +298,19 @@ class BaseConversation:
 		)
 		self.stream_mode.SetValue(True)
 
-	def apply_profile(self, profile: Optional[config.ConversationProfile]):
-		if not profile:
-			log.debug("no profile to apply, select default account")
+	def apply_profile(
+		self,
+		profile: Optional[config.ConversationProfile],
+		fall_back_default_account: bool = False,
+	):
+		if fall_back_default_account and not profile:
+			log.debug("no profile, select default account")
 			self.select_default_account()
 			return
 		self.system_prompt_txt.SetValue(profile.system_prompt)
-		self.set_account_and_model_from_profile(profile)
+		self.set_account_and_model_from_profile(
+			profile, fall_back_default_account
+		)
 		if profile.max_tokens is not None:
 			self.max_tokens_spin_ctrl.SetValue(profile.max_tokens)
 		if profile.temperature is not None:
