@@ -38,7 +38,7 @@ class ProviderAIModel:
 		# translator: AI model details
 		details += _("Vision: %s\n") % vision_value
 		# translator: AI model details
-		details += _("context window: %d\n") % self.context_window
+		details += _("Context window: %d\n") % self.context_window
 		if self.max_output_tokens > 0:
 			# translator: AI model details
 			details += _("Max output tokens: %d\n\n") % self.max_output_tokens
