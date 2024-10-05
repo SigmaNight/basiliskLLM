@@ -5,9 +5,11 @@
 #ifndef MyAppVersion
     #define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
 #endif
+
 [setup]
 AppVersion={#MyAppVersion}
 AppName=basiliskLLM
+AppPublisher=SigmaNight
 AppVerName={#SetupSetting("AppName")} {#SetupSetting("AppVersion")}
 ArchitecturesAllowed={#AppArch}compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -15,13 +17,13 @@ Output=yes
 OutputDir=output_setup
 OutputBaseFilename=setup_{#SetupSetting("AppName")}_{#SetupSetting("AppVersion")}_{#AppArch}
 DefaultDirName={autopf}\basilisk_llm
-DefaultGroupName=basiliskLLM
+DefaultGroupName=sigmanight
 Compression=lzma2/ultra
 SolidCompression=yes
 VersionInfoProductName=basiliskLLM
-AppReadmeFile=https://github.com/aaclause/basiliskLLM/
-AppSupportURL=https://github.com/aaclause/basiliskLLM/issues
-AppUpdatesURL=https://github.com/aaclause/basiliskLLM/releases
+AppReadmeFile=https://github.com/SigmaNight/basiliskLLM/
+AppSupportURL=https://github.com/SigmaNight/basiliskLLM/issues
+AppUpdatesURL=https://github.com/sigmanight/basiliskLLM/releases
 CloseApplications=yes
 LicenseFile=LICENSE
 PrivilegesRequired=lowest
@@ -35,6 +37,7 @@ UsePreviousPrivileges=yes
 UsePreviousSetupType=yes
 UsePreviousTasks=yes
 ShowTasksTreeLines=no
+
 [languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 name: "french"; MessagesFile: "compiler:Languages\French.isl"
@@ -53,6 +56,8 @@ name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName"
 Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+A"
 Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
 Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n -m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
+
+
 
 [Run]
 Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked
