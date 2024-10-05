@@ -759,7 +759,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				else:
 					event.Skip()
 			case (wx.MOD_CONTROL, wx.WXK_UP):
-				if self.prompt.GetValue():
+				if not self.prompt.GetValue():
 					self.insert_previous_prompt()
 			case (wx.MOD_CONTROL, wx.WXK_RETURN):
 				self.on_submit(event)
