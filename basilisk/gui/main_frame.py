@@ -7,6 +7,7 @@ import tempfile
 from typing import Optional
 
 import wx
+from more_itertools import locate
 
 if sys.platform == 'win32':
 	import win32con
@@ -553,12 +554,15 @@ class MainFrame(wx.Frame):
 		profile_dialog = ConversationProfileDialog(
 			self, _("Manage conversation profiles")
 		)
-		if profile_dialog.ShowModal() == wx.ID_OK:
+		profile_dialog.ShowModal()
+		if profile_dialog.menu_update:
 			menu: wx.Menu = self.new_conversation_profile_item.GetMenu()
 			item_index = next(
-				i
-				for i, item in enumerate(menu.GetMenuItems())
-				if item.GetId() == self.new_conversation_profile_item.GetId()
+				locate(
+					menu.GetMenuItems(),
+					lambda x: x.GetId()
+					== self.new_conversation_profile_item.GetId(),
+				)
 			)
 			menu.Remove(self.new_conversation_profile_item.GetId())
 			self.new_conversation_profile_item.SetSubMenu(

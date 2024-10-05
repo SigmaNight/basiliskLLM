@@ -136,6 +136,7 @@ class ConversationProfileDialog(wx.Dialog):
 	def __init__(self, parent, title, size=(400, 400)):
 		super().__init__(parent, title=title, size=size)
 		self.profiles = conversation_profiles()
+		self.menu_update = False
 		self.init_ui()
 		self.init_data()
 
@@ -244,6 +245,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.update_ui()
 			self.profiles.save()
 			self.on_list_item_selected(None)
+			self.menu_update = True
 
 	def on_edit(self, event):
 		profile_index = self.current_profile_index
@@ -264,6 +266,7 @@ class ConversationProfileDialog(wx.Dialog):
 				wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
 			)
 			self.on_list_item_selected(None)
+			self.menu_update = True
 
 	def update_summary(self, profile: ConversationProfile):
 		self.summary_text.SetValue(self.build_profile_summary(profile))
@@ -285,6 +288,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.save()
 			self.update_ui()
 			self.on_list_item_selected(None)
+			self.menu_update = True
 
 	def on_default(self, event):
 		profile = self.current_profile
