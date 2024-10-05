@@ -18,9 +18,9 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		size=(400, 400),
 		profile: Optional[ConversationProfile] = None,
 	):
-		super().__init__(parent, title=title, size=size)
-		self.profile = profile
+		wx.Dialog.__init__(self, parent=parent, title=title, size=size)
 		BaseConversation.__init__(self)
+		self.profile = profile
 		self.init_ui()
 		self.apply_profile(self.profile)
 
@@ -77,9 +77,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			return None
 		self.profile_name_txt.SetValue(profile.name)
 		if profile.account or profile.ai_model_info:
-			self.include_account_checkbox.SetValue(
-				self.profile.account is not None
-			)
+			self.include_account_checkbox.SetValue(profile.account is not None)
 
 	def on_ok(self, event):
 		if not self.profile:
