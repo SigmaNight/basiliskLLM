@@ -30,7 +30,7 @@ python = "^3.12"
 anthropic = "^0.34.2"
 cx-freeze = "^7.2.3"
 openai = "^1.51.0"
-pywin32 = { version = "^306", markers = "sys_platform == 'win32'" }
+pywin32 = { version = "^307", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.2"
 pydantic-settings = "^2.5.2"
 pyyaml = "^6.0.1"
