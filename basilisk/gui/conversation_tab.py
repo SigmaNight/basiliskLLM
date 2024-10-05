@@ -203,6 +203,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.SetSizerAndFit(sizer)
 
+		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
+
 	def init_data(self, profile: Optional[config.ConversationProfile]):
 		self.refresh_images_list()
 		self.apply_profile(profile, True)
@@ -222,6 +224,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 			control.Enable(advanced_mode)
 			control.Show(advanced_mode)
 		self.Layout()
+
+	def on_choose_profile(self, event: wx.KeyEvent):
+		menu = wx.GetTopLevelParent(self).build_profile_menu(
+			wx.GetTopLevelParent(self).on_apply_conversation_profile
+		)
+
+		self.PopupMenu(menu)
+		menu.Destroy()
+
+	def on_char_hook(self, event: wx.KeyEvent):
+		modifiers = event.GetModifiers()
+		key_code = event.GetKeyCode()
+		actions = {(wx.MOD_CONTROL, ord('P')): self.on_choose_profile}
+		action = actions.get((modifiers, key_code))
+		if action:
+			action(event)
+		else:
+			event.Skip()
 
 	def on_account_change(self, event: wx.CommandEvent):
 		account = super().on_account_change(event)
@@ -768,14 +788,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def on_prompt_paste(self, event):
 		self.on_image_paste(event)
-
-	def on_key_down(self, event: wx.KeyEvent):
-		if (
-			event.GetModifiers() == wx.ACCEL_CTRL
-			and event.GetKeyCode() == wx.WXK_RETURN
-		):
-			self.on_submit(event)
-		event.Skip()
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		if self.conversation.messages:

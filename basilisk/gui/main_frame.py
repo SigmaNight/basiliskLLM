@@ -39,7 +39,6 @@ class MainFrame(wx.Frame):
 		self.ID_ADD_IMAGE_FILE = wx.NewIdRef()
 		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
 		self.ID_MANAGE_ACCOUNTS = wx.NewIdRef()
-		self.ID_PREFERENCES = wx.NewIdRef()
 		self.ID_VIEW_LOG = wx.NewIdRef()
 		self.ID_TOGGLE_RECORDING = wx.NewIdRef()
 		self.ID_TRANSCRIBE_AUDIO = wx.NewIdRef()
@@ -162,7 +161,7 @@ class MainFrame(wx.Frame):
 		conversation_profile_item = tool_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to manage conversation profiles
-			_("Manage conversation &profiles") + "...\tCtrl+Shift+O",
+			_("Manage conversation &profiles") + "...\tCtrl+Shift+P",
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -172,7 +171,7 @@ class MainFrame(wx.Frame):
 
 		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
-		update_item_label_suffix(preferences_item, "... (Ctrl+Shift+P)")
+		update_item_label_suffix(preferences_item, "...\tCtrl+,")
 		tool_menu.AppendSeparator()
 		install_nvda_addon = tool_menu.Append(
 			wx.ID_ANY, _("Install NVDA addon")
@@ -238,7 +237,6 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_manage_accounts, id=self.ID_MANAGE_ACCOUNTS
 		)
-		self.Bind(wx.EVT_MENU, self.on_preferences, id=self.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_view_log, id=self.ID_VIEW_LOG)
 		self.Bind(
 			wx.EVT_MENU,
@@ -259,7 +257,6 @@ class MainFrame(wx.Frame):
 			(wx.ACCEL_CTRL, ord('I'), self.ID_ADD_IMAGE_FILE),
 			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('A'), self.ID_MANAGE_ACCOUNTS),
-			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('P'), self.ID_PREFERENCES),
 			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_F1, self.ID_VIEW_LOG),
 			(wx.ACCEL_CTRL, ord('R'), self.ID_TOGGLE_RECORDING),
 			(
