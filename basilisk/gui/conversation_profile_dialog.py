@@ -45,6 +45,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			# translators: Label for including an account in a conversation profile
 			label=_("&Include account in profile"),
 		)
+		self.sizer.Add(self.include_account_checkbox, 0, wx.ALL, 5)
 		label = self.create_system_prompt_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
