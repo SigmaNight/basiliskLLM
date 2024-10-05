@@ -735,6 +735,7 @@ class MainFrame(wx.Frame):
 			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
 		)
 		self.PopupMenu(menu)
+		menu.Destroy()
 
 	def on_apply_conversation_profile(self, event):
 		profile = self.get_selected_profile_from_menu(event)
