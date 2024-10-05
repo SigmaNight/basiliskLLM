@@ -34,14 +34,6 @@ class MainFrame(wx.Frame):
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
 		self.init_ui()
-		self.ID_NEW_CONVERSATION = wx.NewIdRef()
-		self.ID_CLOSE_CONVERSATION = wx.NewIdRef()
-		self.ID_ADD_IMAGE_FILE = wx.NewIdRef()
-		self.ID_ADD_URL_IMAGE = wx.NewIdRef()
-		self.ID_MANAGE_ACCOUNTS = wx.NewIdRef()
-		self.ID_VIEW_LOG = wx.NewIdRef()
-		self.ID_TOGGLE_RECORDING = wx.NewIdRef()
-		self.ID_TRANSCRIBE_AUDIO = wx.NewIdRef()
 
 		self.init_accelerators()
 		if sys.platform == "win32":
@@ -68,7 +60,7 @@ class MainFrame(wx.Frame):
 		new_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to create a new conversation
-			_("New conversation") + " (Ctrl+N)",
+			_("New conversation") + "\tCtrl+N",
 		)
 		self.Bind(
 			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
@@ -81,7 +73,7 @@ class MainFrame(wx.Frame):
 		open_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to open a conversation
-			_("Open conversation") + "... (Ctrl+O)",
+			_("Open conversation") + "...\tCtrl+O",
 		)
 		open_conversation_item.Enable(False)
 		conversation_menu.AppendSubMenu(
@@ -92,17 +84,17 @@ class MainFrame(wx.Frame):
 		save_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation
-			_("Save conversation") + " (Ctrl+S)",
+			_("Save conversation") + "\tCtrl+S",
 		)
 		save_conversation_item.Enable(False)
 		save_as_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation as a new file
-			_("Save conversation as") + "... (Ctrl+Shift+S)",
+			_("Save conversation as") + "...\tCtrl+Shift+S",
 		)
 		save_as_conversation_item.Enable(False)
 		close_conversation_item = conversation_menu.Append(
-			wx.ID_ANY, _("Close conversation") + " (Ctrl+W)"
+			wx.ID_ANY, _("Close conversation") + "\tCtrl+W"
 		)
 		self.Bind(
 			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
@@ -111,7 +103,7 @@ class MainFrame(wx.Frame):
 		add_image_files_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to add an image from a file
-			_("Add image from f&ile") + "... (Ctrl+I)",
+			_("Add image from f&ile") + "...\tCtrl+I",
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -121,13 +113,13 @@ class MainFrame(wx.Frame):
 		add_image_url = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to add an image from a URL
-			_("Add image from &URL") + "... (Ctrl+U)",
+			_("Add image from &URL") + "...\tCtrl+U",
 		)
 		self.Bind(
 			wx.EVT_MENU, lambda e: self.on_add_image(e, True), add_image_url
 		)
 		transcribe_audio_microphone_item = conversation_menu.Append(
-			wx.ID_ANY, _("Transcribe audio from microphone") + "... (Ctrl+R)"
+			wx.ID_ANY, _("Transcribe audio from microphone") + "...\tCtrl+R"
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -135,7 +127,7 @@ class MainFrame(wx.Frame):
 			transcribe_audio_microphone_item,
 		)
 		transcribe_audio_file_item = conversation_menu.Append(
-			wx.ID_ANY, _("Transcribe audio file") + "... (Ctrl+Shift+R)"
+			wx.ID_ANY, _("Transcribe audio file") + "...\tCtrl+Shift+R"
 		)
 		self.Bind(
 			wx.EVT_MENU,
@@ -155,7 +147,7 @@ class MainFrame(wx.Frame):
 		manage_accounts_item = tool_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to manage accounts
-			_("Manage &accounts") + "... (Ctrl+Shift+A)",
+			_("Manage &accounts") + "...\tCtrl+Shift+A",
 		)
 		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
 		conversation_profile_item = tool_menu.Append(
@@ -181,15 +173,21 @@ class MainFrame(wx.Frame):
 		help_menu = wx.Menu()
 		about_item = help_menu.Append(wx.ID_ABOUT)
 		self.Bind(wx.EVT_MENU, self.on_about, about_item)
-		update_item_label_suffix(about_item)
-		check_updates_item = help_menu.Append(wx.ID_ANY, _("Check updates"))
+		update_item_label_suffix(about_item, "...\tShift+F1")
+		check_updates_item = help_menu.Append(
+			wx.ID_ANY, _("Check updates") + "\tCtrl+Shift+U"
+		)
 		self.Bind(wx.EVT_MENU, self.on_manual_update_check, check_updates_item)
-		github_repo_item = help_menu.Append(wx.ID_ANY, _("&GitHub repository"))
+		github_repo_item = help_menu.Append(
+			wx.ID_ANY, _("&GitHub repository") + "\tCtrl+Shift+G"
+		)
 		self.Bind(wx.EVT_MENU, self.on_github_repo, github_repo_item)
-		roko_basilisk_item = help_menu.Append(wx.ID_ANY, _("Roko's Basilisk"))
+		roko_basilisk_item = help_menu.Append(
+			wx.ID_ANY, _("Roko's Basilisk") + "\tCtrl+Shift+K"
+		)
 		self.Bind(wx.EVT_MENU, self.on_roko_basilisk, roko_basilisk_item)
 		view_log_item = help_menu.Append(
-			wx.ID_ANY, _("View &log") + " (Ctrl+Shift+F1)"
+			wx.ID_ANY, _("View &log") + "\tCtrl+Shift+F1"
 		)
 		self.Bind(wx.EVT_MENU, self.on_view_log, view_log_item)
 
@@ -206,7 +204,6 @@ class MainFrame(wx.Frame):
 		sizer.Add(minimize_taskbar, flag=wx.EXPAND)
 
 		self.notebook = wx.Notebook(self.panel)
-		self.notebook.Bind(wx.EVT_CONTEXT_MENU, self.on_notebook_context_menu)
 		sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND)
 		self.panel.SetSizer(sizer)
 		self.tabs_panels = []
@@ -218,53 +215,10 @@ class MainFrame(wx.Frame):
 
 	def init_accelerators(self):
 		self.Bind(wx.EVT_CLOSE, self.on_close)
-		self.Bind(
-			wx.EVT_MENU,
-			self.on_new_default_conversation,
-			id=self.ID_NEW_CONVERSATION,
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			self.on_close_conversation,
-			id=self.ID_CLOSE_CONVERSATION,
-		)
-		self.Bind(wx.EVT_MENU, self.on_add_image, id=self.ID_ADD_IMAGE_FILE)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda evt: self.on_add_image(evt, True),
-			id=self.ID_ADD_URL_IMAGE,
-		)
-		self.Bind(
-			wx.EVT_MENU, self.on_manage_accounts, id=self.ID_MANAGE_ACCOUNTS
-		)
-		self.Bind(wx.EVT_MENU, self.on_view_log, id=self.ID_VIEW_LOG)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda evt: self.on_transcribe_audio(evt, True),
-			id=self.ID_TOGGLE_RECORDING,
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			lambda evt: self.on_transcribe_audio(evt, False),
-			id=self.ID_TRANSCRIBE_AUDIO,
-		)
-
+		self.notebook.Bind(wx.EVT_CONTEXT_MENU, self.on_notebook_context_menu)
 		self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
 
-		accelerators = [
-			(wx.ACCEL_CTRL, ord('N'), self.ID_NEW_CONVERSATION),
-			(wx.ACCEL_CTRL, ord('W'), self.ID_CLOSE_CONVERSATION),
-			(wx.ACCEL_CTRL, ord('I'), self.ID_ADD_IMAGE_FILE),
-			(wx.ACCEL_CTRL, ord('U'), self.ID_ADD_URL_IMAGE),
-			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('A'), self.ID_MANAGE_ACCOUNTS),
-			(wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_F1, self.ID_VIEW_LOG),
-			(wx.ACCEL_CTRL, ord('R'), self.ID_TOGGLE_RECORDING),
-			(
-				wx.ACCEL_CTRL | wx.ACCEL_SHIFT,
-				ord('R'),
-				self.ID_TRANSCRIBE_AUDIO,
-			),
-		]
+		accelerators = []
 
 		for i in range(1, 10):
 			id_ref = wx.NewIdRef()
