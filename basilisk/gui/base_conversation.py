@@ -144,7 +144,7 @@ class BaseConversation:
 		if not engine:
 			return
 		models = engine.models
-		index = 0
+		index = wx.NOT_FOUND
 		if model:
 			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
 		if index != wx.NOT_FOUND:
