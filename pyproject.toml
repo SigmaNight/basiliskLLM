@@ -9,9 +9,9 @@ readme = "README.md"
 license = {file = "LICENSE"}
 
 [project.urls]
-homepage = "https://github.com/aaclause/basiliskLLM"
-repository = "https://github.com/aaclause/basiliskLLM"
-issues = "https://github.com/aaclause/basiliskLLM/issues"
+homepage = "https://github.com/SigmaNight/basiliskLLM"
+repository = "https://github.com/SigmaNight/basiliskLLM"
+issues = "https://github.com/SigmaNight/basiliskLLM/issues"
 
 [build-system]
 requires = ["cx_freeze>+7.0.0", "setuptools>=64.0.0", "setuptools_scm>=8"]

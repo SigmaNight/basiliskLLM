@@ -3,7 +3,8 @@ import tempfile
 from enum import Enum
 
 APP_NAME = "BasiliskLLM"
-APP_REPO = "aaclause/basiliskLLM"
+APP_AUTHOR = "SigmaNight"
+APP_REPO = f"{APP_AUTHOR}/{APP_NAME}"
 APP_SOURCE_URL = f"https://github.com/{APP_REPO}"
 DEFAULT_LANG = "en"
 WORKFLOW_NAME = "ci"
