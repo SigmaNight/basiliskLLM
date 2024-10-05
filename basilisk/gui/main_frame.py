@@ -575,10 +575,12 @@ class MainFrame(wx.Frame):
 				)
 			)
 			menu.Remove(self.new_conversation_profile_item.GetId())
+			self.new_conversation_profile_item.GetSubMenu().Destroy()
 			self.new_conversation_profile_item.SetSubMenu(
 				self.build_profile_menu(self.on_new_conversation)
 			)
 			menu.Insert(item_index, self.new_conversation_profile_item)
+		profile_dialog.Destroy()
 
 	def on_install_nvda_addon(self, event):
 		import zipfile

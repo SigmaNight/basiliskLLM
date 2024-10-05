@@ -244,6 +244,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.profiles.save()
 			self.on_list_item_selected(None)
 			self.menu_update = True
+		dialog.Destroy()
 
 	def on_edit(self, event):
 		profile_index = self.current_profile_index
@@ -265,6 +266,7 @@ class ConversationProfileDialog(wx.Dialog):
 			)
 			self.on_list_item_selected(None)
 			self.menu_update = True
+		dialog.Destroy()
 
 	def update_summary(self, profile: ConversationProfile):
 		self.summary_text.SetValue(self.build_profile_summary(profile))
