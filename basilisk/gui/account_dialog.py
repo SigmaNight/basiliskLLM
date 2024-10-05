@@ -618,7 +618,7 @@ class AccountDialog(wx.Dialog):
 		)
 		btn = wx.Button(panel, wx.ID_CLOSE)
 		btn.Bind(wx.EVT_BUTTON, self.on_close)
-
+		self.SetEscapeId(btn.GetId())
 		sizer.Add(btn, 0, wx.ALL, 5)
 
 	def init_data(self):
