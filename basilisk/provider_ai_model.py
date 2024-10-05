@@ -50,7 +50,7 @@ class ProviderAIModel:
 		return details
 
 	@property
-	def max_io_tokens(self) -> int:
+	def effective_max_output_tokens(self) -> int:
 		if self.max_output_tokens < 0:
 			return self.context_window
 		return self.max_output_tokens

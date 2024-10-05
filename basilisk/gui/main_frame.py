@@ -73,7 +73,6 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
 		)
-
 		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
 			self.build_profile_menu(self.on_new_conversation),
 			# Translators: A label for a menu item to create a new conversation from a profile
