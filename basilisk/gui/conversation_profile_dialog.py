@@ -283,7 +283,7 @@ class ConversationProfileDialog(wx.Dialog):
 			_("Remove Profile %s") % profile.name,
 			style=wx.YES_NO | wx.ICON_QUESTION,
 		)
-		if confirm_msg == wx.YES:
+		if confirm_msg == wx.ID_YES:
 			self.profiles.remove(profile)
 			self.profiles.save()
 			self.update_ui()
