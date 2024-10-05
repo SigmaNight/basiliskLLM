@@ -176,7 +176,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.submit_btn = wx.Button(
 			self,
 			# Translators: This is a label for submit button in the main window
-			label=_("Su&bmit (Ctrl+Enter)"),
+			label=_("Submit (Ctrl+Enter)"),
 		)
 		self.submit_btn.Bind(wx.EVT_BUTTON, self.on_submit)
 		self.submit_btn.SetDefault()
@@ -198,6 +198,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
 		self.toggle_record_btn.Bind(wx.EVT_BUTTON, self.toggle_recording)
+
+		self.apply_profile_btn = wx.Button(
+			self,
+			# Translators: This is a label for apply profile button in the main window
+			label=_("Apply profile") + " (Ctrl+P)",
+		)
+		self.apply_profile_btn.Bind(wx.EVT_BUTTON, self.on_choose_profile)
+		btn_sizer.Add(self.apply_profile_btn, proportion=0, flag=wx.EXPAND)
 
 		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
 
@@ -229,6 +237,21 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu = wx.GetTopLevelParent(self).build_profile_menu(
 			wx.GetTopLevelParent(self).on_apply_conversation_profile
 		)
+		if not menu.GetMenuItemCount():
+			if (
+				wx.MessageBox(
+					# translators: This message is displayed when no profile is available.
+					_(
+						"You have no conversation profiles. Do you want to open the profile manager?"
+					),
+					# translators: This is a title for the message box
+					_("No conversation profiles"),
+					wx.YES_NO | wx.ICON_INFORMATION,
+				)
+				== wx.YES
+			):
+				wx.GetTopLevelParent(self).on_manage_conversation_profiles(None)
+			return
 
 		self.PopupMenu(menu)
 		menu.Destroy()
