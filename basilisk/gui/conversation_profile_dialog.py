@@ -167,7 +167,7 @@ class ConversationProfileDialog(wx.Dialog):
 			wx.EVT_LIST_ITEM_SELECTED, self.on_list_item_selected
 		)
 		self.profile_detail_label = wx.StaticText(
-			self.panel, label="Profile de&tails:"
+			self.panel, label=_("Profile de&tails:")
 		)
 		self.sizer.Add(self.profile_detail_label, 0, wx.ALL, 5)
 		self.profile_detail_label.Disable()
@@ -179,19 +179,19 @@ class ConversationProfileDialog(wx.Dialog):
 		self.add_btn = wx.Button(
 			self.panel,
 			# translators: Button label to add a new conversation profile
-			label=_("&Add Profile"),
+			label=_("&Add"),
 		)
 
 		self.edit_btn = wx.Button(
 			self.panel,
 			# translators: Button label to edit a conversation profile
-			label=_("&Edit Profile"),
+			label=_("&Edit"),
 		)
 		self.edit_btn.Disable()
 		self.remove_btn = wx.Button(
 			self.panel,
 			# translators: Button label to remove a conversation profile
-			label=_("&Remove Profile"),
+			label=_("&Remove"),
 		)
 		self.remove_btn.Disable()
 		self.default_btn = wx.ToggleButton(

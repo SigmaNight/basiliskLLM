@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BasiliskLLM 0.1.0\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-10-06 16:29+0200\n"
-"PO-Revision-Date: 2024-10-06 16:31+0200\n"
+"POT-Creation-Date: 2024-10-06 17:38+0200\n"
+"PO-Revision-Date: 2024-10-06 17:43+0200\n"
 "Last-Translator: Clément Boussiron <clement.boussiron@gmail.com>\n"
 "Language-Team: fr <LL@li.org>\n"
 "Language: fr\n"
@@ -145,17 +145,23 @@ msgstr "Clé"
 msgid "Source"
 msgstr "Source"
 
-#: basilisk/gui/account_dialog.py:196
+#. translators: Button label to add a new conversation profile
+#: basilisk/gui/account_dialog.py:196 basilisk/gui/account_dialog.py:584
+#: basilisk/gui/conversation_profile_dialog.py:182
 msgid "&Add"
 msgstr "&Ajouter"
 
+#. translators: Button label to edit a conversation profile
 #: basilisk/gui/account_dialog.py:198 basilisk/gui/account_dialog.py:593
+#: basilisk/gui/conversation_profile_dialog.py:188
 msgid "&Edit"
 msgstr "Édit&er"
 
+#. translators: Button label to remove a conversation profile
 #: basilisk/gui/account_dialog.py:201 basilisk/gui/account_dialog.py:597
+#: basilisk/gui/conversation_profile_dialog.py:194
 msgid "&Remove"
-msgstr "Supp&rimer"
+msgstr "&Supprimer"
 
 #: basilisk/gui/account_dialog.py:231 basilisk/gui/account_dialog.py:263
 #: basilisk/gui/account_dialog.py:294 basilisk/gui/account_dialog.py:638
@@ -229,10 +235,6 @@ msgstr "Fournisseur"
 #: basilisk/gui/account_dialog.py:574
 msgid "Active organization"
 msgstr "Organisation active"
-
-#: basilisk/gui/account_dialog.py:584
-msgid "&Add..."
-msgstr "&Ajouter…"
 
 #: basilisk/gui/account_dialog.py:588
 msgid "&Manage organizations..."
@@ -362,20 +364,9 @@ msgstr "Profils de conversation"
 msgid "Profile name"
 msgstr "Nom du profil"
 
-#. translators: Button label to add a new conversation profile
-#: basilisk/gui/conversation_profile_dialog.py:182
-msgid "&Add Profile"
-msgstr "&Ajouter un profil"
-
-#. translators: Button label to edit a conversation profile
-#: basilisk/gui/conversation_profile_dialog.py:188
-msgid "&Edit Profile"
-msgstr "Éditer le profil"
-
-#. translators: Button label to remove a conversation profile
-#: basilisk/gui/conversation_profile_dialog.py:194
-msgid "&Remove Profile"
-msgstr "&Supprimer un profil"
+#: basilisk/gui/conversation_profile_dialog.py:170
+msgid "Profile de&tails:"
+msgstr "Dé&tails du profil :"
 
 #. translators: Button label to set a conversation profile as the default
 #: basilisk/gui/conversation_profile_dialog.py:200

@@ -581,7 +581,7 @@ class AccountDialog(wx.Dialog):
 		self.account_list.Bind(wx.EVT_KEY_DOWN, self.on_account_list_key_down)
 		sizer.Add(self.account_list, 1, wx.EXPAND)
 
-		add_btn = wx.Button(panel, label=_("&Add..."))
+		add_btn = wx.Button(panel, label=_("&Add"))
 		sizer.Add(add_btn, 0, wx.ALL, 5)
 
 		self.manage_organizations = wx.Button(
