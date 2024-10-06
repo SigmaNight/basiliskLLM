@@ -90,7 +90,6 @@ class BasiliskConfig(BasiliskBaseSettings):
 				by_alias=True,
 				exclude_defaults=True,
 				exclude_none=True,
-				exclude_unset=True,
 			),
 			config_file_name,
 		)
