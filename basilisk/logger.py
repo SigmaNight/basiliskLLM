@@ -7,6 +7,7 @@ from typing import Type
 from platformdirs import user_log_path
 
 import basilisk.global_vars as global_vars
+from basilisk.consts import APP_AUTHOR, APP_NAME
 
 
 def get_log_file_path() -> Path:
@@ -16,7 +17,7 @@ def get_log_file_path() -> Path:
 		log_file_path = global_vars.user_data_path / log_file_path
 	else:
 		log_file_path = (
-			user_log_path("basilisk", "basilisk_llm", ensure_exists=True)
+			user_log_path(APP_NAME, APP_AUTHOR, ensure_exists=True)
 			/ log_file_path
 		)
 	return log_file_path

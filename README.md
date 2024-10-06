@@ -24,8 +24,8 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 
 ### Download Options
 
-- Visit the [latest release page](https://github.com/aaclause/basiliskLLM/releases/latest) for the most up-to-date stable version.
-- For pre-releases or historical versions, head over to [all releases](https://github.com/aaclause/basiliskLLM/releases).
+- Visit the [latest release page](https://github.com/SigmaNight/basiliskLLM/releases/latest) for the most up-to-date stable version.
+- For pre-releases or historical versions, head over to [all releases](https://github.com/SigmaNight/basiliskLLM/releases).
 
 ### Available Assets for Each Release
 
@@ -51,7 +51,7 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 **Clone the Repository:**
 
 ```shell
-git clone https://github.com/aaclause/basiliskLLM.git
+git clone https://github.com/SigmaNight/basiliskLLM.git
 cd basiliskLLM
 ```
 

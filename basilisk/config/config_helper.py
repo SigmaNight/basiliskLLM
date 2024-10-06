@@ -12,6 +12,7 @@ from pydantic_settings import (
 )
 
 import basilisk.global_vars as global_vars
+from basilisk.consts import APP_AUTHOR, APP_NAME
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class BasiliskBaseSettings(BaseSettings):
 
 
 user_config_path = get_user_config_path(
-	"basilisk", "basilisk_llm", roaming=True, ensure_exists=True
+	APP_NAME, APP_AUTHOR, roaming=True, ensure_exists=True
 )
 
 
