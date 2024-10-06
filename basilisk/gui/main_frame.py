@@ -360,6 +360,7 @@ class MainFrame(wx.Frame):
 		return on_goto_tab
 
 	def on_new_default_conversation(self, event: Optional[wx.Event]):
+		self.handle_no_account_configured()
 		profile = config.conversation_profiles().default_profile
 		if profile:
 			log.info(
@@ -497,7 +498,10 @@ class MainFrame(wx.Frame):
 
 		account_dialog = AccountDialog(self, _("Manage accounts"))
 		if account_dialog.ShowModal() == wx.ID_OK:
-			self.refresh_tabs()
+			if not config.accounts():
+				self.handle_no_account_configured()
+			else:
+				self.refresh_tabs()
 		account_dialog.Destroy()
 
 	def on_preferences(self, event):
@@ -698,3 +702,18 @@ class MainFrame(wx.Frame):
 			return
 		log.info(f"Applying profile: {profile.name} to conversation")
 		self.current_tab.apply_profile(profile)
+
+	def handle_no_account_configured(self):
+		if config.accounts():
+			return
+		first_account_msg = wx.MessageBox(
+			# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
+			_(
+				"Please add an account first. Do you want to add an account now?"
+			),
+			# translators: This is a title for the message box
+			_("No account configured"),
+			wx.YES_NO | wx.ICON_QUESTION,
+		)
+		if first_account_msg == wx.YES:
+			self.on_manage_accounts(None)

@@ -254,21 +254,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def on_account_change(self, event: wx.CommandEvent):
 		account = super().on_account_change(event)
-		if not account and not config.accounts():
-			first_account_msg = wx.MessageBox(
-				# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
-				_(
-					"Please add an account first. Do you want to add an account now?"
-				),
-				# translators: This is a title for the message box
-				_("No account configured"),
-				wx.YES_NO | wx.ICON_QUESTION,
-			)
-			if first_account_msg == wx.YES:
-				main_frame = wx.GetTopLevelParent(self)
-				main_frame.on_manage_accounts(None)
-				self.on_config_change()
-			return
 		if not account:
 			return
 		self.set_model_list(None)
