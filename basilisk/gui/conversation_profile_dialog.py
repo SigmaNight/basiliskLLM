@@ -285,7 +285,7 @@ class ConversationProfileDialog(wx.Dialog):
 			return
 		confirm_msg = wx.MessageBox(
 			# translators: Message box title for removing a conversation profile
-			_("Are you sure you want to remove the profile: %s ?")
+			_("Are you sure you want to remove the profile: %s?")
 			% profile.name,
 			# translators: Message box title for removing a conversation profile
 			_("Remove Profile %s") % profile.name,
@@ -309,29 +309,29 @@ class ConversationProfileDialog(wx.Dialog):
 		if profile is None:
 			return ""
 		# translators: Summary of a conversation profile
-		summary = _("Name: %s\n") % profile.name
+		summary = _("Name:") + f" {profile.name}\n"
 		if profile.account:
 			# translators: Summary of a conversation profile
-			summary += _("Account name: %s\n") % profile.account.display_name
+			summary += _("Account name:") + f" {profile.account.name}\n"
 		if profile.ai_model_info:
 			# translators: Summary of a conversation profile
-			summary += _("Model: %s\n") % profile.ai_model_info
+			summary += _("Model:") + f" {profile.ai_model_info}\n"
 		if profile.max_tokens:
 			# translators: Summary of a conversation profile
-			summary += _("Max tokens: %s\n") % profile.max_tokens
+			summary += _("Max output tokens:") + f" {profile.max_tokens}\n"
 		if profile.temperature:
 			# translators: Summary of a conversation profile
-			summary += _("Temperature: %s\n") % profile.temperature
+			summary += _("Temperature:") + f" {profile.temperature}\n"
 		if profile.top_p:
 			# translators: Summary of a conversation profile
-			summary += _("Top P: %s\n") % profile.top_p
+			summary += _("Top P:") + f" {profile.top_p}\n"
 		# translators: Summary of a conversation profile
 		stream_mode_value = _("yes") if profile.stream_mode else _("no")
 		# translators: Summary of a conversation profile
-		summary += _("Stream mode: %s\n") % stream_mode_value
+		summary += _("Stream mode:") + f" {stream_mode_value}\n"
 		if profile.system_prompt:
 			# translators: Summary of a conversation profile
-			summary += _("System prompt: %s\n") % profile.system_prompt
+			summary += _("System prompt:") + f"\n{profile.system_prompt}"
 		return summary
 
 	def on_list_item_selected(self, event):

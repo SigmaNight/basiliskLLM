@@ -36,13 +36,13 @@ class ProviderAIModel:
 		details = f"{self.display_name}\n"
 		vision_value = _("yes") if self.vision else _("no")
 		# translator: AI model details
-		details += _("Vision: %s\n") % vision_value
+		details += _("Vision:") + f" {vision_value}\n"
 		# translator: AI model details
-		details += _("Context window: %d\n") % self.context_window
+		details += _("Context window:") + f" {self.context_window}\n"
 		if self.max_output_tokens > 0:
 			# translator: AI model details
-			details += _("Max output tokens: %d\n\n") % self.max_output_tokens
-		details += self.description
+			details += _("Max output tokens:") + f" {self.max_output_tokens}\n"
+		details += f"\n```\n{self.description}\n```"
 		if self.extra_info:
 			details += "\n\n" + "\n".join(
 				f"{k}: {v}" for k, v in self.extra_info.items()

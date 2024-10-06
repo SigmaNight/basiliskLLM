@@ -177,7 +177,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.submit_btn = wx.Button(
 			self,
 			# Translators: This is a label for submit button in the main window
-			label=_("Submit (Ctrl+Enter)"),
+			label=_("Submit") + " (Ctrl+Enter)",
 		)
 		self.submit_btn.Bind(wx.EVT_BUTTON, self.on_submit)
 		self.submit_btn.SetDefault()
@@ -1194,7 +1194,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return new_block.response.content
 		except Exception as e:
 			wx.MessageBox(
-				_("An error occurred during title generation: ") + str(e),
+				_("An error occurred during title generation:") + f" {e}",
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
