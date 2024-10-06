@@ -56,9 +56,11 @@ name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName"
 Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+A"
 Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
 Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n -m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
+
 [CustomMessages]
 CreateDirError=Unable to create directory: %1
 CopyFileError=Unable to copy file from: %1 to: %2
+
 
 
 [Code]
@@ -100,31 +102,23 @@ begin
     FindClose(FindRec);
   end;
 end;
+procedure MigrateAndDeleteDir(SourceDir, DestDir: string);
+begin
+  if DirExists(SourceDir) then
+  begin
+    CopyDirectoryTree(SourceDir, DestDir);
+    DelTree(SourceDir, True, True, True);
+  end;
+end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    if DirExists(expandConstant('{localappdata}\basilisk_llm')) then
-    begin
-      CopyDirectoryTree(expandConstant('{localappdata}\basilisk_llm'), expandConstant('{localappdata}\SigmaNight'));
-      DelTree(expandConstant('{localappdata}\basilisk_llm'), True, True, True);
-    end;
-    if DirExists(expandConstant('{userappdata}\basilisk_llm')) then
-    begin
-      CopyDirectoryTree(expandConstant('{userappdata}\basilisk_llm'), expandConstant('{userappdata}\SigmaNight'));
-      DelTree(expandConstant('{userappdata}\basilisk_llm'), True, True, True);
-    end;
-    if DirExists(expandConstant('{localappdata}\SigmaNight\basilisk')) then
-    begin
-      CopyDirectoryTree(expandConstant('{localappdata}\SigmaNight\basilisk'), expandConstant('{localappdata}\SigmaNight\basiliskLLM'));
-      DelTree(expandConstant('{localappdata}\SigmaNight\basilisk'), True, True, True);
-    end;
-    if DirExists(expandConstant('{userappdata}\SigmaNight\basilisk')) then
-    begin
-      CopyDirectoryTree(expandConstant('{userappdata}\SigmaNight\basilisk'), expandConstant('{userappdata}\SigmaNight\basiliskLLM'));
-      DelTree(expandConstant('{userappdata}\SigmaNight\basilisk'), True, True, True);
-    end;
+    MigrateAndDeleteDir(expandConstant('{localappdata}\basilisk_llm'), expandConstant('{localappdata}\SigmaNight'));
+    MigrateAndDeleteDir(expandConstant('{userappdata}\basilisk_llm'), expandConstant('{userappdata}\SigmaNight'));
+    MigrateAndDeleteDir(expandConstant('{localappdata}\SigmaNight\basilisk'), expandConstant('{localappdata}\SigmaNight\basiliskLLM'));
+    MigrateAndDeleteDir(expandConstant('{userappdata}\SigmaNight\basilisk'), expandConstant('{userappdata}\SigmaNight\basiliskLLM'));
   end;
 end;
 
