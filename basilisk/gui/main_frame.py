@@ -54,6 +54,16 @@ class MainFrame(wx.Frame):
 				item.SetItemLabel(item.GetItemLabel() + suffix)
 
 		menu_bar = wx.MenuBar()
+		self.manage_profile_item = wx.MenuItem(
+			id=wx.ID_ANY,
+			# Translators: A label for a menu item to manage conversation profiles
+			text=_("Manage conversation &profiles") + "...\tCtrl+Shift+P",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			self.on_manage_conversation_profiles,
+			self.manage_profile_item,
+		)
 
 		conversation_menu = wx.Menu()
 
@@ -150,17 +160,7 @@ class MainFrame(wx.Frame):
 			_("Manage &accounts") + "...\tCtrl+Shift+A",
 		)
 		self.Bind(wx.EVT_MENU, self.on_manage_accounts, manage_accounts_item)
-		conversation_profile_item = tool_menu.Append(
-			wx.ID_ANY,
-			# Translators: A label for a menu item to manage conversation profiles
-			_("Manage conversation &profiles") + "...\tCtrl+Shift+P",
-		)
-		self.Bind(
-			wx.EVT_MENU,
-			self.on_manage_conversation_profiles,
-			conversation_profile_item,
-		)
-
+		tool_menu.Append(self.manage_profile_item)
 		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_suffix(preferences_item, "...\tCtrl+,")
@@ -637,6 +637,8 @@ class MainFrame(wx.Frame):
 		for profile in config.conversation_profiles():
 			profile_item = profile_menu.Append(wx.ID_ANY, profile.name)
 			self.Bind(wx.EVT_MENU, event_handler, profile_item)
+		profile_menu.AppendSeparator()
+		profile_menu.Append(self.manage_profile_item)
 		return profile_menu
 
 	def build_name_conversation_menu(self) -> wx.Menu:

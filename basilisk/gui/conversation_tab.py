@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 	from basilisk.recording_thread import RecordingThread
 
+	from .main_frame import MainFrame
 
 log = logging.getLogger(__name__)
 
@@ -234,25 +235,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 
 	def on_choose_profile(self, event: wx.KeyEvent):
-		menu = wx.GetTopLevelParent(self).build_profile_menu(
-			wx.GetTopLevelParent(self).on_apply_conversation_profile
+		main_frame: MainFrame = wx.GetTopLevelParent(self)
+		menu = main_frame.build_profile_menu(
+			main_frame.on_apply_conversation_profile
 		)
-		if not menu.GetMenuItemCount():
-			if (
-				wx.MessageBox(
-					# translators: This message is displayed when no profile is available.
-					_(
-						"You have no conversation profiles. Do you want to open the profile manager?"
-					),
-					# translators: This is a title for the message box
-					_("No conversation profiles"),
-					wx.YES_NO | wx.ICON_INFORMATION,
-				)
-				== wx.YES
-			):
-				wx.GetTopLevelParent(self).on_manage_conversation_profiles(None)
-			return
-
 		self.PopupMenu(menu)
 		menu.Destroy()
 
