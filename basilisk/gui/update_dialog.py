@@ -70,7 +70,7 @@ class DownloadUpdateDialog(wx.Dialog):
 			if download_finished:
 				wx.CallAfter(self.on_download_finished)
 		except Exception as e:
-			log.error(f"Error downloading update: {e}")
+			log.error(f"Error downloading update: {e}", exc_info=True)
 			wx.CallAfter(self.on_download_error, e)
 
 	def on_download_finished(self):

@@ -356,7 +356,7 @@ class GithubUpdater(BaseUpdater):
 
 	def get_download_link(self, installer: bool) -> str:
 		data = self.release_data
-		architecture = self.get_app_architecture()
+		architecture = self.get_app_architecture
 		assets = data["assets"]
 		asset_prefix_name = (
 			"setup_basiliskLLM" if installer else "portable_basiliskLLM"
@@ -487,7 +487,7 @@ def automatic_update_download(
 			notify_update_callback(updater)
 			return updater
 	except Exception as e:
-		log.error(f"Error downloading update: {e}")
+		log.error(f"Error downloading update: {e}", exc_info=True)
 		if retries > 0 and not stop:
 			retries -= 1
 			log.info(f"Retrying update download: {retries} retries left")
