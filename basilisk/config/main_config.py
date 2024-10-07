@@ -23,7 +23,7 @@ config_file_name = "config.yml"
 class GeneralSettings(BaseModel):
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
-	log_level: LogLevelEnum = Field(default=LogLevelEnum.DEBUG)
+	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
 		default=AutomaticUpdateModeEnum.NOTIFY
 	)
