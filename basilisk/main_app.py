@@ -3,6 +3,7 @@ import shutil
 import sys
 import threading
 
+import truststore
 import wx
 
 import basilisk.config as config
@@ -60,6 +61,7 @@ class MainApp(wx.App):
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
 			self.server.start()
+		self.activate_system_cert_store()
 		self.auto_update = None
 		if (
 			self.conf.general.automatic_update_mode
@@ -114,3 +116,9 @@ class MainApp(wx.App):
 
 		log.info("Application exited")
 		return 0
+
+	def activate_system_cert_store(self):
+		if self.conf.network.use_system_cert_store:
+			log.info("Activating system certificate store")
+			truststore.inject_into_ssl()
+			log.info("System certificate store activated")
