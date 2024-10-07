@@ -328,7 +328,7 @@ class NigthlyUpdater(BaseUpdater):
 
 class GithubUpdater(BaseUpdater):
 	def __init__(self, pre_release: bool = False):
-		self.url = f"https://api.github.com/repo/{APP_REPO}/releases"
+		self.url = f"https://api.github.com/repos/{APP_REPO}/releases"
 		self.headers = {
 			"Accept": "application/vnd.github+json",
 			"X-GitHub-Api-Version": "2022-11-28",
