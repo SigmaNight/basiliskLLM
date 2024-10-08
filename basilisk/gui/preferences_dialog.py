@@ -257,12 +257,14 @@ class PreferencesDialog(wx.Dialog):
 
 		self.on_resize(None)
 		sizer.Add(images_group_sizer, 0, wx.ALL, 5)
-		network_group = wx.StaticBox(panel, label=_("Network"))
+		network_group = wx.StaticBox(panel, 
+			# Translators: a group label in the preference dialog
+			label=_("Network"))
 		network_sizer = wx.StaticBoxSizer(network_group, wx.VERTICAL)
 		self.use_system_cert_store = wx.CheckBox(
 			network_group,
 			# Translators: A label for a checkbox in the preferences dialog
-			label=_("Use system certificate store"),
+			label=_("Use system certificate store (Requires restart)"),
 		)
 		self.use_system_cert_store.SetValue(
 			self.conf.network.use_system_cert_store
