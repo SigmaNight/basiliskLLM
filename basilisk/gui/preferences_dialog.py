@@ -257,9 +257,11 @@ class PreferencesDialog(wx.Dialog):
 
 		self.on_resize(None)
 		sizer.Add(images_group_sizer, 0, wx.ALL, 5)
-		network_group = wx.StaticBox(panel, 
+		network_group = wx.StaticBox(
+			panel,
 			# Translators: a group label in the preference dialog
-			label=_("Network"))
+			label=_("Network"),
+		)
 		network_sizer = wx.StaticBoxSizer(network_group, wx.VERTICAL)
 		self.use_system_cert_store = wx.CheckBox(
 			network_group,
