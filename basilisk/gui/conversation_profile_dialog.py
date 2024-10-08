@@ -94,7 +94,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			self.temperature_spinner,
 			self.top_p_label,
 			self.top_p_spinner,
-			self.create_stream_widget,
+			self.stream_mode,
 		)
 		advanced_mode = conf().general.advanced_mode
 		for control in controls:
