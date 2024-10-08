@@ -3,11 +3,8 @@ from typing import Optional
 
 import wx
 
-from basilisk.config import (
-	ConversationProfile,
-	conversation_profiles,
-	main_config,
-)
+from basilisk.config import ConversationProfile, conversation_profiles
+from basilisk.config.main_config import get_basilisk_config as conf
 
 from .base_conversation import BaseConversation
 
@@ -99,7 +96,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			self.top_p_spinner,
 			self.create_stream_widget,
 		)
-		advanced_mode = main_config.general.advanced_mode
+		advanced_mode = conf().general.advanced_mode
 		for control in controls:
 			control.Enable(advanced_mode)
 			control.Show(advanced_mode)
