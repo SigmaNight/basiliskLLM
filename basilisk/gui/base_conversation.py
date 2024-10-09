@@ -157,11 +157,11 @@ class BaseConversation:
 
 	def display_advanced_mode(self):
 		controls = (
-			self.max_token_label,
+			self.max_tokens_spin_label,
 			self.max_tokens_spin_ctrl,
 			self.temperature_spinner_label,
 			self.temperature_spinner,
-			self.top_p_label,
+			self.top_p_spinne_label,
 			self.top_p_spinner,
 			self.stream_mode,
 		)
@@ -252,7 +252,7 @@ class BaseConversation:
 		dlg.Destroy()
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
-		label = wx.StaticText(
+		self.max_tokens_spin_label = wx.StaticText(
 			self,
 			# Translators: This is a label for max tokens in the main window
 			label=_("Max to&kens:"),
@@ -260,10 +260,10 @@ class BaseConversation:
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
 			self, value='0', min=0, max=2000000
 		)
-		return label
+		return self.max_tokens_spin_label
 
 	def create_temperature_widget(self) -> wx.StaticText:
-		label = wx.StaticText(
+		self.temperature_spinner_label = wx.StaticText(
 			self,
 			# Translators: This is a label for temperature in the main window
 			label=_("&Temperature:"),
@@ -279,13 +279,13 @@ class BaseConversation:
 		)
 		float_spin_accessible = FloatSpinTextCtrlAccessible(
 			win=self.temperature_spinner._textctrl,
-			name=label.GetLabel().replace("&", ""),
+			name=self.temperature_spinner_label.GetLabel().replace("&", ""),
 		)
 		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
-		return label
+		return self.temperature_spinner_label
 
 	def create_top_p_widget(self) -> wx.StaticText:
-		label = wx.StaticText(
+		self.top_p_spinne_label = wx.StaticText(
 			self,
 			# Translators: This is a label for top P in the main window
 			label=_("Probabilit&y Mass (top P):"),
@@ -301,10 +301,10 @@ class BaseConversation:
 		)
 		float_spin_accessible = FloatSpinTextCtrlAccessible(
 			win=self.top_p_spinner._textctrl,
-			name=label.GetLabel().replace("&", ""),
+			name=self.max_tokens_spin_label.GetLabel().replace("&", ""),
 		)
 		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
-		return label
+		return self.top_p_spinner_label
 
 	def create_stream_widget(self):
 		self.stream_mode = wx.CheckBox(
