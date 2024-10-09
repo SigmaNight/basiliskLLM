@@ -325,7 +325,7 @@ class BaseConversation:
 			self.max_tokens_spin_ctrl,
 			self.temperature_spinner_label,
 			self.temperature_spinner,
-			self.top_p_spinne_label,
+			self.top_p_spinner_label,
 			self.top_p_spinner,
 			self.stream_mode,
 		)

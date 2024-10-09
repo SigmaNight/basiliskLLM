@@ -23,7 +23,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile = profile
 		self.init_ui()
 		self.apply_profile(self.profile, True)
-		BaseConversation.display_advanced_mode
+		BaseConversation.display_advanced_mode(self)
 
 	def init_ui(self):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
