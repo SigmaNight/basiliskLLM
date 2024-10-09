@@ -269,7 +269,7 @@ class BaseConversation:
 		return self.temperature_spinner_label
 
 	def create_top_p_widget(self) -> wx.StaticText:
-		self.top_p_spinne_label = wx.StaticText(
+		self.top_p_spinner_label = wx.StaticText(
 			self,
 			# Translators: This is a label for top P in the main window
 			label=_("Probabilit&y Mass (top P):"),
