@@ -4,7 +4,6 @@ from typing import Optional
 import wx
 
 from basilisk.config import ConversationProfile, conversation_profiles
-from basilisk.config.main_config import get_basilisk_config as conf
 
 from .base_conversation import BaseConversation
 
@@ -23,24 +22,23 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		BaseConversation.__init__(self)
 		self.profile = profile
 		self.init_ui()
-		self.update_ui()
 		self.apply_profile(self.profile, True)
 
 	def init_ui(self):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-		self.temperature_spinner_label = wx.StaticText(
+		label = wx.StaticText(
 			self,
 			# translators: Label for the name of a conversation profile
 			label=_("profile &name:"),
 		)
-		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
+		self.sizer.Add(label, 0, wx.ALL, 5)
 
 		self.profile_name_txt = wx.TextCtrl(self)
 		self.sizer.Add(self.profile_name_txt, 0, wx.ALL | wx.EXPAND, 5)
 
-		self.temperature_spinner_label = self.create_account_widget()
-		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
+		label = self.create_account_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.account_combo, 0, wx.ALL | wx.EXPAND, 5)
 		self.include_account_checkbox = wx.CheckBox(
 			self,
@@ -48,20 +46,20 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 			label=_("&Include account in profile"),
 		)
 		self.sizer.Add(self.include_account_checkbox, 0, wx.ALL, 5)
-		self.temperature_spinner_label = self.create_system_prompt_widget()
-		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
+		label = self.create_system_prompt_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
-		self.temperature_spinner_label = self.create_model_widget()
-		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
+		label = self.create_model_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
-		self.max_token_label = self.create_max_tokens_widget()
-		self.sizer.Add(self.max_token_label, 0, wx.ALL, 5)
+		label = self.create_max_tokens_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-		self.temperature_spinner_label = self.create_temperature_widget()
-		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
+		label = self.create_temperature_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 5)
-		self.top_p_label = self.create_top_p_widget()
-		self.sizer.Add(self.top_p_label, 0, wx.ALL, 5)
+		label = self.create_top_p_widget()
+		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
 		self.create_stream_widget()
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
@@ -85,22 +83,6 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile_name_txt.SetValue(profile.name)
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(profile.account is not None)
-
-	def update_ui(self):
-		controls = (
-			self.max_token_label,
-			self.max_tokens_spin_ctrl,
-			self.temperature_spinner_label,
-			self.temperature_spinner,
-			self.top_p_label,
-			self.top_p_spinner,
-			self.stream_mode,
-		)
-		advanced_mode = conf().general.advanced_mode
-		for control in controls:
-			control.Enable(advanced_mode)
-			control.Show(advanced_mode)
-		self.Layout()
 
 	def on_ok(self, event):
 		if not self.profile:
