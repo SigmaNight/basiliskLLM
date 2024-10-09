@@ -155,6 +155,22 @@ class BaseConversation:
 			)
 			self.on_model_change(None)
 
+	def display_advanced_mode(self):
+		controls = (
+			self.max_token_label,
+			self.max_tokens_spin_ctrl,
+			self.temperature_spinner_label,
+			self.temperature_spinner,
+			self.top_p_label,
+			self.top_p_spinner,
+			self.stream_mode,
+		)
+		advanced_mode = config.conf().general.advanced_mode
+		for control in controls:
+			control.Enable(advanced_mode)
+			control.Show(advanced_mode)
+		self.Layout()
+
 	@property
 	def current_model(self) -> Optional[ProviderAIModel]:
 		engine = self.current_engine
