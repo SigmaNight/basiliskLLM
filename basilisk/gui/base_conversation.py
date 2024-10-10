@@ -285,7 +285,7 @@ class BaseConversation:
 		)
 		float_spin_accessible = FloatSpinTextCtrlAccessible(
 			win=self.top_p_spinner._textctrl,
-			name=self.max_tokens_spin_label.GetLabel().replace("&", ""),
+			name=self.top_p_spinner_label.GetLabel().replace("&", ""),
 		)
 		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 		return self.top_p_spinner_label
