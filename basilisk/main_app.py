@@ -126,7 +126,10 @@ class MainApp(wx.App):
 			truststore.inject_into_ssl()
 			log.info("System certificate store activated")
 		except Exception as e:
-			log.error(f"Failed to activate system certificate store: {e}", exc_info=True)
+			log.error(
+				f"Failed to activate system certificate store: {e}",
+				exc_info=True,
+			)
 			wx.MessageBox(
 				# Translators: Error message
 				_("Failed to activate system certificate store"),
@@ -134,4 +137,3 @@ class MainApp(wx.App):
 				_("Error"),
 				style=wx.ICON_ERROR,
 			)
-
