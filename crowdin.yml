@@ -1,9 +1,10 @@
 project_id: 724543
+api_token_env: CROWDIN_PERSONAL_TOKEN
 base_path: .
 preserve_hierarchy: true
 files:
-  - source: ./basiliskLLM.pot
-    translation: ./res/locale/%two_letters_code%/basiliskLLM.po
+  - source: basiliskLLM.pot
+    translation: res/locale/%two_letters_code%/basiliskLLM.po
 
 pull_request_title: "chore: update translations"
 pull_request_body: "This PR updates translations file for basiliskLLM"
