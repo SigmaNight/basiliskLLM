@@ -23,7 +23,7 @@ jobs:
 
   upload_on_crowdin:
     uses: ./.github/workflows/upload_crowdin.yml
-
+    needs: [generate_pot]
   release:
     permissions:
       contents: write
