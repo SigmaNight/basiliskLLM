@@ -1,5 +1,6 @@
 api_token_env: CROWDIN_PERSONAL_TOKEN
 project_id: "724543"
+api_token: ""
 base_path: .
 preserve_hierarchy: true
 files:
