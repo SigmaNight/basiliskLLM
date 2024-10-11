@@ -4,7 +4,7 @@ base_path: .
 preserve_hierarchy: true
 files:
   - source: basiliskLLM.pot
-    translation: res/locale/%two_letters_code%/basiliskLLM.po
+    translation: basilisk/res/locale/%two_letters_code%/LC_MESSAGES/basiliskLLM.po
 
 pull_request_title: "chore: update translations"
 pull_request_body: "This PR updates translations file for basiliskLLM"
