@@ -1,0 +1,21 @@
+name: "upload on crowdin"
+on:
+  workflow_call:
+
+jobs:
+  upload_on_crowdin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: download translations template artifact
+        uses: actions/download-artifact@v4
+        with:
+            pattern: basiliskLLM.pot
+      - name: upload on crowdin
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: true
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}

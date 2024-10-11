@@ -21,6 +21,9 @@ jobs:
   generate_pot:
     uses: ./.github/workflows/generate_pot.yml
 
+  upload_on_crowdin:
+    uses: ./.github/workflows/upload_crowdin.yml
+
   release:
     permissions:
       contents: write

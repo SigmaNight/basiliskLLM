@@ -8,13 +8,19 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: install poetry
         uses: abatilo/actions-poetry@v3
+      - name: cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}_x64_poetry_${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_${{ matrix.arch }}_poetry_
+
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
       - name: build POT file
@@ -26,10 +32,3 @@ jobs:
           path: basiliskLLM.pot
           if-no-files-found: error
           retention-days: 30
-      - name: upload on crowdin
-        uses: crowdin/github-action@v2
-        with:
-          upload_sources: true
-          upload_translations: true
-        env:
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
