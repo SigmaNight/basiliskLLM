@@ -32,3 +32,21 @@ jobs:
           path: basiliskLLM.pot
           if-no-files-found: error
           retention-days: 30
+
+  upload_on_crowdin:
+    runs-on: ubuntu-latest
+    needs: [generate_pot]
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: download translations template artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: basiliskLLM.pot
+      - name: upload on crowdin
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: true
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}

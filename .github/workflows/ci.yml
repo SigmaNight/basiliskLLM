@@ -18,12 +18,9 @@ jobs:
   build_app:
     uses: ./.github/workflows/build_app.yml
 
-  generate_pot:
-    uses: ./.github/workflows/generate_pot.yml
+  localisation:
+    uses: ./.github/workflows/localisation.yml
 
-  upload_on_crowdin:
-    uses: ./.github/workflows/upload_crowdin.yml
-    needs: [generate_pot]
   release:
     permissions:
       contents: write
