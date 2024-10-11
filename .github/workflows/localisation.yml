@@ -48,5 +48,6 @@ jobs:
         with:
           upload_sources: true
           upload_translations: true
+          config: "./crowdin.yml"
         env:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
