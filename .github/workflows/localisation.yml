@@ -1,6 +1,13 @@
 name: "Generate POT file"
 on:
   workflow_call:
+    secrets:
+      CROWDIN_TOKEN:
+        required: true
+        description: "Crowdin personal API token"
+      CROWDIN_PROJECT_ID:
+        required: true
+        description: "Crowdin project ID"
 
 jobs:
   generate_pot:
