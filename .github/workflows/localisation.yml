@@ -49,8 +49,14 @@ jobs:
       - name: download translations template artifact
         uses: actions/download-artifact@v4
         with:
-          pattern: basiliskLLM.pot
-      - run: ls -la
+          name: basiliskLLM.pot
+          path: ./translations
+      - name: move translations template
+        run: |
+          ls -la
+          mv translations/basiliskLLM.pot .
+          rm -rf translations
+          ls -la
       - name: upload on crowdin
         uses: crowdin/github-action@v2
         with:
