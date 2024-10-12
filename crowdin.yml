@@ -8,5 +8,6 @@ files:
 
 pull_request_title: "chore: update translations"
 pull_request_body: "This PR updates translations file for basiliskLLM"
+pull_request_labels: ["localization"]
 commit_message: "chore: update translations file from Crowdin for language %language%"
 append_commit_message: false

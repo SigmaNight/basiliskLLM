@@ -18,8 +18,8 @@ jobs:
   build_app:
     uses: ./.github/workflows/build_app.yml
 
-  localisation:
-    uses: ./.github/workflows/localisation.yml
+  localization:
+    uses: ./.github/workflows/localization.yml
     with:
       branch_name: ${{ github.ref_name }}
     secrets:
@@ -31,7 +31,7 @@ jobs:
       contents: write
       pull-requests: read
     if: github.event_name == 'push' && github.ref_type == 'tag'
-    needs: [build_app, localisation]
+    needs: [build_app, localization]
     uses: ./.github/workflows/create_release.yml
     with:
       ref_name: ${{ github.ref_name }}

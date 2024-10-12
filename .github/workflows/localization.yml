@@ -1,4 +1,4 @@
-name: "Generate POT file"
+name: "localization"
 on:
   workflow_call:
     inputs:
