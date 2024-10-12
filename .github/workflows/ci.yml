@@ -20,6 +20,8 @@ jobs:
 
   localisation:
     uses: ./.github/workflows/localisation.yml
+    with:
+      branch_name: ${{ github.ref_name }}
     secrets:
       CROWDIN_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
       CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
