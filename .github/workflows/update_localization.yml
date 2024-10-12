@@ -1,5 +1,8 @@
 name: update translations from Crowdin
 on:
+  push:
+    branches:
+      - crowdinIntegration
   schedule:
     - cron: "0 13 * * 6"
 
