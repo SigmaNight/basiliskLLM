@@ -19,6 +19,9 @@ jobs:
       - name: download translations
         uses: crowdin/github-action@v2
         with:
+          upload_sources: false
+          upload_translations: false
+          config: "./crowdin.yml"
           download_translations: true
           localization_branch_name: "l10nUpdate"
           create_pull_request: true
