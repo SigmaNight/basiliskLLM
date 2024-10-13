@@ -16,6 +16,28 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
+      - name: find success CI workflow run id
+        id: find_run_id
+        shell: bash
+        run: |
+          run_id=$(gh run list -b ${{ github.ref_name }} -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
+          if [ -z "$run_id" ]; then
+            echo "No successful CI workflow run found for branch ${{ github.ref_name }}"
+            echo "Use the run_id from master branch"
+            run_id=$(gh run list -b master -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
+          fi
+          echo "found run_id: $run_id"
+          echo "::set-output name=run_id::$run_id"
+      - name: download translations template artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: basiliskLLM.pot
+          path: ./translations
+          run-id: ${{ steps.find_run_id.outputs.run_id }}
+      - name: move translations template
+        run: |
+          mv translations/basiliskLLM.pot .
+          rm -rf translations
       - name: download translations
         uses: crowdin/github-action@v2
         with:
