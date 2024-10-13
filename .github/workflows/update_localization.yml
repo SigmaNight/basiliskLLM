@@ -1,8 +1,5 @@
 name: update translations from Crowdin
 on:
-  push:
-    branches:
-      - crowdinIntegration
   schedule:
     - cron: "0 13 * * 6"
 
@@ -39,7 +36,12 @@ jobs:
           download_translations: true
           localization_branch_name: "l10nUpdate"
           create_pull_request: true
+          push_sources: true
           pull_request_base_branch_name: master
+          pull_request_title: "chore: update translations"
+          pull_request_body: "This PR updates translations file for basiliskLLM"
+          pull_request_labels: "localization"
+          commit_message: "chore: update translations file from Crowdin for language %language%"
         env:
           CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
