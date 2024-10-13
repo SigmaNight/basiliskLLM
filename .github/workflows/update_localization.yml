@@ -30,7 +30,7 @@ jobs:
             run_id=$(gh run list -b master -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
           fi
           echo "found run_id: $run_id"
-          echo "::set-output name=run_id::$run_id"
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
       - name: download translations template artifact
         uses: actions/download-artifact@v4
         with:
