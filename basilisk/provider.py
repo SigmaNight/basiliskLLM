@@ -81,6 +81,16 @@ providers = [
 		engine_cls_path="basilisk.provider_engine.gemini_engine.GeminiEngine",
 	),
 	Provider(
+		id="infomaniak",
+		name="Infomaniak",
+		base_url="https://api.infomaniak.com/1/ai",
+		api_type=ProviderAPIType.OPENAI,
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="INFOMANIAK_API_KEY",
+		engine_cls_path="basilisk.provider_engine.infomaniak_engine.InfomaniakEngine",
+	),
+	Provider(
 		id="mistralai",
 		name="MistralAI",
 		base_url="https://api.mistral.ai/v1",
