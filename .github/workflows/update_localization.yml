@@ -9,6 +9,7 @@ on:
 permissions:
   pull-requests: write
   contents: write
+  actions: read
 
 jobs:
   run:
@@ -19,6 +20,8 @@ jobs:
       - name: find success CI workflow run id
         id: find_run_id
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           run_id=$(gh run list -b ${{ github.ref_name }} -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
           if [ -z "$run_id" ]; then
