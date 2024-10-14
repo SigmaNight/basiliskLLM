@@ -244,7 +244,6 @@ class BaseConversation:
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
 			self, value='0', min=0, max=2000000
 		)
-		return self.max_tokens_spin_label
 
 	def create_temperature_widget(self) -> wx.StaticText:
 		self.temperature_spinner_label = wx.StaticText(
@@ -266,7 +265,6 @@ class BaseConversation:
 			name=self.temperature_spinner_label.GetLabel().replace("&", ""),
 		)
 		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
-		return self.temperature_spinner_label
 
 	def create_top_p_widget(self) -> wx.StaticText:
 		self.top_p_spinner_label = wx.StaticText(
@@ -288,7 +286,6 @@ class BaseConversation:
 			name=self.top_p_spinner_label.GetLabel().replace("&", ""),
 		)
 		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
-		return self.top_p_spinner_label
 
 	def create_stream_widget(self):
 		self.stream_mode = wx.CheckBox(
