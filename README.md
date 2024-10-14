@@ -1,5 +1,7 @@
 # 🐍 BasiliskLLM: Where LLMs Unite
 
+[![Crowdin](https://badges.crowdin.net/basiliskllm/localized.svg)](https://crowdin.com/project/basiliskllm)
+[![Continuous Integration](https://github.com/SigmaNight/basiliskLLM/actions/workflows/ci.yml/badge.svg)](https://github.com/SigmaNight/basiliskLLM/actions/workflows/ci.yml)
 In Development - It's still in its infancy. Use with caution!
 
 ## So, What's the Idea Here?
