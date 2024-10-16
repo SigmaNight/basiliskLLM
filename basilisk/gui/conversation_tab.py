@@ -443,25 +443,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def refresh_images_list(self):
 		self.images_list.DeleteAllItems()
-		if not self.image_files:
-			self.images_list_label.Hide()
-			self.images_list.Hide()
-			self.Layout()
-			return
-		self.images_list_label.Show()
-		self.images_list.Show()
+		images_count = len(self.image_files)
+		self.images_list_label.Show(images_count > 0)
+		self.images_list.Show(images_count > 0)
 		self.Layout()
-		for i, image in enumerate(self.image_files):
-			self.images_list.InsertItem(i, image.name)
-			self.images_list.SetItem(i, 1, image.size)
-			self.images_list.SetItem(
-				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
+		for image in self.image_files:
+			self.images_list.Append(
+				[
+					image.name,
+					image.size,
+					f"{image.dimensions[0]}x{image.dimensions[1]}",
+					image.display_location,
+				]
 			)
-			self.images_list.SetItem(i, 3, image.display_location)
-		self.images_list.SetItemState(
-			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
-		)
-		self.images_list.EnsureVisible(i)
+		if images_count > 0:
+			self.images_list.SetItemState(
+				images_count - 1, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
+			)
+			self.images_list.EnsureVisible(images_count - 1)
 
 	def add_images(self, path: list[str | ImageFile]):
 		log.debug(f"Adding images: {path}")
