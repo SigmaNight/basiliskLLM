@@ -19,14 +19,58 @@ class MistralAIEngine(OpenAIEngine):
 		# See <https://docs.mistral.ai/getting-started/models/>
 		models = [
 			ProviderAIModel(
-				id="mistral-large-latest",
+				id="ministral-3b-latest",
+				name="Ministral 3B",
+				# Translators: This is a model description
+				description=_("World’s best edge model."),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="ministral-8b-latest",
+				name="Ministral 8B",
 				# Translators: This is a model description
 				description=_(
-					"Our flagship model that's ideal for complex tasks that require large reasoning capabilities or are highly specialized (Synthetic Text Generation, Code Generation, RAG, or Agents)"
+					"Powerful edge model with extremely high performance/price ratio."
 				),
 				context_window=128000,
 				max_temperature=1.0,
 				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="mistral-large-latest",
+				name="Mistral Large",
+				# Translators: This is a model description
+				description=_(
+					"Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024."
+				),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="mistral-small-latest",
+				name="Mistral Small",
+				# Translators: This is a model description
+				description=_(
+					"Our latest enterprise-grade small model with the lastest version v2 released September 2024."
+				),
+				context_window=32000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="pixtral-12b-2409",
+				name="Pixtral",
+				# Translators: This is a model description
+				description=_(
+					"A 12B model with image understanding capabilities in addition to text."
+				),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
 			),
 			ProviderAIModel(
 				id="open-mistral-nemo",
