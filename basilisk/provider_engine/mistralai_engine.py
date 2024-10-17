@@ -19,14 +19,69 @@ class MistralAIEngine(OpenAIEngine):
 		# See <https://docs.mistral.ai/getting-started/models/>
 		models = [
 			ProviderAIModel(
-				id="mistral-large-latest",
+				id="ministral-3b-latest",
+				name="Ministral 3B",
+				# Translators: This is a model description
+				description=_("World’s best edge model"),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="ministral-8b-latest",
+				name="Ministral 8B",
 				# Translators: This is a model description
 				description=_(
-					"Our flagship model that's ideal for complex tasks that require large reasoning capabilities or are highly specialized (Synthetic Text Generation, Code Generation, RAG, or Agents)"
+					"Powerful edge model with extremely high performance/price ratio"
 				),
 				context_window=128000,
 				max_temperature=1.0,
 				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="mistral-large-latest",
+				name="Mistral Large",
+				# Translators: This is a model description
+				description=_(
+					"Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024"
+				),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="mistral-small-latest",
+				name="Mistral Small",
+				# Translators: This is a model description
+				description=_(
+					"Our latest enterprise-grade small model with the lastest version v2 released September 2024"
+				),
+				context_window=32000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="codestral-latest",
+				name="Codestral",
+				# Translators: This is a model description
+				description=_(
+					"Our cutting-edge language model for coding released May 2024"
+				),
+				context_window=32000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="pixtral-12b-2409",
+				name="Pixtral",
+				# Translators: This is a model description
+				description=_(
+					"A 12B model with image understanding capabilities in addition to text"
+				),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
 			),
 			ProviderAIModel(
 				id="open-mistral-nemo",
@@ -40,23 +95,10 @@ class MistralAIEngine(OpenAIEngine):
 				default_temperature=0.7,
 			),
 			ProviderAIModel(
-				id="codestral-latest",
-				name="Codestral",
-				# Translators: This is a model description
-				description=_(
-					"A cutting-edge generative model that has been specifically designed and optimized for code generation tasks, including fill-in-the-middle and code completion"
-				),
-				context_window=32000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
 				id="open-mistral-7b",
 				name="Mistral 7B",
 				# Translators: This is a model description
-				description=_(
-					"The first dense model released by Mistral AI, perfect for experimentation, customization, and quick iteration"
-				),
+				description=_("Our first dense model released September 2023"),
 				context_window=32000,
 				max_temperature=1.0,
 				default_temperature=0.7,
@@ -66,7 +108,7 @@ class MistralAIEngine(OpenAIEngine):
 				name="Mixtral 8x7B",
 				# Translators: This is a model description
 				description=_(
-					"A sparse mixture of experts model. As such, it leverages up to 45B parameters but only uses about 12B during inference, leading to better inference throughput at the cost of more vRAM"
+					"Our first sparse mixture-of-experts released December 2023"
 				),
 				context_window=32000,
 				max_temperature=1.0,
@@ -77,7 +119,7 @@ class MistralAIEngine(OpenAIEngine):
 				name="Mixtral 8x22B",
 				# Translators: This is a model description
 				description=_(
-					"A bigger sparse mixture of experts model. As such, it leverages up to 141B parameters but only uses about 39B during inference, leading to better inference throughput at the cost of more vRAM"
+					"Our best open source model to date released April 2024"
 				),
 				context_window=64000,
 				max_temperature=1.0,
