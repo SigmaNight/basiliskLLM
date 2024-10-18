@@ -90,7 +90,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._search_dialog = None
 		self.init_ui()
 		self.init_data(profile)
-		self.display_advanced_mode()
+		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -476,7 +476,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.refresh_accounts()
 		self.on_account_change(None)
 		self.on_model_change(None)
-		self.display_advanced_mode()
+		self.adjust_advanced_mode_setting()
 
 	def add_standard_context_menu_items(
 		self, menu: wx.Menu, include_paste: bool = True

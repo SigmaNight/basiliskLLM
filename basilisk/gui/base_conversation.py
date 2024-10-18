@@ -316,7 +316,7 @@ class BaseConversation:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
 
-	def display_advanced_mode(self):
+	def adjust_advanced_mode_setting(self):
 		controls = (
 			self.max_tokens_spin_label,
 			self.max_tokens_spin_ctrl,
