@@ -1241,13 +1241,13 @@ test = ["pytest", "pytest-cov", "pytest-tldr"]
 
 [[package]]
 name = "markdown2"
-version = "2.5.0"
+version = "2.5.1"
 description = "A fast and complete Python implementation of Markdown"
 optional = false
 python-versions = "<4,>=3.8"
 files = [
-    {file = "markdown2-2.5.0-py2.py3-none-any.whl", hash = "sha256:300d4429b620ebc974ef512339a9e08bc080473f95135a91f33906e24e8280c1"},
-    {file = "markdown2-2.5.0.tar.gz", hash = "sha256:9bff02911f8b617b61eb269c4c1a5f9b2087d7ff051604f66a61b63cab30adc2"},
+    {file = "markdown2-2.5.1-py2.py3-none-any.whl", hash = "sha256:190ae60a4bd0425c60c863bede18a9f3d45b1cbf3fbc9f40b4fac336ff2c520b"},
+    {file = "markdown2-2.5.1.tar.gz", hash = "sha256:12fc04ea5a87f7bb4b65acf5bf3af1183b20838cc7d543b74c92ec7eea4bbc74"},
 ]
 
 [package.extras]
@@ -2476,4 +2476,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "6af5a1873d2e9e0fcba37d8259548e3f42285b685a205a9d1f66d8066335a083"
+content-hash = "a2d2a6800fd95ee2c31bcf691dbe84511110fd88d2028fe5336d931dc8af99b4"
