@@ -715,12 +715,12 @@ httplib2 = ">=0.19.0"
 
 [[package]]
 name = "google-generativeai"
-version = "0.8.2"
+version = "0.8.3"
 description = "Google Generative AI High level API client library and tools."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "google_generativeai-0.8.2-py3-none-any.whl", hash = "sha256:fabc0e2e8d2bfb6fdb1653e91dba83fecb2a2a6878883b80017def90fda8032d"},
+    {file = "google_generativeai-0.8.3-py3-none-any.whl", hash = "sha256:1108ff89d5b8e59f51e63d1a8bf84701cd84656e17ca28d73aeed745e736d9b7"},
 ]
 
 [package.dependencies]
@@ -2476,4 +2476,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "f9808c74e786e4b598676df1cf74fac9c0e358da8dd21b01e1ef29f7ef792ff8"
+content-hash = "6af5a1873d2e9e0fcba37d8259548e3f42285b685a205a9d1f66d8066335a083"
