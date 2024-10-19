@@ -44,7 +44,7 @@ google-generativeai = "^0.8.3"
 pillow = "^10.4.0"
 keyring = "^25.4.1"
 more-itertools = "^10.5.0"
-markdown2 = "^2.5.0"
+markdown2 = "^2.5.1"
 truststore = "^0.9.2"
 
 [tool.poetry.group.dev.dependencies]
