@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,8 +27,8 @@ class TextMessageContent(BaseModel):
 
 class Message(BaseModel):
 	role: MessageRoleEnum
-	content: list[TextMessageContent | ImageUrlMessageContent] | str = Field(
-		discrminator="type"
+	content: list[TextMessageContent | ImageUrlMessageContent] | str | Any = (
+		Field(discrminator="type")
 	)
 
 
@@ -39,6 +39,8 @@ class MessageBlock(BaseModel):
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
 	top_p: float = Field(default=1)
+	modalities: Optional[list[str]] = Field(default=None)
+	audio: Optional[dict[str, str]] = Field(default=None)
 	stream: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)

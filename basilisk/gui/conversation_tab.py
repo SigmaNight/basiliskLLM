@@ -77,7 +77,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
-		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
+		self.SetStatusText = parent.GetTopLevelParent().SetStatusText
 		self.conversation = Conversation()
 		self.image_files = []
 		self.last_time = 0
@@ -94,11 +94,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def init_ui(self):
 		sizer = wx.BoxSizer(wx.VERTICAL)
-		label = self.create_account_widget()
+		label = self.create_account_widget(self)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
 
-		label = self.create_system_prompt_widget()
+		label = self.create_system_prompt_widget(self)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.system_prompt_txt, proportion=1, flag=wx.EXPAND)
 
@@ -157,19 +157,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.images_list.SetColumnWidth(2, 100)
 		self.images_list.SetColumnWidth(3, 200)
 		sizer.Add(self.images_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		label = self.create_model_widget()
+		label = self.create_model_widget(self)
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.create_max_tokens_widget()
+		self.create_max_tokens_widget(self)
 		sizer.Add(self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
-		self.create_temperature_widget()
+		self.create_temperature_widget(self)
 		sizer.Add(self.temperature_spinner_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
-		self.create_top_p_widget()
+		self.create_top_p_widget(self)
 		sizer.Add(self.top_p_spinner_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
-		self.create_stream_widget()
+		self.create_stream_widget(self)
 		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
 
 		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -982,6 +982,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.recording_thread.stop()
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
+
+	def on_voice_mode(self, event: wx.CommandEvent = None):
+		cur_provider = self.current_engine
+		if ProviderCapability.VOICE not in cur_provider.capabilities:
+			wx.MessageBox(
+				_("The selected provider does not support voice mode"),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		from .conversation_voice_mode_dialog import ConversationVoiceModeDialog
+
+		account = self.current_account
+		voice_mode_dialog = ConversationVoiceModeDialog(self, account)
+		voice_mode_dialog.ShowModal()
+		voice_mode_dialog.Destroy()
 
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):

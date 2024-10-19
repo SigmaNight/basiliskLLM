@@ -134,6 +134,12 @@ class MainFrame(wx.Frame):
 			lambda e: self.on_transcribe_audio(e, False),
 			transcribe_audio_file_item,
 		)
+		voice_mode_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to enter voice mode
+			_("&Voice mode") + "...\tCtrl+Shift+V",
+		)
+		self.Bind(wx.EVT_MENU, self.on_voice_mode, voice_mode_item)
 		conversation_menu.AppendSeparator()
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
@@ -471,6 +477,15 @@ class MainFrame(wx.Frame):
 			current_tab.toggle_recording(event)
 		else:
 			current_tab.on_transcribe_audio_file()
+
+	def on_voice_mode(self, event: wx.Event):
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		current_tab.on_voice_mode()
 
 	def refresh_frame_title(self):
 		current_tab = self.current_tab
