@@ -272,17 +272,17 @@ class MainFrame(wx.Frame):
 		"""
 		self.RegisterHotKey(
 			HotkeyAction.TOGGLE_VISIBILITY.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('B'),
+			win32con.MOD_WIN | win32con.MOD_ALT,
+			win32con.VK_SPACE,
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_FULL.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('F'),
+			win32con.MOD_WIN | win32con.MOD_CONTROL,
+			ord('U'),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_WINDOW.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			win32con.MOD_WIN | win32con.MOD_CONTROL,
 			ord('W'),
 		)
 
