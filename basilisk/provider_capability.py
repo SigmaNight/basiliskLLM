@@ -6,3 +6,4 @@ class ProviderCapability(Enum):
 	TEXT = "text"
 	STT = "stt"
 	TTS = "tts"
+	VOICE = "voice"

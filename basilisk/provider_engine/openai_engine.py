@@ -27,7 +27,9 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
+		ProviderCapability.VOICE,
 	}
+	voices = ("alloy", "echo", "fable", "onyx", "nova", "shimmer")
 
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)
@@ -80,6 +82,18 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=16384,
 				vision=True,
 				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4o-audio-preview",
+				# Translators: This is a model description
+				description=_(
+					"Preview release for audio inputs in chat completions."
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+				voice_mode=True,
 			),
 			ProviderAIModel(
 				id="gpt-4o-mini",
@@ -255,6 +269,10 @@ class OpenAIEngine(BaseEngine):
 		}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		if new_block.modalities:
+			params["modalities"] = new_block.modalities
+		if new_block.audio:
+			params["audio"] = new_block.audio
 		params.update(kwargs)
 		response = self.client.chat.completions.create(**params)
 		return response
@@ -270,9 +288,10 @@ class OpenAIEngine(BaseEngine):
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
+		text = self.normalize_linesep(response.choices[0].message.content)
+		audio = response.choices[0].message.audio
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=self.normalize_linesep(response.choices[0].message.content),
+			role=MessageRoleEnum.ASSISTANT, content=text or audio
 		)
 		return new_block
 

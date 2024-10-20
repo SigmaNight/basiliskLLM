@@ -16,6 +16,7 @@ class ProviderAIModel:
 	max_temperature: float = field(default=1.0)
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
+	voice_mode: bool = field(default=False)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
