@@ -154,6 +154,14 @@ class MainFrame(wx.Frame):
 		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_suffix(preferences_item, "...\tCtrl+,")
+		global_shortcuts_item = tool_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage global shortcuts
+			_("Manage global shortcuts") + "...\tCtrl+Shift+K",
+		)
+		self.Bind(
+			wx.EVT_MENU, self.on_manage_global_shortcuts, global_shortcuts_item
+		)
 		tool_menu.AppendSeparator()
 		install_nvda_addon = tool_menu.Append(
 			wx.ID_ANY, _("Install NVDA addon")
@@ -502,6 +510,13 @@ class MainFrame(wx.Frame):
 		if preferences_dialog.ShowModal() == wx.ID_OK:
 			self.refresh_tabs()
 		preferences_dialog.Destroy()
+
+	def on_manage_global_shortcuts(self, event):
+		from .global_shortcuts_dialog import GlobalShortcutsDialog
+
+		global_shortcuts_dialog = GlobalShortcutsDialog(self)
+		global_shortcuts_dialog.ShowModal()
+		global_shortcuts_dialog.Destroy()
 
 	def on_manage_conversation_profiles(self, event):
 		from .conversation_profile_dialog import ConversationProfileDialog
