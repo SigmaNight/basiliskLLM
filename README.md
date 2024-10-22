@@ -204,9 +204,21 @@ iscc win_installer.iss
 
 This will create an installer in the `output_setup` directory.
 
-### 🌍 Translations
+## 🌍 Translations
 
-This project welcomes translations. If you'd like to help translate the project into your language, you can retrieve the `.pot` (Portable Object Template) file from the releases page and translate it using a text editor like [Poedit](https://poedit.net/).
+This project welcomes translations.
+If you'd like to help translate the project into your language, you have two methods to choose from:
+
+### using Crowdin (recommended)
+
+You can contribute translations using the Crowdin platform. You must have a Crowdin account to contribute.
+Then visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm) to get started.
+If your language is not listed, please open an issue to request it.
+To translate you can use the Crowdin web interface or the Crowdin CLI.
+
+### using the `.pot` file
+
+You can retrieve the `.pot` (Portable Object Template) file from the releases page and translate it using a text editor like [Poedit](https://poedit.net/).
 
 Alternatively, generate a `.pot` file from the source code with the following command:
 
