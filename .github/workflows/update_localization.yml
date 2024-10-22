@@ -2,6 +2,7 @@ name: update translations from Crowdin
 on:
   schedule:
     - cron: "0 13 * * 6"
+  workflow_dispatch:
 
 permissions:
   pull-requests: write

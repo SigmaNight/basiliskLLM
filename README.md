@@ -214,7 +214,7 @@ If you'd like to help translate the project into your language, you have two met
 You can contribute translations using the Crowdin platform. You must have a Crowdin account to contribute.
 Then visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm) to get started.
 If your language is not listed, please open an issue to request it.
-To translate you can use the Crowdin web interface or the Crowdin CLI.
+To translate, you can use the Crowdin web interface or the Crowdin CLI.
 
 ### using the `.pot` file
 
