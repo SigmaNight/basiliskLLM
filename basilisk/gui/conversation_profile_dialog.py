@@ -23,6 +23,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile = profile
 		self.init_ui()
 		self.apply_profile(self.profile, True)
+		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -52,14 +53,14 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = self.create_model_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
-		label = self.create_max_tokens_widget()
-		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.create_max_tokens_widget()
+		self.sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-		label = self.create_temperature_widget()
-		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.create_temperature_widget()
+		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 5)
-		label = self.create_top_p_widget()
-		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.create_top_p_widget()
+		self.sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
 		self.create_stream_widget()
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
