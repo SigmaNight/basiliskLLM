@@ -2,6 +2,7 @@
 
 [![Crowdin](https://badges.crowdin.net/basiliskllm/localized.svg)](https://crowdin.com/project/basiliskllm)
 [![Continuous Integration](https://github.com/SigmaNight/basiliskLLM/actions/workflows/ci.yml/badge.svg)](https://github.com/SigmaNight/basiliskLLM/actions/workflows/ci.yml)
+
 In Development - It's still in its infancy. Use with caution!
 
 ## So, What's the Idea Here?
@@ -15,12 +16,12 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 ## Key features
 
 - **Multi-Chat Support**: Chat with multiple LLMs at the same time.
-- **Describe Image**: Describe the image in the chat. The image source can be a screenshot, a regular file, or a URL.
-- **Speech to Text**: Transcribe text from the microphone or an audio file into the prompt.
-- **Multi-Conversation**: You can have multiple conversations at the same time.
-- **Auto-Update**: The app will check for new versions and update automatically.
-- **NVDA Add-on**: You can send the image of the current object directly to the active chat from any application.
-- **Secure Your Credentials**: You can secure your credentials using the Windows Credential Manager.
+- **Describe Image**: Analyze images directly in the chat, whether they are from a screenshot, file, or URL.
+- **Speech to Text**: Turn speech into text using your microphone or an audio file.
+- **Multi-Conversation Support**: Manage several conversations at once, each in its own tab.
+- **Auto-Update**: The app checks and installs updates automatically, so you're always on the latest version.
+- **NVDA Add-on Integration**: Send the current navigator object's image directly to the active chat from any application, enhancing accessibility for those using NVDA.
+- **Credential Security**: Protect your credentials by using the Windows Credential Manager.
 
 ## Download and installation
 
@@ -31,10 +32,10 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 
 ### Available Assets for Each Release
 
-- **Setup for Windows x64**: Traditional installer for 64-bit Windows systems.
+- **Setup for Windows x64**: Traditional installer for 64-bit Windows systems. Suitable if you prefer a standard installation.
 - **Setup for Windows x86**: Traditional installer for 32-bit Windows systems.
-- **Portable Version for Windows x64**: No installation required, just extract and run `basilisk.exe`.
-- **Portable Version for Windows x86**: No installation required, just extract and run `basilisk.exe`.
+- **Portable Version for Windows x64**: No installation needed, just extract and run `basilisk.exe`. Ideal for users who prefer not to install software.
+- **Portable Version for Windows x86**: No installation needed, just extract and run `basilisk.exe`.
 
 ### Installation Using the Setup Installer
 
@@ -143,7 +144,7 @@ You have four update modes available:
 
 ## 🛠 Setting Up Your Dev Palace 🏰
 
-Requirements: Python 3.12 (because we settle for nothing but the best, naturally)
+Requirements: Python 3.12
 
 The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/#installing-with-pipx).
 For short reference:
@@ -206,21 +207,17 @@ This will create an installer in the `output_setup` directory.
 
 ## 🌍 Translations
 
-This project welcomes translations.
-If you'd like to help translate the project into your language, you have two methods to choose from:
+We welcome and appreciate translations for this project. If you're interested in helping us translate the content into your language, you have two options:
 
-### using Crowdin (recommended)
+### Recommended: Use Crowdin
 
-You can contribute translations using the Crowdin platform. You must have a Crowdin account to contribute.
-Then visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm) to get started.
-If your language is not listed, please open an issue to request it.
-To translate, you can use the Crowdin web interface or the Crowdin CLI.
+The preferred method is to use the Crowdin platform. To begin, ensure you have a Crowdin account and visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm). If your language is not currently supported, please open an issue to request its addition. You can contribute translations via the Crowdin web interface or the Crowdin CLI.
 
-### using the `.pot` file
+### Alternative: Use the `.pot` File
 
-You can retrieve the `.pot` (Portable Object Template) file from the releases page and translate it using a text editor like [Poedit](https://poedit.net/).
+Alternatively, you can work with the `.pot` (Portable Object Template) file. Download it from the releases page and use a text editor such as [Poedit](https://poedit.net/) for translation.
 
-Alternatively, generate a `.pot` file from the source code with the following command:
+If you prefer, you can also generate a `.pot` file directly from the source code with the following command:
 
 ```shell
 python setup.py extract_messages
