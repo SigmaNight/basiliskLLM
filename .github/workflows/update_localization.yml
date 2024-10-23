@@ -1,0 +1,49 @@
+name: update translations from Crowdin
+on:
+  schedule:
+    - cron: "0 13 * * 6"
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+  actions: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: download previous translation template from successful CI run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          run_id=$(gh run list -b ${{ github.ref_name }} -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
+          if [ -z "$run_id" ]; then
+            echo "No successful CI workflow run found for branch ${{ github.ref_name }}"
+            echo "Use the run_id from master branch"
+            run_id=$(gh run list -b master -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
+          fi
+          echo "found run_id: $run_id"
+          gh run download $run_id  --name basiliskLLM.pot
+      - name: download translations
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: false
+          upload_translations: false
+          config: "./crowdin.yml"
+          download_translations: true
+          localization_branch_name: "l10nUpdate"
+          create_pull_request: true
+          push_sources: true
+          pull_request_base_branch_name: master
+          pull_request_title: "chore: update translations"
+          pull_request_body: "This PR updates translations file for basiliskLLM"
+          pull_request_labels: "localization"
+          commit_message: "chore: update translations file from Crowdin for language %language%"
+        env:
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
