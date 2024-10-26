@@ -188,7 +188,7 @@ class BaseUpdater(ABC):
 	def update_with_installer(self):
 		subprocess.Popen(
 			executable=self.downloaded_file,
-			args="/VERYSILENT",
+			args=["/SILENT"],
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.DEVNULL,
 			stdin=subprocess.DEVNULL,
