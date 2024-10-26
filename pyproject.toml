@@ -50,7 +50,7 @@ truststore = "^0.10.0"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.0"
 pre-commit = "^4.0.1"
-commitizen = "^3.29.1"
+commitizen = "^3.30.0"
 babel = "^2.15.0"
 setuptools-scm = "^8.0.4"
 
