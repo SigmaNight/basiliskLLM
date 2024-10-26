@@ -9,6 +9,20 @@ from basilisk.updater import BaseUpdater, get_updater_from_channel
 log = getLogger(__name__)
 
 
+def show_release_notes(updater: BaseUpdater):
+	"""
+	Display the release notes for the latest version of basiliskLLM.
+	"""
+	from .html_view_window import HtmlViewWindow
+
+	HtmlViewWindow(
+		parent=None,
+		content=updater.release_notes,
+		content_format="markdown",
+		title=_("Release Notes for basiliskLLM %s") % updater.latest_version,
+	).Show()
+
+
 class DownloadUpdateDialog(wx.Dialog):
 	def __init__(
 		self,
@@ -31,6 +45,18 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.sizer.Add(self.downloading_label, 0, wx.ALL | wx.CENTER, 10)
 		self.downloading_gauge = wx.Gauge(self.panel, range=100)
 		self.sizer.Add(self.downloading_gauge, 0, wx.ALL | wx.EXPAND, 10)
+		self.update_button = wx.Button(self.panel, label=_("Update &now"))
+		self.update_button.Bind(wx.EVT_BUTTON, self.on_update)
+		self.sizer.Add(self.update_button, 0, wx.ALL | wx.CENTER, 10)
+		self.release_notes_button = wx.Button(
+			self.panel, label=_("&Release notes")
+		)
+		self.release_notes_button.Disable()
+		self.release_notes_button.Hide()
+		self.release_notes_button.Bind(
+			wx.EVT_BUTTON, lambda _: show_release_notes(self.updater)
+		)
+		self.sizer.Add(self.release_notes_button, 0, wx.ALL | wx.CENTER, 10)
 		self.cancel_button = wx.Button(self.panel, id=wx.ID_CANCEL)
 		self.cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
 		self.sizer.Add(self.cancel_button, 0, wx.ALL | wx.CENTER, 10)
@@ -44,8 +70,6 @@ class DownloadUpdateDialog(wx.Dialog):
 			% self.updater.latest_version,
 		)
 		self.sizer.Add(self.update_label, 0, wx.ALL | wx.CENTER, 10)
-		self.update_button = wx.Button(self.panel, label=_("Update now"))
-		self.update_button.Bind(wx.EVT_BUTTON, self.on_update)
 		self.panel.SetSizer(self.sizer)
 		if getattr(self.updater, "downloaded_file", None):
 			self.on_download_finished()
@@ -80,6 +104,9 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.update_label.Show()
 		self.update_button.Enable()
 		self.update_button.Show()
+		if self.updater.release_notes:
+			self.release_notes_button.Show()
+			self.release_notes_button.Enable()
 		self.update_button.SetFocus()
 		self.Layout()
 
@@ -147,9 +174,18 @@ class UpdateDialog(wx.Dialog):
 			self.panel, label=_("New version: ")
 		)
 		self.sizer.Add(self.new_version_label, 0, wx.ALL | wx.CENTER, 10)
-		self.update_button = wx.Button(self.panel, label=_("Update now"))
+		self.update_button = wx.Button(self.panel, label=_("Update &now"))
 		self.update_button.Bind(wx.EVT_BUTTON, self.on_update)
 		self.sizer.Add(self.update_button, 0, wx.ALL | wx.CENTER, 10)
+		self.release_notes_button = wx.Button(
+			self.panel, label=_("&Release notes")
+		)
+		self.release_notes_button.Disable()
+		self.release_notes_button.Hide()
+		self.release_notes_button.Bind(
+			wx.EVT_BUTTON, lambda _: show_release_notes(self.updater)
+		)
+		self.sizer.Add(self.release_notes_button, 0, wx.ALL | wx.CENTER, 10)
 		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
 		self.close_button.Bind(wx.EVT_BUTTON, self.on_close)
 		self.sizer.Add(self.close_button, 0, wx.ALL | wx.CENTER, 10)
@@ -210,6 +246,9 @@ class UpdateDialog(wx.Dialog):
 		self.update_button.Enable()
 		self.update_button.Show()
 		self.update_button.SetFocus()
+		if self.updater.release_notes:
+			self.release_notes_button.Enable()
+			self.release_notes_button.Show()
 		self.Layout()
 
 	def on_no_updates(self):

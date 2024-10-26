@@ -81,6 +81,10 @@ class BaseUpdater(ABC):
 	def latest_version(self) -> str:
 		pass
 
+	@property
+	def release_notes(self) -> Optional[str]:
+		return None
+
 	@cached_property
 	def is_update_enable(self) -> bool:
 		return getattr(sys, "frozen", False)
@@ -349,6 +353,10 @@ class GithubUpdater(BaseUpdater):
 					data = release
 					break
 		return data
+
+	@property
+	def release_notes(self) -> Optional[str]:
+		return self.release_data.get("body", None)
 
 	@cached_property
 	def latest_version(self) -> str:
