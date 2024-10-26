@@ -123,4 +123,4 @@ begin
 end;
 
 [Run]
-Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall skipifsilent unchecked
+Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#SetupSetting("AppName")}}"; Flags: nowait postinstall
