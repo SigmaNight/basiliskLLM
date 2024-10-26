@@ -2316,13 +2316,13 @@ telegram = ["requests"]
 
 [[package]]
 name = "truststore"
-version = "0.9.2"
+version = "0.10.0"
 description = "Verify certificates using native system trust stores"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "truststore-0.9.2-py3-none-any.whl", hash = "sha256:04559916f8810cc1a5ecc41f215eddc988746067b754fc0995da7a2ceaf54735"},
-    {file = "truststore-0.9.2.tar.gz", hash = "sha256:a1dee0d0575ff22d2875476343783a5d64575419974e228f3248772613c3d993"},
+    {file = "truststore-0.10.0-py3-none-any.whl", hash = "sha256:b3798548e421ffe2ca2a6217cca49e7a17baf40b72d86a5505dc7d701e77d15b"},
+    {file = "truststore-0.10.0.tar.gz", hash = "sha256:5da347c665714fdfbd46f738c823fe9f0d8775e41ac5fb94f325749091187896"},
 ]
 
 [[package]]
@@ -2471,4 +2471,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "f089f01b4ae24f74092cdb67d8a18a79c93a5e2ca56463d693064191fb1d685e"
+content-hash = "2082d9b9dac17b98ef92426e4af0c42e3b683fc467dc917363355250536406bc"
