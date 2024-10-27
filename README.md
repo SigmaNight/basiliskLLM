@@ -211,7 +211,11 @@ We welcome and appreciate translations for this project. If you're interested in
 
 ### Recommended: Use Crowdin
 
-The preferred method is to use the Crowdin platform. To begin, ensure you have a Crowdin account and visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm). If your language is not currently supported, please open an issue to request its addition. You can contribute translations via the Crowdin web interface or the Crowdin CLI.
+The preferred method is to use the Crowdin platform. To begin, ensure you have a Crowdin account and visit the [BasiliskLLM Crowdin project](https://crowdin.com/project/basiliskllm). If your language is not currently supported, please open an issue to request its addition. You can contribute translations via the Crowdin web interface or use popular translation tools like [Poedit](https://poedit.net/).
+In the file menu of the poedit you can open translation from a cloud service and select Crowdin.
+You must login to your crowdin account and select the project and the language you want to translate.
+After that you can start translating the strings like a normal po file.
+When you save the file it will be automatically uploaded to crowdin.
 
 ### Alternative: Use the `.pot` File
 
