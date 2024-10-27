@@ -52,12 +52,30 @@ class AnthropicEngine(BaseEngine):
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
-				id="claude-3-5-sonnet-20240620",
+				id="claude-3-5-sonnet-latest",
 				name="Claude 3.5 Sonnet",
+				# Translators: This is a model description
+				description=_(
+					"Point to the most recent snapshot of Claude 3.5 Sonnet"
+				),
+				context_window=200000,
+				max_output_tokens=8192,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-3-5-sonnet-20241022",
 				# Translators: This is a model description
 				description=_("Most intelligent model"),
 				context_window=200000,
-				max_output_tokens=4096,
+				max_output_tokens=8192,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-3-5-sonnet-20240620",
+				# Translators: This is a model description
+				description=_("Most intelligent model, previous version"),
+				context_window=200000,
+				max_output_tokens=8192,
 				vision=True,
 			),
 			ProviderAIModel(
@@ -66,7 +84,7 @@ class AnthropicEngine(BaseEngine):
 				# Translators: This is a model description
 				description=_("Powerful model for highly complex tasks"),
 				context_window=200000,
-				max_output_tokens=4096,
+				max_output_tokens=8192,
 				vision=True,
 			),
 			ProviderAIModel(
