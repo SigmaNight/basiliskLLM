@@ -97,8 +97,8 @@ excludes = [
     "pip", "pydoc_data", "packaging",
     "setuptools", "setuptools_scm", "sqlite3",
     "tomllib", "test", "tkinter", "unittest",
-    "win32com", "wint32gui", "win32ui", "win32uiold", "winerror", "winreg",
-     ]
+    "wint32gui", "win32ui", "win32uiold", "winreg",
+]
 include_files = ["basilisk/res"]
 includes = ["numpy", "httplib2.socks", "win32timezone"]
 packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring"]
