@@ -14,6 +14,7 @@ from more_itertools import first, locate
 
 import basilisk.config as config
 from basilisk import global_vars
+from basilisk.accessible_output import o as accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	Conversation,
@@ -540,6 +541,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.messages.SetInsertionPoint(pos)
 			if config.conf().conversation.nav_msg_select:
 				self.select_current_message()
+			else:
+				start, end = self.get_range_for_current_message()
+				current_message = self.messages.GetRange(start, end)
+				accessible_output.speak(current_message)
 
 	def go_to_previous_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(True)
@@ -552,19 +557,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
+		accessible_output.output(_("Start of message."))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
+		accessible_output.output(_("End of message."))
 
-	def select_current_message(self):
+	def get_range_for_current_message(self) -> tuple[int, int]:
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		start = self.message_segment_manager.start
 		end = self.message_segment_manager.end
+		return start, end
+
+	def select_current_message(self):
+		start, end = self.get_range_for_current_message()
 		self.messages.SetSelection(start, end)
 
 	def on_select_message(self, event: wx.CommandEvent = None):
@@ -583,6 +594,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
+		accessible_output.output(_("Message copied to clipboard."))
 
 	def on_remove_message_block(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -594,6 +606,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.messages.remove(message_block)
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
+			accessible_output.output(_("Message block removed."))
 		else:
 			wx.Bell()
 
