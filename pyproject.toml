@@ -32,7 +32,7 @@ cx-freeze = "^7.2.3"
 openai = "^1.53.0"
 pywin32 = { version = "^308", markers = "sys_platform == 'win32'" }
 wxpython = "^4.2.2"
-pydantic-settings = "^2.6.0"
+pydantic-settings = "^2.6.1"
 pyyaml = "^6.0.1"
 platformdirs = "^4.3.6"
 httpx = "^0.27.2"
