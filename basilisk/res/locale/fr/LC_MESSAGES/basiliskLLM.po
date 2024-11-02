@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-10-26 11:29+0000\n"
-"PO-Revision-Date: 2024-10-26 13:07\n"
+"POT-Creation-Date: 2024-11-02 12:44+0000\n"
+"PO-Revision-Date: 2024-11-02 13:23\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -813,7 +813,7 @@ msgstr "Échec de l’ouverture du fichier journal"
 msgid "New version available"
 msgstr "Une nouvelle version est disponible"
 
-#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:240
+#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:279
 msgid "Downloading update"
 msgstr "Téléchargement de la mise à jour"
 
@@ -1115,103 +1115,122 @@ msgstr "À propos"
 msgid "Quit"
 msgstr "Quitter"
 
-#: basilisk/gui/update_dialog.py:29
+#: basilisk/gui/update_dialog.py:22
+#, python-format
+msgid "Release Notes for basiliskLLM %s"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:43
 msgid "Downloading update..."
 msgstr "Téléchargement de la mise à jour..."
 
-#: basilisk/gui/update_dialog.py:38
+#: basilisk/gui/update_dialog.py:48 basilisk/gui/update_dialog.py:177
+msgid "Update &now"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:52 basilisk/gui/update_dialog.py:181
+msgid "&Release notes"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:64
 msgid "Update download finished"
 msgstr "Téléchargement de la mise à jour terminée"
 
-#: basilisk/gui/update_dialog.py:43
+#: basilisk/gui/update_dialog.py:69
 #, python-format
 msgid "Update basiliskLLM version: %s"
 msgstr "Mettre à jour basiliskLLM à la version : %s"
 
-#: basilisk/gui/update_dialog.py:47 basilisk/gui/update_dialog.py:150
-msgid "Update now"
-msgstr "Mettre à jour maintenant"
-
-#: basilisk/gui/update_dialog.py:107
+#: basilisk/gui/update_dialog.py:134
 #, python-format
 msgid "Error downloading update: %s"
 msgstr "Erreur durant le téléchargement de la mise à jour : %s"
 
-#: basilisk/gui/update_dialog.py:130
+#: basilisk/gui/update_dialog.py:157
 msgid "Checking for updates..."
 msgstr "Vérifier les mises à jour..."
 
-#: basilisk/gui/update_dialog.py:137
+#: basilisk/gui/update_dialog.py:164
 msgid "A new version of basiliskLLM is available. Do you want to update?"
 msgstr "Une nouvelle version de basiliskLLM est disponible. Voulez-vous mettre à jours maintenant :?"
 
-#: basilisk/gui/update_dialog.py:143
+#: basilisk/gui/update_dialog.py:170
 msgid "Current version: "
 msgstr "Version actuelle : "
 
-#: basilisk/gui/update_dialog.py:147
+#: basilisk/gui/update_dialog.py:174
 msgid "New version: "
 msgstr "Nouvelle version : "
 
-#: basilisk/gui/update_dialog.py:166 basilisk/gui/update_dialog.py:183
+#: basilisk/gui/update_dialog.py:202 basilisk/gui/update_dialog.py:219
 #, python-format
 msgid "Current version: %s"
 msgstr "Version actuelle : %s"
 
-#: basilisk/gui/update_dialog.py:176
+#: basilisk/gui/update_dialog.py:212
 msgid "Update are disabled for source application"
 msgstr "Les mise à jour sont désactivées lorsque l’application est exécutée depuis les sources"
 
-#: basilisk/gui/update_dialog.py:177
+#: basilisk/gui/update_dialog.py:213
 msgid "Update disabled"
 msgstr "Mise à jour désactivée"
 
-#: basilisk/gui/update_dialog.py:207
+#: basilisk/gui/update_dialog.py:243
 #, python-format
 msgid "New version: %s"
 msgstr "Nouvelle version : %s"
 
-#: basilisk/gui/update_dialog.py:219
+#: basilisk/gui/update_dialog.py:258
 msgid "You are using the latest version of basiliskLLM"
 msgstr "Vous utilisez déjà la dernière version de basiliskLLM"
 
-#: basilisk/gui/update_dialog.py:253
+#: basilisk/gui/update_dialog.py:292
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Erreur durant la recherche des mises à jour : %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:58
+msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:68
 msgid "Most intelligent model"
 msgstr "Modèle le plus intelligent"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:67
+#: basilisk/provider_engine/anthropic_engine.py:76
+msgid "Most intelligent model, previous version"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:85
 msgid "Powerful model for highly complex tasks"
 msgstr "Un modèle puissant pour des tâches très complexes"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:76
+#: basilisk/provider_engine/anthropic_engine.py:94
 msgid "Balance of intelligence and speed"
 msgstr "Équilibre entre intelligence et rapidité"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:85
+#: basilisk/provider_engine/anthropic_engine.py:103
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Modèle le plus rapide et le plus compact pour une réactivité quasi instantanée"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:96
+#: basilisk/provider_engine/anthropic_engine.py:114
 msgid "Updated version of Claude 2 with improved accuracy"
 msgstr "Version actualisée de Claude 2 avec une précision améliorée"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:107
+#: basilisk/provider_engine/anthropic_engine.py:125
 msgid "Predecessor to Claude 3, offering strong all-round performance"
 msgstr "Prédécesseur de Claude 3, offrant de solides performances globales"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:118
+#: basilisk/provider_engine/anthropic_engine.py:136
 msgid "Our cheapest small and fast model, a predecessor of Claude Haiku"
 msgstr "Notre modèle le moins cher, petit et rapide, prédécesseur de Claude Haiku"
 
@@ -1377,3 +1396,4 @@ msgstr "Plus performant que n'importe quel modèle GPT-3.5, capable de réaliser
 #: basilisk/provider_engine/openai_engine.py:230
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Mêmes capacités que le mode gpt-4 standard mais avec une longueur de contexte 4 fois plus longue"
+
