@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-10-26 11:29+0000\n"
-"PO-Revision-Date: 2024-10-26 13:07\n"
+"POT-Creation-Date: 2024-11-02 12:44+0000\n"
+"PO-Revision-Date: 2024-11-02 13:23\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -45,7 +45,7 @@ msgstr "Не удалось активировать хранилище сист
 #: basilisk/gui/preferences_dialog.py:27 basilisk/gui/search_dialog.py:257
 #: basilisk/main_app.py:137
 msgid "Error"
-msgstr ""
+msgstr "Ошибка"
 
 #. translators: Summary of a conversation profile
 #: basilisk/gui/conversation_profile_dialog.py:330
@@ -86,7 +86,7 @@ msgstr "Частичный снимок экрана"
 
 #: basilisk/gui/about_dialog.py:31
 msgid "Where LLMs Unite"
-msgstr ""
+msgstr "Где объединяются LLMs"
 
 #: basilisk/gui/about_dialog.py:33
 msgid "GPLV2"
@@ -553,7 +553,7 @@ msgstr "URL, похоже, не указывает на изображение (
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/gui/conversation_tab.py:370 basilisk/gui/preferences_dialog.py:25
 msgid "Warning"
-msgstr ""
+msgstr "Предупреждение"
 
 #: basilisk/gui/conversation_tab.py:389
 #, python-format
@@ -756,7 +756,7 @@ msgstr "&Репозиторий на GitHub"
 
 #: basilisk/gui/main_frame.py:176
 msgid "Roko's Basilisk"
-msgstr ""
+msgstr "Василиск Роко"
 
 #: basilisk/gui/main_frame.py:180
 msgid "View &log"
@@ -813,7 +813,7 @@ msgstr "Не удалось открыть файл журнала"
 msgid "New version available"
 msgstr "Доступна новая версия"
 
-#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:240
+#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:279
 msgid "Downloading update"
 msgstr "Загрузка обновления"
 
@@ -875,17 +875,17 @@ msgstr "Отключено"
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/gui/preferences_dialog.py:21
 msgid "Debug"
-msgstr ""
+msgstr "Отладка"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/gui/preferences_dialog.py:23
 msgid "Info"
-msgstr ""
+msgstr "Информация"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/gui/preferences_dialog.py:29
 msgid "Critical"
-msgstr ""
+msgstr "Критический"
 
 #. Translators: A label for the release channel in the settings dialog
 #: basilisk/gui/preferences_dialog.py:34
@@ -1115,103 +1115,122 @@ msgstr "О программе"
 msgid "Quit"
 msgstr "Выход"
 
-#: basilisk/gui/update_dialog.py:29
+#: basilisk/gui/update_dialog.py:22
+#, python-format
+msgid "Release Notes for basiliskLLM %s"
+msgstr "Примечания к выпуску basiliskLLM %s"
+
+#: basilisk/gui/update_dialog.py:43
 msgid "Downloading update..."
 msgstr "Загрузка обновления..."
 
-#: basilisk/gui/update_dialog.py:38
+#: basilisk/gui/update_dialog.py:48 basilisk/gui/update_dialog.py:177
+msgid "Update &now"
+msgstr "Обновить &сейчас"
+
+#: basilisk/gui/update_dialog.py:52 basilisk/gui/update_dialog.py:181
+msgid "&Release notes"
+msgstr "&Примечания к выпуску"
+
+#: basilisk/gui/update_dialog.py:64
 msgid "Update download finished"
 msgstr "Загрузка обновления завершена"
 
-#: basilisk/gui/update_dialog.py:43
+#: basilisk/gui/update_dialog.py:69
 #, python-format
 msgid "Update basiliskLLM version: %s"
 msgstr "Обновление версии basiliskLLM: %s"
 
-#: basilisk/gui/update_dialog.py:47 basilisk/gui/update_dialog.py:150
-msgid "Update now"
-msgstr "Обновить сейчас"
-
-#: basilisk/gui/update_dialog.py:107
+#: basilisk/gui/update_dialog.py:134
 #, python-format
 msgid "Error downloading update: %s"
 msgstr "Ошибка загрузки обновления: %s"
 
-#: basilisk/gui/update_dialog.py:130
+#: basilisk/gui/update_dialog.py:157
 msgid "Checking for updates..."
 msgstr "Проверка наличия обновлений..."
 
-#: basilisk/gui/update_dialog.py:137
+#: basilisk/gui/update_dialog.py:164
 msgid "A new version of basiliskLLM is available. Do you want to update?"
 msgstr "Доступна новая версия basiliskLLM. Хотите обновить?"
 
-#: basilisk/gui/update_dialog.py:143
+#: basilisk/gui/update_dialog.py:170
 msgid "Current version: "
 msgstr "Текущая версия: "
 
-#: basilisk/gui/update_dialog.py:147
+#: basilisk/gui/update_dialog.py:174
 msgid "New version: "
 msgstr "Новая версия: "
 
-#: basilisk/gui/update_dialog.py:166 basilisk/gui/update_dialog.py:183
+#: basilisk/gui/update_dialog.py:202 basilisk/gui/update_dialog.py:219
 #, python-format
 msgid "Current version: %s"
 msgstr "Текущая версия: %s"
 
-#: basilisk/gui/update_dialog.py:176
+#: basilisk/gui/update_dialog.py:212
 msgid "Update are disabled for source application"
 msgstr "Обновление отключено для приложения, запущенного из исходного кода"
 
-#: basilisk/gui/update_dialog.py:177
+#: basilisk/gui/update_dialog.py:213
 msgid "Update disabled"
 msgstr "Обновление отключено"
 
-#: basilisk/gui/update_dialog.py:207
+#: basilisk/gui/update_dialog.py:243
 #, python-format
 msgid "New version: %s"
 msgstr "Новая версия: %s"
 
-#: basilisk/gui/update_dialog.py:219
+#: basilisk/gui/update_dialog.py:258
 msgid "You are using the latest version of basiliskLLM"
 msgstr "Вы используете последнюю версию basiliskLLM"
 
-#: basilisk/gui/update_dialog.py:253
+#: basilisk/gui/update_dialog.py:292
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Ошибка проверки обновлений: %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:58
+msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
+msgstr "Указывает на самый последний снимок Claude 3.5 Sonnet"
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:68
 msgid "Most intelligent model"
 msgstr "Самая интеллектуальная модель"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:67
+#: basilisk/provider_engine/anthropic_engine.py:76
+msgid "Most intelligent model, previous version"
+msgstr "Самая интеллектуальная модель, предыдущая версия"
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:85
 msgid "Powerful model for highly complex tasks"
 msgstr "Мощная модель для решения особо сложных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:76
+#: basilisk/provider_engine/anthropic_engine.py:94
 msgid "Balance of intelligence and speed"
 msgstr "Баланс интеллекта и скорости"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:85
+#: basilisk/provider_engine/anthropic_engine.py:103
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Самая быстрая и компактная модель с почти мгновенным откликом"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:96
+#: basilisk/provider_engine/anthropic_engine.py:114
 msgid "Updated version of Claude 2 with improved accuracy"
 msgstr "Обновлённая версия Claude 2 с улучшенной точностью"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:107
+#: basilisk/provider_engine/anthropic_engine.py:125
 msgid "Predecessor to Claude 3, offering strong all-round performance"
 msgstr "Предшественница Claude 3, обладающая высокой универсальной производительностью"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:118
+#: basilisk/provider_engine/anthropic_engine.py:136
 msgid "Our cheapest small and fast model, a predecessor of Claude Haiku"
 msgstr "Наша самая дешёвая, компактная и быстрая модель — предшественница Claude Haiku"
 
@@ -1245,32 +1264,32 @@ msgstr "Лучшая модель понимания изображений дл
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:25
 msgid "World’s best edge model"
-msgstr ""
+msgstr "Лучшая передовая модель в мире"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:34
 msgid "Powerful edge model with extremely high performance/price ratio"
-msgstr ""
+msgstr "Мощная передовая модель с чрезвычайно высоким соотношением цены и качества"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:45
 msgid "Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024"
-msgstr ""
+msgstr "Наша первоклассная модель рассуждений для задач высокой сложности с последней версией v2, выпущенной в июле 2024 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:56
 msgid "Our latest enterprise-grade small model with the lastest version v2 released September 2024"
-msgstr ""
+msgstr "Наша новейшая компактная модель корпоративного класса с последней версией v2 выпущена в сентябре 2024 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:67
 msgid "Our cutting-edge language model for coding released May 2024"
-msgstr ""
+msgstr "Наша передовая языковая модель для программирования была выпущена в мае 2024 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:78
 msgid "A 12B model with image understanding capabilities in addition to text"
-msgstr ""
+msgstr "Модель 12B с возможностью понимания изображений в дополнение к тексту"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:90
@@ -1280,17 +1299,17 @@ msgstr "Модель 12B, созданная в сотрудничестве с 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:101
 msgid "Our first dense model released September 2023"
-msgstr ""
+msgstr "Наша первая плотная модель была выпущена в сентябре 2023 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:110
 msgid "Our first sparse mixture-of-experts released December 2023"
-msgstr ""
+msgstr "Наша первая разреженная смесь экспертов выпущена в декабре 2023 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:121
 msgid "Our best open source model to date released April 2024"
-msgstr ""
+msgstr "Наша лучшая модель с открытым исходным кодом на сегодняшний день выпущена в апреле 2024 года"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:132

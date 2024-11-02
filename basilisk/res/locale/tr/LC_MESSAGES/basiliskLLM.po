@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-10-26 11:29+0000\n"
-"PO-Revision-Date: 2024-10-26 13:07\n"
+"POT-Creation-Date: 2024-11-02 12:44+0000\n"
+"PO-Revision-Date: 2024-11-02 13:23\n"
 "Last-Translator: \n"
 "Language-Team: Turkish\n"
 "MIME-Version: 1.0\n"
@@ -813,7 +813,7 @@ msgstr "Günlük dosyası açılamadı"
 msgid "New version available"
 msgstr "Yeni sürüm mevcut"
 
-#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:240
+#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:279
 msgid "Downloading update"
 msgstr "Güncelleme indiriliyor"
 
@@ -1115,103 +1115,122 @@ msgstr "Hakkında"
 msgid "Quit"
 msgstr "Çık"
 
-#: basilisk/gui/update_dialog.py:29
+#: basilisk/gui/update_dialog.py:22
+#, python-format
+msgid "Release Notes for basiliskLLM %s"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:43
 msgid "Downloading update..."
 msgstr "Güncelleme indiriliyor..."
 
-#: basilisk/gui/update_dialog.py:38
+#: basilisk/gui/update_dialog.py:48 basilisk/gui/update_dialog.py:177
+msgid "Update &now"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:52 basilisk/gui/update_dialog.py:181
+msgid "&Release notes"
+msgstr ""
+
+#: basilisk/gui/update_dialog.py:64
 msgid "Update download finished"
 msgstr "Güncellemeyi indirme işlemi tamamlandı"
 
-#: basilisk/gui/update_dialog.py:43
+#: basilisk/gui/update_dialog.py:69
 #, python-format
 msgid "Update basiliskLLM version: %s"
 msgstr "BasiliskLLM sürümünü güncelle: %s"
 
-#: basilisk/gui/update_dialog.py:47 basilisk/gui/update_dialog.py:150
-msgid "Update now"
-msgstr "Şimdi güncelle"
-
-#: basilisk/gui/update_dialog.py:107
+#: basilisk/gui/update_dialog.py:134
 #, python-format
 msgid "Error downloading update: %s"
 msgstr "Güncelleme indirilirken hata oluştu: %s"
 
-#: basilisk/gui/update_dialog.py:130
+#: basilisk/gui/update_dialog.py:157
 msgid "Checking for updates..."
 msgstr "Güncellemeler denetleniyor..."
 
-#: basilisk/gui/update_dialog.py:137
+#: basilisk/gui/update_dialog.py:164
 msgid "A new version of basiliskLLM is available. Do you want to update?"
 msgstr "basiliskLLM'nin yeni bir sürümü mevcut. Güncellemek istiyor musunuz?"
 
-#: basilisk/gui/update_dialog.py:143
+#: basilisk/gui/update_dialog.py:170
 msgid "Current version: "
 msgstr "Geçerli sürüm: "
 
-#: basilisk/gui/update_dialog.py:147
+#: basilisk/gui/update_dialog.py:174
 msgid "New version: "
 msgstr "Yeni sürüm: "
 
-#: basilisk/gui/update_dialog.py:166 basilisk/gui/update_dialog.py:183
+#: basilisk/gui/update_dialog.py:202 basilisk/gui/update_dialog.py:219
 #, python-format
 msgid "Current version: %s"
 msgstr "Geçerli sürüm: %s"
 
-#: basilisk/gui/update_dialog.py:176
+#: basilisk/gui/update_dialog.py:212
 msgid "Update are disabled for source application"
 msgstr "Kaynak uygulama için güncelleme devre dışı bırakıldı"
 
-#: basilisk/gui/update_dialog.py:177
+#: basilisk/gui/update_dialog.py:213
 msgid "Update disabled"
 msgstr "Güncelleme devre dışı bırakıldı"
 
-#: basilisk/gui/update_dialog.py:207
+#: basilisk/gui/update_dialog.py:243
 #, python-format
 msgid "New version: %s"
 msgstr "Yeni sürüm: %s"
 
-#: basilisk/gui/update_dialog.py:219
+#: basilisk/gui/update_dialog.py:258
 msgid "You are using the latest version of basiliskLLM"
 msgstr "BasiliskLLM'nin en son sürümünü kullanıyorsunuz"
 
-#: basilisk/gui/update_dialog.py:253
+#: basilisk/gui/update_dialog.py:292
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Güncellemeler denetlenirken hata oluştu: %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:58
+msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:68
 msgid "Most intelligent model"
 msgstr "En akıllı model"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:67
+#: basilisk/provider_engine/anthropic_engine.py:76
+msgid "Most intelligent model, previous version"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:85
 msgid "Powerful model for highly complex tasks"
 msgstr "Son derece karmaşık görevler için güçlü model"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:76
+#: basilisk/provider_engine/anthropic_engine.py:94
 msgid "Balance of intelligence and speed"
 msgstr "Zeka ve hız dengesi"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:85
+#: basilisk/provider_engine/anthropic_engine.py:103
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Anında tepki süresi için en hızlı ve en kompakt model"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:96
+#: basilisk/provider_engine/anthropic_engine.py:114
 msgid "Updated version of Claude 2 with improved accuracy"
 msgstr "Claude 2'nin geliştirilmiş doğrulukla güncellenmiş sürümü"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:107
+#: basilisk/provider_engine/anthropic_engine.py:125
 msgid "Predecessor to Claude 3, offering strong all-round performance"
 msgstr "Claude 3'ün öncüsü, çok yönlü güçlü performans sunuyor"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:118
+#: basilisk/provider_engine/anthropic_engine.py:136
 msgid "Our cheapest small and fast model, a predecessor of Claude Haiku"
 msgstr "En ucuz küçük ve hızlı modelimiz, Claude Haiku'nun öncüsü"
 
