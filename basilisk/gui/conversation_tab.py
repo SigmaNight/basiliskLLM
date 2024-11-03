@@ -14,7 +14,7 @@ from more_itertools import first, locate
 
 import basilisk.config as config
 from basilisk import global_vars
-from basilisk.accessible_output import o as accessible_output
+from basilisk.accessible_output import accessible_output, clear_for_speak
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	Conversation,
@@ -1110,7 +1110,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if '\n' in chunk or len(self.stream_buffer) > 120:
+		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
 			self._flush_stream_buffer()
 			if not self._messages_already_focused:
 				self.messages.SetFocus()
@@ -1120,9 +1120,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
+	def _handle_accessible_output(self, text: str):
+		if (
+			text.strip()
+			and config.conf().conversation.use_accessible_output
+			and self.prompt.HasFocus()
+		):
+			accessible_output.speak(clear_for_speak(text))
+			self._messages_already_focused = True
+
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
-		self.messages.AppendText(self.stream_buffer)
+		text = self.stream_buffer
+		self.messages.AppendText(text)
+		self._handle_accessible_output(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
@@ -1136,20 +1147,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._flush_stream_buffer()
 		self._update_last_segment_length()
 		self._end_task()
-		self._messages_already_focused = False
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
-		self._end_task()
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
+		self._handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.image_files.clear()
 		self.refresh_images_list()
+		self._end_task()
 
 	def _end_task(self, success: bool = True):
 		if not self._messages_already_focused:
 			self.messages.SetFocus()
-			self._messages_already_focused = True
 		task = self.task
 		task.join()
 		thread_id = task.ident
@@ -1161,6 +1171,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
 		self._stop_completion = False
+		self._messages_already_focused = False
 
 	@ensure_no_task_running
 	def generate_conversation_title(self):
