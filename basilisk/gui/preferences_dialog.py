@@ -196,6 +196,18 @@ class PreferencesDialog(wx.Dialog):
 		self.shift_enter_mode.SetValue(self.conf.conversation.shift_enter_mode)
 		conversation_group_sizer.Add(self.shift_enter_mode, 0, wx.ALL, 5)
 
+		self.use_accessible_output = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_(
+				"Enable Accessible Output to provide spoken and braille feedback for actions and messages"
+			),
+		)
+		self.use_accessible_output.SetValue(
+			self.conf.conversation.use_accessible_output
+		)
+		conversation_group_sizer.Add(self.use_accessible_output, 0, wx.ALL, 5)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))
@@ -343,6 +355,9 @@ class PreferencesDialog(wx.Dialog):
 		self.conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
 		self.conf.conversation.shift_enter_mode = (
 			self.shift_enter_mode.GetValue()
+		)
+		self.conf.conversation.use_accessible_output = (
+			self.use_accessible_output.GetValue()
 		)
 
 		self.conf.images.resize = self.image_resize.GetValue()

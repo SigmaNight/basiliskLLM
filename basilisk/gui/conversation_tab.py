@@ -544,7 +544,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			else:
 				start, end = self.get_range_for_current_message()
 				current_message = self.messages.GetRange(start, end)
-				accessible_output.speak(current_message)
+				if config.conf().conversation.use_accessible_output:
+					accessible_output.speak(current_message)
 
 	def go_to_previous_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(True)
@@ -557,14 +558,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
-		accessible_output.output(_("Start of message."))
+		if config.conf().conversation.use_accessible_output:
+			accessible_output.output(_("Start of message."))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
-		accessible_output.output(_("End of message."))
+		if config.conf().conversation.use_accessible_output:
+			accessible_output.output(_("End of message."))
 
 	def get_range_for_current_message(self) -> tuple[int, int]:
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -594,7 +597,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
-		accessible_output.output(_("Message copied to clipboard."))
+		if config.conf().conversation.use_accessible_output:
+			accessible_output.output(_("Message copied to clipboard."))
 
 	def on_remove_message_block(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -606,7 +610,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.messages.remove(message_block)
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
-			accessible_output.output(_("Message block removed."))
+			if config.conf().conversation.use_accessible_output:
+				accessible_output.output(_("Message block removed."))
 		else:
 			wx.Bell()
 
