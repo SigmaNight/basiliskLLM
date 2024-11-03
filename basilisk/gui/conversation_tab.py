@@ -585,6 +585,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_select_message(self, event: wx.CommandEvent = None):
 		self.select_current_message()
 
+	def on_read_current_message(self, event: wx.CommandEvent = None):
+		if event:
+			return wx.CallLater(500, self.on_read_current_message)
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
+		start = self.message_segment_manager.start
+		end = self.message_segment_manager.end
+		content = self.messages.GetRange(start, end)
+		accessible_output.speak(content)
+
 	def on_show_as_html(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
@@ -624,6 +635,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_code = event.GetKeyCode()
 
 		key_actions = {
+			(wx.MOD_NONE, wx.WXK_SPACE): self.on_read_current_message,
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
 			(wx.MOD_NONE, ord('S')): self.on_select_message,
@@ -653,23 +665,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find...") + " (&f)",
+				_("Read current message") + " (space)",
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
-			item = wx.MenuItem(
-				menu,
-				wx.ID_ANY,
-				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find Next") + " (F3)",
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
-			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
 
 			item = wx.MenuItem(
 				menu,
@@ -688,6 +687,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -696,6 +696,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_select_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -704,6 +705,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -712,6 +714,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -720,6 +723,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -728,6 +732,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -736,6 +741,31 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Find...") + " (&f)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Find Next") + " (F3)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+
 		self.add_standard_context_menu_items(menu)
 		self.messages.PopupMenu(menu)
 		menu.Destroy()
