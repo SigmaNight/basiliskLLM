@@ -200,7 +200,7 @@ class PreferencesDialog(wx.Dialog):
 			conversation_group,
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_(
-				"Enable Accessible Output to provide spoken and braille feedback for actions and messages"
+				"Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
 			),
 		)
 		self.use_accessible_output.SetValue(

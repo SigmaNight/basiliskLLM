@@ -1,13 +1,12 @@
 import re
+from functools import cache
 
 import accessible_output3.outputs.auto
 
-accessible_output: accessible_output3.outputs.auto.Auto | None = None
 
-
-def init_accessible_output():
-	global accessible_output
-	accessible_output = accessible_output3.outputs.auto.Auto()
+@cache
+def get_accessible_output():
+	return accessible_output3.outputs.auto.Auto()
 
 
 def clear_for_speak(text: str) -> str:

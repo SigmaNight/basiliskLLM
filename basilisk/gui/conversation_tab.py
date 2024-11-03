@@ -14,7 +14,7 @@ from more_itertools import first, locate
 
 import basilisk.config as config
 from basilisk import global_vars
-from basilisk.accessible_output import accessible_output, clear_for_speak
+from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	Conversation,
@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 	from .main_frame import MainFrame
 
 log = logging.getLogger(__name__)
+accessible_output = get_accessible_output()
 
 
 def ensure_no_task_running(method: Callable):
