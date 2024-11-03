@@ -2,7 +2,7 @@ import re
 
 import accessible_output3.outputs.auto
 
-accessible_output = None
+accessible_output: accessible_output3.outputs.auto.Auto | None = None
 
 
 def init_accessible_output():
