@@ -25,50 +25,37 @@ Why does anyone name anything? Partially as a joke, partially hoping it becomes 
 
 ## Download and installation
 
-### Download Options
+### using winget
+
+basiliskLLM is available on the winget package manager. You can install it by running the following command in the terminal:
+
+```powershell
+winget install SigmaNight.basiliskLLM
+```
+
+### Manual Installation
 
 - Visit the [latest release page](https://github.com/SigmaNight/basiliskLLM/releases/latest) for the most up-to-date stable version.
 - For pre-releases or historical versions, head over to [all releases](https://github.com/SigmaNight/basiliskLLM/releases).
 
-### Available Assets for Each Release
+#### Available Assets for Each Release
 
 - **Setup for Windows x64**: Traditional installer for 64-bit Windows systems. Suitable if you prefer a standard installation.
 - **Setup for Windows x86**: Traditional installer for 32-bit Windows systems.
 - **Portable Version for Windows x64**: No installation needed, just extract and run `basilisk.exe`. Ideal for users who prefer not to install software.
 - **Portable Version for Windows x86**: No installation needed, just extract and run `basilisk.exe`.
 
-### Installation Using the Setup Installer
+#### Installation Using the Setup Installer
 
 - **Download the Installer:** Choose the appropriate installer (x64 or x86) from the releases page.
 - **Run the Installer:** Follow the installation prompts to get **BasiliskLLM** set up on your machine.
 - **Start the Application:** Once installed, launch **BasiliskLLM** from your desktop or start menu.
 
-### Using the Portable Version
+#### Using the Portable Version
 
 - **Download the Portable Version:** Select the portable version (x64 or x86) from the releases page.
 - **Extract the Files:** Unzip the downloaded file to a folder of your choice.
 - **Run the Application:** Launch `basilisk.exe` from the extracted folder. No installation needed.
-
-### Manual Installation (for Developers and Brave Souls)
-
-**Clone the Repository:**
-
-```shell
-git clone https://github.com/SigmaNight/basiliskLLM.git
-cd basiliskLLM
-```
-
-**Install Dependencies:**
-
-```shell
-poetry install
-```
-
-**Run the Application:**
-
-```shell
-poetry run python -m basilisk
-```
 
 ## account configuration
 
