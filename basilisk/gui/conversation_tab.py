@@ -966,6 +966,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		stop_sound()
 		self.SetStatusText(_("Ready"))
 		self.prompt.AppendText(transcription.text)
+		if config.conf().conversation.use_accessible_output:
+			self._handle_accessible_output(transcription.text)
 		self.prompt.SetInsertionPointEnd()
 		self.prompt.SetFocus()
 
