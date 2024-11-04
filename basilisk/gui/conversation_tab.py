@@ -87,7 +87,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
 		self.stream_buffer = ""
-		self._messages_already_focused = False
+		self._speak_stream = True
 		self._stop_completion = False
 		self._search_dialog = None
 		self.init_ui()
@@ -582,6 +582,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_select_message(self, event: wx.CommandEvent = None):
 		self.select_current_message()
 
+	def on_toggle_speak_stream(self, event: wx.CommandEvent = None):
+		if event:
+			return wx.CallLater(500, self.on_toggle_speak_stream)
+		self._speak_stream = not self._speak_stream
+		self._handle_accessible_output(
+			_("Stream speaking %s")
+			% (_("enabled") if self._speak_stream else _("disabled")),
+			braille=True,
+		)
+
 	def on_read_current_message(self, event: wx.CommandEvent = None):
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
@@ -633,6 +643,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_code = event.GetKeyCode()
 
 		key_actions = {
+			(wx.MOD_SHIFT, wx.WXK_SPACE): self.on_toggle_speak_stream,
 			(wx.MOD_NONE, wx.WXK_SPACE): self.on_read_current_message,
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
@@ -667,6 +678,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Speak stream") + " (Shift+Space)",
+				_("Speak stream"),
+				wx.ITEM_CHECK,
+			)
+			menu.Append(item)
+			item.Check(self._speak_stream)
+			self.Bind(wx.EVT_MENU, self.on_toggle_speak_stream, item)
 
 			item = wx.MenuItem(
 				menu,
@@ -1085,6 +1108,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
+		self.messages.SetFocus()
 		thread = self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
@@ -1143,10 +1167,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.stream_buffer += chunk
 		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
 			self._flush_stream_buffer()
-			if not self._messages_already_focused:
-				if not config.conf().conversation.use_accessible_output:
-					self.messages.SetFocus()
-				self._messages_already_focused = True
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")
@@ -1162,15 +1182,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		):
 			return
 		if braille:
-			accessible_output.braille(text)
-		accessible_output.speak(clear_for_speak(text))
+			try:
+				accessible_output.braille(text)
+			except Exception:
+				log.error("Error during braille output", exc_info=True)
+		try:
+			accessible_output.speak(clear_for_speak(text))
+		except Exception:
+			log.error("Error during speech output", exc_info=True)
 
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
 		text = self.stream_buffer
-		self.messages.AppendText(text)
-		if self.prompt.HasFocus() and self.GetTopLevelParent().IsShown():
+		if (
+			self._speak_stream
+			and self.messages.HasFocus()
+			and self.GetTopLevelParent().IsShown()
+		):
 			self._handle_accessible_output(text)
+		self.messages.AppendText(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
@@ -1195,11 +1225,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
-		if (
-			not self._messages_already_focused
-			and not config.conf().conversation.use_accessible_output
-		):
-			self.messages.SetFocus()
 		task = self.task
 		task.join()
 		thread_id = task.ident
@@ -1211,7 +1236,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
 		self._stop_completion = False
-		self._messages_already_focused = False
 
 	@ensure_no_task_running
 	def generate_conversation_title(self):
