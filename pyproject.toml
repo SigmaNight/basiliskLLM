@@ -46,6 +46,7 @@ keyring = "^25.5.0"
 more-itertools = "^10.5.0"
 markdown2 = "^2.5.1"
 truststore = "^0.10.0"
+accessible-output3 = {git = "https://github.com/SigmaNight/accessible_output3.git"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.2"
