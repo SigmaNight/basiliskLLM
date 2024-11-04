@@ -14,6 +14,7 @@ from more_itertools import first, locate
 
 import basilisk.config as config
 from basilisk import global_vars
+from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	Conversation,
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
 	from .main_frame import MainFrame
 
 log = logging.getLogger(__name__)
+accessible_output = get_accessible_output()
 
 
 def ensure_no_task_running(method: Callable):
@@ -85,7 +87,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
 		self.stream_buffer = ""
-		self._messages_already_focused = False
+		self._speak_stream = True
 		self._stop_completion = False
 		self._search_dialog = None
 		self.init_ui()
@@ -540,6 +542,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.messages.SetInsertionPoint(pos)
 			if config.conf().conversation.nav_msg_select:
 				self.select_current_message()
+			else:
+				start, end = self.get_range_for_current_message()
+				current_message = self.messages.GetRange(start, end)
+				self._handle_accessible_output(current_message)
 
 	def go_to_previous_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(True)
@@ -552,23 +558,50 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
+		self._handle_accessible_output(_("Start of message"))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
+		self._handle_accessible_output(_("End of message"))
 
-	def select_current_message(self):
+	def get_range_for_current_message(self) -> tuple[int, int]:
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		start = self.message_segment_manager.start
 		end = self.message_segment_manager.end
+		return start, end
+
+	def select_current_message(self):
+		start, end = self.get_range_for_current_message()
 		self.messages.SetSelection(start, end)
 
 	def on_select_message(self, event: wx.CommandEvent = None):
 		self.select_current_message()
+
+	def on_toggle_speak_stream(self, event: wx.CommandEvent = None):
+		if event:
+			return wx.CallLater(500, self.on_toggle_speak_stream)
+		self._speak_stream = not self._speak_stream
+		self._handle_accessible_output(
+			_("Stream speaking %s")
+			% (_("enabled") if self._speak_stream else _("disabled")),
+			braille=True,
+		)
+
+	def on_read_current_message(self, event: wx.CommandEvent = None):
+		if event:
+			return wx.CallLater(500, self.on_read_current_message)
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		self.message_segment_manager.focus_content_block()
+		start = self.message_segment_manager.start
+		end = self.message_segment_manager.end
+		content = self.messages.GetRange(start, end)
+		self._handle_accessible_output(content, force=True)
 
 	def on_show_as_html(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -583,6 +616,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
+		self._handle_accessible_output(
+			_("Message copied to clipboard"), braille=True
+		)
 
 	def on_remove_message_block(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -594,6 +630,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.messages.remove(message_block)
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
+			self._handle_accessible_output(
+				_("Message block removed"), braille=True
+			)
+
 		else:
 			wx.Bell()
 
@@ -605,6 +645,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_code = event.GetKeyCode()
 
 		key_actions = {
+			(wx.MOD_SHIFT, wx.WXK_SPACE): self.on_toggle_speak_stream,
+			(wx.MOD_NONE, wx.WXK_SPACE): self.on_read_current_message,
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
 			(wx.MOD_NONE, ord('S')): self.on_select_message,
@@ -634,23 +676,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find...") + " (&f)",
+				_("Read current message") + " (space)",
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
+			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find Next") + " (F3)",
+				_("Speak stream") + " (Shift+Space)",
+				_("Speak stream"),
+				wx.ITEM_CHECK,
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
-			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+			item.Check(self._speak_stream)
+			self.Bind(wx.EVT_MENU, self.on_toggle_speak_stream, item)
 
 			item = wx.MenuItem(
 				menu,
@@ -669,6 +710,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -677,6 +719,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_select_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -685,6 +728,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -693,6 +737,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -701,6 +746,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -709,6 +755,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
+
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
@@ -717,6 +764,31 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Find...") + " (&f)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Find Next") + " (F3)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
+
+			item = wx.MenuItem(
+				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
+
 		self.add_standard_context_menu_items(menu)
 		self.messages.PopupMenu(menu)
 		menu.Destroy()
@@ -947,6 +1019,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		stop_sound()
 		self.SetStatusText(_("Ready"))
 		self.prompt.AppendText(transcription.text)
+		if self.prompt.HasFocus() and self.GetTopLevelParent().IsShown():
+			self._handle_accessible_output(transcription.text)
 		self.prompt.SetInsertionPointEnd()
 		self.prompt.SetFocus()
 
@@ -1036,6 +1110,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
+		self.messages.SetFocus()
 		thread = self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
@@ -1092,19 +1167,42 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if '\n' in chunk or len(self.stream_buffer) > 120:
+		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
 			self._flush_stream_buffer()
-			if not self._messages_already_focused:
-				self.messages.SetFocus()
-				self._messages_already_focused = True
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
+	def _handle_accessible_output(
+		self, text: str, braille: bool = False, force: bool = False
+	):
+		if (
+			(not force and not config.conf().conversation.use_accessible_output)
+			or not isinstance(text, str)
+			or not text.strip()
+		):
+			return
+		if braille:
+			try:
+				accessible_output.braille(text)
+			except Exception:
+				log.error("Error during braille output", exc_info=True)
+		try:
+			accessible_output.speak(clear_for_speak(text))
+		except Exception:
+			log.error("Error during speech output", exc_info=True)
+
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
-		self.messages.AppendText(self.stream_buffer)
+		text = self.stream_buffer
+		if (
+			self._speak_stream
+			and self.messages.HasFocus()
+			and self.GetTopLevelParent().IsShown()
+		):
+			self._handle_accessible_output(text)
+		self.messages.AppendText(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
@@ -1118,20 +1216,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._flush_stream_buffer()
 		self._update_last_segment_length()
 		self._end_task()
-		self._messages_already_focused = False
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
-		self._end_task()
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
+		self._handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.image_files.clear()
 		self.refresh_images_list()
+		self._end_task()
 
 	def _end_task(self, success: bool = True):
-		if not self._messages_already_focused:
-			self.messages.SetFocus()
-			self._messages_already_focused = True
 		task = self.task
 		task.join()
 		thread_id = task.ident
