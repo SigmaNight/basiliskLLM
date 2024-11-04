@@ -558,14 +558,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
-		self._handle_accessible_output(_("Start of message."))
+		self._handle_accessible_output(_("Start of message"))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
-		self._handle_accessible_output(_("End of message."))
+		self._handle_accessible_output(_("End of message"))
 
 	def get_range_for_current_message(self) -> tuple[int, int]:
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -616,7 +616,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
-		self._handle_accessible_output(_("Message copied to clipboard."))
+		self._handle_accessible_output(
+			_("Message copied to clipboard"), braille=True
+		)
 
 	def on_remove_message_block(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -629,7 +631,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
 			self._handle_accessible_output(
-				_("Message block removed."), braille=True
+				_("Message block removed"), braille=True
 			)
 
 		else:
