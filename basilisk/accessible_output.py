@@ -1,11 +1,15 @@
+import logging
 import re
 from functools import cache
 
 import accessible_output3.outputs.auto
 
+log = logging.getLogger(__name__)
+
 
 @cache
 def get_accessible_output():
+	log.info("Initializing Accessible Output")
 	return accessible_output3.outputs.auto.Auto()
 
 

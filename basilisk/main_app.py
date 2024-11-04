@@ -48,7 +48,6 @@ class MainApp(wx.App):
 		initialize_sound_manager()
 		log.info("sound manager initialized")
 		get_accessible_output()
-		log.info("accessible output initialized")
 		from basilisk.gui.main_frame import MainFrame
 
 		frame_style = wx.DEFAULT_FRAME_STYLE

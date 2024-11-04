@@ -545,8 +545,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			else:
 				start, end = self.get_range_for_current_message()
 				current_message = self.messages.GetRange(start, end)
-				if config.conf().conversation.use_accessible_output:
-					accessible_output.speak(current_message)
+				self._handle_accessible_output(current_message)
 
 	def go_to_previous_message(self, event: wx.CommandEvent = None):
 		self.navigate_message(True)
@@ -559,16 +558,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.start)
-		if config.conf().conversation.use_accessible_output:
-			accessible_output.output(_("Start of message."))
+		self._handle_accessible_output(_("Start of message."))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
 		self.messages.SetInsertionPoint(self.message_segment_manager.end - 1)
-		if config.conf().conversation.use_accessible_output:
-			accessible_output.output(_("End of message."))
+		self._handle_accessible_output(_("End of message."))
 
 	def get_range_for_current_message(self) -> tuple[int, int]:
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -594,7 +591,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		start = self.message_segment_manager.start
 		end = self.message_segment_manager.end
 		content = self.messages.GetRange(start, end)
-		accessible_output.speak(content)
+		self._handle_accessible_output(content, force=True)
 
 	def on_show_as_html(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -609,8 +606,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.select_current_message()
 		self.messages.Copy()
 		self.messages.SetInsertionPoint(cursor_pos)
-		if config.conf().conversation.use_accessible_output:
-			accessible_output.output(_("Message copied to clipboard."))
+		self._handle_accessible_output(_("Message copied to clipboard."))
 
 	def on_remove_message_block(self, event: wx.CommandEvent = None):
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -622,8 +618,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.messages.remove(message_block)
 			self.refresh_messages()
 			self.messages.SetInsertionPoint(cursor_pos)
-			if config.conf().conversation.use_accessible_output:
-				accessible_output.output(_("Message block removed."))
+			self._handle_accessible_output(
+				_("Message block removed."), braille=True
+			)
+
 		else:
 			wx.Bell()
 
@@ -996,7 +994,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		stop_sound()
 		self.SetStatusText(_("Ready"))
 		self.prompt.AppendText(transcription.text)
-		if config.conf().conversation.use_accessible_output:
+		if self.prompt.HasFocus() and self.GetTopLevelParent().IsShown():
 			self._handle_accessible_output(transcription.text)
 		self.prompt.SetInsertionPointEnd()
 		self.prompt.SetFocus()
@@ -1146,27 +1144,33 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
 			self._flush_stream_buffer()
 			if not self._messages_already_focused:
-				self.messages.SetFocus()
+				if not config.conf().conversation.use_accessible_output:
+					self.messages.SetFocus()
 				self._messages_already_focused = True
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
-	def _handle_accessible_output(self, text: str):
+	def _handle_accessible_output(
+		self, text: str, braille: bool = False, force: bool = False
+	):
 		if (
-			text.strip()
-			and config.conf().conversation.use_accessible_output
-			and self.prompt.HasFocus()
+			(not force and not config.conf().conversation.use_accessible_output)
+			or not isinstance(text, str)
+			or not text.strip()
 		):
-			accessible_output.speak(clear_for_speak(text))
-			self._messages_already_focused = True
+			return
+		if braille:
+			accessible_output.braille(text)
+		accessible_output.speak(clear_for_speak(text))
 
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
 		text = self.stream_buffer
 		self.messages.AppendText(text)
-		self._handle_accessible_output(text)
+		if self.prompt.HasFocus() and self.GetTopLevelParent().IsShown():
+			self._handle_accessible_output(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
 
@@ -1191,7 +1195,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
-		if not self._messages_already_focused:
+		if (
+			not self._messages_already_focused
+			and not config.conf().conversation.use_accessible_output
+		):
 			self.messages.SetFocus()
 		task = self.task
 		task.join()
