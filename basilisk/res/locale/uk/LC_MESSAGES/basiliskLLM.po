@@ -1442,4 +1442,3 @@ msgstr "Більш потужний, ніж будь-яка модель GPT-3.5
 #: basilisk/provider_engine/openai_engine.py:230
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Такі самі можливості, як і стандартний режим gpt-4, але з довжиною контексту в 4 рази"
-
