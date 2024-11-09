@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-11-04 22:06+0000\n"
-"PO-Revision-Date: 2024-11-06 18:12\n"
+"POT-Creation-Date: 2024-11-06 18:18+0000\n"
+"PO-Revision-Date: 2024-11-09 13:21\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -562,44 +562,44 @@ msgstr "Ошибка получения размеров изображения:
 
 #: basilisk/gui/conversation_tab.py:561
 msgid "Start of message"
-msgstr ""
+msgstr "Начало сообщения"
 
 #: basilisk/gui/conversation_tab.py:568
 msgid "End of message"
-msgstr ""
+msgstr "Конец сообщения"
 
 #: basilisk/gui/conversation_tab.py:590
 #, python-format
 msgid "Stream speaking %s"
-msgstr ""
+msgstr "Озвучивание в реальном времени %s"
 
 #: basilisk/gui/conversation_tab.py:591
 msgid "enabled"
-msgstr ""
+msgstr "включено"
 
 #: basilisk/gui/conversation_tab.py:591
 msgid "disabled"
-msgstr ""
+msgstr "отключено"
 
 #: basilisk/gui/conversation_tab.py:620
 msgid "Message copied to clipboard"
-msgstr ""
+msgstr "Сообщение скопировано в буфер обмена"
 
 #: basilisk/gui/conversation_tab.py:634
 msgid "Message block removed"
-msgstr ""
+msgstr "Блок сообщений удалён"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
 #: basilisk/gui/conversation_tab.py:679
 msgid "Read current message"
-msgstr ""
+msgstr "Прочитать текущее сообщение"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
 #: basilisk/gui/conversation_tab.py:688 basilisk/gui/conversation_tab.py:689
 msgid "Speak stream"
-msgstr ""
+msgstr "Озвучивание в реальном времени"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
@@ -1016,7 +1016,7 @@ msgstr "Отправить сообщение клавишей Enter, встав
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:202
 msgid "Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
-msgstr ""
+msgstr "Включить &доступный вывод, чтобы обеспечить речевую и брайлевскую обратную связь для действий и сообщений"
 
 #: basilisk/gui/preferences_dialog.py:213
 msgid "Images"
@@ -1442,3 +1442,4 @@ msgstr "Более мощная, чем любая модель GPT-3.5, спо�
 #: basilisk/provider_engine/openai_engine.py:230
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной контекста"
+
