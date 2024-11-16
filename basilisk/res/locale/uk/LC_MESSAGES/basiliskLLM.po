@@ -2,24 +2,21 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-11-07 05:06+0000\n"
-"PO-Revision-Date: 2024-11-09 16:26+0200\n"
+"POT-Creation-Date: 2024-11-16 13:11+0000\n"
+"PO-Revision-Date: 2024-11-16 13:24\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
-"Language: uk_UA\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=4; plural=((n%10==1 && n%100!=11) ? 0 : ((n%10 >= 2 "
-"&& n%10 <=4 && (n%100 < 12 || n%100 > 14)) ? 1 : ((n%10 == 0 || (n%10 >= 5 "
-"&& n%10 <=9)) || (n%100 >= 11 && n%100 <= 14)) ? 2 : 3));\n"
 "Generated-By: Babel 2.16.0\n"
+"Plural-Forms: nplurals=4; plural=((n%10==1 && n%100!=11) ? 0 : ((n%10 >= 2 && n%10 <=4 && (n%100 < 12 || n%100 > 14)) ? 1 : ((n%10 == 0 || (n%10 >= 5 && n%10 <=9)) || (n%100 >= 11 && n%100 <= 14)) ? 2 : 3));\n"
 "X-Crowdin-Project: basiliskllm\n"
 "X-Crowdin-Project-ID: 724543\n"
 "X-Crowdin-Language: uk\n"
 "X-Crowdin-File: basiliskLLM.pot\n"
 "X-Crowdin-File-ID: 2\n"
-"X-Generator: Poedit 3.5\n"
+"Language: uk_UA\n"
 
 #. Translators: Error message
 #: basilisk/main_app.py:137
@@ -93,7 +90,7 @@ msgstr "Де об’єднуються великі мовні моделі"
 
 #: basilisk/gui/about_dialog.py:33
 msgid "GPLV2"
-msgstr "GPLV2"
+msgstr ""
 
 #. Translators: A label for the API key storage method in the account dialog
 #: basilisk/gui/account_dialog.py:22
@@ -433,8 +430,7 @@ msgstr "Системна підказка:"
 
 #: basilisk/gui/conversation_tab.py:55
 msgid "A task is already running. Please wait for it to complete."
-msgstr ""
-"Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
+msgstr "Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
 
 #. Translators: Label indicating that the message is from the user in a
 #. conversation
@@ -551,11 +547,8 @@ msgstr "Помилка HTTP %s."
 #. to an image.
 #: basilisk/gui/conversation_tab.py:368
 #, python-format
-msgid ""
-"The URL seems to not point to an image (content type: %s). Do you want to "
-"continue?"
-msgstr ""
-"Здається, URL не вказує на зображення (тип вмісту: %s). Ви хочете продовжити?"
+msgid "The URL seems to not point to an image (content type: %s). Do you want to continue?"
+msgstr "Здається, URL не вказує на зображення (тип вмісту: %s). Ви хочете продовжити?"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/gui/conversation_tab.py:372 basilisk/gui/preferences_dialog.py:25
@@ -719,12 +712,8 @@ msgid "Please select a model"
 msgstr "Будь ласка, виберіть модель"
 
 #: basilisk/gui/conversation_tab.py:1078
-msgid ""
-"The selected model does not support images. Please select a vision model "
-"instead ({})."
-msgstr ""
-"Обрана модель не підтримує зображення. Будь ласка, виберіть модель з "
-"комп’ютерним зором ({})."
+msgid "The selected model does not support images. Please select a vision model instead ({})."
+msgstr "Обрана модель не підтримує зображення. Будь ласка, виберіть модель з комп’ютерним зором ({})."
 
 #: basilisk/gui/conversation_tab.py:1133
 msgid "An error occurred during completion: "
@@ -808,7 +797,7 @@ msgstr "&репозиторій GitHub"
 
 #: basilisk/gui/main_frame.py:176
 msgid "Roko's Basilisk"
-msgstr "Roko's Basilisk"
+msgstr ""
 
 #: basilisk/gui/main_frame.py:180
 msgid "View &log"
@@ -894,9 +883,7 @@ msgstr "Застосувати профіль розмови"
 #. user tries to use the conversation tab.
 #: basilisk/gui/main_frame.py:714
 msgid "Please add an account first. Do you want to add an account now?"
-msgstr ""
-"Будь ласка, спочатку додайте обліковий запис. Ви хочете додати обліковий "
-"запис зараз?"
+msgstr "Будь ласка, спочатку додайте обліковий запис. Ви хочете додати обліковий запис зараз?"
 
 #. translators: This is a title for the message box
 #: basilisk/gui/main_frame.py:718
@@ -1028,12 +1015,8 @@ msgstr "Надіслати повідомлення, Enter, вставити н�
 
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:202
-msgid ""
-"Enable &Accessible Output to provide spoken and braille feedback for actions "
-"and messages"
-msgstr ""
-"Увімкнути &доступний вихід, щоб надавати голосові та брайлівські підказки "
-"для дій і повідомлень"
+msgid "Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
+msgstr "Увімкнути &доступний вихід, щоб надавати голосові та брайлівські підказки для дій і повідомлень"
 
 #: basilisk/gui/preferences_dialog.py:213
 msgid "Images"
@@ -1056,12 +1039,8 @@ msgstr "Максимальна &ширина (0 для зміни розміру
 
 #. Translators: A label in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:260
-msgid ""
-"&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be "
-"avoided):"
-msgstr ""
-"&Якість для зображень у форматі JPEG (від 0 [найгірша] до 95 [найкраща], "
-"варто уникати значень вище 95):"
+msgid "&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be avoided):"
+msgstr "&Якість для зображень у форматі JPEG (від 0 [найгірша] до 95 [найкраща], варто уникати значень вище 95):"
 
 #. Translators: a group label in the preference dialog
 #: basilisk/gui/preferences_dialog.py:275
@@ -1071,8 +1050,7 @@ msgstr "Мережа"
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:281
 msgid "Use system certificate store (Requires restart)"
-msgstr ""
-"Використовувати системне сховище сертифікатів (потрібне перезавантаження)"
+msgstr "Використовувати системне сховище сертифікатів (потрібне перезавантаження)"
 
 #: basilisk/gui/preferences_dialog.py:289
 msgid "Server"
@@ -1300,32 +1278,24 @@ msgstr "Попередник Claude 3, що пропонує потужну ун
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:136
 msgid "Our cheapest small and fast model, a predecessor of Claude Haiku"
-msgstr ""
-"Наша найдоступніша компактна і швидкісна модель, попередник Claude Haiku"
+msgstr "Наша найдоступніша компактна і швидкісна модель, попередник Claude Haiku"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:53
 #: basilisk/provider_engine/gemini_engine.py:75
 msgid "Fast and versatile multimodal model for scaling across diverse tasks"
-msgstr ""
-"Швидка та універсальна мультимодальна модель для масштабування різноманітних "
-"завдань"
+msgstr "Швидка та універсальна мультимодальна модель для масштабування різноманітних завдань"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:64
 #: basilisk/provider_engine/gemini_engine.py:86
 msgid "Mid-size multimodal model that supports up to 1 million tokens"
-msgstr ""
-"Мультимодальна модель середнього розміру, яка підтримує до 1 мільйона токенів"
+msgstr "Мультимодальна модель середнього розміру, яка підтримує до 1 мільйона токенів"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:97
-msgid ""
-"The best model for scaling across a wide range of tasks. This is the latest "
-"model."
-msgstr ""
-"Найкраща модель для масштабування в широкому діапазоні завдань. Це остання "
-"модель."
+msgid "The best model for scaling across a wide range of tasks. This is the latest model."
+msgstr "Найкраща модель для масштабування в широкому діапазоні завдань. Це остання модель."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:107
@@ -1334,10 +1304,8 @@ msgstr "Найкраща модель для масштабування в ши�
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:117
-msgid ""
-"The best image understanding model to handle a broad range of applications"
-msgstr ""
-"Найкраща модель розпізнавання зображень для широкого спектру застосувань"
+msgid "The best image understanding model to handle a broad range of applications"
+msgstr "Найкраща модель розпізнавання зображень для широкого спектру застосувань"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:25
@@ -1347,27 +1315,17 @@ msgstr "Найкраща в світі остання модель"
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:34
 msgid "Powerful edge model with extremely high performance/price ratio"
-msgstr ""
-"Потужна остання модель із надзвичайно високим співвідношенням продуктивності "
-"та ціни"
+msgstr "Потужна остання модель із надзвичайно високим співвідношенням продуктивності та ціни"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:45
-msgid ""
-"Our top-tier reasoning model for high-complexity tasks with the lastest "
-"version v2 released July 2024"
-msgstr ""
-"Наша модель розумового аналізу вищого рівня для задач високої складності з "
-"останньою версією v2, випущеною в липні 2024 року"
+msgid "Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024"
+msgstr "Наша модель розумового аналізу вищого рівня для задач високої складності з останньою версією v2, випущеною в липні 2024 року"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:56
-msgid ""
-"Our latest enterprise-grade small model with the lastest version v2 released "
-"September 2024"
-msgstr ""
-"Наша остання невелика модель корпоративного рівня з останньою версією v2, "
-"випущена у вересні 2024 року"
+msgid "Our latest enterprise-grade small model with the lastest version v2 released September 2024"
+msgstr "Наша остання невелика модель корпоративного рівня з останньою версією v2, випущена у вересні 2024 року"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:67
@@ -1381,12 +1339,8 @@ msgstr "Модель 12B з можливістю розуміння зображ
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:90
-msgid ""
-"A 12B model built with the partnership with Nvidia. It is easy to use and a "
-"drop-in replacement in any system using Mistral 7B that it supersedes"
-msgstr ""
-"Модель 12B, створена в партнерстві з Nvidia. Вона проста у використанні та "
-"замінює будь-яку систему, що використовує Mistral 7B, яку вона замінює"
+msgid "A 12B model built with the partnership with Nvidia. It is easy to use and a drop-in replacement in any system using Mistral 7B that it supersedes"
+msgstr "Модель 12B, створена в партнерстві з Nvidia. Вона проста у використанні та замінює будь-яку систему, що використовує Mistral 7B, яку вона замінює"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:101
@@ -1401,9 +1355,7 @@ msgstr "Наш перший рідкісний набір експертів в�
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:121
 msgid "Our best open source model to date released April 2024"
-msgstr ""
-"Наша найкраща на сьогодні модель з відкритим кодом, випущена у квітні 2024 "
-"року"
+msgstr "Наша найкраща на сьогодні модель з відкритим кодом, випущена у квітні 2024 року"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:132
@@ -1418,11 +1370,8 @@ msgstr "Вказує на одну з останніх ітерацій моде
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:76
-msgid ""
-"Dynamic model continuously updated to the current version of GPT-4o in "
-"ChatGPT"
-msgstr ""
-"Динамічна модель постійно оновлюється до поточної версії GPT-4o у ChatGPT"
+msgid "Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
+msgstr "Динамічна модель постійно оновлюється до поточної версії GPT-4o у ChatGPT"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:98
@@ -1452,29 +1401,17 @@ msgstr "Останній знімок, який підтримує структ�
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:149
 msgid "Our high-intelligence flagship model for complex, multi-step tasks"
-msgstr ""
-"Наша високоінтелектуальна флагманська модель для складних багатоетапних "
-"завдань"
+msgstr "Наша високоінтелектуальна флагманська модель для складних багатоетапних завдань"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:160
-msgid ""
-"Our affordable and intelligent small model for fast, lightweight tasks. "
-"GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
-msgstr ""
-"Наша доступна та інтелектуальна маленька модель для швидких і легких "
-"завдань. GPT-4o mini дешевша і потужніша, ніж GPT-3.5 Turbo"
+msgid "Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
+msgstr "Наша доступна та інтелектуальна маленька модель для швидких і легких завдань. GPT-4o mini дешевша і потужніша, ніж GPT-3.5 Turbo"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:171
-msgid ""
-"The latest GPT-3.5 Turbo model with higher accuracy at responding in "
-"requested formats and a fix for a bug which caused a text encoding issue for "
-"non-English language function calls"
-msgstr ""
-"Остання модель GPT-3.5 Turbo з вищою точністю відповідей у ​​запитаних "
-"форматах і виправленням помилки, яка спричиняла проблему кодування тексту "
-"для викликів функцій не англійською мовою"
+msgid "The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
+msgstr "Остання модель GPT-3.5 Turbo з вищою точністю відповідей у ​​запитаних форматах і виправленням помилки, яка спричиняла проблему кодування тексту для викликів функцій не англійською мовою"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:180
@@ -1483,44 +1420,25 @@ msgstr "Вказує на одну з останніх ітерацій моде
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:190
-msgid ""
-"The latest GPT-4 model intended to reduce cases of “laziness” where the "
-"model doesn’t complete a task"
-msgstr ""
-"Остання модель GPT-4 призначена для зменшення випадків «лінощів», коли "
-"модель не виконує завдання"
+msgid "The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
+msgstr "Остання модель GPT-4 призначена для зменшення випадків «лінощів», коли модель не виконує завдання"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:200
-msgid ""
-"GPT-4 Turbo model featuring improved instruction following, JSON mode, "
-"reproducible outputs, parallel function calling, and more"
-msgstr ""
-"Модель GPT-4 Turbo з покращеним виконанням інструкцій, режимом JSON, "
-"відтворюваними виводами, паралельним викликом функцій тощо"
+msgid "GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
+msgstr "Модель GPT-4 Turbo з покращеним виконанням інструкцій, режимом JSON, відтворюваними виводами, паралельним викликом функцій тощо"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:210
-msgid ""
-"GPT-4 Turbo with vision. Ability to understand images, in addition to all "
-"other GPT-4 Turbo capabilities"
-msgstr ""
-"GPT-4 Turbo з баченням. Здатність розуміти зображення на додаток до всіх "
-"інших можливостей GPT-4 Turbo"
+msgid "GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities"
+msgstr "GPT-4 Turbo з баченням. Здатність розуміти зображення на додаток до всіх інших можливостей GPT-4 Turbo"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:221
-msgid ""
-"More capable than any GPT-3.5 model, able to do more complex tasks, and "
-"optimized for chat"
-msgstr ""
-"Більш потужний, ніж будь-яка модель GPT-3.5, здатний виконувати складніші "
-"завдання та оптимізований для чату"
+msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
+msgstr "Більш потужний, ніж будь-яка модель GPT-3.5, здатний виконувати складніші завдання та оптимізований для чату"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:230
-msgid ""
-"Same capabilities as the standard gpt-4 mode but with 4x the context length"
-msgstr ""
-"Такі самі можливості, як і стандартний режим gpt-4, але з довжиною контексту "
-"в 4 рази"
+msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
+msgstr "Такі самі можливості, як і стандартний режим gpt-4, але з довжиною контексту в 4 рази"
