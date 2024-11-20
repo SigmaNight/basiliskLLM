@@ -31,6 +31,7 @@ class FloatSpinTextCtrlAccessible(wx.Accessible):
 class BaseConversation:
 	def __init__(self):
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
+		self.voice_mode = False
 
 	@property
 	def current_engine(self) -> Optional[BaseEngine]:
@@ -39,14 +40,14 @@ class BaseConversation:
 			return None
 		return self.accounts_engines[account.id]
 
-	def create_account_widget(self) -> wx.StaticText:
+	def create_account_widget(self, parent: wx.Window) -> wx.StaticText:
 		label = wx.StaticText(
-			self,
+			parent,
 			# Translators: This is a label for account in the main window
 			label=_("&Account:"),
 		)
 		self.account_combo = wx.ComboBox(
-			self, style=wx.CB_READONLY, choices=self.get_display_accounts()
+			parent, style=wx.CB_READONLY, choices=self.get_display_accounts()
 		)
 		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
 		return label
@@ -95,22 +96,22 @@ class BaseConversation:
 		self.update_model_list()
 		return account
 
-	def create_system_prompt_widget(self) -> wx.StaticText:
+	def create_system_prompt_widget(self, parent: wx.Window) -> wx.StaticText:
 		label = wx.StaticText(
-			self,
+			parent,
 			# Translators: This is a label for system prompt in the main window
 			label=_("S&ystem prompt:"),
 		)
 		self.system_prompt_txt = wx.TextCtrl(
-			self,
+			parent,
 			size=(800, 100),
 			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
 		)
 		return label
 
-	def create_model_widget(self) -> wx.StaticText:
-		label = wx.StaticText(self, label=_("M&odels:"))
-		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+	def create_model_widget(self, parent: wx.Window) -> wx.StaticText:
+		label = wx.StaticText(parent, label=_("M&odels:"))
+		self.model_list = wx.ListCtrl(parent, style=wx.LC_REPORT)
 		# Translators: This label appears in the main window's list of models
 		self.model_list.InsertColumn(0, _("Name"))
 		# Translators: This label appears in the main window's list of models to indicate whether the model supports images
@@ -137,7 +138,11 @@ class BaseConversation:
 		engine = self.current_engine
 		if not engine:
 			return []
-		return [m.display_model for m in engine.models]
+		return [
+			m.display_model
+			for m in engine.models
+			if m.voice_mode == self.voice_mode
+		]
 
 	def set_model_list(self, model: Optional[ProviderAIModel]):
 		engine = self.current_engine
@@ -163,7 +168,15 @@ class BaseConversation:
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return None
-		return engine.models[model_index]
+		filtered_models = [
+			model
+			for model in engine.models
+			if model.voice_mode == self.voice_mode
+		]
+		try:
+			return filtered_models[model_index]
+		except IndexError:
+			return None
 
 	def on_model_change(self, event):
 		model = self.current_model
@@ -235,24 +248,24 @@ class BaseConversation:
 		dlg.ShowModal()
 		dlg.Destroy()
 
-	def create_max_tokens_widget(self) -> wx.StaticText:
+	def create_max_tokens_widget(self, parent: wx.Window) -> wx.StaticText:
 		self.max_tokens_spin_label = wx.StaticText(
-			self,
+			parent,
 			# Translators: This is a label for max tokens in the main window
 			label=_("Max to&kens:"),
 		)
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value='0', min=0, max=2000000
+			parent, value='0', min=0, max=2000000
 		)
 
-	def create_temperature_widget(self) -> wx.StaticText:
+	def create_temperature_widget(self, parent: wx.Window) -> wx.StaticText:
 		self.temperature_spinner_label = wx.StaticText(
-			self,
+			parent,
 			# Translators: This is a label for temperature in the main window
 			label=_("&Temperature:"),
 		)
 		self.temperature_spinner = FloatSpin(
-			self,
+			parent,
 			min_val=0.0,
 			max_val=2.0,
 			increment=0.01,
@@ -266,14 +279,14 @@ class BaseConversation:
 		)
 		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
 
-	def create_top_p_widget(self) -> wx.StaticText:
+	def create_top_p_widget(self, parent: wx.Window) -> wx.StaticText:
 		self.top_p_spinner_label = wx.StaticText(
-			self,
+			parent,
 			# Translators: This is a label for top P in the main window
 			label=_("Probabilit&y Mass (top P):"),
 		)
 		self.top_p_spinner = FloatSpin(
-			self,
+			parent,
 			min_val=0.0,
 			max_val=1.0,
 			increment=0.01,
@@ -287,9 +300,9 @@ class BaseConversation:
 		)
 		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 
-	def create_stream_widget(self):
+	def create_stream_widget(self, parent: wx.Window) -> wx.CheckBox:
 		self.stream_mode = wx.CheckBox(
-			self,
+			parent,
 			# Translators: This is a label for stream mode in the main window
 			label=_("&Stream mode"),
 		)

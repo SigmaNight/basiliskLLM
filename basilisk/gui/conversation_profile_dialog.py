@@ -13,9 +13,9 @@ log = getLogger(__name__)
 class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 	def __init__(
 		self,
-		parent,
+		parent: wx.Window,
 		title: str,
-		size=(400, 400),
+		size: tuple[int, int] = (800, 600),
 		profile: Optional[ConversationProfile] = None,
 	):
 		wx.Dialog.__init__(self, parent=parent, title=title, size=size)
@@ -26,46 +26,47 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
+		panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 
 		label = wx.StaticText(
-			self,
+			panel,
 			# translators: Label for the name of a conversation profile
 			label=_("profile &name:"),
 		)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 
-		self.profile_name_txt = wx.TextCtrl(self)
+		self.profile_name_txt = wx.TextCtrl(panel)
 		self.sizer.Add(self.profile_name_txt, 0, wx.ALL | wx.EXPAND, 5)
 
-		label = self.create_account_widget()
+		label = self.create_account_widget(panel)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.account_combo, 0, wx.ALL | wx.EXPAND, 5)
 		self.include_account_checkbox = wx.CheckBox(
-			self,
+			panel,
 			# translators: Label for including an account in a conversation profile
 			label=_("&Include account in profile"),
 		)
 		self.sizer.Add(self.include_account_checkbox, 0, wx.ALL, 5)
-		label = self.create_system_prompt_widget()
+		label = self.create_system_prompt_widget(panel)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
-		label = self.create_model_widget()
+		label = self.create_model_widget(panel)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
-		self.create_max_tokens_widget()
+		self.create_max_tokens_widget(panel)
 		self.sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 5)
-		self.create_temperature_widget()
+		self.create_temperature_widget(panel)
 		self.sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 5)
-		self.create_top_p_widget()
+		self.create_top_p_widget(panel)
 		self.sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
-		self.create_stream_widget()
+		self.create_stream_widget(panel)
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
-		self.ok_button = wx.Button(self, wx.ID_OK)
-		self.cancel_button = wx.Button(self, wx.ID_CANCEL)
+		self.ok_button = wx.Button(panel, wx.ID_OK)
+		self.cancel_button = wx.Button(panel, wx.ID_CANCEL)
 		self.Bind(wx.EVT_BUTTON, self.on_ok, self.ok_button)
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, self.cancel_button)
 		self.SetDefaultItem(self.ok_button)

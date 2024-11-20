@@ -27,37 +27,42 @@ ALIASES = {
 
 class SoundManager:
 	def __init__(self):
-		self.current_sound = None
+		self.current_sound: wx.adv.Sound = None
 		self.loop = False
 		self.loop_thread = None
 		self.sound_player = wx.adv.Sound()
 		self.thread_lock = threading.Lock()
 		self.sound_cache = {}
 
-	def _ensure_sound_loaded(self, file_path) -> wx.adv.Sound:
-		if file_path not in self.sound_cache:
+	def _ensure_sound_loaded(self, file_source) -> wx.adv.Sound:
+		if isinstance(file_source, bytes):
 			sound = wx.adv.Sound()
-			if sound.Create(str(file_path)):
-				self.sound_cache[file_path] = sound
+			sound.CreateFromData(file_source)
+			return sound
+		if file_source not in self.sound_cache:
+			sound = wx.adv.Sound()
+			if sound.Create(str(file_source)):
+				self.sound_cache[file_source] = sound
 			else:
-				raise IOError(f"Failed to load sound: {file_path}")
-		return self.sound_cache[file_path]
+				raise IOError(f"Failed to load sound: {file_source}")
+		return self.sound_cache[file_source]
 
 	def _play_sound_loop(self, sound: wx.adv.Sound, delay: float = 0.1):
 		while self.loop:
 			sound.Play(wx.adv.SOUND_ASYNC | wx.adv.SOUND_LOOP)
+
 			while self.loop:
 				time.sleep(delay)
 			sound.Stop()
 
-	def play_sound(self, file_path: str, loop: bool = False):
+	def play_sound(self, file: str | Path | bytes, loop: bool = False):
 		with self.thread_lock:
-			if file_path in ALIASES:
-				file_path = ALIASES[file_path]
+			if isinstance(file, str) and file in ALIASES:
+				file = ALIASES[file]
 
 			self.stop_sound()
 
-			sound = self._ensure_sound_loaded(file_path)
+			sound = self._ensure_sound_loaded(file)
 
 			self.loop = loop
 
@@ -81,8 +86,8 @@ def initialize_sound_manager():
 	sound_manager = SoundManager()
 
 
-def play_sound(file_path: str, loop: bool = False):
-	sound_manager.play_sound(file_path, loop)
+def play_sound(file: str | Path | bytes, loop: bool = False):
+	sound_manager.play_sound(file, loop)
 
 
 def stop_sound():
