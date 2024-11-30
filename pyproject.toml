@@ -29,7 +29,7 @@ package-mode = false
 accessible-output3 = {git = "https://github.com/SigmaNight/accessible_output3.git"}
 anthropic = "^0.40.0"
 babel = "^2.15.0"
-cx-freeze = "^7.2.4,!=7.2.5"
+cx-freeze = "^7.2.7"
 google-generativeai = "^0.8.3"
 httpx = "^0.28.0"
 keyring = "^25.5.0"
