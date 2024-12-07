@@ -53,7 +53,7 @@ wxpython = "^4.2.2"
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.0.0"
 pre-commit = "^4.0.1"
-ruff = "^0.8.0"
+ruff = "^0.8.2"
 setuptools-scm = "^8.0.4"
 
 [tool.ruff]
