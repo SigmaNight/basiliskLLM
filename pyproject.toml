@@ -40,7 +40,7 @@ openai = "^1.55.3"
 pillow = "^11.0.0"
 psutil = "^6.1.0"
 platformdirs = "^4.3.6"
-pydantic = "2.10.2"
+pydantic = "2.10.3"
 pydantic-settings = "^2.6.1"
 python = "^3.12"
 pywin32 = { version = "^308", markers = "sys_platform == 'win32'" }
