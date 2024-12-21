@@ -38,6 +38,7 @@ class ConversationSettings(BaseModel):
 	nav_msg_select: bool = Field(default=False)
 	shift_enter_mode: bool = Field(default=False)
 	use_accessible_output: bool = Field(default=True)
+	focus_history_after_send: bool = Field(default=False)
 
 
 class ImagesSettings(BaseModel):

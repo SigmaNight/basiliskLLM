@@ -208,6 +208,14 @@ class PreferencesDialog(wx.Dialog):
 		)
 		conversation_group_sizer.Add(self.use_accessible_output, 0, wx.ALL, 5)
 
+		self.focus_history_checkbox = wx.CheckBox(
+			conversation_group, label=_("Focus message history after sending")
+		)
+		self.focus_history_checkbox.SetValue(
+			self.conf.conversation.focus_history_after_send
+		)
+		conversation_group_sizer.Add(self.focus_history_checkbox, 0, wx.ALL, 5)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))
@@ -358,6 +366,9 @@ class PreferencesDialog(wx.Dialog):
 		)
 		self.conf.conversation.use_accessible_output = (
 			self.use_accessible_output.GetValue()
+		)
+		self.conf.conversation.focus_history_after_send = (
+			self.focus_history_checkbox.GetValue()
 		)
 
 		self.conf.images.resize = self.image_resize.GetValue()
