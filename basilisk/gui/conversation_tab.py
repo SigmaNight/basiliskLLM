@@ -1110,7 +1110,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
-		self.messages.SetFocus()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
 		thread = self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
@@ -1198,7 +1199,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		text = self.stream_buffer
 		if (
 			self._speak_stream
-			and self.messages.HasFocus()
+			and (self.messages.HasFocus() or self.prompt.HasFocus())
 			and self.GetTopLevelParent().IsShown()
 		):
 			self._handle_accessible_output(text)
@@ -1215,6 +1216,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._flush_stream_buffer()
 		self._update_last_segment_length()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
 		self._end_task()
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
@@ -1224,6 +1227,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.prompt.Clear()
 		self.image_files.clear()
 		self.refresh_images_list()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
