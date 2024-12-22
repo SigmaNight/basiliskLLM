@@ -93,10 +93,21 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="o1-preview",
+				id="o1",
 				# Translators: This is a model description
 				description=_(
 					"Points to the most recent snapshot of the o1 model"
+				),
+				context_window=200000,
+				max_output_tokens=100000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="o1-preview",
+				# Translators: This is a model description
+				description=_(
+					"Points to the most recent snapshot of the o1-preview model"
 				),
 				context_window=128000,
 				max_output_tokens=32768,

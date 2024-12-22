@@ -63,9 +63,32 @@ class AnthropicEngine(BaseEngine):
 				vision=True,
 			),
 			ProviderAIModel(
+				id="claude-3-5-haiku-latest",
+				name="Claude 3.5 Haiku",
+				# Translators: This is a model description
+				description=_(
+					"Point to the most recent snapshot of Claude 3.5 Haiku"
+				),
+				context_window=200000,
+				max_output_tokens=8192,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-3-5-haiku-20241022",
+				# Translators: This is a model description
+				description=_(
+					"Our fastest model. Intelligence at blazing speeds"
+				),
+				context_window=200000,
+				max_output_tokens=8192,
+				vision=False,
+			),
+			ProviderAIModel(
 				id="claude-3-5-sonnet-20241022",
 				# Translators: This is a model description
-				description=_("Most intelligent model"),
+				description=_(
+					"Most intelligent model. Highest level of intelligence and capability"
+				),
 				context_window=200000,
 				max_output_tokens=8192,
 				vision=True,
@@ -124,17 +147,6 @@ class AnthropicEngine(BaseEngine):
 				# Translators: This is a model description
 				description=_(
 					"Predecessor to Claude 3, offering strong all-round performance"
-				),
-				context_window=100000,
-				max_output_tokens=4096,
-				vision=False,
-			),
-			ProviderAIModel(
-				id="claude-instant-1.2",
-				name="Claude Instant 1.2",
-				# Translators: This is a model description
-				description=_(
-					"Our cheapest small and fast model, a predecessor of Claude Haiku"
 				),
 				context_window=100000,
 				max_output_tokens=4096,
