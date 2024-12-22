@@ -6,8 +6,7 @@ import re
 import threading
 import time
 import weakref
-from functools import wraps
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 import wx
 from more_itertools import first, locate
@@ -24,6 +23,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
+from basilisk.decorators import ensure_no_task_running
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
 	MessageSegment,
@@ -45,21 +45,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
-
-
-def ensure_no_task_running(method: Callable):
-	@wraps(method)
-	def wrapper(instance, *args, **kwargs):
-		if instance.task:
-			wx.MessageBox(
-				_("A task is already running. Please wait for it to complete."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		return method(instance, *args, **kwargs)
-
-	return wrapper
 
 
 class ConversationTab(wx.Panel, BaseConversation):
