@@ -6,7 +6,7 @@ import re
 import threading
 import time
 import weakref
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import wx
 from more_itertools import first, locate
@@ -1042,19 +1042,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	@ensure_no_task_running
-	def on_submit(self, event: wx.CommandEvent):
-		if not self.submit_btn.IsEnabled():
-			return
-		if not self.prompt.GetValue() and not self.image_files:
-			self.prompt.SetFocus()
-			return
+	def ensure_model_compatibility(self) -> None:
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
-			return
+			return None
 		if self.image_files and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
@@ -1066,43 +1060,62 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-			return
-		self.submit_btn.Disable()
-		self.stop_completion_btn.Show()
-		system_message = None
-		if self.system_prompt_txt.GetValue():
-			system_message = Message(
-				role=MessageRoleEnum.SYSTEM,
-				content=self.system_prompt_txt.GetValue(),
-			)
-		new_block = MessageBlock(
-			request=Message(
-				role=MessageRoleEnum.USER,
-				content=self.get_content_for_completion(
-					images_files=self.image_files, prompt=self.prompt.GetValue()
-				),
-			),
+			return None
+		return model
+
+	def get_system_message(self) -> Message | None:
+		system_prompt = self.system_prompt_txt.GetValue()
+		if not system_prompt:
+			return None
+		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
+
+	def get_new_messagfe_block(self) -> MessageBlock | None:
+		model = self.ensure_model_compatibility()
+		if not model:
+			return None
+		content = self.get_content_for_completion(
+			images_files=self.image_files, prompt=self.prompt.GetValue()
+		)
+		return MessageBlock(
+			request=Message(role=MessageRoleEnum.USER, content=content),
 			model=model,
 			temperature=self.temperature_spinner.GetValue(),
 			top_p=self.top_p_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
 			stream=self.stream_mode.GetValue(),
 		)
-		completion_kw = {
+
+	def get_completion_args(self) -> dict[str, Any] | None:
+		new_block = self.get_new_messagfe_block()
+		if not new_block:
+			return None
+		return {
 			"engine": self.current_engine,
-			"system_message": system_message,
+			"system_message": self.get_system_message(),
 			"conversation": self.conversation,
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
+
+	@ensure_no_task_running
+	def on_submit(self, event: wx.CommandEvent):
+		if not self.submit_btn.IsEnabled():
+			return
+		if not self.prompt.GetValue() and not self.image_files:
+			self.prompt.SetFocus()
+			return
+		completion_kw = self.get_completion_args()
+		if not completion_kw:
+			return
+		self.submit_btn.Disable()
+		self.stop_completion_btn.Show()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
-		thread = self.task = threading.Thread(
+		self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
-		thread.start()
-		thread_id = thread.ident
-		log.debug(f"Task {thread_id} started")
+		self.task.start()
+		log.debug(f"Task {self.task.ident} started")
 
 	def on_stop_completion(self, event: wx.CommandEvent):
 		self._stop_completion = True
