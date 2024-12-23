@@ -251,36 +251,38 @@ class MainFrame(wx.Frame):
 		elif not self.IsShown():
 			self.on_restore(None)
 
-	def capture_partial_screen(
-		self, screen_coordinates: tuple[int, int, int, int], name: str = ""
+	def screen_capture(
+		self,
+		capture_mode: CaptureMode,
+		screen_coordinates: Optional[tuple[int, int, int, int]] = None,
+		name: str = "",
 	):
-		log.debug(f"Capturing partial screen: {screen_coordinates}")
-		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-		fd, path = tempfile.mkstemp(
-			prefix=f"basilisk_{now_str}_", suffix=".png"
-		)
-		os.close(fd)
-		self.tmp_files.append(path)
-		log.debug(f"Temporary file: {path}")
+		log.debug(f"Capturing {capture_mode.value} screen")
+		conv_tab = self.current_tab
+		if not conv_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		if capture_mode == CaptureMode.PARTIAL and not screen_coordinates:
+			wx.MessageBox(
+				_("No screen coordinates provided"),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		now = datetime.datetime.now()
+		capture_name = f"capture_{now.isoformat(timespec='seconds')}.png"
+		capture_path = f"{conv_tab.conv_storage_url}/attachments/{capture_name}"
+		name = name or capture_name
+		log.debug(f"Capture file URL: {capture_path}")
 		thread = ScreenCaptureThread(
 			self,
-			path=path,
-			capture_mode=CaptureMode.PARTIAL,
-			screen_coordinates=screen_coordinates,
+			capture_path,
+			capture_mode,
 			name=name,
+			screen_coordinates=screen_coordinates,
 		)
-		thread.start()
-
-	def screen_capture(self, capture_mode: CaptureMode):
-		log.debug("Capturing screen")
-		now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-		fd, path = tempfile.mkstemp(
-			prefix=f"basilisk_{now_str}_", suffix=".png"
-		)
-		os.close(fd)
-		self.tmp_files.append(path)
-		log.debug(f"Temporary file: {path}")
-		thread = ScreenCaptureThread(self, path, capture_mode)
 		thread.start()
 
 	def post_screen_capture(self, imagefile: ImageFile | str):

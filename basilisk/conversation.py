@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from .image_file import ImageFile
 from .provider_ai_model import ProviderAIModel
 
 PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main language based on the topics and context. Max 70 characters. Do not surround the text with quotation marks."
@@ -27,9 +28,8 @@ class TextMessageContent(BaseModel):
 
 class Message(BaseModel):
 	role: MessageRoleEnum
-	content: list[TextMessageContent | ImageUrlMessageContent] | str = Field(
-		discrminator="type"
-	)
+	content: str
+	attachments: list[ImageFile] | None = Field(default=None)
 
 
 class MessageBlock(BaseModel):

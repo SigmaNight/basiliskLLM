@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import re
@@ -66,10 +67,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.title = title
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
-		self.image_files = []
+		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
+		self.conv_storage_url = f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
 		self.task = None
 		self.stream_buffer = ""
 		self._speak_stream = True
@@ -922,32 +924,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
-	def get_content_for_completion(
-		self, images_files: list[ImageFile] = None, prompt: str = None
-	) -> list[dict[str, str]]:
-		if not images_files:
-			images_files = self.image_files
-		if not images_files:
-			return prompt
-		content = []
-		if prompt:
-			content.append({"type": "text", "text": prompt})
-		for image_file in images_files:
-			content.append(
-				{
-					"type": "image_url",
-					"image_url": {
-						"url": image_file.get_url(
-							resize=config.conf().images.resize,
-							max_width=config.conf().images.max_width,
-							max_height=config.conf().images.max_height,
-							quality=config.conf().images.quality,
-						)
-					},
-				}
-			)
-		return content
-
 	def transcribe_audio_file(self, audio_file: str = None):
 		if not self.recording_thread:
 			module = __import__(
@@ -1073,11 +1049,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 		model = self.ensure_model_compatibility()
 		if not model:
 			return None
-		content = self.get_content_for_completion(
-			images_files=self.image_files, prompt=self.prompt.GetValue()
-		)
+		if config.conf().images.resize:
+			for image in self.image_files:
+				image.resize(
+					os.path.join(self.conv_storage_url, "optimized_images"),
+					config.conf().images.max_width,
+					config.conf().images.max_height,
+					config.conf().images.quality,
+				)
 		return MessageBlock(
-			request=Message(role=MessageRoleEnum.USER, content=content),
+			request=Message(
+				role=MessageRoleEnum.USER,
+				content=self.prompt.GetValue(),
+				attachments=self.image_files,
+			),
 			model=model,
 			temperature=self.temperature_spinner.GetValue(),
 			top_p=self.top_p_spinner.GetValue(),
