@@ -46,13 +46,13 @@ repos:
         stages:
           - "commit-msg"
 -   repo: https://github.com/executablebooks/mdformat
-    rev: "0.7.19"
+    rev: "0.7.21"
     hooks:
       - id: mdformat
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.8.3"
+    rev: "v0.8.4"
     hooks:
       - id: ruff-format
       - id: ruff
