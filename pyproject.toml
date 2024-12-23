@@ -103,11 +103,11 @@ excludes = [
 ]
 include_files = ["basilisk/res"]
 includes = ["numpy", "httplib2.socks", "win32timezone"]
-packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring"]
+packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring", "fsspec.implementations"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
-    "distro", "dotenv", "encodings", "email", "google", "googleapiclient", "grpc_status",
+    "distro", "dotenv", "encodings", "email", "fsspec", "google", "googleapiclient", "grpc_status",
     "h11", "html", "httpcore", "http", "httplib2", "httpx",
     "idna", "importlib", "importlib_metadata", "importlib_resources",
     "jaraco", "jiter", "json", "keyring", "libloader", "logging",
