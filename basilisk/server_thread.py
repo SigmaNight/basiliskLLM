@@ -1,18 +1,24 @@
+from __future__ import annotations
+
 import logging
 import re
 import socket
 import threading
+from typing import TYPE_CHECKING
 
 import wx
 
 from basilisk.image_file import ImageFile
 from basilisk.screen_capture_thread import CaptureMode
 
+if TYPE_CHECKING:
+	from basilisk.gui.main_frame import MainFrame
+
 log = logging.getLogger(__name__)
 
 
 class ServerThread(threading.Thread):
-	def __init__(self, frame: wx.Frame, port: int) -> None:
+	def __init__(self, frame: MainFrame, port: int) -> None:
 		super().__init__()
 		self.frame = frame
 		self.port = port
@@ -63,7 +69,10 @@ class ServerThread(threading.Thread):
 					coords, name = grab_mode.split('\n', 1)
 					coords = tuple(map(int, coords.split(",")))
 					wx.CallAfter(
-						self.frame.capture_partial_screen, coords, name
+						self.frame.screen_capture,
+						CaptureMode.PARTIAL,
+						coords,
+						name,
 					)
 			else:
 				log.error(f"Invalid grab mode: {grab_mode}")
