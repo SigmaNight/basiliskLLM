@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import re
 import threading
 import time
 import weakref
-from functools import wraps
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import wx
 from more_itertools import first, locate
+from upath import UPath
 
 import basilisk.config as config
 from basilisk import global_vars
@@ -24,6 +25,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
+from basilisk.decorators import ensure_no_task_running
 from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
 from basilisk.message_segment_manager import (
 	MessageSegment,
@@ -47,21 +49,6 @@ log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
 
 
-def ensure_no_task_running(method: Callable):
-	@wraps(method)
-	def wrapper(instance, *args, **kwargs):
-		if instance.task:
-			wx.MessageBox(
-				_("A task is already running. Please wait for it to complete."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		return method(instance, *args, **kwargs)
-
-	return wrapper
-
-
 class ConversationTab(wx.Panel, BaseConversation):
 	ROLE_LABELS: dict[MessageRoleEnum, str] = {
 		# Translators: Label indicating that the message is from the user in a conversation
@@ -81,10 +68,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.title = title
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
-		self.image_files = []
+		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
+		self.conv_storage_url = UPath(
+			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		)
 		self.task = None
 		self.stream_buffer = ""
 		self._speak_stream = True
@@ -937,32 +927,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
-	def get_content_for_completion(
-		self, images_files: list[ImageFile] = None, prompt: str = None
-	) -> list[dict[str, str]]:
-		if not images_files:
-			images_files = self.image_files
-		if not images_files:
-			return prompt
-		content = []
-		if prompt:
-			content.append({"type": "text", "text": prompt})
-		for image_file in images_files:
-			content.append(
-				{
-					"type": "image_url",
-					"image_url": {
-						"url": image_file.get_url(
-							resize=config.conf().images.resize,
-							max_width=config.conf().images.max_width,
-							max_height=config.conf().images.max_height,
-							quality=config.conf().images.quality,
-						)
-					},
-				}
-			)
-		return content
-
 	def transcribe_audio_file(self, audio_file: str = None):
 		if not self.recording_thread:
 			module = __import__(
@@ -1057,19 +1021,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	@ensure_no_task_running
-	def on_submit(self, event: wx.CommandEvent):
-		if not self.submit_btn.IsEnabled():
-			return
-		if not self.prompt.GetValue() and not self.image_files:
-			self.prompt.SetFocus()
-			return
+	def ensure_model_compatibility(self) -> None:
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
-			return
+			return None
 		if self.image_files and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
@@ -1081,21 +1039,32 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-			return
-		self.submit_btn.Disable()
-		self.stop_completion_btn.Show()
-		system_message = None
-		if self.system_prompt_txt.GetValue():
-			system_message = Message(
-				role=MessageRoleEnum.SYSTEM,
-				content=self.system_prompt_txt.GetValue(),
-			)
-		new_block = MessageBlock(
+			return None
+		return model
+
+	def get_system_message(self) -> Message | None:
+		system_prompt = self.system_prompt_txt.GetValue()
+		if not system_prompt:
+			return None
+		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
+
+	def get_new_messagfe_block(self) -> MessageBlock | None:
+		model = self.ensure_model_compatibility()
+		if not model:
+			return None
+		if config.conf().images.resize:
+			for image in self.image_files:
+				image.resize(
+					self.conv_storage_url / "optimized_images",
+					config.conf().images.max_width,
+					config.conf().images.max_height,
+					config.conf().images.quality,
+				)
+		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
-				content=self.get_content_for_completion(
-					images_files=self.image_files, prompt=self.prompt.GetValue()
-				),
+				content=self.prompt.GetValue(),
+				attachments=self.image_files,
 			),
 			model=model,
 			temperature=self.temperature_spinner.GetValue(),
@@ -1103,21 +1072,38 @@ class ConversationTab(wx.Panel, BaseConversation):
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
 			stream=self.stream_mode.GetValue(),
 		)
-		completion_kw = {
+
+	def get_completion_args(self) -> dict[str, Any] | None:
+		new_block = self.get_new_messagfe_block()
+		if not new_block:
+			return None
+		return {
 			"engine": self.current_engine,
-			"system_message": system_message,
+			"system_message": self.get_system_message(),
 			"conversation": self.conversation,
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
+
+	@ensure_no_task_running
+	def on_submit(self, event: wx.CommandEvent):
+		if not self.submit_btn.IsEnabled():
+			return
+		if not self.prompt.GetValue() and not self.image_files:
+			self.prompt.SetFocus()
+			return
+		completion_kw = self.get_completion_args()
+		if not completion_kw:
+			return
+		self.submit_btn.Disable()
+		self.stop_completion_btn.Show()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
-		thread = self.task = threading.Thread(
+		self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
-		thread.start()
-		thread_id = thread.ident
-		log.debug(f"Task {thread_id} started")
+		self.task.start()
+		log.debug(f"Task {self.task.ident} started")
 
 	def on_stop_completion(self, event: wx.CommandEvent):
 		self._stop_completion = True
