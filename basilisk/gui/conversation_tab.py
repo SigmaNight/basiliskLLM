@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import wx
 from more_itertools import first, locate
+from upath import UPath
 
 import basilisk.config as config
 from basilisk import global_vars
@@ -71,7 +72,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
-		self.conv_storage_url = f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		self.conv_storage_url = UPath(
+			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		)
 		self.task = None
 		self.stream_buffer = ""
 		self._speak_stream = True
@@ -1052,7 +1055,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if config.conf().images.resize:
 			for image in self.image_files:
 				image.resize(
-					os.path.join(self.conv_storage_url, "optimized_images"),
+					self.conv_storage_url / "optimized_images",
 					config.conf().images.max_width,
 					config.conf().images.max_height,
 					config.conf().images.quality,

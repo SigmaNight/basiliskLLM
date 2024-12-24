@@ -5,7 +5,6 @@ import threading
 import typing
 from enum import Enum
 
-import fsspec
 import wx
 from PIL import ImageGrab
 
@@ -13,6 +12,8 @@ from .image_file import ImageFile
 
 if typing.TYPE_CHECKING:
 	from io import BufferedWriter
+
+	from upath import UPath
 
 	from basilisk.gui.main_frame import MainFrame
 
@@ -27,7 +28,7 @@ class ScreenCaptureThread(threading.Thread):
 	def __init__(
 		self,
 		parent: MainFrame,
-		path: str,
+		path: UPath,
 		capture_mode: CaptureMode = CaptureMode.FULL,
 		screen_coordinates: tuple | None = None,
 		name: str = "",
@@ -49,7 +50,7 @@ class ScreenCaptureThread(threading.Thread):
 
 	def run(self):
 		image_name = self.name or datetime.datetime.now().strftime("%H:%M:%S")
-		with fsspec.open(self.path, "wb") as f:
+		with self.path.open("wb") as f:
 			image_file = self.capture_method(f, image_name)
 		wx.CallAfter(self.parent.post_screen_capture, image_file)
 

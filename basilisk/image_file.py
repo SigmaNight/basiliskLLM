@@ -3,21 +3,22 @@ from __future__ import annotations
 import base64
 import logging
 import mimetypes
-import os
 import re
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
-import fsspec
 from PIL import Image
-from pydantic import BaseModel
+from pydantic import BaseModel, PlainValidator
+from upath import UPath
 
 from .decorators import measure_time
 
 if TYPE_CHECKING:
 	from io import BufferedReader, BufferedWriter
 log = logging.getLogger(__name__)
+
+PydanticUPath = Annotated[UPath, PlainValidator(lambda v: UPath(v))]
 
 URL_PATTERN = re.compile(
 	r'(https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+|data:image/\S+)',
@@ -36,6 +37,7 @@ def get_image_dimensions(reader: BufferedReader) -> tuple[int, int]:
 def resize_image(
 	src: BufferedReader,
 	target: BufferedWriter,
+	format: str,
 	max_width: int = 0,
 	max_height: int = 0,
 	quality: int = 85,
@@ -68,7 +70,7 @@ def resize_image(
 	resized_image = image.resize(
 		(new_width, new_height), Image.Resampling.LANCZOS
 	)
-	resized_image.save(target, optimize=True, quality=quality)
+	resized_image.save(target, optimize=True, quality=quality, format=format)
 	return True
 
 
@@ -94,13 +96,13 @@ class ImageFileTypes(Enum):
 
 
 class ImageFile(BaseModel):
-	location: str
+	location: PydanticUPath
 	type: ImageFileTypes = ImageFileTypes.UNKNOWN
 	name: str | None = None
 	description: str | None = None
 	size: int = -1
 	dimensions: tuple[int, int] | None = None
-	resize_location: str | None = None
+	resize_location: PydanticUPath | None = None
 
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
@@ -115,37 +117,27 @@ class ImageFile(BaseModel):
 			self.dimensions = self._get_dimensions()
 
 	def _get_type(self) -> ImageFileTypes:
-		protocol, path = fsspec.core.split_protocol(self.location)
-		img_type = ImageFileTypes(protocol)
+		img_type = ImageFileTypes(self.location.protocol)
 		return img_type
 
 	def _get_name(self) -> str:
-		if (
-			self.type == ImageFileTypes.IMAGE_LOCAL
-			or self.type == ImageFileTypes.IMAGE_MEMORY
-		):
-			path = fsspec.core.strip_protocol(self.location)
-			return os.path.basename(path)[1]
-		if self.type == ImageFileTypes.IMAGE_URL:
-			return self.location.split("/")[-1]
-		return "N/A"
+		return self.location.name
 
 	def _get_size(self) -> str:
-		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			size = os.path.getsize(self.location)
-			return get_display_size(size)
-		return "N/A"
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return "N/A"
+		return get_display_size(self.location.stat().st_size)
 
 	def _get_dimensions(self) -> tuple[int, int] | None:
 		if self.type != ImageFileTypes.IMAGE_URL:
 			return None
-		with fsspec.open(self.location, "rb") as image_file:
+		with self.location.open(mode="rb") as image_file:
 			return get_image_dimensions(image_file)
 
 	@measure_time
-	def resize_image(
+	def resize(
 		self,
-		optimize_folder: str,
+		optimize_folder: UPath,
 		max_width: int,
 		max_height: int,
 		quality: int,
@@ -155,21 +147,23 @@ class ImageFile(BaseModel):
 		if self.resize_location:
 			return
 		log.debug("Resizing image")
-		resize_location = os.path.join(optimize_folder, self.name)
-		with fsspec.open(self.location, "rb") as src_file:
-			with fsspec.open(resize_location, "wb") as dst_file:
+		resize_location = optimize_folder / self.location.name
+		with self.location.open(mode="rb") as src_file:
+			with resize_location.open(mode="wb") as dst_file:
 				success = resize_image(
 					src_file,
 					max_width=max_width,
 					max_height=max_height,
 					quality=quality,
 					target=dst_file,
+					format=self.location.suffix[1:],
 				)
 				self.resize_location = resize_location if success else None
 
+	@measure_time
 	def encode_image(self) -> str:
 		image_path = self.resize_location or self.location
-		with fsspec.open(image_path, "rb") as image_file:
+		with image_path.open(mode="rb") as image_file:
 			return base64.b64encode(image_file.read()).decode("utf-8")
 
 	@cached_property
@@ -185,21 +179,23 @@ class ImageFile(BaseModel):
 
 	@property
 	def display_location(self):
-		location = self.location
+		location = str(self.location)
 		if location.startswith("data:image/"):
 			location = f"{location[:50]}...{location[-10:]}"
 		return location
 
 	@staticmethod
-	def remove_location(location: str):
+	def remove_location(location: UPath):
 		log.debug(f"Removing image at {location}")
 		try:
-			fs, path = fsspec.url_to_fs(location)
-			fs.rm(path)
+			fs = location.fs
+			fs.rm(location.path)
 		except Exception as e:
 			log.error(f"Error deleting image at {location}: {e}")
 
 	def __del__(self):
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return
 		if self.resize_location:
 			self.remove_location(self.resize_location)
 		if self.type == ImageFileTypes.IMAGE_MEMORY:
