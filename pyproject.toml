@@ -90,6 +90,7 @@ version_provider = "poetry"
 executables = [
     {script="basilisk/__main__.py", base="gui", target_name="basilisk"},
 ]
+
 [tool.cxfreeze.build_exe]
 optimize = 1
 build_exe = "dist"
@@ -104,7 +105,7 @@ excludes = [
 ]
 include_files = ["basilisk/res"]
 includes = ["numpy", "httplib2.socks", "win32timezone"]
-packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring", "fsspec.implementations"]
+packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring", "fsspec.implementations", "upath.implementations"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
@@ -114,7 +115,7 @@ zip_include_packages = [
     "jaraco", "jiter", "json", "keyring", "libloader", "logging",
     "openai", "numpy", "more_itertools",
     "PIL", "platform_utils", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
-    "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3",
+    "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath",
     "watchdog", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "yaml", "zipfile", "zipp", "zoneinfo",
     "basilisk"]
