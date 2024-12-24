@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from base64 import b64decode
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -9,12 +8,11 @@ import google.generativeai as genai
 
 from basilisk.conversation import (
 	Conversation,
-	ImageUrlMessageContent,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	TextMessageContent,
 )
+from basilisk.image_file import ImageFile, ImageFileTypes
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -134,69 +132,47 @@ class GeminiEngine(BaseEngine):
 				"System role must be set on the model instance"
 			)
 
-	def convert_image(self, image: dict[str, str]) -> genai.protos.Part:
-		if image["url"].startswith("data:"):
-			image_media_type, image_data = image["url"].split(";", 1)
-			image_media_type = image_media_type.split(":", 1)[1]
-			image_data = image_data.split(",", 1)[1]
-			return genai.protos.Part(
-				inline_data=genai.protos.Blob(
-					mime_type=image_media_type, data=b64decode(image_data)
-				)
-			)
-		else:
-			raise ValueError("Unsupported content type")
+	def convert_image(self, image: ImageFile) -> genai.protos.Part:
+		if image.type == ImageFileTypes.IMAGE_URL:
+			return genai.protos.Part(genai.protos.FileData(file_uri=image.url))
+		with image.send_location.open("rb") as f:
+			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())
+		return genai.protos.Part(inline_data=blob)
 
 	def convert_message_content(
 		self, message: Message
 	) -> list[genai.protos.Part]:
-		parts = []
-		for content in message.content:
-			if isinstance(content, TextMessageContent):
-				parts.append(genai.protos.Part(text=content.text))
-			elif isinstance(content, ImageUrlMessageContent):
-				parts.append(self.convert_image(content.image_url))
-			elif isinstance(content, str):
-				parts.append(genai.protos.Part(text=content))
-			else:
-				raise NotImplementedError(
-					f"Content type {type(content)} not supported"
-				)
+		parts = [genai.protos.Part(text=message.content)]
+		if message.attachments:
+			for attachment in message.attachments:
+				parts.append(self.convert_image(attachment))
 		return parts
+
+	def prepare_message_request(self, message: Message) -> genai.protos.Content:
+		role = self.convert_role(message.role)
+		parts = self.convert_message_content(message)
+		return genai.protos.Content(role=role, parts=parts)
+
+	prepare_message_response = prepare_message_request
 
 	def get_messages(
 		self, new_block: MessageBlock, conversation: Conversation, **kwargs
-	) -> list[genai.types.ContentsType]:
+	) -> list[genai.protos.Content]:
 		"""
 		Get messages
 		"""
-		messages = []
+		parts = []
 		for message_block in conversation.messages:
 			if not message_block.response:
 				continue
-			messages.extend(
+			parts.extend(
 				[
-					genai.protos.Content(
-						role=self.convert_role(message_block.request.role),
-						parts=self.convert_message_content(
-							message_block.request
-						),
-					),
-					genai.protos.Content(
-						role=self.convert_role(message_block.response.role),
-						parts=self.convert_message_content(
-							message_block.response
-						),
-					),
+					self.prepare_message_request(message_block.request),
+					self.prepare_message_response(message_block.response),
 				]
 			)
-		messages.append(
-			genai.protos.Content(
-				role=self.convert_role(new_block.request.role),
-				parts=self.convert_message_content(new_block.request),
-			)
-		)
-		return messages
+		parts.append(self.prepare_message_request(new_block.request))
+		return parts
 
 	def completion(
 		self,
