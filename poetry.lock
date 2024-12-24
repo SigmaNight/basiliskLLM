@@ -2435,6 +2435,24 @@ files = [
 ]
 
 [[package]]
+name = "universal-pathlib"
+version = "0.2.6"
+description = "pathlib api extended to use fsspec backends"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "universal_pathlib-0.2.6-py3-none-any.whl", hash = "sha256:700dec2b58ef34b87998513de6d2ae153b22f083197dfafb8544744edabd1b18"},
+    {file = "universal_pathlib-0.2.6.tar.gz", hash = "sha256:50817aaeaa9f4163cb1e76f5bdf84207fa05ce728b23fd779479b3462e5430ac"},
+]
+
+[package.dependencies]
+fsspec = ">=2022.1.0,<2024.3.1 || >2024.3.1"
+
+[package.extras]
+dev = ["adlfs", "aiohttp", "cheroot", "gcsfs", "moto[s3,server]", "paramiko", "pydantic", "pydantic-settings", "requests", "s3fs", "smbprotocol", "typing_extensions", "webdav4[fsspec]", "wsgidav"]
+tests = ["mypy (>=1.10.0)", "packaging", "pylint (>=2.17.4)", "pytest (>=8)", "pytest-cov (>=4.1.0)", "pytest-mock (>=3.12.0)", "pytest-mypy-plugins (>=3.1.2)", "pytest-sugar (>=0.9.7)"]
+
+[[package]]
 name = "uritemplate"
 version = "4.1.1"
 description = "Implementation of RFC 6570 URI Templates"
@@ -2584,4 +2602,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "0789e8df7e726256e7feca0b2af946335c3ff94ee14438a444e38eb5bc4625e4"
+content-hash = "6eb6d1ff4ac6693871ea6b36aa951585e87b9bdd1b1252fba413daca756334e2"
