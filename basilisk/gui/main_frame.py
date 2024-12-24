@@ -273,7 +273,7 @@ class MainFrame(wx.Frame):
 			return
 		now = datetime.datetime.now()
 		capture_name = f"capture_{now.isoformat(timespec='seconds')}.png"
-		capture_path = f"{conv_tab.conv_storage_url}/attachments/{capture_name}"
+		capture_path = conv_tab.conv_storage_url / f"attachments/{capture_name}"
 		name = name or capture_name
 		log.debug(f"Capture file URL: {capture_path}")
 		thread = ScreenCaptureThread(
