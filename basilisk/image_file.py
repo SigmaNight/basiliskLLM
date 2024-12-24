@@ -160,11 +160,21 @@ class ImageFile(BaseModel):
 				)
 				self.resize_location = resize_location if success else None
 
+	@property
+	def send_location(self) -> UPath:
+		return self.resize_location or self._location
+
 	@measure_time
 	def encode_image(self) -> str:
-		image_path = self.resize_location or self.location
-		with image_path.open(mode="rb") as image_file:
+		with self.send_location.open(mode="rb") as image_file:
 			return base64.b64encode(image_file.read()).decode("utf-8")
+
+	@property
+	def mime_type(self) -> str | None:
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return None
+		mime_type, _ = mimetypes.guess_type(self.send_location)
+		return mime_type
 
 	@cached_property
 	def url(self) -> str:
@@ -172,10 +182,8 @@ class ImageFile(BaseModel):
 			raise ValueError("Invalid image type")
 		if self.type == ImageFileTypes.IMAGE_URL:
 			return self.location
-		location = self.resize_location or self.location
-		mime_type, _ = mimetypes.guess_type(location)
 		base64_image = self.encode_image()
-		return f"data:{mime_type};base64,{base64_image}"
+		return f"data:{self.mime_type};base64,{base64_image}"
 
 	@property
 	def display_location(self):
