@@ -6,16 +6,16 @@ import mimetypes
 import re
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Any
+from io import BufferedReader, BufferedWriter, BytesIO
+from typing import Annotated, Any
 
+import httpx
 from PIL import Image
 from pydantic import BaseModel, PlainValidator
 from upath import UPath
 
 from .decorators import measure_time
 
-if TYPE_CHECKING:
-	from io import BufferedReader, BufferedWriter
 log = logging.getLogger(__name__)
 
 PydanticUPath = Annotated[UPath, PlainValidator(lambda v: UPath(v))]
@@ -59,6 +59,8 @@ def resize_image(
 	if image.mode in ("RGBA", "P"):
 		image = image.convert("RGB")
 	orig_width, orig_height = image.size
+	if orig_width <= max_width and orig_height <= max_height:
+		return False
 	if max_width > 0 and max_height > 0:
 		ratio = min(max_width / orig_width, max_height / orig_height)
 	elif max_width > 0:
@@ -74,14 +76,6 @@ def resize_image(
 	return True
 
 
-def get_display_size(size: int) -> str:
-	if size < 1024:
-		return f"{size} B"
-	if size < 1024 * 1024:
-		return f"{size / 1024:.2f} KB"
-	return f"{size / 1024 / 1024:.2f} MB"
-
-
 class ImageFileTypes(Enum):
 	UNKNOWN = "unknown"
 	IMAGE_LOCAL = "local"
@@ -95,23 +89,46 @@ class ImageFileTypes(Enum):
 		return cls.UNKNOWN
 
 
+class NotImageError(ValueError):
+	pass
+
+
 class ImageFile(BaseModel):
 	location: PydanticUPath
 	type: ImageFileTypes = ImageFileTypes.UNKNOWN
 	name: str | None = None
 	description: str | None = None
-	size: int = -1
+	size: int | None = None
 	dimensions: tuple[int, int] | None = None
 	resize_location: PydanticUPath | None = None
+
+	@classmethod
+	@measure_time
+	def build_from_url(cls, url: str) -> ImageFile:
+		r = httpx.get(url, follow_redirects=True)
+		r.raise_for_status()
+		content_type = r.headers.get("content_type", "")
+		if not content_type.startswith("image/"):
+			e = NotImageError("URL does not point to an image")
+			e.content_type = content_type
+			raise e
+		size = r.headers.get("Content-Length")
+		if size and size.isdigit():
+			size = int(size)
+		dimensions = get_image_dimensions(BytesIO(r.content))
+		return cls(
+			location=url,
+			type=ImageFileTypes.IMAGE_URL,
+			size=size,
+			description=content_type,
+			dimensions=dimensions,
+		)
 
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
 		self.type = self._get_type()
 		if not self.name:
 			self.name = self._get_name()
-		if self.size > 0:
-			self.size = get_display_size(self.size)
-		else:
 			self.size = self._get_size()
 		if not self.dimensions:
 			self.dimensions = self._get_dimensions()
@@ -123,16 +140,33 @@ class ImageFile(BaseModel):
 	def _get_name(self) -> str:
 		return self.location.name
 
-	def _get_size(self) -> str:
+	def _get_size(self) -> int | None:
 		if self.type == ImageFileTypes.IMAGE_URL:
-			return "N/A"
-		return get_display_size(self.location.stat().st_size)
+			return None
+		return self.location.stat().st_size
+
+	@property
+	def display_size(self) -> str:
+		size = self.size
+		if size is None:
+			return _("Unknown")
+		if size < 1024:
+			return f"{size} B"
+		if size < 1024 * 1024:
+			return f"{size / 1024:.2f} KB"
+		return f"{size / 1024 / 1024:.2f} MB"
 
 	def _get_dimensions(self) -> tuple[int, int] | None:
 		if self.type != ImageFileTypes.IMAGE_URL:
 			return None
 		with self.location.open(mode="rb") as image_file:
 			return get_image_dimensions(image_file)
+
+	@property
+	def display_dimensions(self) -> str:
+		if self.dimensions is None:
+			return _("Unknown")
+		return f"{self.dimensions[0]} x {self.dimensions[1]}"
 
 	@measure_time
 	def resize(

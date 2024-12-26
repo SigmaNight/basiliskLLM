@@ -10,6 +10,7 @@ import weakref
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
+from httpx import HTTPError
 from more_itertools import first, locate
 from upath import UPath
 
@@ -26,12 +27,13 @@ from basilisk.conversation import (
 	TextMessageContent,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
+from basilisk.image_file import URL_PATTERN, ImageFile, NotImageError
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
 	MessageSegmentType,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -339,11 +341,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url_dialog.Destroy()
 
 	def add_image_from_url(self, url: str):
+		image_file = None
 		try:
-			import urllib.request
-
-			r = urllib.request.urlopen(url)
-		except urllib.error.HTTPError as err:
+			image_file = ImageFile.build_from_url(url)
+		except HTTPError as err:
 			wx.MessageBox(
 				# Translators: This message is displayed when the image URL returns an HTTP error.
 				_("HTTP error %s.") % err,
@@ -351,49 +352,29 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		if not r.headers.get_content_type().startswith("image/"):
-			if (
-				wx.MessageBox(
-					# Translators: This message is displayed when the image URL seems to not point to an image.
-					_(
-						"The URL seems to not point to an image (content type: %s). Do you want to continue?"
-					)
-					% r.headers.get_content_type(),
-					_("Warning"),
-					wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
+		except NotImageError as err:
+			force_add = wx.MessageBox(
+				# Translators: This message is displayed when the image URL seems to not point to an image.
+				_(
+					"The URL seems to not point to an image (content type: %s). Do you want to continue?"
 				)
-				== wx.NO
-			):
-				return
-		description = ''
-		content_type = r.headers.get_content_type()
-		if content_type:
-			description = content_type
-		size = r.headers.get("Content-Length")
-		if size and size.isdigit():
-			size = int(size)
-		try:
-			dimensions = get_image_dimensions(r)
+				% err.content_type,
+				_("Warning"),
+				wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
+			)
+			if force_add == wx.YES:
+				image_file = ImageFile(location=url)
 		except BaseException as err:
 			log.error(err)
-			dimensions = None
 			wx.MessageBox(
 				_("Error getting image dimensions: %s") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-		self.add_images(
-			[
-				ImageFile(
-					location=url,
-					description=description,
-					size=size,
-					dimensions=dimensions,
-				)
-			]
-		)
+			return
+		self.add_images([image_file])
 
-	def on_images_remove(self, event: wx.CommandEvent):
+	def on_images_remove(self, vent: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
@@ -445,10 +426,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 		for i, image in enumerate(self.image_files):
 			self.images_list.InsertItem(i, image.name)
-			self.images_list.SetItem(i, 1, image.size)
-			self.images_list.SetItem(
-				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
-			)
+			self.images_list.SetItem(i, 1, image.display_size)
+			self.images_list.SetItem(i, 2, image.display_dimensions)
 			self.images_list.SetItem(i, 3, image.display_location)
 		self.images_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
@@ -1021,7 +1000,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	def ensure_model_compatibility(self) -> None:
+	def ensure_model_compatibility(self) -> ProviderAIModel | None:
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
