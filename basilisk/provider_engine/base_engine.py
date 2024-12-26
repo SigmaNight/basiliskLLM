@@ -65,7 +65,7 @@ class BaseEngine(ABC):
 		self,
 		new_block: MessageBlock,
 		conversation: Conversation,
-		system_message: Message | None,
+		system_message: Message | None = None,
 	) -> list[Message]:
 		"""
 		Get messages
