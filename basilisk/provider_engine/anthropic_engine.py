@@ -5,6 +5,9 @@ from functools import cached_property
 from typing import TYPE_CHECKING
 
 from anthropic import Anthropic
+from anthropic.types import Message as AnthropicMessage
+from anthropic.types import TextBlock
+from anthropic.types.image_block_param import ImageBlockParam, Source
 
 from basilisk.conversation import (
 	Conversation,
@@ -12,10 +15,10 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.image_file import ImageFileTypes
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
-	from anthropic.types import Message as AnthropicMessage
 	from anthropic.types.message_stream_event import MessageStreamEvent
 
 	from basilisk.config import Account
@@ -154,54 +157,23 @@ class AnthropicEngine(BaseEngine):
 			),
 		]
 
-	def get_message(self, message: Message) -> dict[str, str]:
-		if isinstance(message.content, list):
-			content = []
-			for item in message.content:
-				if item.type == "text":
-					content.append(item)
-				elif (
-					item.type == "image_url"
-					and isinstance(item.image_url, dict)
-					and item.image_url["url"].startswith("data:")
-				):
-					image1_media_type, image1_data = item.image_url[
-						"url"
-					].split(";", 1)
-					image1_media_type = image1_media_type.split(":", 1)[1]
-					image1_data = image1_data.split(",", 1)[1]
-					content.append(
-						{
-							"type": "image",
-							"source": {
-								"type": "base64",
-								"media_type": image1_media_type,
-								"data": image1_data,
-							},
-						}
+	def convert_message(self, message: Message) -> AnthropicMessage:
+		contents = [TextBlock(text=message.content, type="text")]
+		if message.attachments:
+			for attachment in message.attachments:
+				if attachment.type != ImageFileTypes.IMAGE_URL:
+					source = Source(
+						data=attachment.encode_image(),
+						media_type=attachment.mime_type,
+						type="base64",
 					)
-				else:
-					raise ValueError("Unsupported content type")
-			return {"role": message.role.value, "content": content}
-		if isinstance(message.content, str):
-			return message.model_dump(mode="json")
-		raise ValueError("Unsupported content message type")
+					contents.append(
+						ImageBlockParam(source=source, type="image")
+					)
+			return AnthropicMessage(role=message.role.value, content=contents)
 
-	def get_messages(
-		self, new_block: MessageBlock, conversation: Conversation
-	) -> list[Message]:
-		"""
-		Get messages
-		"""
-		messages = []
-		for message_block in conversation.messages:
-			if not message_block.response:
-				continue
-			messages.append(self.get_message(message_block.request))
-			messages.append(self.get_message(message_block.response))
-		messages.append(self.get_message(new_block.request))
-		log.debug("Messages: %s", messages)
-		return messages
+	prepare_message_request = convert_message
+	prepare_message_response = convert_message
 
 	def completion(
 		self,
@@ -221,7 +193,7 @@ class AnthropicEngine(BaseEngine):
 			"stream": new_block.stream,
 		}
 		if system_message:
-			params["system"] = system_message.model_dump(mode="json")["content"]
+			params["system"] = system_message.content
 		params.update(kwargs)
 		response = self.client.messages.create(**params)
 		return response
