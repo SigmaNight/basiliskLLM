@@ -139,40 +139,16 @@ class GeminiEngine(BaseEngine):
 			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())
 		return genai.protos.Part(inline_data=blob)
 
-	def convert_message_content(
-		self, message: Message
-	) -> list[genai.protos.Part]:
+	def convert_message_content(self, message: Message) -> genai.protos.Content:
+		role = self.convert_role(message.role)
 		parts = [genai.protos.Part(text=message.content)]
 		if message.attachments:
 			for attachment in message.attachments:
 				parts.append(self.convert_image(attachment))
-		return parts
-
-	def prepare_message_request(self, message: Message) -> genai.protos.Content:
-		role = self.convert_role(message.role)
-		parts = self.convert_message_content(message)
 		return genai.protos.Content(role=role, parts=parts)
 
-	prepare_message_response = prepare_message_request
-
-	def get_messages(
-		self, new_block: MessageBlock, conversation: Conversation, **kwargs
-	) -> list[genai.protos.Content]:
-		"""
-		Get messages
-		"""
-		parts = []
-		for message_block in conversation.messages:
-			if not message_block.response:
-				continue
-			parts.extend(
-				[
-					self.prepare_message_request(message_block.request),
-					self.prepare_message_response(message_block.response),
-				]
-			)
-		parts.append(self.prepare_message_request(new_block.request))
-		return parts
+	prepare_message_request = convert_message_content
+	prepare_message_response = convert_message_content
 
 	def completion(
 		self,
@@ -197,7 +173,7 @@ class GeminiEngine(BaseEngine):
 			top_p=new_block.top_p,
 		)
 		return model.generate_content(
-			contents=self.get_messages(new_block, conversation),
+			contents=self.get_messages(new_block, conversation, None),
 			generation_config=generation_config,
 			stream=new_block.stream,
 		)
