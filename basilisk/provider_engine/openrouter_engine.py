@@ -1,10 +1,11 @@
 import logging
-import time
 from datetime import datetime
 from decimal import Decimal, getcontext
 from functools import cached_property
 
 import httpx
+
+from basilisk.decorators import measure_time
 
 from .base_engine import ProviderAIModel
 from .openai_engine import OpenAIEngine, ProviderCapability
@@ -40,13 +41,13 @@ class OpenRouterEngine(OpenAIEngine):
 		return out.rstrip()
 
 	@cached_property
+	@measure_time
 	def models(self) -> list[ProviderAIModel]:
 		"""
 		Get models
 		"""
 		models = []
 		log.debug("Getting openRouter models")
-		start_time = time.time()
 		url = "https://openrouter.ai/api/v1/models"
 		response = httpx.get(url, headers={"User-Agent": self.get_user_agent()})
 		if response.status_code == 200:
@@ -91,9 +92,7 @@ class OpenRouterEngine(OpenAIEngine):
 						extra_info=extra_info,
 					)
 				)
-			log.debug(
-				f"Got {len(models)} models in {time.time() - start_time:.2f} seconds"
-			)
+			log.debug(f"Got {len(models)} models")
 		else:
 			log.error(
 				f"Failed to get models from {url}. Response: {response.text}"
