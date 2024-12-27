@@ -1027,7 +1027,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return None
 		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
 
-	def get_new_messagfe_block(self) -> MessageBlock | None:
+	def get_new_message_block(self) -> MessageBlock | None:
 		model = self.ensure_model_compatibility()
 		if not model:
 			return None
@@ -1053,7 +1053,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:
-		new_block = self.get_new_messagfe_block()
+		new_block = self.get_new_message_block()
 		if not new_block:
 			return None
 		return {

@@ -68,6 +68,9 @@ class ServerThread(threading.Thread):
 				if '\n' in grab_mode:
 					coords, name = grab_mode.split('\n', 1)
 					coords = tuple(map(int, coords.split(",")))
+					if len(coords) != 4:
+						log.error("Invalid coordinates")
+						return
 					wx.CallAfter(
 						self.frame.screen_capture,
 						CaptureMode.PARTIAL,

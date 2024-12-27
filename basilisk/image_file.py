@@ -54,12 +54,14 @@ def resize_image(
 	@return: True if the image was successfully compressed and saved, False otherwise
 	"""
 	if max_width <= 0 and max_height <= 0:
+		log.debug("No resizing needed")
 		return False
 	image = Image.open(src)
 	if image.mode in ("RGBA", "P"):
 		image = image.convert("RGB")
 	orig_width, orig_height = image.size
 	if orig_width <= max_width and orig_height <= max_height:
+		log.debug("Image is already smaller than max dimensions")
 		return False
 	if max_width > 0 and max_height > 0:
 		ratio = min(max_width / orig_width, max_height / orig_height)
@@ -157,7 +159,7 @@ class ImageFile(BaseModel):
 		return f"{size / 1024 / 1024:.2f} MB"
 
 	def _get_dimensions(self) -> tuple[int, int] | None:
-		if self.type != ImageFileTypes.IMAGE_URL:
+		if self.type == ImageFileTypes.IMAGE_URL:
 			return None
 		with self.location.open(mode="rb") as image_file:
 			return get_image_dimensions(image_file)
