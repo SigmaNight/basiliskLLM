@@ -304,6 +304,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 					self.prompt.SetFocus()
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
 				log.debug("Pasting bitmap from clipboard")
+				bitmap_data = wx.BitmapDataObject()
+				success = clipboard.GetData(bitmap_data)
+				if not success:
+					log.error("Failed to get bitmap data from clipboard")
+					return
+				img = bitmap_data.GetBitmap().ConvertToImage()
+				path = (
+					self.conv_storage_url
+					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
+				)
+				with path.open("wb") as f:
+					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
+				self.add_images([ImageFile(location=path)])
+
 			else:
 				log.info("Unsupported clipboard data")
 
@@ -434,13 +448,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.images_list.EnsureVisible(i)
 
-	def add_images(self, path: list[str | ImageFile]):
-		log.debug(f"Adding images: {path}")
-		for path in path:
+	def add_images(self, paths: list[str | ImageFile]):
+		log.debug(f"Adding images: {paths}")
+		for path in paths:
 			if isinstance(path, ImageFile):
 				self.image_files.append(path)
 			else:
-				self.image_files.append(ImageFile(path))
+				file = ImageFile(location=path)
+				self.image_files.append(file)
 		self.refresh_images_list()
 
 	def on_config_change(self):
