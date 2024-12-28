@@ -58,7 +58,6 @@ class OpenAIEngine(BaseEngine):
 			organization=organization_key,
 			base_url=str(self.account.provider.base_url),
 		)
-		log.debug("New openai client initialized")
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:

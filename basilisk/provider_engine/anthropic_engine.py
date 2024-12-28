@@ -43,7 +43,6 @@ class AnthropicEngine(BaseEngine):
 		"""
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
-		log.debug("New Anthropic client initialized")
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
@@ -157,7 +156,7 @@ class AnthropicEngine(BaseEngine):
 			),
 		]
 
-	def convert_message(self, message: Message) -> AnthropicMessage:
+	def convert_message(self, message: Message) -> dict:
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
 			for attachment in message.attachments:
@@ -170,7 +169,7 @@ class AnthropicEngine(BaseEngine):
 					contents.append(
 						ImageBlockParam(source=source, type="image")
 					)
-			return AnthropicMessage(role=message.role.value, content=contents)
+		return {"role": message.role.value, "content": contents}
 
 	prepare_message_request = convert_message
 	prepare_message_response = convert_message
