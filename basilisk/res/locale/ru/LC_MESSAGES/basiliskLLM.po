@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-12-09 20:48+0000\n"
-"PO-Revision-Date: 2024-12-14 13:25\n"
+"POT-Creation-Date: 2024-12-28 11:48+0000\n"
+"PO-Revision-Date: 2024-12-28 13:21\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -37,7 +37,7 @@ msgstr "Не удалось активировать хранилище сист
 #: basilisk/gui/conversation_tab.py:392 basilisk/gui/conversation_tab.py:987
 #: basilisk/gui/conversation_tab.py:1032 basilisk/gui/conversation_tab.py:1047
 #: basilisk/gui/conversation_tab.py:1070 basilisk/gui/conversation_tab.py:1081
-#: basilisk/gui/conversation_tab.py:1134 basilisk/gui/conversation_tab.py:1277
+#: basilisk/gui/conversation_tab.py:1135 basilisk/gui/conversation_tab.py:1282
 #: basilisk/gui/main_frame.py:374 basilisk/gui/main_frame.py:402
 #: basilisk/gui/main_frame.py:453 basilisk/gui/main_frame.py:467
 #: basilisk/gui/main_frame.py:562 basilisk/gui/main_frame.py:589
@@ -715,11 +715,11 @@ msgstr "Пожалуйста, выберите модель"
 msgid "The selected model does not support images. Please select a vision model instead ({})."
 msgstr "Выбранная модель не поддерживает работу с изображениями. Пожалуйста, выберите вместо этого модель vision ({})."
 
-#: basilisk/gui/conversation_tab.py:1133
+#: basilisk/gui/conversation_tab.py:1134
 msgid "An error occurred during completion: "
 msgstr "Произошла ошибка во время завершения: "
 
-#: basilisk/gui/conversation_tab.py:1276
+#: basilisk/gui/conversation_tab.py:1281
 msgid "An error occurred during title generation:"
 msgstr "Произошла ошибка при создании заголовка:"
 
@@ -1018,60 +1018,64 @@ msgstr "Отправить сообщение клавишей Enter, встав
 msgid "Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
 msgstr "Включить &доступный вывод, чтобы обеспечить речевую и брайлевскую обратную связь для действий и сообщений"
 
-#: basilisk/gui/preferences_dialog.py:213
+#: basilisk/gui/preferences_dialog.py:212
+msgid "Focus message history after sending"
+msgstr ""
+
+#: basilisk/gui/preferences_dialog.py:221
 msgid "Images"
 msgstr "Изображения"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:219
+#: basilisk/gui/preferences_dialog.py:227
 msgid "Resize images before uploading"
 msgstr "Изменять размер изображений перед загрузкой"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:228
+#: basilisk/gui/preferences_dialog.py:236
 msgid "Maximum &height (0 to resize proportionally to the width):"
 msgstr "Максимальная &высота (0 для изменения размера пропорционально ширине):"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:244
+#: basilisk/gui/preferences_dialog.py:252
 msgid "Maximum &width (0 to resize proportionally to the height):"
 msgstr "Максимальная &ширина (0 для изменения размера пропорционально высоте):"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:260
+#: basilisk/gui/preferences_dialog.py:268
 msgid "&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be avoided):"
 msgstr "&Качество для изображений в формате JPEG (от 0 [худшее] до 95 [лучшее], стоит избегать значений выше 95):"
 
 #. Translators: a group label in the preference dialog
-#: basilisk/gui/preferences_dialog.py:275
+#: basilisk/gui/preferences_dialog.py:283
 msgid "Network"
 msgstr "Сеть"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:281
+#: basilisk/gui/preferences_dialog.py:289
 msgid "Use system certificate store (Requires restart)"
 msgstr "Использовать хранилище системных сертификатов (требуется перезапуск)"
 
-#: basilisk/gui/preferences_dialog.py:289
+#: basilisk/gui/preferences_dialog.py:297
 msgid "Server"
 msgstr "Сервер"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:295
+#: basilisk/gui/preferences_dialog.py:303
 msgid "Enable server mode (requires restart)"
 msgstr "Включить серверный режим (требуется перезапуск)"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/gui/preferences_dialog.py:303
+#: basilisk/gui/preferences_dialog.py:311
 msgid "Port:"
 msgstr "Порт:"
 
-#: basilisk/gui/preferences_dialog.py:320
+#: basilisk/gui/preferences_dialog.py:328
 msgid "Cancel"
 msgstr "Отменить"
 
 #. Translators: A label for the language in the settings dialog
-#: basilisk/gui/preferences_dialog.py:385
+#: basilisk/gui/preferences_dialog.py:396
 msgid "System default (auto)"
 msgstr "По умолчанию как в системе (авто)"
 
@@ -1241,44 +1245,49 @@ msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
 msgstr "Указывает на самый последний снимок Claude 3.5 Sonnet"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:68
-msgid "Most intelligent model"
-msgstr "Самая интеллектуальная модель"
+#: basilisk/provider_engine/anthropic_engine.py:69
+msgid "Point to the most recent snapshot of Claude 3.5 Haiku"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:76
+#: basilisk/provider_engine/anthropic_engine.py:79
+msgid "Our fastest model. Intelligence at blazing speeds"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:89
+msgid "Most intelligent model. Highest level of intelligence and capability"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:99
 msgid "Most intelligent model, previous version"
 msgstr "Самая интеллектуальная модель, предыдущая версия"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:85
+#: basilisk/provider_engine/anthropic_engine.py:108
 msgid "Powerful model for highly complex tasks"
 msgstr "Мощная модель для решения особо сложных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:94
+#: basilisk/provider_engine/anthropic_engine.py:117
 msgid "Balance of intelligence and speed"
 msgstr "Баланс интеллекта и скорости"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:103
+#: basilisk/provider_engine/anthropic_engine.py:126
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Самая быстрая и компактная модель с почти мгновенным откликом"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:114
+#: basilisk/provider_engine/anthropic_engine.py:137
 msgid "Updated version of Claude 2 with improved accuracy"
 msgstr "Обновлённая версия Claude 2 с улучшенной точностью"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:125
+#: basilisk/provider_engine/anthropic_engine.py:148
 msgid "Predecessor to Claude 3, offering strong all-round performance"
 msgstr "Предшественница Claude 3, обладающая высокой универсальной производительностью"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:136
-msgid "Our cheapest small and fast model, a predecessor of Claude Haiku"
-msgstr "Наша самая дешёвая, компактная и быстрая модель — предшественница Claude Haiku"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/gemini_engine.py:53
@@ -1380,65 +1389,70 @@ msgstr "Указывает на самый последний снимок мо�
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:109
+msgid "Points to the most recent snapshot of the o1-preview model"
+msgstr ""
+
+#. Translators: This is a model description
+#: basilisk/provider_engine/openai_engine.py:120
 msgid "Points to the most recent o1-mini snapshot"
 msgstr "Указывает на самый последний снимок o1-mini"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:118
+#: basilisk/provider_engine/openai_engine.py:129
 msgid "The latest GPT-4 Turbo model with vision capabilities"
 msgstr "Новейшая модель GPT-4 Turbo с функцией зрения"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:129
+#: basilisk/provider_engine/openai_engine.py:140
 msgid "Points to one of the most recent iterations of gpt-3.5 model"
 msgstr "Указывает на одну из самых последних итераций модели gpt-3.5"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:138
+#: basilisk/provider_engine/openai_engine.py:149
 msgid "Latest snapshot that supports Structured Outputs"
 msgstr "Последняя версия с поддержкой структурированного вывода"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:149
+#: basilisk/provider_engine/openai_engine.py:160
 msgid "Our high-intelligence flagship model for complex, multi-step tasks"
 msgstr "Наша высокоинтеллектуальная флагманская модель для решения сложных, многоэтапных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:160
+#: basilisk/provider_engine/openai_engine.py:171
 msgid "Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
 msgstr "Наша доступная и интеллектуальная компактная модель для выполнения быстрых и лёгких задач. GPT-4o mini дешевле и эффективнее, чем GPT-3.5 Turbo"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:171
+#: basilisk/provider_engine/openai_engine.py:182
 msgid "The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
 msgstr "Новейшая модель GPT-3.5 Turbo с более высокой точностью при ответе в запрошенных форматах и исправлением ошибки, которая вызывала проблему с кодировкой текста при вызовах функций не на английском языке"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:180
+#: basilisk/provider_engine/openai_engine.py:191
 msgid "Points to one of the most recent iterations of gpt-4 model"
 msgstr "Указывает на одну из самых последних итераций модели gpt-4"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:190
+#: basilisk/provider_engine/openai_engine.py:201
 msgid "The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
 msgstr "Последняя версия GPT-4 предназначена для уменьшения случаев “лени”, когда модель не выполняет задачу"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:200
+#: basilisk/provider_engine/openai_engine.py:211
 msgid "GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
 msgstr "Модель GPT-4 Turbo с улучшенным следованием инструкциям, режимом JSON, воспроизводимыми выводами, параллельным вызовом функций и многим другим"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:210
+#: basilisk/provider_engine/openai_engine.py:221
 msgid "GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities"
 msgstr "GPT-4 Turbo со зрением. Способность понимать изображения в дополнение ко всем другим возможностям GPT-4 Turbo"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:221
+#: basilisk/provider_engine/openai_engine.py:232
 msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr "Более мощная, чем любая модель GPT-3.5, способна выполнять более сложные задачи и оптимизирована для общения в чате"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:230
+#: basilisk/provider_engine/openai_engine.py:241
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной контекста"
