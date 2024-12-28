@@ -198,7 +198,7 @@ class ImageFile(BaseModel):
 
 	@property
 	def send_location(self) -> UPath:
-		return self.resize_location or self._location
+		return self.resize_location or self.location
 
 	@measure_time
 	def encode_image(self) -> str:
