@@ -355,6 +355,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url_dialog.Destroy()
 
 	def force_image_from_url(self, url: str, content_type: str):
+		log.warning(
+			f"The {url} URL seems to not point to an image. The content type is {content_type}."
+		)
 		force_add = wx.MessageBox(
 			# Translators: This message is displayed when the image URL seems to not point to an image.
 			_(
@@ -365,6 +368,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
 		)
 		if force_add == wx.YES:
+			log.info("Forcing image addition")
 			self.add_image_files([ImageFile(location=url)])
 
 	def add_image_from_url(self, url: str):

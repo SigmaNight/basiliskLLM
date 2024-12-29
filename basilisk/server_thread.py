@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 import wx
 
-from basilisk.image_file import ImageFile
 from basilisk.screen_capture_thread import CaptureMode
 
 if TYPE_CHECKING:
@@ -84,12 +83,7 @@ class ServerThread(threading.Thread):
 			url = data.split(':', 1)[1].strip()
 			if '\n' in url:
 				url, name = url.split('\n', 1)
-				image_files = [
-					ImageFile(
-						location=url, name=name, size=-1, dimensions=(0, 0)
-					)
-				]
-				wx.CallAfter(self.frame.current_tab.add_images, image_files)
+				wx.CallAfter(self.frame.current_tab.add_image_url_thread, url)
 		else:
 			log.error(f"no action for data: {data}")
 
