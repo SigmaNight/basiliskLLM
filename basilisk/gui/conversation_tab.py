@@ -297,7 +297,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				text = text_data.GetText()
 				if re.fullmatch(URL_PATTERN, text):
 					log.info("Pasting URL from clipboard, adding image")
-					self.add_image_from_url(text)
+					self.add_image_url_thread(text)
 				else:
 					log.info("Pasting text from clipboard")
 					self.prompt.WriteText(text)
@@ -351,15 +351,29 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
-		self.add_image_from_url(url)
+		self.add_image_url_thread(url)
 		url_dialog.Destroy()
+
+	def force_image_from_url(self, url: str, content_type: str):
+		force_add = wx.MessageBox(
+			# Translators: This message is displayed when the image URL seems to not point to an image.
+			_(
+				"The URL seems to not point to an image (content type: %s). Do you want to continue?"
+			)
+			% content_type,
+			_("Warning"),
+			wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
+		)
+		if force_add == wx.YES:
+			self.add_image_files([ImageFile(location=url)])
 
 	def add_image_from_url(self, url: str):
 		image_file = None
 		try:
 			image_file = ImageFile.build_from_url(url)
 		except HTTPError as err:
-			wx.MessageBox(
+			wx.CallAfter(
+				wx.MessageBox,
 				# Translators: This message is displayed when the image URL returns an HTTP error.
 				_("HTTP error %s.") % err,
 				_("Error"),
@@ -367,26 +381,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			return
 		except NotImageError as err:
-			force_add = wx.MessageBox(
-				# Translators: This message is displayed when the image URL seems to not point to an image.
-				_(
-					"The URL seems to not point to an image (content type: %s). Do you want to continue?"
-				)
-				% err.content_type,
-				_("Warning"),
-				wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
-			)
-			if force_add == wx.YES:
-				image_file = ImageFile(location=url)
+			wx.CallAfter(self.force_image_from_url, url, err.content_type)
 		except BaseException as err:
 			log.error(err)
-			wx.MessageBox(
+			wx.CallAfter(
+				wx.MessageBox,
+				# Translators: This message is displayed when an error occurs while getting image dimensions.
 				_("Error getting image dimensions: %s") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		self.add_images([image_file])
+		wx.CallAfter(self.add_images, [image_file])
+
+	@ensure_no_task_running
+	def add_image_url_thread(self, url: str):
+		self.task = threading.Thread(
+			target=self.add_image_from_url, args=(url,)
+		)
+		self.task.start()
 
 	def on_images_remove(self, vent: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()

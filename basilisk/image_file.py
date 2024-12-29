@@ -5,7 +5,6 @@ import logging
 import mimetypes
 import re
 from enum import Enum
-from functools import cached_property
 from io import BufferedReader, BufferedWriter, BytesIO
 from typing import Annotated, Any
 
@@ -180,8 +179,6 @@ class ImageFile(BaseModel):
 	):
 		if ImageFileTypes.IMAGE_URL == self.type:
 			return
-		if self.resize_location:
-			return
 		log.debug("Resizing image")
 		resize_location = optimize_folder / self.location.name
 		with self.location.open(mode="rb") as src_file:
@@ -202,6 +199,10 @@ class ImageFile(BaseModel):
 
 	@measure_time
 	def encode_image(self) -> str:
+		if self.size and self.size > 1024 * 1024 * 1024:
+			log.warning(
+				f"Large image ({self.display_size}) being encoded to base64"
+			)
 		with self.send_location.open(mode="rb") as image_file:
 			return base64.b64encode(image_file.read()).decode("utf-8")
 
@@ -212,9 +213,9 @@ class ImageFile(BaseModel):
 		mime_type, _ = mimetypes.guess_type(self.send_location)
 		return mime_type
 
-	@cached_property
+	@property
 	def url(self) -> str:
-		if self.type not in ImageFileTypes:
+		if not isinstance(self.type, ImageFileTypes):
 			raise ValueError("Invalid image type")
 		if self.type == ImageFileTypes.IMAGE_URL:
 			return self.location
