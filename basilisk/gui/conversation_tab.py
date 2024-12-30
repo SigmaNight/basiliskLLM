@@ -822,21 +822,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 		match (modifiers, key_code):
-			case (wx.MOD_NONE, wx.WXK_RETURN):
+			case (
+				(wx.MOD_NONE, wx.WXK_RETURN)
+				| (wx.MOD_NONE, wx.WXK_NUMPAD_ENTER)
+			):
 				if config.conf().conversation.shift_enter_mode:
 					self.on_submit(event)
 					event.StopPropagation()
 				else:
 					event.Skip()
-			case (wx.WXK_SHIFT, wx.WXK_RETURN):
-				if config.conf().conversation.shift_enter_mode:
-					self.prompt.AppendText(os.linesep)
-				else:
-					event.Skip()
 			case (wx.MOD_CONTROL, wx.WXK_UP):
 				if not self.prompt.GetValue():
 					self.insert_previous_prompt()
-			case (wx.MOD_CONTROL, wx.WXK_RETURN):
+			case (
+				(wx.MOD_CONTROL, wx.WXK_RETURN)
+				| (wx.MOD_CONTROL, wx.WXK_NUMPAD_ENTER)
+			):
 				self.on_submit(event)
 			case _:
 				event.Skip()
