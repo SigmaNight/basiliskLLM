@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def ensure_no_task_running(method: Callable):
 	@wraps(method)
 	def wrapper(instance, *args, **kwargs):
-		if instance.task:
+		if instance.task is not None and instance.task.is_alive():
 			logger.error("A task is already running.")
 			wx.MessageBox(
 				_("A task is already running. Please wait for it to complete."),

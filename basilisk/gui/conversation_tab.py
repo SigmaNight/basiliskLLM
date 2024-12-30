@@ -398,6 +398,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		wx.CallAfter(self.add_images, [image_file])
 
+		self.task = None
+
 	@ensure_no_task_running
 	def add_image_url_thread(self, url: str):
 		self.task = threading.Thread(
@@ -474,6 +476,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				file = ImageFile(location=path)
 				self.image_files.append(file)
 		self.refresh_images_list()
+		self.images_list.SetFocus()
 
 	def on_config_change(self):
 		self.refresh_accounts()
@@ -822,6 +825,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			case (wx.MOD_NONE, wx.WXK_RETURN):
 				if config.conf().conversation.shift_enter_mode:
 					self.on_submit(event)
+					event.StopPropagation()
 				else:
 					event.Skip()
 			case (wx.WXK_SHIFT, wx.WXK_RETURN):
@@ -1229,10 +1233,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
-		task = self.task
-		task.join()
-		thread_id = task.ident
-		log.debug(f"Task {thread_id} ended")
+		self.task.join()
+		log.debug(f"Task {self.task.ident} ended")
 		self.task = None
 		stop_sound()
 		if success:

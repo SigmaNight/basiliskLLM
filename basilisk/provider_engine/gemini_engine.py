@@ -134,7 +134,7 @@ class GeminiEngine(BaseEngine):
 
 	def convert_image(self, image: ImageFile) -> genai.protos.Part:
 		if image.type == ImageFileTypes.IMAGE_URL:
-			return genai.protos.Part(genai.protos.FileData(file_uri=image.url))
+			raise NotImplementedError("Image URL not supported")
 		with image.send_location.open("rb") as f:
 			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())
 		return genai.protos.Part(inline_data=blob)

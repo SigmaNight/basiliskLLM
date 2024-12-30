@@ -87,6 +87,8 @@ class ImageFileTypes(Enum):
 	def _missing_(cls, value: object) -> ImageFileTypes:
 		if isinstance(value, str) and value.lower() == "data":
 			return cls.IMAGE_URL
+		if isinstance(value, str) and value.lower() == "https":
+			return cls.IMAGE_URL
 		return cls.UNKNOWN
 
 
@@ -96,7 +98,6 @@ class NotImageError(ValueError):
 
 class ImageFile(BaseModel):
 	location: PydanticUPath
-	type: ImageFileTypes = ImageFileTypes.UNKNOWN
 	name: str | None = None
 	description: str | None = None
 	size: int | None = None
@@ -108,7 +109,7 @@ class ImageFile(BaseModel):
 	def build_from_url(cls, url: str) -> ImageFile:
 		r = httpx.get(url, follow_redirects=True)
 		r.raise_for_status()
-		content_type = r.headers.get("content_type", "")
+		content_type = r.headers.get("content-type", "")
 		if not content_type.startswith("image/"):
 			e = NotImageError("URL does not point to an image")
 			e.content_type = content_type
@@ -127,16 +128,15 @@ class ImageFile(BaseModel):
 
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
-		self.type = self._get_type()
 		if not self.name:
 			self.name = self._get_name()
 			self.size = self._get_size()
 		if not self.dimensions:
 			self.dimensions = self._get_dimensions()
 
-	def _get_type(self) -> ImageFileTypes:
-		img_type = ImageFileTypes(self.location.protocol)
-		return img_type
+	@property
+	def type(self) -> ImageFileTypes:
+		return ImageFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
 		return self.location.name
@@ -218,7 +218,7 @@ class ImageFile(BaseModel):
 		if not isinstance(self.type, ImageFileTypes):
 			raise ValueError("Invalid image type")
 		if self.type == ImageFileTypes.IMAGE_URL:
-			return self.location
+			return str(self.location)
 		base64_image = self.encode_image()
 		return f"data:{self.mime_type};base64,{base64_image}"
 
