@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import re
 import threading
 import time
 import weakref
-from functools import wraps
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import wx
+from httpx import HTTPError
 from more_itertools import first, locate
+from upath import UPath
 
 import basilisk.config as config
 from basilisk import global_vars
@@ -24,12 +26,14 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	TextMessageContent,
 )
-from basilisk.image_file import URL_PATTERN, ImageFile, get_image_dimensions
+from basilisk.decorators import ensure_no_task_running
+from basilisk.image_file import URL_PATTERN, ImageFile, NotImageError
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
 	MessageSegmentType,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -45,21 +49,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
-
-
-def ensure_no_task_running(method: Callable):
-	@wraps(method)
-	def wrapper(instance, *args, **kwargs):
-		if instance.task:
-			wx.MessageBox(
-				_("A task is already running. Please wait for it to complete."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		return method(instance, *args, **kwargs)
-
-	return wrapper
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -81,10 +70,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.title = title
 		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
 		self.conversation = Conversation()
-		self.image_files = []
+		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
+		self.conv_storage_url = UPath(
+			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		)
 		self.task = None
 		self.stream_buffer = ""
 		self._speak_stream = True
@@ -305,13 +297,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 				text = text_data.GetText()
 				if re.fullmatch(URL_PATTERN, text):
 					log.info("Pasting URL from clipboard, adding image")
-					self.add_image_from_url(text)
+					self.add_image_url_thread(text)
 				else:
 					log.info("Pasting text from clipboard")
 					self.prompt.WriteText(text)
 					self.prompt.SetFocus()
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
 				log.debug("Pasting bitmap from clipboard")
+				bitmap_data = wx.BitmapDataObject()
+				success = clipboard.GetData(bitmap_data)
+				if not success:
+					log.error("Failed to get bitmap data from clipboard")
+					return
+				img = bitmap_data.GetBitmap().ConvertToImage()
+				path = (
+					self.conv_storage_url
+					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
+				)
+				with path.open("wb") as f:
+					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
+				self.add_images([ImageFile(location=path)])
+
 			else:
 				log.info("Unsupported clipboard data")
 
@@ -345,65 +351,63 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
-		self.add_image_from_url(url)
+		self.add_image_url_thread(url)
 		url_dialog.Destroy()
 
-	def add_image_from_url(self, url: str):
-		try:
-			import urllib.request
+	def force_image_from_url(self, url: str, content_type: str):
+		log.warning(
+			f"The {url} URL seems to not point to an image. The content type is {content_type}."
+		)
+		force_add = wx.MessageBox(
+			# Translators: This message is displayed when the image URL seems to not point to an image.
+			_(
+				"The URL seems to not point to an image (content type: %s). Do you want to continue?"
+			)
+			% content_type,
+			_("Warning"),
+			wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
+		)
+		if force_add == wx.YES:
+			log.info("Forcing image addition")
+			self.add_image_files([ImageFile(location=url)])
 
-			r = urllib.request.urlopen(url)
-		except urllib.error.HTTPError as err:
-			wx.MessageBox(
+	def add_image_from_url(self, url: str):
+		image_file = None
+		try:
+			image_file = ImageFile.build_from_url(url)
+		except HTTPError as err:
+			wx.CallAfter(
+				wx.MessageBox,
 				# Translators: This message is displayed when the image URL returns an HTTP error.
 				_("HTTP error %s.") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		if not r.headers.get_content_type().startswith("image/"):
-			if (
-				wx.MessageBox(
-					# Translators: This message is displayed when the image URL seems to not point to an image.
-					_(
-						"The URL seems to not point to an image (content type: %s). Do you want to continue?"
-					)
-					% r.headers.get_content_type(),
-					_("Warning"),
-					wx.YES_NO | wx.ICON_WARNING | wx.NO_DEFAULT,
-				)
-				== wx.NO
-			):
-				return
-		description = ''
-		content_type = r.headers.get_content_type()
-		if content_type:
-			description = content_type
-		size = r.headers.get("Content-Length")
-		if size and size.isdigit():
-			size = int(size)
-		try:
-			dimensions = get_image_dimensions(r)
+		except NotImageError as err:
+			wx.CallAfter(self.force_image_from_url, url, err.content_type)
 		except BaseException as err:
 			log.error(err)
-			dimensions = None
-			wx.MessageBox(
+			wx.CallAfter(
+				wx.MessageBox,
+				# Translators: This message is displayed when an error occurs while getting image dimensions.
 				_("Error getting image dimensions: %s") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-		self.add_images(
-			[
-				ImageFile(
-					location=url,
-					description=description,
-					size=size,
-					dimensions=dimensions,
-				)
-			]
-		)
+			return
+		wx.CallAfter(self.add_images, [image_file])
 
-	def on_images_remove(self, event: wx.CommandEvent):
+		self.task = None
+
+	@ensure_no_task_running
+	def add_image_url_thread(self, url: str):
+		self.task = threading.Thread(
+			target=self.add_image_from_url, args=(url,)
+		)
+		self.task.start()
+
+	def on_images_remove(self, vent: wx.CommandEvent):
 		selection = self.images_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
@@ -455,24 +459,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 		for i, image in enumerate(self.image_files):
 			self.images_list.InsertItem(i, image.name)
-			self.images_list.SetItem(i, 1, image.size)
-			self.images_list.SetItem(
-				i, 2, f"{image.dimensions[0]}x{image.dimensions[1]}"
-			)
+			self.images_list.SetItem(i, 1, image.display_size)
+			self.images_list.SetItem(i, 2, image.display_dimensions)
 			self.images_list.SetItem(i, 3, image.display_location)
 		self.images_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
 		self.images_list.EnsureVisible(i)
 
-	def add_images(self, path: list[str | ImageFile]):
-		log.debug(f"Adding images: {path}")
-		for path in path:
+	def add_images(self, paths: list[str | ImageFile]):
+		log.debug(f"Adding images: {paths}")
+		for path in paths:
 			if isinstance(path, ImageFile):
 				self.image_files.append(path)
 			else:
-				self.image_files.append(ImageFile(path))
+				file = ImageFile(location=path)
+				self.image_files.append(file)
 		self.refresh_images_list()
+		self.images_list.SetFocus()
 
 	def on_config_change(self):
 		self.refresh_accounts()
@@ -818,20 +822,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 		match (modifiers, key_code):
-			case (wx.MOD_NONE, wx.WXK_RETURN):
+			case (
+				(wx.MOD_NONE, wx.WXK_RETURN)
+				| (wx.MOD_NONE, wx.WXK_NUMPAD_ENTER)
+			):
 				if config.conf().conversation.shift_enter_mode:
 					self.on_submit(event)
-				else:
-					event.Skip()
-			case (wx.WXK_SHIFT, wx.WXK_RETURN):
-				if config.conf().conversation.shift_enter_mode:
-					self.prompt.AppendText(os.linesep)
+					event.StopPropagation()
 				else:
 					event.Skip()
 			case (wx.MOD_CONTROL, wx.WXK_UP):
 				if not self.prompt.GetValue():
 					self.insert_previous_prompt()
-			case (wx.MOD_CONTROL, wx.WXK_RETURN):
+			case (
+				(wx.MOD_CONTROL, wx.WXK_RETURN)
+				| (wx.MOD_CONTROL, wx.WXK_NUMPAD_ENTER)
+			):
 				self.on_submit(event)
 			case _:
 				event.Skip()
@@ -937,32 +943,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
-	def get_content_for_completion(
-		self, images_files: list[ImageFile] = None, prompt: str = None
-	) -> list[dict[str, str]]:
-		if not images_files:
-			images_files = self.image_files
-		if not images_files:
-			return prompt
-		content = []
-		if prompt:
-			content.append({"type": "text", "text": prompt})
-		for image_file in images_files:
-			content.append(
-				{
-					"type": "image_url",
-					"image_url": {
-						"url": image_file.get_url(
-							resize=config.conf().images.resize,
-							max_width=config.conf().images.max_width,
-							max_height=config.conf().images.max_height,
-							quality=config.conf().images.quality,
-						)
-					},
-				}
-			)
-		return content
-
 	def transcribe_audio_file(self, audio_file: str = None):
 		if not self.recording_thread:
 			module = __import__(
@@ -1057,19 +1037,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	@ensure_no_task_running
-	def on_submit(self, event: wx.CommandEvent):
-		if not self.submit_btn.IsEnabled():
-			return
-		if not self.prompt.GetValue() and not self.image_files:
-			self.prompt.SetFocus()
-			return
+	def ensure_model_compatibility(self) -> ProviderAIModel | None:
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
-			return
+			return None
 		if self.image_files and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
@@ -1081,21 +1055,32 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-			return
-		self.submit_btn.Disable()
-		self.stop_completion_btn.Show()
-		system_message = None
-		if self.system_prompt_txt.GetValue():
-			system_message = Message(
-				role=MessageRoleEnum.SYSTEM,
-				content=self.system_prompt_txt.GetValue(),
-			)
-		new_block = MessageBlock(
+			return None
+		return model
+
+	def get_system_message(self) -> Message | None:
+		system_prompt = self.system_prompt_txt.GetValue()
+		if not system_prompt:
+			return None
+		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
+
+	def get_new_message_block(self) -> MessageBlock | None:
+		model = self.ensure_model_compatibility()
+		if not model:
+			return None
+		if config.conf().images.resize:
+			for image in self.image_files:
+				image.resize(
+					self.conv_storage_url / "optimized_images",
+					config.conf().images.max_width,
+					config.conf().images.max_height,
+					config.conf().images.quality,
+				)
+		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
-				content=self.get_content_for_completion(
-					images_files=self.image_files, prompt=self.prompt.GetValue()
-				),
+				content=self.prompt.GetValue(),
+				attachments=self.image_files,
 			),
 			model=model,
 			temperature=self.temperature_spinner.GetValue(),
@@ -1103,21 +1088,38 @@ class ConversationTab(wx.Panel, BaseConversation):
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
 			stream=self.stream_mode.GetValue(),
 		)
-		completion_kw = {
+
+	def get_completion_args(self) -> dict[str, Any] | None:
+		new_block = self.get_new_message_block()
+		if not new_block:
+			return None
+		return {
 			"engine": self.current_engine,
-			"system_message": system_message,
+			"system_message": self.get_system_message(),
 			"conversation": self.conversation,
 			"new_block": new_block,
 			"stream": new_block.stream,
 		}
+
+	@ensure_no_task_running
+	def on_submit(self, event: wx.CommandEvent):
+		if not self.submit_btn.IsEnabled():
+			return
+		if not self.prompt.GetValue() and not self.image_files:
+			self.prompt.SetFocus()
+			return
+		completion_kw = self.get_completion_args()
+		if not completion_kw:
+			return
+		self.submit_btn.Disable()
+		self.stop_completion_btn.Show()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
-		thread = self.task = threading.Thread(
+		self.task = threading.Thread(
 			target=self._handle_completion, kwargs=completion_kw
 		)
-		thread.start()
-		thread_id = thread.ident
-		log.debug(f"Task {thread_id} started")
+		self.task.start()
+		log.debug(f"Task {self.task.ident} started")
 
 	def on_stop_completion(self, event: wx.CommandEvent):
 		self._stop_completion = True
@@ -1232,10 +1234,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
-		task = self.task
-		task.join()
-		thread_id = task.ident
-		log.debug(f"Task {thread_id} ended")
+		self.task.join()
+		log.debug(f"Task {self.task.ident} ended")
 		self.task = None
 		stop_sound()
 		if success:

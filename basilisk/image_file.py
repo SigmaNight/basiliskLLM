@@ -1,15 +1,23 @@
+from __future__ import annotations
+
+import base64
 import logging
 import mimetypes
-import os
 import re
-import tempfile
-import time
 from enum import Enum
-from functools import lru_cache
+from io import BufferedReader, BufferedWriter, BytesIO
+from typing import Annotated, Any
 
-from .image_helper import encode_image, get_image_dimensions, resize_image
+import httpx
+from PIL import Image
+from pydantic import BaseModel, PlainValidator
+from upath import UPath
+
+from .decorators import measure_time
 
 log = logging.getLogger(__name__)
+
+PydanticUPath = Annotated[UPath, PlainValidator(lambda v: UPath(v))]
 
 URL_PATTERN = re.compile(
 	r'(https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+|data:image/\S+)',
@@ -17,112 +25,223 @@ URL_PATTERN = re.compile(
 )
 
 
-def get_display_size(size):
-	if size < 1024:
-		return f"{size} B"
-	if size < 1024 * 1024:
-		return f"{size / 1024:.2f} KB"
-	return f"{size / 1024 / 1024:.2f} MB"
+def get_image_dimensions(reader: BufferedReader) -> tuple[int, int]:
+	"""
+	Get the dimensions of an image.
+	"""
+	img = Image.open(reader)
+	return img.size
+
+
+def resize_image(
+	src: BufferedReader,
+	target: BufferedWriter,
+	format: str,
+	max_width: int = 0,
+	max_height: int = 0,
+	quality: int = 85,
+) -> bool:
+	"""
+	Compress an image and save it to a specified file by resizing according to
+	given maximum dimensions and adjusting the quality.
+
+	@param src: path to the source image.
+	@param max_width: Maximum width for the compressed image. If 0, only `max_height` is used to calculate the ratio.
+	@param max_height: Maximum height for the compressed image. If 0, only `max_width` is used to calculate the ratio.
+	@param quality: the quality of the compressed image
+	@param target: output path for the compressed image
+	@return: True if the image was successfully compressed and saved, False otherwise
+	"""
+	if max_width <= 0 and max_height <= 0:
+		log.debug("No resizing needed")
+		return False
+	image = Image.open(src)
+	if image.mode in ("RGBA", "P"):
+		image = image.convert("RGB")
+	orig_width, orig_height = image.size
+	if orig_width <= max_width and orig_height <= max_height:
+		log.debug("Image is already smaller than max dimensions")
+		return False
+	if max_width > 0 and max_height > 0:
+		ratio = min(max_width / orig_width, max_height / orig_height)
+	elif max_width > 0:
+		ratio = max_width / orig_width
+	else:
+		ratio = max_height / orig_height
+	new_width = int(orig_width * ratio)
+	new_height = int(orig_height * ratio)
+	resized_image = image.resize(
+		(new_width, new_height), Image.Resampling.LANCZOS
+	)
+	resized_image.save(target, optimize=True, quality=quality, format=format)
+	return True
 
 
 class ImageFileTypes(Enum):
-	UNKNOWN = 0
-	IMAGE_LOCAL = 1
-	IMAGE_URL = 2
+	UNKNOWN = "unknown"
+	IMAGE_LOCAL = "local"
+	IMAGE_MEMORY = "memory"
+	IMAGE_URL = "http"
+
+	@classmethod
+	def _missing_(cls, value: object) -> ImageFileTypes:
+		if isinstance(value, str) and value.lower() == "data":
+			return cls.IMAGE_URL
+		if isinstance(value, str) and value.lower() == "https":
+			return cls.IMAGE_URL
+		return cls.UNKNOWN
 
 
-class ImageFile:
-	def __init__(
-		self,
-		location: str,
-		name: str = None,
-		description: str = None,
-		size: int = -1,
-		dimensions: tuple = None,
-	):
-		if not isinstance(location, str):
-			raise TypeError("path must be a string")
-		self.location = location
-		self.type = self._get_type()
-		self.name = name or self._get_name()
-		self.description = description
-		if size and size > 0:
-			self.size = get_display_size(size)
-		else:
+class NotImageError(ValueError):
+	pass
+
+
+class ImageFile(BaseModel):
+	location: PydanticUPath
+	name: str | None = None
+	description: str | None = None
+	size: int | None = None
+	dimensions: tuple[int, int] | None = None
+	resize_location: PydanticUPath | None = None
+
+	@classmethod
+	@measure_time
+	def build_from_url(cls, url: str) -> ImageFile:
+		r = httpx.get(url, follow_redirects=True)
+		r.raise_for_status()
+		content_type = r.headers.get("content-type", "")
+		if not content_type.startswith("image/"):
+			e = NotImageError("URL does not point to an image")
+			e.content_type = content_type
+			raise e
+		size = r.headers.get("Content-Length")
+		if size and size.isdigit():
+			size = int(size)
+		dimensions = get_image_dimensions(BytesIO(r.content))
+		return cls(
+			location=url,
+			type=ImageFileTypes.IMAGE_URL,
+			size=size,
+			description=content_type,
+			dimensions=dimensions,
+		)
+
+	def __init__(self, /, **data: Any) -> None:
+		super().__init__(**data)
+		if not self.name:
+			self.name = self._get_name()
 			self.size = self._get_size()
-		self.dimensions = dimensions or self._get_dimensions()
+		if not self.dimensions:
+			self.dimensions = self._get_dimensions()
 
-	def _get_type(self):
-		if os.path.exists(self.location):
-			return ImageFileTypes.IMAGE_LOCAL
-		if re.match(URL_PATTERN, self.location):
-			return ImageFileTypes.IMAGE_URL
-		return ImageFileTypes.UNKNOWN
+	@property
+	def type(self) -> ImageFileTypes:
+		return ImageFileTypes(self.location.protocol)
 
-	def _get_name(self):
-		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			return os.path.basename(self.location)
+	def _get_name(self) -> str:
+		return self.location.name
+
+	def _get_size(self) -> int | None:
 		if self.type == ImageFileTypes.IMAGE_URL:
-			return self.location.split("/")[-1]
-		return "N/A"
+			return None
+		return self.location.stat().st_size
 
-	def _get_size(self):
-		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			size = os.path.getsize(self.location)
-			return get_display_size(size)
-		return "N/A"
+	@property
+	def display_size(self) -> str:
+		size = self.size
+		if size is None:
+			return _("Unknown")
+		if size < 1024:
+			return f"{size} B"
+		if size < 1024 * 1024:
+			return f"{size / 1024:.2f} KB"
+		return f"{size / 1024 / 1024:.2f} MB"
 
-	def _get_dimensions(self):
-		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			return get_image_dimensions(self.location)
-		return None
+	def _get_dimensions(self) -> tuple[int, int] | None:
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return None
+		with self.location.open(mode="rb") as image_file:
+			return get_image_dimensions(image_file)
 
-	@lru_cache(maxsize=None)
-	def get_url(
-		self, resize=False, max_width=None, max_height=None, quality=None
-	) -> str:
-		location = self.location
-		log.debug(f'Processing image "{location}"')
-		if self.type == ImageFileTypes.IMAGE_LOCAL:
-			if resize:
-				start_time = time.time()
-				fd, path_resized_image = tempfile.mkstemp(
-					prefix="basilisk_resized_", suffix=".jpg"
-				)
-				os.close(fd)
-				resize_image(
-					location,
+	@property
+	def display_dimensions(self) -> str:
+		if self.dimensions is None:
+			return _("Unknown")
+		return f"{self.dimensions[0]} x {self.dimensions[1]}"
+
+	@measure_time
+	def resize(
+		self,
+		optimize_folder: UPath,
+		max_width: int,
+		max_height: int,
+		quality: int,
+	):
+		if ImageFileTypes.IMAGE_URL == self.type:
+			return
+		log.debug("Resizing image")
+		resize_location = optimize_folder / self.location.name
+		with self.location.open(mode="rb") as src_file:
+			with resize_location.open(mode="wb") as dst_file:
+				success = resize_image(
+					src_file,
 					max_width=max_width,
 					max_height=max_height,
 					quality=quality,
-					target=path_resized_image,
+					target=dst_file,
+					format=self.location.suffix[1:],
 				)
-				log.debug(
-					f"Image resized in {time.time() - start_time:.2f} second"
-				)
-				location = path_resized_image
-			start_time = time.time()
-			base64_image = encode_image(location)
-			if resize:
-				os.remove(path_resized_image)
-			log.debug(f"Image encoded in {time.time() - start_time:.2f} second")
-			mime_type, _ = mimetypes.guess_type(location)
-			return f"data:{mime_type};base64,{base64_image}"
-		elif self.type == ImageFileTypes.IMAGE_URL:
-			return location
-		raise ValueError("Invalid image type")
+				self.resize_location = resize_location if success else None
+
+	@property
+	def send_location(self) -> UPath:
+		return self.resize_location or self.location
+
+	@measure_time
+	def encode_image(self) -> str:
+		if self.size and self.size > 1024 * 1024 * 1024:
+			log.warning(
+				f"Large image ({self.display_size}) being encoded to base64"
+			)
+		with self.send_location.open(mode="rb") as image_file:
+			return base64.b64encode(image_file.read()).decode("utf-8")
+
+	@property
+	def mime_type(self) -> str | None:
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return None
+		mime_type, _ = mimetypes.guess_type(self.send_location)
+		return mime_type
+
+	@property
+	def url(self) -> str:
+		if not isinstance(self.type, ImageFileTypes):
+			raise ValueError("Invalid image type")
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return str(self.location)
+		base64_image = self.encode_image()
+		return f"data:{self.mime_type};base64,{base64_image}"
 
 	@property
 	def display_location(self):
-		location = self.location
+		location = str(self.location)
 		if location.startswith("data:image/"):
 			location = f"{location[:50]}...{location[-10:]}"
 		return location
 
-	def __str__(self):
-		location = self.display_location
-		return f"{self.name} ({self.size}, {self.dimensions}, {self.description}, {location})"
+	@staticmethod
+	def remove_location(location: UPath):
+		log.debug(f"Removing image at {location}")
+		try:
+			fs = location.fs
+			fs.rm(location.path)
+		except Exception as e:
+			log.error(f"Error deleting image at {location}: {e}")
 
-	def __repr__(self):
-		location = self.display_location
-		return f"ImageFile(name={self.name}, size={self.size}, dimensions={self.dimensions}, description={self.description}, location={location})"
+	def __del__(self):
+		if self.type == ImageFileTypes.IMAGE_URL:
+			return
+		if self.resize_location:
+			self.remove_location(self.resize_location)
+		if self.type == ImageFileTypes.IMAGE_MEMORY:
+			self.remove_location(self.location)

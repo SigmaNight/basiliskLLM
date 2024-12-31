@@ -30,6 +30,7 @@ accessible-output3 = {git = "https://github.com/SigmaNight/accessible_output3.gi
 anthropic = "^0.42.0"
 babel = "^2.15.0"
 cx-freeze = "^7.2.7"
+fsspec = "^2024.10.0"
 google-generativeai = "^0.8.3"
 httpx = "^0.28.1"
 keyring = "^25.6.0"
@@ -49,6 +50,7 @@ sounddevice = "^0.5.1"
 truststore = "^0.10.0"
 watchdog = "^6.0.0"
 wxpython = "^4.2.2"
+universal-pathlib = "^0.2.6"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.1.0"
@@ -88,6 +90,7 @@ version_provider = "poetry"
 executables = [
     {script="basilisk/__main__.py", base="gui", target_name="basilisk"},
 ]
+
 [tool.cxfreeze.build_exe]
 optimize = 1
 build_exe = "dist"
@@ -102,17 +105,17 @@ excludes = [
 ]
 include_files = ["basilisk/res"]
 includes = ["numpy", "httplib2.socks", "win32timezone"]
-packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring"]
+packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring", "fsspec.implementations", "upath.implementations"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
-    "distro", "dotenv", "encodings", "email", "google", "googleapiclient", "grpc_status",
+    "distro", "dotenv", "encodings", "email", "fsspec", "google", "googleapiclient", "grpc_status",
     "h11", "html", "httpcore", "http", "httplib2", "httpx",
     "idna", "importlib", "importlib_metadata", "importlib_resources",
     "jaraco", "jiter", "json", "keyring", "libloader", "logging",
     "openai", "numpy", "more_itertools",
     "PIL", "platform_utils", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
-    "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3",
+    "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath",
     "watchdog", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "yaml", "zipfile", "zipp", "zoneinfo",
     "basilisk"]

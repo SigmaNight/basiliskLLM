@@ -47,28 +47,42 @@ class BaseEngine(ABC):
 			raise ValueError(f"Multiple models with id {model_id}")
 		return model_list[0]
 
-	@staticmethod
+	@abstractmethod
+	def prepare_message_request(self, message: Message) -> Any:
+		"""
+		Prepare message request
+		"""
+		pass
+
+	@abstractmethod
+	def prepare_message_response(self, response: Any) -> Message:
+		"""
+		Prepare message response
+		"""
+		pass
+
 	def get_messages(
+		self,
 		new_block: MessageBlock,
 		conversation: Conversation,
-		system_message: Message | None,
+		system_message: Message | None = None,
 	) -> list[Message]:
 		"""
 		Get messages
 		"""
 		messages = []
 		if system_message:
-			messages.append(system_message.model_dump(mode="json"))
-		for message_block in conversation.messages:
-			if not message_block.response:
+			messages.append(self.prepare_message_request(system_message))
+		for block in conversation.messages:
+			if not block.response:
 				continue
 			messages.extend(
 				[
-					message_block.request.model_dump(mode="json"),
-					message_block.response.model_dump(mode="json"),
+					self.prepare_message_request(block.request),
+					self.prepare_message_response(block.response),
 				]
 			)
-		messages.append(new_block.request.model_dump(mode="json"))
+		messages.append(self.prepare_message_request(new_block.request))
 		return messages
 
 	@abstractmethod

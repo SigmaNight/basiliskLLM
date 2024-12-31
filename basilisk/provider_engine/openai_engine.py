@@ -5,7 +5,17 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Generator, Union
 
 from openai import OpenAI
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
+from openai.types.chat import (
+	ChatCompletion,
+	ChatCompletionAssistantMessageParam,
+	ChatCompletionChunk,
+	ChatCompletionContentPartTextParam,
+	ChatCompletionUserMessageParam,
+)
+from openai.types.chat.chat_completion_content_part_image_param import (
+	ChatCompletionContentPartImageParam,
+	ImageURL,
+)
 
 from basilisk.conversation import (
 	Conversation,
@@ -48,7 +58,6 @@ class OpenAIEngine(BaseEngine):
 			organization=organization_key,
 			base_url=str(self.account.provider.base_url),
 		)
-		log.debug("New openai client initialized")
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
@@ -246,6 +255,40 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 		]
+
+	def prepare_message_request(
+		self, message: Message
+	) -> ChatCompletionUserMessageParam:
+		super().prepare_message_request(message)
+		content = [
+			ChatCompletionContentPartTextParam(
+				text=message.content, type="text"
+			)
+		]
+		if message.attachments:
+			for attachment in message.attachments:
+				image = ImageURL(url=attachment.url, detail="auto")
+				content.append(
+					ChatCompletionContentPartImageParam(
+						image_url=image, type="image_url"
+					)
+				)
+		return ChatCompletionUserMessageParam(
+			role=message.role.value, content=content
+		)
+
+	def prepare_message_response(
+		self, response: Message
+	) -> ChatCompletionAssistantMessageParam:
+		super().prepare_message_response(response)
+		return ChatCompletionAssistantMessageParam(
+			role=response.role.value,
+			content=[
+				ChatCompletionContentPartTextParam(
+					text=response.content, type="text"
+				)
+			],
+		)
 
 	def completion(
 		self,

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
 from typing import Any, Iterable, Optional, Type
 
+from .decorators import measure_time
 from .provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
@@ -37,19 +37,15 @@ class Provider:
 	env_var_name_organization_key: Optional[str] = field(default=None)
 
 	@cached_property
+	@measure_time
 	def engine_cls(self) -> Type[BaseEngine]:
 		"""
 		Get engine class
 		"""
-		start = time.time()
 		try:
 			module_path, class_name = self.engine_cls_path.rsplit(".", 1)
 			module = __import__(module_path, fromlist=[class_name])
-			end = time.time()
 			cls = getattr(module, class_name)
-			log.debug(
-				f"Loaded engine class '{class_name}' in {end - start:.3f} seconds"
-			)
 			return cls
 		except ImportError as e:
 			log.error(f"Error importing engine class: {e}")

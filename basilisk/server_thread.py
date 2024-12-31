@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import logging
 import re
 import socket
 import threading
+from typing import TYPE_CHECKING
 
 import wx
 
-from basilisk.image_file import ImageFile
 from basilisk.screen_capture_thread import CaptureMode
+
+if TYPE_CHECKING:
+	from basilisk.gui.main_frame import MainFrame
 
 log = logging.getLogger(__name__)
 
 
 class ServerThread(threading.Thread):
-	def __init__(self, frame: wx.Frame, port: int) -> None:
+	def __init__(self, frame: MainFrame, port: int) -> None:
 		super().__init__()
 		self.frame = frame
 		self.port = port
@@ -62,8 +67,14 @@ class ServerThread(threading.Thread):
 				if '\n' in grab_mode:
 					coords, name = grab_mode.split('\n', 1)
 					coords = tuple(map(int, coords.split(",")))
+					if len(coords) != 4:
+						log.error("Invalid coordinates")
+						return
 					wx.CallAfter(
-						self.frame.capture_partial_screen, coords, name
+						self.frame.screen_capture,
+						CaptureMode.PARTIAL,
+						coords,
+						name,
 					)
 			else:
 				log.error(f"Invalid grab mode: {grab_mode}")
@@ -72,12 +83,7 @@ class ServerThread(threading.Thread):
 			url = data.split(':', 1)[1].strip()
 			if '\n' in url:
 				url, name = url.split('\n', 1)
-				image_files = [
-					ImageFile(
-						location=url, name=name, size=-1, dimensions=(0, 0)
-					)
-				]
-				wx.CallAfter(self.frame.current_tab.add_images, image_files)
+				wx.CallAfter(self.frame.current_tab.add_image_url_thread, url)
 		else:
 			log.error(f"no action for data: {data}")
 
