@@ -1467,4 +1467,3 @@ msgstr ""
 #: basilisk/provider_engine/openai_engine.py:250
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr ""
-
