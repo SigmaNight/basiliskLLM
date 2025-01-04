@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: install poetry
-        uses: abatilo/actions-poetry@v3
+        uses: abatilo/actions-poetry@v4
       - name: cache virtualenv
         uses: actions/cache@v4
         with:
