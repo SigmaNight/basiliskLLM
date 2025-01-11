@@ -8,11 +8,12 @@ import google.generativeai as genai
 
 from basilisk.conversation import (
 	Conversation,
+	ImageFile,
+	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.image_file import ImageFile, ImageFileTypes
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 

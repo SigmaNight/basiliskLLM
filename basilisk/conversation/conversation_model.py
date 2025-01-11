@@ -1,11 +1,11 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .image_file import ImageFile
-from .provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model import ProviderAIModel
+
+from .image_model import ImageFile
 
 PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main language based on the topics and context. Max 70 characters. Do not surround the text with quotation marks."
 
@@ -14,16 +14,6 @@ class MessageRoleEnum(Enum):
 	ASSISTANT = "assistant"
 	USER = "user"
 	SYSTEM = "system"
-
-
-class ImageUrlMessageContent(BaseModel):
-	type: Literal["image_url"]
-	image_url: dict[str, str]
-
-
-class TextMessageContent(BaseModel):
-	type: Literal["text"]
-	text: str
 
 
 class Message(BaseModel):

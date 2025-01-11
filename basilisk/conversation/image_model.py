@@ -13,7 +13,7 @@ from PIL import Image
 from pydantic import BaseModel, PlainValidator
 from upath import UPath
 
-from .decorators import measure_time
+from basilisk.decorators import measure_time
 
 log = logging.getLogger(__name__)
 

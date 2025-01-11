@@ -14,7 +14,7 @@ from numpy import array as np_array
 
 if TYPE_CHECKING:
 	from basilisk.config.main_config import RecordingsSettings
-	from basilisk.conversation import ConversationTab
+	from basilisk.gui.conversation_tab import ConversationTab
 
 	from .provider_engine.base_engine import BaseEngine
 

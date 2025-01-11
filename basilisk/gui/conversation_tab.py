@@ -19,15 +19,15 @@ from basilisk import global_vars
 from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
+	URL_PATTERN,
 	Conversation,
-	ImageUrlMessageContent,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	TextMessageContent,
+	NotImageError,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.image_file import URL_PATTERN, ImageFile, NotImageError
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
@@ -850,16 +850,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
-	def extract_text_from_message(
-		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
-	) -> str:
+	def extract_text_from_message(self, content: str) -> str:
 		if isinstance(content, str):
 			return content
-		text = ""
-		for item in content:
-			if item.type == "text":
-				text += item.text
-		return text
 
 	def append_text_and_create_segment(
 		self, text, segment_type, new_block_ref, absolute_length
@@ -1288,3 +1281,4 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def save_conversation(self, file_path: str):
 		log.debug(f"Saving conversation to {file_path}")
+		self.conversation.save(file_path)
