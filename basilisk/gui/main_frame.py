@@ -86,7 +86,7 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to save a conversation
 			_("Save conversation") + "\tCtrl+S",
 		)
-		save_conversation_item.Enable(False)
+		self.Bind(wx.EVT_MENU, self.save_conversation, save_conversation_item)
 		save_as_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation as a new file
@@ -722,3 +722,21 @@ class MainFrame(wx.Frame):
 		)
 		if first_account_msg == wx.YES:
 			self.on_manage_accounts(None)
+
+	def save_conversation(self, event):
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		file_dialog = wx.FileDialog(
+			self,
+			# Translators: A title for the save conversation dialog
+			message=_("Save conversation"),
+			wildcard=_("Basilisk conversation files") + "(*.bskc)|*.bskc",
+			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+		)
+		if file_dialog.ShowModal() == wx.ID_OK:
+			current_tab.save_conversation(file_dialog.GetPath())
+		file_dialog.Destroy()
