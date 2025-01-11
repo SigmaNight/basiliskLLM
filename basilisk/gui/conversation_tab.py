@@ -1285,3 +1285,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		finally:
 			stop_sound()
+
+	def save_conversation(self, file_path: str):
+		log.debug(f"Saving conversation to {file_path}")
