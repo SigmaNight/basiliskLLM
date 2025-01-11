@@ -11,11 +11,11 @@ from anthropic.types.image_block_param import ImageBlockParam, Source
 
 from basilisk.conversation import (
 	Conversation,
+	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.image_file import ImageFileTypes
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
