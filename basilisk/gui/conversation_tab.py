@@ -1075,7 +1075,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				content=self.prompt.GetValue(),
 				attachments=self.image_files,
 			),
-			model=model,
+			model_id=model.id,
+			provider_id=self.current_account.provider.id,
 			temperature=self.temperature_spinner.GetValue(),
 			top_p=self.top_p_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
@@ -1251,7 +1252,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				request=Message(
 					role=MessageRoleEnum.USER, content=PROMPT_TITLE
 				),
-				model=model,
+				provider_id=self.current_account.provider.id,
+				model_id=model.id,
 				temperature=self.temperature_spinner.GetValue(),
 				top_p=self.top_p_spinner.GetValue(),
 				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
