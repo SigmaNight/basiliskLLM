@@ -299,7 +299,7 @@ class OpenAIEngine(BaseEngine):
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
-			"model": new_block.model.id,
+			"model": new_block.model.model_id,
 			"messages": self.get_messages(
 				new_block, conversation, system_message
 			),

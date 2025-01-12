@@ -3,11 +3,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from basilisk.provider_ai_model import ProviderAIModel
-
+from .conversation_helper import AIModelInfo
 from .image_model import ImageFile
-
-PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main language based on the topics and context. Max 70 characters. Do not surround the text with quotation marks."
 
 
 class MessageRoleEnum(Enum):
@@ -25,13 +22,23 @@ class Message(BaseModel):
 class MessageBlock(BaseModel):
 	request: Message
 	response: Message | None = Field(default=None)
-	model: ProviderAIModel
+	model: AIModelInfo
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
 	top_p: float = Field(default=1)
 	stream: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
+
+	def __init__(self, /, **data):
+		provider_id = data.pop("provider_id", None)
+		model_id = data.pop("model_id", None)
+		model = data.get("model", None)
+		if provider_id and model_id and not model:
+			data["model"] = AIModelInfo(
+				provider_id=provider_id, model_id=model_id
+			)
+		super().__init__(**data)
 
 
 class Conversation(BaseModel):
