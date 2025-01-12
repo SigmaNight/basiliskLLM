@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from .conversation_helper import AIModelInfo, create_bskc_file
+from .conversation_helper import AIModelInfo, create_bskc_file, open_bskc_file
 from .image_model import ImageFile
 
 
@@ -45,6 +47,10 @@ class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
 	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+
+	@classmethod
+	def open(cls, file_path: str) -> Conversation:
+		return open_bskc_file(cls, file_path)
 
 	def save(self, file_path: str):
 		create_bskc_file(self, file_path)

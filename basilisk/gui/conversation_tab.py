@@ -59,17 +59,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
+	@classmethod
+	def open_conversation(
+		cls, parent: wx.Window, file_path: str, default_title: str
+	) -> ConversationTab:
+		log.debug(f"Opening conversation from {file_path}")
+		conversation = Conversation.open(file_path)
+		title = conversation.title or default_title
+		return cls(parent, conversation=conversation, title=title)
+
 	def __init__(
 		self,
 		parent: wx.Window,
 		title: str = _("Untitled conversation"),
 		profile: Optional[config.ConversationProfile] = None,
+		conversation: Optional[Conversation] = None,
 	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
-		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
-		self.conversation = Conversation()
+		self.SetStatusText = self.TopLevelParent.SetStatusText
+		self.conversation = conversation or Conversation()
 		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
@@ -209,8 +219,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
-		self.refresh_images_list()
 		self.apply_profile(profile, True)
+		self.refresh_messages(need_clear=False)
 
 	def on_choose_profile(self, event: wx.KeyEvent):
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
@@ -928,10 +938,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.messages.SetInsertionPoint(pos)
 
-	def refresh_messages(self):
-		self.messages.Clear()
-		self.message_segment_manager.clear()
-		self.image_files.clear()
+	def refresh_messages(self, need_clear: bool = True):
+		if need_clear:
+			self.messages.Clear()
+			self.message_segment_manager.clear()
+			self.image_files.clear()
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
