@@ -182,12 +182,12 @@ class AnthropicEngine(BaseEngine):
 		**kwargs,
 	) -> Message | Stream[MessageStreamEvent]:
 		super().completion(new_block, conversation, system_message, **kwargs)
+		model = self.get_model(new_block.model.model_id)
 		params = {
-			"model": new_block.model.id,
+			"model": model.id,
 			"messages": self.get_messages(new_block, conversation),
 			"temperature": new_block.temperature,
-			"max_tokens": new_block.max_tokens
-			or new_block.model.max_output_tokens,
+			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
