@@ -4,8 +4,8 @@ import logging
 import zipfile
 from typing import TYPE_CHECKING
 
-from fsspec.implementations.zip import ZipFileSystem
 from pydantic import BaseModel, Field, field_validator
+from upath import UPath
 
 if TYPE_CHECKING:
 	from basilisk.provider import Provider
@@ -39,27 +39,28 @@ class AIModelInfo(BaseModel):
 		return self.get_provider_by_id(self.provider_id)
 
 
-def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
-	with fs.open("conversation.json", mode="w") as conv_file:
+def create_conv_main_file(conversation: Conversation, zip_base_path: UPath):
+	conv_main_path = zip_base_path / "conversation.json"
+	with conv_main_path.open(mode="w") as conv_file:
 		conv_json = conversation.model_dump_json()
 		conv_file.write(conv_json)
 
 
 def read_conv_main_file(
-	model_cls: Conversation, fs: ZipFileSystem
+	model_cls: Conversation, conv_file: UPath
 ) -> Conversation:
-	with fs.open("conversation.json", mode="r") as conv_file:
+	with conv_file.open(mode="r") as conv_file:
 		return model_cls.model_validate_json(conv_file.read())
 
 
 def create_bskc_file(conversation: Conversation, file_path: str):
 	"""Save a conversation to a Basilisk Conversation file."""
 	with open(file_path, mode="w+b") as bskc_file:
-		fs = ZipFileSystem(
-			fo=bskc_file, mode="w", compression=zipfile.ZIP_STORED
+		zip_base_path = UPath(
+			"zip://.", mode="w", fo=bskc_file, compression=zipfile.ZIP_STORED
 		)
-		create_conv_main_file(conversation, fs)
-		fs.close()
+		create_conv_main_file(conversation, zip_base_path)
+		zip_base_path.fs.close()
 
 
 def open_bskc_file(model_cls: Conversation, file_path: str) -> Conversation:
@@ -67,9 +68,10 @@ def open_bskc_file(model_cls: Conversation, file_path: str) -> Conversation:
 	with open(file_path, mode="r+b") as bskc_file:
 		if not zipfile.is_zipfile(bskc_file):
 			raise zipfile.BadZipFile("The baskc file must be a zip archive.")
-		fs = ZipFileSystem(fo=bskc_file, mode="r")
-		if not fs.exists("conversation.json"):
+		zip_base_path = UPath("zip://.", mode="r", fo=bskc_file)
+		conv_main_path = zip_base_path / "conversation.json"
+		if not conv_main_path.exists():
 			raise FileNotFoundError(
 				"The baskc file must contain a conversation.json file."
 			)
-		return read_conv_main_file(model_cls, fs)
+		return read_conv_main_file(model_cls, conv_main_path)
