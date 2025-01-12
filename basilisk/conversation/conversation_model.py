@@ -1,29 +1,18 @@
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .image_file import ImageFile
-from .provider_ai_model import ProviderAIModel
-
-PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main language based on the topics and context. Max 70 characters. Do not surround the text with quotation marks."
+from .conversation_helper import AIModelInfo, create_bskc_file, open_bskc_file
+from .image_model import ImageFile
 
 
 class MessageRoleEnum(Enum):
 	ASSISTANT = "assistant"
 	USER = "user"
 	SYSTEM = "system"
-
-
-class ImageUrlMessageContent(BaseModel):
-	type: Literal["image_url"]
-	image_url: dict[str, str]
-
-
-class TextMessageContent(BaseModel):
-	type: Literal["text"]
-	text: str
 
 
 class Message(BaseModel):
@@ -35,7 +24,7 @@ class Message(BaseModel):
 class MessageBlock(BaseModel):
 	request: Message
 	response: Message | None = Field(default=None)
-	model: ProviderAIModel
+	model: AIModelInfo
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
 	top_p: float = Field(default=1)
@@ -43,8 +32,25 @@ class MessageBlock(BaseModel):
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 
+	def __init__(self, /, **data):
+		provider_id = data.pop("provider_id", None)
+		model_id = data.pop("model_id", None)
+		model = data.get("model", None)
+		if provider_id and model_id and not model:
+			data["model"] = AIModelInfo(
+				provider_id=provider_id, model_id=model_id
+			)
+		super().__init__(**data)
+
 
 class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
 	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+
+	@classmethod
+	def open(cls, file_path: str) -> Conversation:
+		return open_bskc_file(cls, file_path)
+
+	def save(self, file_path: str):
+		create_bskc_file(self, file_path)
