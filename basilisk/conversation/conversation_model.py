@@ -3,7 +3,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from .conversation_helper import AIModelInfo
+from .conversation_helper import AIModelInfo, create_bskc_file
 from .image_model import ImageFile
 
 
@@ -45,3 +45,6 @@ class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
 	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+
+	def save(self, file_path: str):
+		create_bskc_file(self, file_path)
