@@ -14,7 +14,7 @@ else:
 
 	app_version = get_version(root="../..", relative_to=__file__)
 
-APP_AUTHORS = ["André-Abush Clause", "Clément Boussiron" "Nael Sayegh"]
+APP_AUTHORS = ["André-Abush Clause", "Clément BoussironNael Sayegh"]
 
 APP_TRANSLATORS = [
 	"André-Abush Clause (French)",
