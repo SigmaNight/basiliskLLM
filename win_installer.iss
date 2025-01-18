@@ -7,6 +7,7 @@
 #endif
 
 [setup]
+WiZardStyle=modern
 AppVersion={#MyAppVersion}
 AppName=basiliskLLM
 AppPublisher=SigmaNight
@@ -53,7 +54,7 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+A"
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; HotKey: "ctrl+alt+a"
 Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
 Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n -m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
 
@@ -90,7 +91,7 @@ begin
       begin
         if not FileExists(DestPath) then
         begin
-          if not FileCopy(SourcePath, DestPath, False) then
+          if not CopyFile(SourcePath, DestPath, False) then
           begin
             MsgBox(FmtMessage(CustomMessage('CopyFileError'), [SourcePath, DestPath]), mbError, MB_OK);
             Exit;
