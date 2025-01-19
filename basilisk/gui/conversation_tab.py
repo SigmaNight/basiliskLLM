@@ -19,15 +19,15 @@ from basilisk import global_vars
 from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
+	URL_PATTERN,
 	Conversation,
-	ImageUrlMessageContent,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	TextMessageContent,
+	NotImageError,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.image_file import URL_PATTERN, ImageFile, NotImageError
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
@@ -59,17 +59,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
+	@classmethod
+	def open_conversation(
+		cls, parent: wx.Window, file_path: str, default_title: str
+	) -> ConversationTab:
+		log.debug(f"Opening conversation from {file_path}")
+		conversation = Conversation.open(file_path)
+		title = conversation.title or default_title
+		return cls(parent, conversation=conversation, title=title)
+
 	def __init__(
 		self,
 		parent: wx.Window,
 		title: str = _("Untitled conversation"),
 		profile: Optional[config.ConversationProfile] = None,
+		conversation: Optional[Conversation] = None,
 	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
-		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
-		self.conversation = Conversation()
+		self.SetStatusText = self.TopLevelParent.SetStatusText
+		self.conversation = conversation or Conversation()
 		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
@@ -209,8 +219,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
-		self.refresh_images_list()
 		self.apply_profile(profile, True)
+		self.refresh_messages(need_clear=False)
 
 	def on_choose_profile(self, event: wx.KeyEvent):
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
@@ -850,16 +860,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
-	def extract_text_from_message(
-		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
-	) -> str:
+	def extract_text_from_message(self, content: str) -> str:
 		if isinstance(content, str):
 			return content
-		text = ""
-		for item in content:
-			if item.type == "text":
-				text += item.text
-		return text
 
 	def append_text_and_create_segment(
 		self, text, segment_type, new_block_ref, absolute_length
@@ -935,10 +938,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.messages.SetInsertionPoint(pos)
 
-	def refresh_messages(self):
-		self.messages.Clear()
-		self.message_segment_manager.clear()
-		self.image_files.clear()
+	def refresh_messages(self, need_clear: bool = True):
+		if need_clear:
+			self.messages.Clear()
+			self.message_segment_manager.clear()
+			self.image_files.clear()
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
@@ -1082,7 +1086,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				content=self.prompt.GetValue(),
 				attachments=self.image_files,
 			),
-			model=model,
+			model_id=model.id,
+			provider_id=self.current_account.provider.id,
 			temperature=self.temperature_spinner.GetValue(),
 			top_p=self.top_p_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
@@ -1258,7 +1263,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				request=Message(
 					role=MessageRoleEnum.USER, content=PROMPT_TITLE
 				),
-				model=model,
+				provider_id=self.current_account.provider.id,
+				model_id=model.id,
 				temperature=self.temperature_spinner.GetValue(),
 				top_p=self.top_p_spinner.GetValue(),
 				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
@@ -1285,3 +1291,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		finally:
 			stop_sound()
+
+	def save_conversation(self, file_path: str):
+		log.debug(f"Saving conversation to {file_path}")
+		self.conversation.save(file_path)

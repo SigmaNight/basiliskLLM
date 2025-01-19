@@ -8,7 +8,7 @@ from enum import Enum
 import wx
 from PIL import ImageGrab
 
-from .image_file import ImageFile
+from basilisk.conversation import ImageFile
 
 if typing.TYPE_CHECKING:
 	from io import BufferedWriter

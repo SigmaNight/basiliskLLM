@@ -14,7 +14,7 @@ if sys.platform == 'win32':
 import basilisk.config as config
 from basilisk import global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
-from basilisk.image_file import ImageFile
+from basilisk.conversation import ImageFile
 from basilisk.logger import get_log_file_path
 from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
 from basilisk.updater import BaseUpdater
@@ -75,7 +75,9 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to open a conversation
 			_("Open conversation") + "...\tCtrl+O",
 		)
-		open_conversation_item.Enable(False)
+		self.Bind(
+			wx.EVT_MENU, self.on_open_conversation, open_conversation_item
+		)
 		conversation_menu.AppendSubMenu(
 			self.build_name_conversation_menu(),
 			# Translators: A label for a menu item to name a conversation
@@ -86,7 +88,9 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to save a conversation
 			_("Save conversation") + "\tCtrl+S",
 		)
-		save_conversation_item.Enable(False)
+		self.Bind(
+			wx.EVT_MENU, self.on_save_conversation, save_conversation_item
+		)
 		save_as_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to save a conversation as a new file
@@ -419,17 +423,20 @@ class MainFrame(wx.Frame):
 		self.refresh_tab_title(True)
 		dialog.Destroy()
 
-	def new_conversation(self, profile: Optional[config.ConversationProfile]):
+	def get_default_conv_title(self):
 		self.last_conversation_id += 1
-		default_conversation_title = f"Conversation {self.last_conversation_id}"
-		self.tabs_panels.append(
-			ConversationTab(
-				self.notebook, title=default_conversation_title, profile=profile
-			)
+		# Translators: A default title for a conversation
+		return _("Conversation %d") % self.last_conversation_id
+
+	def new_conversation(self, profile: Optional[config.ConversationProfile]):
+		new_tab = ConversationTab(
+			self.notebook, title=self.get_default_conv_title(), profile=profile
 		)
-		self.notebook.AddPage(
-			self.tabs_panels[-1], default_conversation_title, select=True
-		)
+		self.add_conversation_tab(new_tab)
+
+	def add_conversation_tab(self, new_tab: ConversationTab):
+		self.tabs_panels.append(new_tab)
+		self.notebook.AddPage(self.tabs_panels[-1], new_tab.title, select=True)
 		self.refresh_frame_title()
 
 	def on_close_conversation(self, event):
@@ -722,3 +729,51 @@ class MainFrame(wx.Frame):
 		)
 		if first_account_msg == wx.YES:
 			self.on_manage_accounts(None)
+
+	def on_save_conversation(self, event):
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return
+		file_dialog = wx.FileDialog(
+			self,
+			# Translators: A title for the save conversation dialog
+			message=_("Save conversation"),
+			wildcard=_("Basilisk conversation files") + "(*.bskc)|*.bskc",
+			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+		)
+		if file_dialog.ShowModal() == wx.ID_OK:
+			current_tab.save_conversation(file_dialog.GetPath())
+		file_dialog.Destroy()
+
+	def on_open_conversation(self, event):
+		file_dialog = wx.FileDialog(
+			self,
+			# Translators: A title for the open conversation dialog
+			message=_("Open conversation"),
+			wildcard=_("Basilisk conversation files") + "(*.bskc)|*.bskc",
+			style=wx.FD_OPEN,
+		)
+		if file_dialog.ShowModal() == wx.ID_OK:
+			file_path = file_dialog.GetPath()
+			try:
+				new_tab = ConversationTab.open_conversation(
+					self.notebook, file_path, self.get_default_conv_title()
+				)
+				if new_tab:
+					self.add_conversation_tab(new_tab)
+			except Exception as e:
+				wx.MessageBox(
+					# Translators: An error message when a conversation file cannot be opened
+					_("Failed to open conversation file: '%s', error: %s")
+					% (file_path, e),
+					style=wx.OK | wx.ICON_ERROR,
+				)
+				log.error(
+					f"Failed to open conversation file: {file_path}, error: {e}",
+					exc_info=e,
+				)
+			finally:
+				file_dialog.Destroy()
