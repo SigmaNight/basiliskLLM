@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-12-28 11:48+0000\n"
-"PO-Revision-Date: 2024-12-28 13:21\n"
+"POT-Creation-Date: 2025-01-22 14:03+0000\n"
+"PO-Revision-Date: 2025-01-25 13:19\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -18,34 +18,46 @@ msgstr ""
 "X-Crowdin-File-ID: 2\n"
 "Language: ru_RU\n"
 
-#. Translators: Error message
-#: basilisk/main_app.py:137
-msgid "Failed to activate system certificate store"
-msgstr "Не удалось активировать хранилище системных сертификатов"
+#: basilisk/decorators.py:17
+msgid "A task is already running. Please wait for it to complete."
+msgstr "Задача уже запущена. Пожалуйста, дождитесь её завершения."
 
 #. Translators: Error title
 #. Translators: An error message title
 #. Translators: A message box title.
 #. Translators: A label for the log level in the settings dialog
 #. Translators: Search dialog error title
-#: basilisk/gui/account_dialog.py:119 basilisk/gui/account_dialog.py:124
-#: basilisk/gui/account_dialog.py:129 basilisk/gui/account_dialog.py:485
-#: basilisk/gui/account_dialog.py:491 basilisk/gui/account_dialog.py:499
-#: basilisk/gui/account_dialog.py:506 basilisk/gui/account_dialog.py:717
-#: basilisk/gui/account_dialog.py:760 basilisk/gui/conversation_tab.py:56
-#: basilisk/gui/conversation_tab.py:345 basilisk/gui/conversation_tab.py:360
-#: basilisk/gui/conversation_tab.py:392 basilisk/gui/conversation_tab.py:987
-#: basilisk/gui/conversation_tab.py:1032 basilisk/gui/conversation_tab.py:1047
-#: basilisk/gui/conversation_tab.py:1070 basilisk/gui/conversation_tab.py:1081
-#: basilisk/gui/conversation_tab.py:1135 basilisk/gui/conversation_tab.py:1282
-#: basilisk/gui/main_frame.py:374 basilisk/gui/main_frame.py:402
-#: basilisk/gui/main_frame.py:453 basilisk/gui/main_frame.py:467
-#: basilisk/gui/main_frame.py:562 basilisk/gui/main_frame.py:589
+#: basilisk/decorators.py:18 basilisk/gui/account_dialog.py:119
+#: basilisk/gui/account_dialog.py:124 basilisk/gui/account_dialog.py:129
+#: basilisk/gui/account_dialog.py:485 basilisk/gui/account_dialog.py:491
+#: basilisk/gui/account_dialog.py:499 basilisk/gui/account_dialog.py:506
+#: basilisk/gui/account_dialog.py:717 basilisk/gui/account_dialog.py:760
+#: basilisk/gui/conversation_tab.py:351 basilisk/gui/conversation_tab.py:383
+#: basilisk/gui/conversation_tab.py:395 basilisk/gui/conversation_tab.py:967
+#: basilisk/gui/conversation_tab.py:1012 basilisk/gui/conversation_tab.py:1027
+#: basilisk/gui/conversation_tab.py:1044 basilisk/gui/conversation_tab.py:1055
+#: basilisk/gui/conversation_tab.py:1137 basilisk/gui/conversation_tab.py:1282
+#: basilisk/gui/main_frame.py:264 basilisk/gui/main_frame.py:270
+#: basilisk/gui/main_frame.py:376 basilisk/gui/main_frame.py:404
+#: basilisk/gui/main_frame.py:455 basilisk/gui/main_frame.py:469
+#: basilisk/gui/main_frame.py:564 basilisk/gui/main_frame.py:591
 #: basilisk/gui/name_conversation_dialog.py:68
 #: basilisk/gui/preferences_dialog.py:27 basilisk/gui/search_dialog.py:257
 #: basilisk/main_app.py:139
 msgid "Error"
 msgstr "Ошибка"
+
+#: basilisk/gui/account_dialog.py:231 basilisk/gui/account_dialog.py:263
+#: basilisk/gui/account_dialog.py:294 basilisk/gui/account_dialog.py:638
+#: basilisk/gui/account_dialog.py:735 basilisk/image_file.py:153
+#: basilisk/image_file.py:169
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#. Translators: Error message
+#: basilisk/main_app.py:137
+msgid "Failed to activate system certificate store"
+msgstr "Не удалось активировать хранилище системных сертификатов"
 
 #. translators: Summary of a conversation profile
 #: basilisk/gui/conversation_profile_dialog.py:330
@@ -72,17 +84,20 @@ msgstr "Контекстное окно:"
 msgid "Max output tokens:"
 msgstr "Максимальное число выходных токенов:"
 
-#: basilisk/screen_capture_thread.py:63
-msgid "Full screen capture"
-msgstr "Снимок всего экрана"
+#: basilisk/screen_capture_thread.py:64
+#, python-format
+msgid "Full screen capture (%s)"
+msgstr ""
 
-#: basilisk/screen_capture_thread.py:65
-msgid "Window capture"
-msgstr "Снимок окна"
+#: basilisk/screen_capture_thread.py:76
+#, python-format
+msgid "Partial screen capture (%s)"
+msgstr ""
 
-#: basilisk/screen_capture_thread.py:67
-msgid "Partial screen capture"
-msgstr "Частичный снимок экрана"
+#: basilisk/screen_capture_thread.py:94
+#, python-format
+msgid "Window screen capture (%s)"
+msgstr ""
 
 #: basilisk/gui/about_dialog.py:31
 msgid "Where LLMs Unite"
@@ -136,7 +151,7 @@ msgstr "Организации"
 #. Translators: A label in account dialog
 #. Translators: This label appears in the main window's list of models
 #: basilisk/gui/account_dialog.py:178 basilisk/gui/account_dialog.py:566
-#: basilisk/gui/base_conversation.py:115 basilisk/gui/conversation_tab.py:153
+#: basilisk/gui/base_conversation.py:115 basilisk/gui/conversation_tab.py:145
 msgid "Name"
 msgstr "Название"
 
@@ -167,12 +182,6 @@ msgstr "&Редактировать"
 #: basilisk/gui/conversation_profile_dialog.py:195
 msgid "&Remove"
 msgstr "&Удалить"
-
-#: basilisk/gui/account_dialog.py:231 basilisk/gui/account_dialog.py:263
-#: basilisk/gui/account_dialog.py:294 basilisk/gui/account_dialog.py:638
-#: basilisk/gui/account_dialog.py:735
-msgid "Unknown"
-msgstr "Неизвестно"
 
 #: basilisk/gui/account_dialog.py:254
 msgid "Add organization"
@@ -428,294 +437,292 @@ msgstr "Потоковый режим:"
 msgid "System prompt:"
 msgstr "Системная подсказка:"
 
-#: basilisk/gui/conversation_tab.py:55
-msgid "A task is already running. Please wait for it to complete."
-msgstr "Задача уже запущена. Пожалуйста, дождитесь её завершения."
-
 #. Translators: Label indicating that the message is from the user in a
 #. conversation
-#: basilisk/gui/conversation_tab.py:68
+#: basilisk/gui/conversation_tab.py:57
 msgid "User:"
 msgstr "Пользователь:"
 
 #. Translators: Label indicating that the message is from the assistant in a
 #. conversation
-#: basilisk/gui/conversation_tab.py:70
+#: basilisk/gui/conversation_tab.py:59
 msgid "Assistant:"
 msgstr "Ассистент:"
 
-#: basilisk/gui/conversation_tab.py:76
+#: basilisk/gui/conversation_tab.py:65
 msgid "Untitled conversation"
 msgstr "Разговор без названия"
 
 #. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:110
+#: basilisk/gui/conversation_tab.py:102
 msgid "&Messages:"
 msgstr "&Сообщения:"
 
 #. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:128
+#: basilisk/gui/conversation_tab.py:120
 msgid "&Prompt:"
 msgstr "&Подсказка:"
 
 #. Translators: This is a label for models in the main window
-#: basilisk/gui/conversation_tab.py:145
+#: basilisk/gui/conversation_tab.py:137
 msgid "&Images:"
 msgstr "&Изображения:"
 
-#: basilisk/gui/conversation_tab.py:154
+#: basilisk/gui/conversation_tab.py:146
 msgid "Size"
 msgstr "Размер файла"
 
-#: basilisk/gui/conversation_tab.py:155
+#: basilisk/gui/conversation_tab.py:147
 msgid "Dimensions"
 msgstr "Размеры"
 
-#: basilisk/gui/conversation_tab.py:156
+#: basilisk/gui/conversation_tab.py:148
 msgid "Path"
 msgstr "Путь"
 
 #. Translators: This is a label for submit button in the main window
-#: basilisk/gui/conversation_tab.py:182 basilisk/gui/conversation_tab.py:804
+#: basilisk/gui/conversation_tab.py:174 basilisk/gui/conversation_tab.py:808
 msgid "Submit"
 msgstr "Отправить"
 
 #. Translators: This is a label for stop completion button in the main window
-#: basilisk/gui/conversation_tab.py:191
+#: basilisk/gui/conversation_tab.py:183
 msgid "Stop completio&n"
 msgstr "Остановить заверше&ние"
 
 #. Translators: This is a label for record button in the main window
-#: basilisk/gui/conversation_tab.py:200 basilisk/gui/conversation_tab.py:1057
+#: basilisk/gui/conversation_tab.py:192 basilisk/gui/conversation_tab.py:1037
 msgid "Record"
 msgstr "Запись"
 
 #. Translators: This is a label for apply profile button in the main window
-#: basilisk/gui/conversation_tab.py:208
+#: basilisk/gui/conversation_tab.py:200
 msgid "Apply profile"
 msgstr "Применить профиль"
 
-#: basilisk/gui/conversation_tab.py:256
+#: basilisk/gui/conversation_tab.py:248
 msgid "Remove selected image"
 msgstr "Удалить выбранное изображение"
 
-#: basilisk/gui/conversation_tab.py:262
+#: basilisk/gui/conversation_tab.py:254
 msgid "Copy image URL"
 msgstr "Копировать URL изображения"
 
-#: basilisk/gui/conversation_tab.py:267 basilisk/gui/conversation_tab.py:808
+#: basilisk/gui/conversation_tab.py:259 basilisk/gui/conversation_tab.py:812
 msgid "Paste (image or text)"
 msgstr "Вставить (изображение или текст)"
 
-#: basilisk/gui/conversation_tab.py:271
+#: basilisk/gui/conversation_tab.py:263
 msgid "Add image files..."
 msgstr "Добавить файлы изображений..."
 
-#: basilisk/gui/conversation_tab.py:275
+#: basilisk/gui/conversation_tab.py:267
 msgid "Add image URL..."
 msgstr "Добавить URL изображения..."
 
-#: basilisk/gui/conversation_tab.py:321
+#: basilisk/gui/conversation_tab.py:327
 msgid "Select one or more image files"
 msgstr "Выберите один или несколько файлов изображений"
 
-#: basilisk/gui/conversation_tab.py:323
+#: basilisk/gui/conversation_tab.py:329
 msgid "Image files"
 msgstr "Файлы изображений"
 
 #. Translators: This is a label for image URL in conversation tab
-#: basilisk/gui/conversation_tab.py:335
+#: basilisk/gui/conversation_tab.py:341
 msgid "Enter the URL of the image:"
 msgstr "Введите URL-адрес изображения:"
 
-#: basilisk/gui/conversation_tab.py:336
+#: basilisk/gui/conversation_tab.py:342
 msgid "Add image URL"
 msgstr "Добавить URL изображения"
 
-#: basilisk/gui/conversation_tab.py:345
+#: basilisk/gui/conversation_tab.py:351
 msgid "Invalid URL, bad format."
 msgstr "Неверный URL-адрес, неправильный формат."
 
-#. Translators: This message is displayed when the image URL returns an HTTP
-#. error.
-#: basilisk/gui/conversation_tab.py:359
-#, python-format
-msgid "HTTP error %s."
-msgstr "Ошибка HTTP %s."
-
 #. Translators: This message is displayed when the image URL seems to not point
 #. to an image.
-#: basilisk/gui/conversation_tab.py:368
+#: basilisk/gui/conversation_tab.py:363
 #, python-format
 msgid "The URL seems to not point to an image (content type: %s). Do you want to continue?"
 msgstr "URL, похоже, не указывает на изображение (тип содержимого: %s). Вы хотите продолжить?"
 
 #. Translators: A label for the log level in the settings dialog
-#: basilisk/gui/conversation_tab.py:372 basilisk/gui/preferences_dialog.py:25
+#: basilisk/gui/conversation_tab.py:367 basilisk/gui/preferences_dialog.py:25
 msgid "Warning"
 msgstr "Предупреждение"
 
-#: basilisk/gui/conversation_tab.py:391
+#. Translators: This message is displayed when the image URL returns an HTTP
+#. error.
+#: basilisk/gui/conversation_tab.py:382
+#, python-format
+msgid "HTTP error %s."
+msgstr "Ошибка HTTP %s."
+
+#. Translators: This message is displayed when an error occurs while getting
+#. image dimensions.
+#: basilisk/gui/conversation_tab.py:394
 #, python-format
 msgid "Error getting image dimensions: %s"
 msgstr "Ошибка получения размеров изображения: %s"
 
-#: basilisk/gui/conversation_tab.py:561
+#: basilisk/gui/conversation_tab.py:565
 msgid "Start of message"
 msgstr "Начало сообщения"
 
-#: basilisk/gui/conversation_tab.py:568
+#: basilisk/gui/conversation_tab.py:572
 msgid "End of message"
 msgstr "Конец сообщения"
 
-#: basilisk/gui/conversation_tab.py:590
+#: basilisk/gui/conversation_tab.py:594
 #, python-format
 msgid "Stream speaking %s"
 msgstr "Озвучивание в реальном времени %s"
 
-#: basilisk/gui/conversation_tab.py:591
+#: basilisk/gui/conversation_tab.py:595
 msgid "enabled"
 msgstr "включено"
 
-#: basilisk/gui/conversation_tab.py:591
+#: basilisk/gui/conversation_tab.py:595
 msgid "disabled"
 msgstr "отключено"
 
-#: basilisk/gui/conversation_tab.py:620
+#: basilisk/gui/conversation_tab.py:624
 msgid "Message copied to clipboard"
 msgstr "Сообщение скопировано в буфер обмена"
 
-#: basilisk/gui/conversation_tab.py:634
+#: basilisk/gui/conversation_tab.py:638
 msgid "Message block removed"
 msgstr "Блок сообщений удалён"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:679
+#: basilisk/gui/conversation_tab.py:683
 msgid "Read current message"
 msgstr "Прочитать текущее сообщение"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:688 basilisk/gui/conversation_tab.py:689
+#: basilisk/gui/conversation_tab.py:692 basilisk/gui/conversation_tab.py:693
 msgid "Speak stream"
 msgstr "Озвучивание в реальном времени"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:700
+#: basilisk/gui/conversation_tab.py:704
 msgid "Show as HTML (from Markdown)"
 msgstr "Показать как HTML (из Markdown)"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:709
+#: basilisk/gui/conversation_tab.py:713
 msgid "Copy current message"
 msgstr "Копировать текущее сообщение"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:718
+#: basilisk/gui/conversation_tab.py:722
 msgid "Select current message"
 msgstr "Выбрать текущее сообщение"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:727
+#: basilisk/gui/conversation_tab.py:731
 msgid "Go to previous message"
 msgstr "Перейти к предыдущему сообщению"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:736
+#: basilisk/gui/conversation_tab.py:740
 msgid "Go to next message"
 msgstr "Перейти к следующему сообщению"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:745
+#: basilisk/gui/conversation_tab.py:749
 msgid "Move to start of message"
 msgstr "Перейти к началу сообщения"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:754
+#: basilisk/gui/conversation_tab.py:758
 msgid "Move to end of message"
 msgstr "Перейти в конец сообщения"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:763
+#: basilisk/gui/conversation_tab.py:767
 msgid "&Remove message block"
 msgstr "&Удалить блок сообщения"
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:772
+#: basilisk/gui/conversation_tab.py:776
 msgid "Find..."
 msgstr "Найти..."
 
 #. Translators: This is a label for the Messages area context menu in the main
 #. window
-#: basilisk/gui/conversation_tab.py:781
+#: basilisk/gui/conversation_tab.py:785
 msgid "Find Next"
 msgstr "Найти далее"
 
-#: basilisk/gui/conversation_tab.py:787
+#: basilisk/gui/conversation_tab.py:791
 msgid "Find Previous"
 msgstr "Найти предыдущий"
 
-#: basilisk/gui/conversation_tab.py:799
+#: basilisk/gui/conversation_tab.py:803
 msgid "Insert previous prompt"
 msgstr "Вставить предыдущую подсказку"
 
-#: basilisk/gui/conversation_tab.py:986 basilisk/gui/conversation_tab.py:1046
+#: basilisk/gui/conversation_tab.py:966 basilisk/gui/conversation_tab.py:1026
 msgid "The selected provider does not support speech-to-text"
 msgstr "Выбранный поставщик не поддерживает преобразование речи в текст"
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/gui/conversation_tab.py:994
+#: basilisk/gui/conversation_tab.py:974
 msgid "Select an audio file to transcribe"
 msgstr "Выберите аудиофайл для расшифровки"
 
-#: basilisk/gui/conversation_tab.py:996
+#: basilisk/gui/conversation_tab.py:976
 msgid "Audio files"
 msgstr "Аудиофайлы"
 
-#: basilisk/gui/conversation_tab.py:1008
+#: basilisk/gui/conversation_tab.py:988
 msgid "Recording..."
 msgstr "Запись..."
 
-#: basilisk/gui/conversation_tab.py:1012
+#: basilisk/gui/conversation_tab.py:992
 msgid "Recording stopped"
 msgstr "Запись остановлена"
 
-#: basilisk/gui/conversation_tab.py:1016
+#: basilisk/gui/conversation_tab.py:996
 msgid "Transcribing..."
 msgstr "Расшифровка..."
 
-#: basilisk/gui/conversation_tab.py:1020 basilisk/gui/conversation_tab.py:1029
+#: basilisk/gui/conversation_tab.py:1000 basilisk/gui/conversation_tab.py:1009
 #: basilisk/gui/main_frame.py:202
 msgid "Ready"
 msgstr "Готово"
 
-#: basilisk/gui/conversation_tab.py:1031
+#: basilisk/gui/conversation_tab.py:1011
 msgid "An error occurred during transcription: "
 msgstr "Произошла ошибка при расшифровке: "
 
-#: basilisk/gui/conversation_tab.py:1051
+#: basilisk/gui/conversation_tab.py:1031
 msgid "Stop recording"
 msgstr "Остановить запись"
 
-#: basilisk/gui/conversation_tab.py:1070
+#: basilisk/gui/conversation_tab.py:1044
 msgid "Please select a model"
 msgstr "Пожалуйста, выберите модель"
 
-#: basilisk/gui/conversation_tab.py:1078
+#: basilisk/gui/conversation_tab.py:1052
 msgid "The selected model does not support images. Please select a vision model instead ({})."
 msgstr "Выбранная модель не поддерживает работу с изображениями. Пожалуйста, выберите вместо этого модель vision ({})."
 
-#: basilisk/gui/conversation_tab.py:1134
+#: basilisk/gui/conversation_tab.py:1136
 msgid "An error occurred during completion: "
 msgstr "Произошла ошибка во время завершения: "
 
@@ -740,7 +747,7 @@ msgid "Open conversation"
 msgstr "Открыть разговор"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:82 basilisk/gui/main_frame.py:689
+#: basilisk/gui/main_frame.py:82 basilisk/gui/main_frame.py:691
 #: basilisk/gui/name_conversation_dialog.py:7
 msgid "Name conversation"
 msgstr "Переименовать разговор"
@@ -756,7 +763,7 @@ msgid "Save conversation as"
 msgstr "Сохранить разговор как"
 
 #. Translators: A label for a menu item to close a conversation
-#: basilisk/gui/main_frame.py:97 basilisk/gui/main_frame.py:694
+#: basilisk/gui/main_frame.py:97 basilisk/gui/main_frame.py:696
 msgid "Close conversation"
 msgstr "Закрыть разговор"
 
@@ -787,7 +794,7 @@ msgstr "Управление &аккаунтами"
 msgid "Install NVDA addon"
 msgstr "Установить дополнение NVDA"
 
-#: basilisk/gui/main_frame.py:168 basilisk/gui/main_frame.py:581
+#: basilisk/gui/main_frame.py:168 basilisk/gui/main_frame.py:583
 msgid "Check updates"
 msgstr "Проверить обновления"
 
@@ -819,74 +826,78 @@ msgstr "&Помощь"
 msgid "Minimize to tray"
 msgstr "Свернуть в трей"
 
+#: basilisk/gui/main_frame.py:264 basilisk/gui/main_frame.py:404
+#: basilisk/gui/main_frame.py:455 basilisk/gui/main_frame.py:469
+msgid "No conversation selected"
+msgstr "Разговор не выбран"
+
+#: basilisk/gui/main_frame.py:269
+msgid "No screen coordinates provided"
+msgstr ""
+
 #. Translators: An error message when a conversation profile is not found
-#: basilisk/gui/main_frame.py:372
+#: basilisk/gui/main_frame.py:374
 #, python-format
 msgid "Profile '%s' not found"
 msgstr "Профиль '%s' не найден"
 
-#: basilisk/gui/main_frame.py:402 basilisk/gui/main_frame.py:453
-#: basilisk/gui/main_frame.py:467
-msgid "No conversation selected"
-msgstr "Разговор не выбран"
-
-#: basilisk/gui/main_frame.py:489
+#: basilisk/gui/main_frame.py:491
 msgid "Manage accounts"
 msgstr "Управление аккаунтами"
 
-#: basilisk/gui/main_frame.py:501
+#: basilisk/gui/main_frame.py:503
 msgid "Settings"
 msgstr "Настройки"
 
-#: basilisk/gui/main_frame.py:510
+#: basilisk/gui/main_frame.py:512
 msgid "Manage conversation profiles"
 msgstr "Управление профилями разговоров"
 
-#: basilisk/gui/main_frame.py:561
+#: basilisk/gui/main_frame.py:563
 msgid "Failed to create NVDA addon"
 msgstr "Не удалось создать дополнение NVDA"
 
-#: basilisk/gui/main_frame.py:589
+#: basilisk/gui/main_frame.py:591
 msgid "Failed to open log file"
 msgstr "Не удалось открыть файл журнала"
 
-#: basilisk/gui/main_frame.py:605
+#: basilisk/gui/main_frame.py:607
 msgid "New version available"
 msgstr "Доступна новая версия"
 
-#: basilisk/gui/main_frame.py:617 basilisk/gui/update_dialog.py:279
+#: basilisk/gui/main_frame.py:619 basilisk/gui/update_dialog.py:279
 msgid "Downloading update"
 msgstr "Загрузка обновления"
 
 #. Translators: A label for a menu item to manage conversation profiles
-#: basilisk/gui/main_frame.py:628
+#: basilisk/gui/main_frame.py:630
 msgid "Manage conversation &profiles"
 msgstr "Управление &профилями разговоров"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:661
+#: basilisk/gui/main_frame.py:663
 msgid "Manual name conversation"
 msgstr "Назвать разговор вручную"
 
 #. Translators: A label for a menu item to automatically name a conversation
-#: basilisk/gui/main_frame.py:672
+#: basilisk/gui/main_frame.py:674
 msgid "&Auto name conversation"
 msgstr "&Автоматически назвать разговор"
 
 #. Translators: A label for a menu item to apply a conversation profile to the
 #. current conversation
-#: basilisk/gui/main_frame.py:684
+#: basilisk/gui/main_frame.py:686
 msgid "Apply conversation profile"
 msgstr "Применить профиль разговора"
 
 #. translators: This message is displayed when no account is configured and the
 #. user tries to use the conversation tab.
-#: basilisk/gui/main_frame.py:714
+#: basilisk/gui/main_frame.py:716
 msgid "Please add an account first. Do you want to add an account now?"
 msgstr "Пожалуйста, сначала добавьте аккаунт. Хотите сделать это сейчас?"
 
 #. translators: This is a title for the message box
-#: basilisk/gui/main_frame.py:718
+#: basilisk/gui/main_frame.py:720
 msgid "No account configured"
 msgstr "Аккаунт не настроен"
 
@@ -1240,79 +1251,79 @@ msgid "Error checking for updates: %s"
 msgstr "Ошибка проверки обновлений: %s"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:58
+#: basilisk/provider_engine/anthropic_engine.py:60
 msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
 msgstr "Указывает на самый последний снимок Claude 3.5 Sonnet"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:69
+#: basilisk/provider_engine/anthropic_engine.py:71
 msgid "Point to the most recent snapshot of Claude 3.5 Haiku"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:79
+#: basilisk/provider_engine/anthropic_engine.py:81
 msgid "Our fastest model. Intelligence at blazing speeds"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:89
+#: basilisk/provider_engine/anthropic_engine.py:91
 msgid "Most intelligent model. Highest level of intelligence and capability"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:99
+#: basilisk/provider_engine/anthropic_engine.py:101
 msgid "Most intelligent model, previous version"
 msgstr "Самая интеллектуальная модель, предыдущая версия"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:108
+#: basilisk/provider_engine/anthropic_engine.py:110
 msgid "Powerful model for highly complex tasks"
 msgstr "Мощная модель для решения особо сложных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:117
+#: basilisk/provider_engine/anthropic_engine.py:119
 msgid "Balance of intelligence and speed"
 msgstr "Баланс интеллекта и скорости"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:126
+#: basilisk/provider_engine/anthropic_engine.py:128
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Самая быстрая и компактная модель с почти мгновенным откликом"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:137
+#: basilisk/provider_engine/anthropic_engine.py:139
 msgid "Updated version of Claude 2 with improved accuracy"
 msgstr "Обновлённая версия Claude 2 с улучшенной точностью"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:148
+#: basilisk/provider_engine/anthropic_engine.py:150
 msgid "Predecessor to Claude 3, offering strong all-round performance"
 msgstr "Предшественница Claude 3, обладающая высокой универсальной производительностью"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/gemini_engine.py:53
-#: basilisk/provider_engine/gemini_engine.py:75
+#: basilisk/provider_engine/gemini_engine.py:51
+#: basilisk/provider_engine/gemini_engine.py:73
 msgid "Fast and versatile multimodal model for scaling across diverse tasks"
 msgstr "Быстрая и универсальная мультимодальная модель для масштабирования различных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/gemini_engine.py:64
-#: basilisk/provider_engine/gemini_engine.py:86
+#: basilisk/provider_engine/gemini_engine.py:62
+#: basilisk/provider_engine/gemini_engine.py:84
 msgid "Mid-size multimodal model that supports up to 1 million tokens"
 msgstr "Мультимодальная модель среднего размера, поддерживающая до 1 миллиона токенов"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/gemini_engine.py:97
+#: basilisk/provider_engine/gemini_engine.py:95
 msgid "The best model for scaling across a wide range of tasks. This is the latest model."
 msgstr "Лучшая модель для масштабирования в широком спектре задач. Это новейшая модель."
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/gemini_engine.py:107
+#: basilisk/provider_engine/gemini_engine.py:105
 msgid "The best model for scaling across a wide range of tasks"
 msgstr "Лучшая модель для масштабирования в широком спектре задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/gemini_engine.py:117
+#: basilisk/provider_engine/gemini_engine.py:115
 msgid "The best image understanding model to handle a broad range of applications"
 msgstr "Лучшая модель понимания изображений для решения широкого спектра задач"
 
@@ -1372,87 +1383,88 @@ msgid "A Mamba 2 language model specialized in code generation"
 msgstr "Языковая модель Mamba 2, специализирующаяся на генерации кода"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:65
-#: basilisk/provider_engine/openai_engine.py:87
+#: basilisk/provider_engine/openai_engine.py:74
+#: basilisk/provider_engine/openai_engine.py:96
 msgid "Points to one of the most recent iterations of gpt-4o-mini model"
 msgstr "Указывает на одну из самых последних итераций модели gpt-4o-mini"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:76
+#: basilisk/provider_engine/openai_engine.py:85
 msgid "Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
 msgstr "Динамическая модель, постоянно обновляемая до текущей версии GPT-4o в ChatGPT"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:98
+#: basilisk/provider_engine/openai_engine.py:107
 msgid "Points to the most recent snapshot of the o1 model"
 msgstr "Указывает на самый последний снимок модели o1"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:109
+#: basilisk/provider_engine/openai_engine.py:118
 msgid "Points to the most recent snapshot of the o1-preview model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:120
+#: basilisk/provider_engine/openai_engine.py:129
 msgid "Points to the most recent o1-mini snapshot"
 msgstr "Указывает на самый последний снимок o1-mini"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:129
+#: basilisk/provider_engine/openai_engine.py:138
 msgid "The latest GPT-4 Turbo model with vision capabilities"
 msgstr "Новейшая модель GPT-4 Turbo с функцией зрения"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:140
+#: basilisk/provider_engine/openai_engine.py:149
 msgid "Points to one of the most recent iterations of gpt-3.5 model"
 msgstr "Указывает на одну из самых последних итераций модели gpt-3.5"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:149
+#: basilisk/provider_engine/openai_engine.py:158
 msgid "Latest snapshot that supports Structured Outputs"
 msgstr "Последняя версия с поддержкой структурированного вывода"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:160
+#: basilisk/provider_engine/openai_engine.py:169
 msgid "Our high-intelligence flagship model for complex, multi-step tasks"
 msgstr "Наша высокоинтеллектуальная флагманская модель для решения сложных, многоэтапных задач"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:171
+#: basilisk/provider_engine/openai_engine.py:180
 msgid "Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
 msgstr "Наша доступная и интеллектуальная компактная модель для выполнения быстрых и лёгких задач. GPT-4o mini дешевле и эффективнее, чем GPT-3.5 Turbo"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:182
+#: basilisk/provider_engine/openai_engine.py:191
 msgid "The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
 msgstr "Новейшая модель GPT-3.5 Turbo с более высокой точностью при ответе в запрошенных форматах и исправлением ошибки, которая вызывала проблему с кодировкой текста при вызовах функций не на английском языке"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:191
+#: basilisk/provider_engine/openai_engine.py:200
 msgid "Points to one of the most recent iterations of gpt-4 model"
 msgstr "Указывает на одну из самых последних итераций модели gpt-4"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:201
+#: basilisk/provider_engine/openai_engine.py:210
 msgid "The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
 msgstr "Последняя версия GPT-4 предназначена для уменьшения случаев “лени”, когда модель не выполняет задачу"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:211
+#: basilisk/provider_engine/openai_engine.py:220
 msgid "GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
 msgstr "Модель GPT-4 Turbo с улучшенным следованием инструкциям, режимом JSON, воспроизводимыми выводами, параллельным вызовом функций и многим другим"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:221
+#: basilisk/provider_engine/openai_engine.py:230
 msgid "GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities"
 msgstr "GPT-4 Turbo со зрением. Способность понимать изображения в дополнение ко всем другим возможностям GPT-4 Turbo"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:232
+#: basilisk/provider_engine/openai_engine.py:241
 msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr "Более мощная, чем любая модель GPT-3.5, способна выполнять более сложные задачи и оптимизирована для общения в чате"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:241
+#: basilisk/provider_engine/openai_engine.py:250
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной контекста"
+
