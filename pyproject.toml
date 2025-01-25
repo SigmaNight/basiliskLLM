@@ -54,7 +54,7 @@ universal-pathlib = "^0.2.6"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.1.0"
-pre-commit = "^4.0.1"
+pre-commit = "^4.1.0"
 ruff = "^0.9.2"
 setuptools-scm = "^8.0.4"
 
