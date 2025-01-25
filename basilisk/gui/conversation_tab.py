@@ -317,6 +317,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.on_attachments_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
 			self.on_attachments_remove(None)
+		if modifiers == wx.MOD_NONE and key_code in (
+			wx.WXK_RETURN,
+			wx.WXK_NUMPAD_ENTER,
+		):
+			self.on_show_attachment_details(None)
 		event.Skip()
 
 	def on_attachments_paste(self, event: wx.CommandEvent):
