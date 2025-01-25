@@ -10,7 +10,7 @@ from typing import Annotated, Any
 
 import httpx
 from PIL import Image
-from pydantic import BaseModel, PlainValidator
+from pydantic import BaseModel, Field, PlainValidator
 from upath import UPath
 
 from basilisk.decorators import measure_time
@@ -102,7 +102,7 @@ class ImageFile(BaseModel):
 	description: str | None = None
 	size: int | None = None
 	dimensions: tuple[int, int] | None = None
-	resize_location: PydanticUPath | None = None
+	resize_location: PydanticUPath | None = Field(default=None, exclude=True)
 
 	@classmethod
 	@measure_time

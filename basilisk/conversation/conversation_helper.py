@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import shutil
 import zipfile
 from typing import TYPE_CHECKING
 
 from fsspec.implementations.zip import ZipFileSystem
 from pydantic import BaseModel, Field, field_validator
+
+from .image_model import ImageFile, ImageFileTypes
 
 if TYPE_CHECKING:
 	from basilisk.provider import Provider
@@ -39,10 +42,27 @@ class AIModelInfo(BaseModel):
 		return self.get_provider_by_id(self.provider_id)
 
 
+def save_attachments(
+	attachments: list[ImageFile], attachment_path: str, fs: ZipFileSystem
+):
+	for attachment in attachments:
+		if attachment.type == ImageFileTypes.IMAGE_URL:
+			continue
+		new_location = f"{attachment_path}/{attachment.location.name}"
+		with attachment.location.open(mode="rb") as attachment_file:
+			with fs.open(new_location, mode="wb") as new_file:
+				shutil.copyfileobj(attachment_file, new_file)
+		attachment.location = new_location
+
+
 def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
-	with fs.open("conversation.json", mode="w") as conv_file:
-		conv_json = conversation.model_dump_json()
-		conv_file.write(conv_json)
+	base_path = "attachments"
+	for block in conversation.messages:
+		if block.request.attachments:
+			fs.mkdirs(base_path, exist_ok=True)
+			save_attachments(block.request.attachments, base_path, fs)
+	with fs.open("conversation.json", mode="w", encoding="utf-8") as conv_file:
+		conv_file.write(conversation.model_dump_json())
 
 
 def read_conv_main_file(

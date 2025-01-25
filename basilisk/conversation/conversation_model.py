@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .conversation_helper import AIModelInfo, create_bskc_file, open_bskc_file
 from .image_model import ImageFile
@@ -31,6 +31,13 @@ class MessageBlock(BaseModel):
 	stream: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
+
+	@field_validator("response", mode="after")
+	@classmethod
+	def no_attachment_in_response(cls, value: Message | None) -> Message | None:
+		if value and value.attachments:
+			raise ValueError("Response messages cannot have attachments.")
+		return value
 
 	def __init__(self, /, **data):
 		provider_id = data.pop("provider_id", None)
