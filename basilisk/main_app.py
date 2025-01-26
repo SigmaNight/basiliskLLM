@@ -63,7 +63,10 @@ class MainApp(wx.App):
 		self.frame.Show(not global_vars.args.minimize)
 		self.SetTopWindow(self.frame)
 		self.init_system_cert_store()
-		self.file_watcher = init_file_watcher(self.bring_window_to_focus)
+		self.file_watcher = init_file_watcher(
+			send_focus=self.bring_window_to_focus,
+			open_bskc=self.frame.open_conversation,
+		)
 		self.server = None
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
@@ -112,13 +115,12 @@ class MainApp(wx.App):
 			self.stop_auto_update = True
 			self.auto_update.join()
 			log.info("Automatic update thread stopped")
-		log.debug("Removing temporary files")
-		shutil.rmtree(TMP_DIR, ignore_errors=True)
-
 		log.debug("Stopping file watcher")
 		self.file_watcher.stop()
 		self.file_watcher.join()
-		log.debug("File watcher stopped")
+		log.info("File watcher stopped")
+		log.debug("Removing temporary files")
+		shutil.rmtree(TMP_DIR, ignore_errors=True)
 
 		log.info("Application exited")
 		return 0

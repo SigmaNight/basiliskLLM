@@ -6,7 +6,7 @@ import psutil
 
 from basilisk import global_vars
 from basilisk.consts import APP_NAME, FILE_LOCK_PATH, TMP_DIR
-from basilisk.file_watcher import send_focus_signal
+from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
 
@@ -74,7 +74,10 @@ if __name__ == '__main__':
 				if global_vars.args.show_already_running_msg:
 					display_already_running_msg()
 				else:
-					send_focus_signal()
+					if global_vars.args.bskc_file:
+						send_open_bskc_file_signal(global_vars.args.bskc_file)
+					else:
+						send_focus_signal()
 				sys.exit(0)
 			except psutil.NoSuchProcess:
 				singleton_instance.acquire()
