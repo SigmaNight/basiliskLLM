@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
 		self.conf: config.BasiliskConfig = kwargs.pop("conf", config.conf())
-		self.tmp_files = []
+		open_file = kwargs.pop("open_file", None)
 		self.last_conversation_id = 0
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
@@ -40,7 +40,10 @@ class MainFrame(wx.Frame):
 			self.tray_icon = TaskBarIcon(self)
 			self.register_hot_key()
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
-		self.on_new_default_conversation(None)
+		if open_file:
+			self.open_conversation(open_file)
+		else:
+			self.on_new_default_conversation(None)
 
 	def init_ui(self):
 		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
@@ -326,9 +329,6 @@ class MainFrame(wx.Frame):
 	def on_quit(self, event):
 		log.info("Closing application")
 		global_vars.app_should_exit = True
-		for tmp_file in self.tmp_files:
-			log.debug(f"Removing temporary file: {tmp_file}")
-			os.remove(tmp_file)
 		# ensure all conversation tasks are stopped
 		for tab in self.tabs_panels:
 			if tab.task:
@@ -767,6 +767,25 @@ class MainFrame(wx.Frame):
 		file_dialog.Destroy()
 		return file_path if success else None
 
+	def open_conversation(self, file_path: str):
+		try:
+			new_tab = ConversationTab.open_conversation(
+				self.notebook, file_path, self.get_default_conv_title()
+			)
+			if new_tab:
+				self.add_conversation_tab(new_tab)
+		except Exception as e:
+			wx.MessageBox(
+				# Translators: An error message when a conversation file cannot be opened
+				_("Failed to open conversation file: '%s', error: %s")
+				% (file_path, e),
+				style=wx.OK | wx.ICON_ERROR,
+			)
+			log.error(
+				f"Failed to open conversation file: {file_path}, error: {e}",
+				exc_info=e,
+			)
+
 	def on_open_conversation(self, event):
 		file_dialog = wx.FileDialog(
 			self,
@@ -777,22 +796,5 @@ class MainFrame(wx.Frame):
 		)
 		if file_dialog.ShowModal() == wx.ID_OK:
 			file_path = file_dialog.GetPath()
-			try:
-				new_tab = ConversationTab.open_conversation(
-					self.notebook, file_path, self.get_default_conv_title()
-				)
-				if new_tab:
-					self.add_conversation_tab(new_tab)
-			except Exception as e:
-				wx.MessageBox(
-					# Translators: An error message when a conversation file cannot be opened
-					_("Failed to open conversation file: '%s', error: %s")
-					% (file_path, e),
-					style=wx.OK | wx.ICON_ERROR,
-				)
-				log.error(
-					f"Failed to open conversation file: {file_path}, error: {e}",
-					exc_info=e,
-				)
-			finally:
-				file_dialog.Destroy()
+			self.open_conversation(file_path)
+			file_dialog.Destroy()

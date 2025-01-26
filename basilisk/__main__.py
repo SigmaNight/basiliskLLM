@@ -53,6 +53,12 @@ def parse_args():
 		action="store_true",
 		dest="show_already_running_msg",
 	)
+	parser.add_argument(
+		'bskc_file',
+		nargs='?',
+		help='Basilisk conversation file to open',
+		default=None,
+	)
 	return parser.parse_args()
 
 

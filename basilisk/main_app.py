@@ -54,7 +54,11 @@ class MainApp(wx.App):
 		if global_vars.args.minimize:
 			frame_style |= wx.MINIMIZE
 		self.frame = MainFrame(
-			None, title=APP_NAME, conf=self.conf, style=frame_style
+			None,
+			title=APP_NAME,
+			conf=self.conf,
+			style=frame_style,
+			open_file=global_vars.args.bskc_file,
 		)
 		self.frame.Show(not global_vars.args.minimize)
 		self.SetTopWindow(self.frame)
