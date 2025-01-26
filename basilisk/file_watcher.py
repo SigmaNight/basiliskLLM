@@ -25,18 +25,26 @@ class FileWatcher(FileSystemEventHandler):
 
 	def on_modified(self, event: FileSystemEvent):
 		if event.src_path == FOCUS_FILE:
-			logger.debug("Focus file modified")
-			if event.src_path not in self.last_modified:
-				self.last_modified[event.src_path] = 0
-			elif time.time() - self.last_modified[event.src_path] > 1:
-				self.last_modified[event.src_path] = time.time()
-				logger.debug("Sending focus")
-				CallAfter(self.send_focus)
+			self.on_focus_file(event)
 		elif event.src_path == OPEN_BSKC_FILE:
-			logger.debug("Open bskc file modified")
-			with open(event.src_path, 'r') as f:
-				logger.debug("Opening basilisk conversation")
-				CallAfter(self.open_bskc, f.read())
+			self.on_open_bskc_file(event)
+		else:
+			logger.error(f"unknown event: {event}")
+
+	def on_focus_file(self, event: FileSystemEvent):
+		logger.debug("Focus file modified")
+		if event.src_path not in self.last_modified:
+			self.last_modified[event.src_path] = 0
+		elif time.time() - self.last_modified[event.src_path] > 1:
+			self.last_modified[event.src_path] = time.time()
+		logger.debug("Sending focus")
+		CallAfter(self.send_focus)
+
+	def on_open_bskc_file(self, event: FileSystemEvent):
+		logger.debug("Open bskc file modified")
+		with open(event.src_path, 'r') as f:
+			logger.debug("Opening basilisk conversation")
+			CallAfter(self.open_bskc, f.read())
 
 
 def init_file_watcher(**callbacks) -> BaseObserverSubclassCallable:
