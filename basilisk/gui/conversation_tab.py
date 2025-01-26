@@ -542,12 +542,26 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list.EnsureVisible(i)
 
 	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
-		log.debug(f"Adding images: {paths}")
+		log.debug(f"Adding attachments: {paths}")
 		for path in paths:
 			if isinstance(path, (AttachmentFile, ImageFile)):
 				self.attachment_files.append(path)
 			else:
 				mime_type = get_mime_type(path)
+				supported_attachment_formats = (
+					self.current_engine.supported_attachment_formats
+				)
+				if mime_type not in supported_attachment_formats:
+					wx.MessageBox(
+						# Translators: This message is displayed when there are no supported attachment formats.
+						_(
+							"This attachment format is not supported by the current provider. Source:"
+						)
+						+ f"\n{path}",
+						_("Error"),
+						wx.OK | wx.ICON_ERROR,
+					)
+					return
 				if mime_type.startswith("image/"):
 					file = ImageFile(location=path)
 				else:
@@ -1174,9 +1188,40 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
+	def _check_attachments_valid(self) -> bool:
+		supported_attachment_formats = (
+			self.current_engine.supported_attachment_formats
+		)
+		for attachment in self.attachment_files:
+			if attachment.mime_type not in supported_attachment_formats:
+				self.attachment_files.remove(attachment)
+				wx.MessageBox(
+					# Translators: This message is displayed when an attachment format is not supported.
+					_(
+						"This attachment format is not supported by the current provider. Source:"
+					)
+					+ f"\n{attachment.location}",
+					_("Error"),
+					wx.OK | wx.ICON_ERROR,
+				)
+				return False
+			if not attachment.location.exists():
+				self.attachment_files.remove(attachment)
+				wx.MessageBox(
+					# Translators: This message is displayed when an attachment file does not exist.
+					_("The attachment file does not exist: %s")
+					% attachment.location,
+					_("Error"),
+					wx.OK | wx.ICON_ERROR,
+				)
+				return False
+		return True
+
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		if not self.submit_btn.IsEnabled():
+			return
+		if not self._check_attachments_valid():
 			return
 		if not self.prompt.GetValue() and not self.attachment_files:
 			self.prompt.SetFocus()
