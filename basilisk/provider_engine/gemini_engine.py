@@ -185,8 +185,7 @@ class GeminiEngine(BaseEngine):
 		**kwargs,
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=self.normalize_linesep(response.text),
+			role=MessageRoleEnum.ASSISTANT, content=response.text
 		)
 		return new_block
 
@@ -196,4 +195,4 @@ class GeminiEngine(BaseEngine):
 		for chunk in stream:
 			chunk_text = chunk.text
 			if chunk_text:
-				yield self.normalize_linesep(chunk_text)
+				yield chunk_text

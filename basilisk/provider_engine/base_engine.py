@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from functools import cached_property
-from os import linesep
 from typing import TYPE_CHECKING, Any, Optional
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
@@ -113,15 +112,6 @@ class BaseEngine(ABC):
 		Response without stream
 		"""
 		pass
-
-	@staticmethod
-	def normalize_linesep(text: str) -> str:
-		"""
-		Normalize new line characters using the system's line separator
-		"""
-		if text and isinstance(text, str) and linesep != "\n":
-			text = text.replace('\n', linesep)
-		return text
 
 	@staticmethod
 	def get_user_agent() -> str:

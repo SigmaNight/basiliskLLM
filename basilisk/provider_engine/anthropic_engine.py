@@ -209,7 +209,6 @@ class AnthropicEngine(BaseEngine):
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=self.normalize_linesep(response.content[0].text),
+			role=MessageRoleEnum.ASSISTANT, content=response.content[0].text
 		)
 		return new_block
