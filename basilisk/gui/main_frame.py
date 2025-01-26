@@ -30,13 +30,13 @@ class MainFrame(wx.Frame):
 	def __init__(self, *args, **kwargs):
 		"""
 		Initialize the main application frame with configuration and optional conversation file.
-		
+
 		Parameters:
 		    *args: Variable length argument list passed to the parent class constructor.
 		    **kwargs: Arbitrary keyword arguments with special handling for configuration and file opening.
 		        conf (config.BasiliskConfig, optional): Configuration object. Defaults to default configuration.
 		        open_file (str, optional): Path to a conversation file to open on startup. If not provided, a default conversation is created.
-		
+
 		Behavior:
 		    - Sets up the main frame configuration
 		    - Initializes user interface and keyboard accelerators
@@ -63,9 +63,9 @@ class MainFrame(wx.Frame):
 	def init_ui(self):
 		"""
 		Initialize the user interface for the main application frame.
-		
+
 		This method sets up the entire menu structure, creates menu items with their respective event bindings, configures the notebook for conversation tabs, and prepares the main application window. It includes menus for conversations, tools, and help, with various actions like creating new conversations, managing accounts, checking updates, and more.
-		
+
 		The method performs the following key tasks:
 		- Creates a menu bar with three main menus: Conversation, Tools, and Help
 		- Binds keyboard shortcuts to various menu items
@@ -73,13 +73,14 @@ class MainFrame(wx.Frame):
 		- Creates a notebook for managing conversation tabs
 		- Configures signal handling and a timer for application control
 		- Maximizes the application window and sets an initial status message
-		
+
 		Note:
 		- Uses wxPython for creating the graphical user interface
 		- Supports internationalization through translation function `_`
 		- Includes hotkeys for most menu actions
 		- Provides a comprehensive set of application controls and utilities
 		"""
+
 		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
 			"""
 			Update the label of the given item to include ellipsis at the end if not already present.
@@ -302,23 +303,23 @@ class MainFrame(wx.Frame):
 	):
 		"""
 		Capture a screenshot of the screen or a specific region.
-		
-		Initiates a screen capture based on the specified capture mode and optional screen coordinates. 
+
+		Initiates a screen capture based on the specified capture mode and optional screen coordinates.
 		The captured image is saved in the current conversation's attachments directory.
-		
+
 		Parameters:
-		    capture_mode (CaptureMode): The type of screen capture to perform 
+		    capture_mode (CaptureMode): The type of screen capture to perform
 		        (full screen, partial screen, or window capture).
-		    screen_coordinates (tuple[int, int, int, int], optional): Coordinates 
+		    screen_coordinates (tuple[int, int, int, int], optional): Coordinates
 		        for partial screen capture (left, top, width, height). Defaults to None.
-		    name (str, optional): Custom name for the captured image. 
+		    name (str, optional): Custom name for the captured image.
 		        If not provided, a timestamp-based name is generated.
-		
+
 		Raises:
 		    wx.MessageBox: Displays an error message if:
 		        - No conversation tab is selected
 		        - Partial screen capture is requested without coordinates
-		
+
 		Notes:
 		    - Creates a background thread for screen capture to prevent UI freezing
 		    - Saves the captured image in the current conversation's attachments folder
@@ -387,7 +388,7 @@ class MainFrame(wx.Frame):
 	def on_quit(self, event):
 		"""
 		Gracefully close the application, stopping all conversation tasks and cleaning up resources.
-		
+
 		This method performs the following actions:
 		- Sets a global flag to indicate the application should exit
 		- Waits for all active conversation tasks to complete
@@ -395,12 +396,12 @@ class MainFrame(wx.Frame):
 		- Removes and destroys the system tray icon
 		- Destroys the main application window
 		- Exits the main event loop
-		
+
 		Note:
 		    - Blocks until all conversation tasks are finished
 		    - Platform-specific cleanup for Windows systems
 		    - Logs task termination for debugging purposes
-		
+
 		Raises:
 		    No explicit exceptions are raised, but underlying system calls may raise exceptions
 		"""
@@ -483,19 +484,19 @@ class MainFrame(wx.Frame):
 	def on_name_conversation(self, event: wx.Event, auto: bool = False):
 		"""
 		Open a dialog to name the current conversation, either manually or automatically.
-		
-		This method allows renaming the current conversation tab's title. If no conversation is selected, 
-		it displays an error message. When `auto` is True, it attempts to generate a title automatically 
+
+		This method allows renaming the current conversation tab's title. If no conversation is selected,
+		it displays an error message. When `auto` is True, it attempts to generate a title automatically
 		using the conversation's content.
-		
+
 		Parameters:
 		    event (wx.Event): The event that triggered the method (typically a menu or button click)
-		    auto (bool, optional): If True, automatically generates a conversation title. 
+		    auto (bool, optional): If True, automatically generates a conversation title.
 		                            If False, opens a manual naming dialog. Defaults to False.
-		
+
 		Raises:
 		    wx.MessageBox: Displays an error message if no conversation tab is selected
-		
+
 		Side Effects:
 		    - Opens a NameConversationDialog
 		    - Updates the conversation title if a new name is provided
@@ -527,9 +528,9 @@ class MainFrame(wx.Frame):
 	def get_default_conv_title(self):
 		"""
 		Generate a default title for a new conversation.
-		
+
 		This method increments an internal conversation ID counter and returns a localized conversation title with the current ID.
-		
+
 		Returns:
 		    str: A localized conversation title in the format "Conversation X", where X is an incrementing number.
 		"""
@@ -540,15 +541,15 @@ class MainFrame(wx.Frame):
 	def new_conversation(self, profile: Optional[config.ConversationProfile]):
 		"""
 		Create a new conversation tab with the specified profile.
-		
+
 		Parameters:
-		    profile (Optional[config.ConversationProfile]): The conversation profile to use for the new tab. 
+		    profile (Optional[config.ConversationProfile]): The conversation profile to use for the new tab.
 		        If None, a default profile will be used.
-		
+
 		Returns:
 		    None
-		
-		Creates a new conversation tab in the notebook with a default title and the specified profile. 
+
+		Creates a new conversation tab in the notebook with a default title and the specified profile.
 		The tab is automatically added to the notebook and becomes the active tab.
 		"""
 		new_tab = ConversationTab(
@@ -559,10 +560,10 @@ class MainFrame(wx.Frame):
 	def add_conversation_tab(self, new_tab: ConversationTab):
 		"""
 		Add a new conversation tab to the notebook and update the frame title.
-		
+
 		Parameters:
 		    new_tab (ConversationTab): The conversation tab to be added to the notebook.
-		
+
 		Side Effects:
 		    - Appends the new tab to the list of tab panels
 		    - Adds the tab to the notebook with its title
@@ -576,13 +577,13 @@ class MainFrame(wx.Frame):
 	def on_close_conversation(self, event):
 		"""
 		Close the currently selected conversation tab and manage tab selection.
-		
+
 		This method removes the current tab from the notebook and the tabs_panels list. If no tabs remain,
 		a new default conversation is created. Otherwise, the last tab is selected and the frame title is refreshed.
-		
+
 		Parameters:
 		    event (wx.Event, optional): The event that triggered the tab closure. Can be None.
-		
+
 		Side Effects:
 		    - Removes the selected tab from the notebook
 		    - Removes the corresponding panel from tabs_panels
@@ -868,17 +869,17 @@ class MainFrame(wx.Frame):
 	def handle_no_account_configured(self):
 		"""
 		Handles the scenario when no account is configured for the application.
-		
+
 		This method checks if any accounts are configured. If no accounts exist, it displays a message box
 		prompting the user to add an account. If the user confirms, it opens the account management dialog.
-		
+
 		Raises:
 		    No explicit exceptions raised.
-		
+
 		Side Effects:
 		    - Displays a wxPython message box if no accounts are configured
 		    - May open the account management dialog if user chooses to add an account
-		
+
 		Returns:
 		    None: Exits the method immediately if accounts are already configured
 		"""
@@ -899,14 +900,14 @@ class MainFrame(wx.Frame):
 	def on_save_conversation(self, event):
 		"""
 		Save the current conversation to its associated file path.
-		
+
 		If no conversation tab is selected, displays an error message. If the conversation
 		does not have an associated file path, prompts the user to choose a save location
 		using the save-as dialog. Otherwise, saves the conversation to its existing file path.
-		
+
 		Parameters:
 		    event (wx.Event): The event that triggered the save action
-		
+
 		Raises:
 		    wx.MessageBox: Displays an error message if no conversation is selected
 		"""
@@ -924,19 +925,19 @@ class MainFrame(wx.Frame):
 	def on_save_as_conversation(self, event) -> Optional[str]:
 		"""
 		Save the current conversation to a user-specified file path.
-		
+
 		Opens a file dialog for the user to choose a location and filename for saving the current conversation. Supports saving Basilisk conversation files with the .bskc extension.
-		
+
 		Parameters:
 		    event (wx.Event): The event that triggered the save action (typically a menu or button click)
-		
+
 		Returns:
-		    str or None: The full file path where the conversation was saved if successful, 
+		    str or None: The full file path where the conversation was saved if successful,
 		                 or None if no file was selected or the save operation failed
-		
+
 		Raises:
 		    wx.MessageBox: Displays an error message if no conversation tab is currently selected
-		
+
 		Notes:
 		    - Prompts user with an overwrite confirmation if the selected file already exists
 		    - Translatable dialog messages for internationalization
@@ -965,18 +966,18 @@ class MainFrame(wx.Frame):
 	def open_conversation(self, file_path: str):
 		"""
 		Open a conversation from a specified file path.
-		
-		Attempts to create a new conversation tab by loading a conversation file. If successful, 
-		the new tab is added to the notebook. If an error occurs during file opening, an error 
+
+		Attempts to create a new conversation tab by loading a conversation file. If successful,
+		the new tab is added to the notebook. If an error occurs during file opening, an error
 		message is displayed to the user and logged.
-		
+
 		Parameters:
 		    file_path (str): The full path to the conversation file to be opened.
-		
+
 		Raises:
-		    Exception: If the conversation file cannot be opened or parsed, an error is logged 
+		    Exception: If the conversation file cannot be opened or parsed, an error is logged
 		    and a user-friendly error message is displayed.
-		
+
 		Side Effects:
 		    - Creates a new conversation tab if file is successfully opened
 		    - Displays a wxPython error message dialog if file opening fails
@@ -1003,13 +1004,13 @@ class MainFrame(wx.Frame):
 	def on_open_conversation(self, event):
 		"""
 		Open a conversation file selected by the user.
-		
+
 		This method displays a file dialog for the user to choose a Basilisk conversation file (*.bskc),
 		and then opens the selected conversation file using the `open_conversation` method.
-		
+
 		Parameters:
 		    event (wx.Event): The event that triggered the file dialog (typically a menu or button click)
-		
+
 		Side Effects:
 		    - Opens a file dialog for selecting a conversation file
 		    - Calls `open_conversation` with the selected file path if a file is chosen

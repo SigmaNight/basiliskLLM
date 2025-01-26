@@ -40,14 +40,14 @@ class MessageBlock(BaseModel):
 	def no_attachment_in_response(cls, value: Message | None) -> Message | None:
 		"""
 		Validates that a response message does not contain any attachments.
-		
+
 		Parameters:
 		    cls (type): The class on which the validator is applied.
 		    value (Message | None): The response message to validate.
-		
+
 		Returns:
 		    Message | None: The original message if no attachments are present.
-		
+
 		Raises:
 		    ValueError: If the response message contains attachments.
 		"""
@@ -58,17 +58,17 @@ class MessageBlock(BaseModel):
 	def __init__(self, /, **data):
 		"""
 		Initialize a MessageBlock instance with optional provider and model information.
-		
+
 		This constructor allows flexible initialization of a MessageBlock by automatically
 		creating an AIModelInfo instance if provider_id and model_id are provided without
 		an existing model.
-		
+
 		Parameters:
 		    **data (dict): Keyword arguments for MessageBlock initialization
 		        provider_id (str, optional): Identifier for the AI model provider
 		        model_id (str, optional): Identifier for the specific AI model
 		        model (AIModelInfo, optional): Pre-existing AI model information
-		
+
 		Side Effects:
 		    - Removes provider_id and model_id from input data after processing
 		    - Automatically creates an AIModelInfo instance if conditions are met
@@ -94,14 +94,14 @@ class Conversation(BaseModel):
 	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
 		"""
 		Open a conversation from a file at the specified path.
-		
+
 		Parameters:
 		    file_path (str): The path to the conversation file to be opened.
 		    base_storage_path (UPath): The base storage path for resolving file locations.
-		
+
 		Returns:
 		    Conversation: A Conversation instance loaded from the specified file.
-		
+
 		Raises:
 		    FileNotFoundError: If the specified file does not exist.
 		    ValueError: If the file cannot be parsed or is invalid.
@@ -111,10 +111,10 @@ class Conversation(BaseModel):
 	def save(self, file_path: str):
 		"""
 		Save the current conversation to a file.
-		
+
 		Parameters:
 		    file_path (str): The path where the conversation will be saved as a .bskc file.
-		
+
 		Raises:
 		    IOError: If there is an error writing the file.
 		    ValueError: If the file path is invalid or cannot be created.

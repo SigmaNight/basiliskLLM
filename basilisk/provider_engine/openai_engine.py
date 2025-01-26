@@ -299,19 +299,19 @@ class OpenAIEngine(BaseEngine):
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
 		"""
 		Generates a chat completion response using the OpenAI API based on the provided message block, conversation context, and optional system message.
-		
+
 		Parameters:
 		    new_block (MessageBlock): The current message block containing generation parameters.
 		    conversation (Conversation): The conversation history context.
 		    system_message (Message | None): Optional system message to guide the AI's behavior.
 		    **kwargs: Additional keyword arguments to customize the API request.
-		
+
 		Returns:
-		    Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]: 
-		    - A complete chat completion response or 
-		    - A generator for streaming chat completion chunks, 
+		    Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+		    - A complete chat completion response or
+		    - A generator for streaming chat completion chunks,
 		    depending on the `stream` parameter in the message block.
-		
+
 		Notes:
 		    - Calls the parent class's completion method for any base processing.
 		    - Dynamically constructs API parameters based on the message block's configuration.
