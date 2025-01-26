@@ -9,6 +9,7 @@ from fsspec.implementations.zip import ZipFileSystem
 from upath import UPath
 
 from basilisk.config import conf
+from basilisk.decorators import measure_time
 
 from .image_model import ImageFile, ImageFileTypes
 
@@ -88,6 +89,7 @@ def read_conv_main_file(
 	return conversation
 
 
+@measure_time
 def create_bskc_file(conversation: Conversation, file_path: str):
 	"""Save a conversation to a Basilisk Conversation file."""
 	with open(file_path, mode="w+b") as bskc_file:
@@ -98,6 +100,7 @@ def create_bskc_file(conversation: Conversation, file_path: str):
 		fs.close()
 
 
+@measure_time
 def open_bskc_file(
 	model_cls: Conversation, file_path: str, base_storage_path: UPath
 ) -> Conversation:
