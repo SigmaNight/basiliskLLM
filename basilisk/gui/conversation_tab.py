@@ -49,6 +49,9 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
+COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
+RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
+RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -103,6 +106,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
 		self.stream_buffer = ""
+		self.speech_stream_buffer = ""
 		self._speak_stream = True
 		self._stop_completion = False
 		self._search_dialog = None
@@ -1189,7 +1193,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
+		# Flush buffer when encountering any of:
+		# - newline (\n)
+		# - punctuation marks (;:.?!)
+		# - closing quotes/brackets (»"\]}])
+		if re.match(RE_STREAM_BUFFER, self.stream_buffer):
 			self._flush_stream_buffer()
 		new_time = time.time()
 		if new_time - self.last_time > 4:
@@ -1215,6 +1223,48 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception:
 			log.error("Error during speech output", exc_info=True)
 
+	def _handle_speech_stream_buffer(self, new_text: str = ''):
+		"""
+		Processes incoming speech stream text. If the input `new_text` is not a valid string
+		or is empty, it forces flushing the current buffer to the accessible output handler.
+		If `new_text` contains punctuation or newlines, it processes text up to the last
+		occurrence, sends that portion to the output handler, and retains the remaining
+		text in the buffer.
+
+		Args:
+			new_text (str): The new incoming text to process. If not a string or empty,
+							the buffer is processed immediately.
+		"""
+		if not isinstance(new_text, str) or not new_text:
+			if self.speech_stream_buffer:
+				self._handle_accessible_output(self.speech_stream_buffer)
+				self.speech_stream_buffer = ""
+			return
+
+		try:
+			# Find the last occurrence of punctuation mark or newline
+			matches = list(re.finditer(RE_SPEECH_STREAM_BUFFER, new_text))
+			if matches:
+				# Use the last match
+				last_match = matches[-1]
+				part_to_handle = (
+					self.speech_stream_buffer + new_text[: last_match.end()]
+				)
+				remaining_text = new_text[last_match.end() :]
+
+				if part_to_handle:
+					self._handle_accessible_output(part_to_handle)
+
+				# Update the buffer with the remaining text
+				self.speech_stream_buffer = remaining_text.lstrip()
+			else:
+				# Concatenate new text to the buffer if no punctuation is found
+				self.speech_stream_buffer += new_text
+		except re.error as e:
+			log.error(f"Regex error in _handle_speech_stream_buffer: {e}")
+			# Fallback: treat the entire text as a single chunk
+			self.speech_stream_buffer += new_text
+
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
 		text = self.stream_buffer
@@ -1223,7 +1273,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			and (self.messages.HasFocus() or self.prompt.HasFocus())
 			and self.GetTopLevelParent().IsShown()
 		):
-			self._handle_accessible_output(text)
+			self._handle_speech_stream_buffer(new_text=text)
 		self.messages.AppendText(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
@@ -1236,6 +1286,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._flush_stream_buffer()
+		self._handle_speech_stream_buffer()
 		self._update_last_segment_length()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
