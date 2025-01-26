@@ -15,7 +15,8 @@ from pydantic import (
 	model_validator,
 )
 
-from basilisk.provider import Provider, get_provider
+from basilisk.provider import Provider
+from basilisk.provider_ai_model import AIModelInfo
 
 from .account_config import Account, AccountInfo, get_account_config
 from .config_helper import (
@@ -33,9 +34,7 @@ class ConversationProfile(BaseModel):
 	name: str
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
-	ai_model_info: Optional[str] = Field(
-		default=None, pattern=r"^[a-zA-Z]+/.+$"
-	)
+	ai_model_info: Optional[AIModelInfo] = Field(default=None)
 	max_tokens: Optional[int] = Field(default=None)
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
@@ -51,13 +50,12 @@ class ConversationProfile(BaseModel):
 			)
 			raise e
 
-	@field_validator("ai_model_info")
+	@field_validator("ai_model_info", mode="before")
 	@classmethod
-	def provider_must_exist(cls, value: str):
-		if value is None:
-			return None
-		provider_id, model_id = value.split("/", 1)
-		get_provider(id=provider_id)
+	def convert_ai_model(cls, value: Optional[str]) -> Optional[dict[str, str]]:
+		if isinstance(value, str):
+			provider_id, model_id = value.split("/", 1)
+			return {"provider_id": provider_id, "model_id": model_id}
 		return value
 
 	@classmethod
@@ -83,7 +81,7 @@ class ConversationProfile(BaseModel):
 	def ai_model_id(self) -> Optional[str]:
 		if self.ai_model_info is None:
 			return None
-		return self.ai_model_info.split("/", 1)[1]
+		return self.ai_model_info.model_id
 
 	@property
 	def ai_provider(self) -> Optional[Provider]:
@@ -92,11 +90,12 @@ class ConversationProfile(BaseModel):
 		if self.account:
 			return self.account.provider
 		if self.ai_model_info:
-			provider_id, model_id = self.ai_model_info.split("/", 1)
-			return get_provider(id=provider_id)
+			return self.ai_model_info.provider
 
 	def set_model_info(self, provider_id: str, model_id: str):
-		self.ai_model_info = f"{provider_id}/{model_id}"
+		self.ai_model_info = AIModelInfo(
+			provider_id=provider_id, model_id=model_id
+		)
 
 	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
 		if value is None:
@@ -106,8 +105,7 @@ class ConversationProfile(BaseModel):
 	@model_validator(mode="after")
 	def check_same_provider(self) -> ConversationProfile:
 		if self.account is not None and self.ai_model_info is not None:
-			provider_id, model_id = self.ai_model_info.split("/", 1)
-			if provider_id != self.account.provider.id:
+			if self.ai_model_info.provider_id != self.account.provider.id:
 				raise ValueError(
 					"Model provider must be the same as account provider"
 				)

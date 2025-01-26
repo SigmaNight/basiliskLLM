@@ -1,41 +1,57 @@
 from __future__ import annotations
 
-import os
+import logging
 import time
 from typing import TYPE_CHECKING, Callable
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+from wx import CallAfter
 
 if TYPE_CHECKING:
 	from watchdog.events import FileSystemEvent
 	from watchdog.observers import BaseObserverSubclassCallable
-from basilisk.consts import TMP_DIR
+from basilisk.consts import FOCUS_FILE, OPEN_BSKC_FILE, TMP_DIR
+
+logger = logging.getLogger(__name__)
 
 
 class FileWatcher(FileSystemEventHandler):
 	last_modified = {}
 
-	def __init__(self, callback: Callable):
-		self.callback = callback
+	def __init__(self, callbacks: dict[str, Callable]):
+		for name, callback in callbacks.items():
+			setattr(self, name, callback)
 
 	def on_modified(self, event: FileSystemEvent):
-		if event.src_path == os.path.join(TMP_DIR, "focus_file"):
-			if event.src_path not in self.last_modified:
-				self.last_modified[event.src_path] = 0
-			elif time.time() - self.last_modified[event.src_path] > 1:
-				self.last_modified[event.src_path] = time.time()
-				self.callback()
+		if event.src_path == FOCUS_FILE:
+			self.on_focus_file(event)
+		elif event.src_path == OPEN_BSKC_FILE:
+			self.on_open_bskc_file(event)
+		else:
+			logger.error(f"unknown event: {event}")
+
+	def on_focus_file(self, event: FileSystemEvent):
+		logger.debug("Focus file modified")
+		if event.src_path not in self.last_modified:
+			self.last_modified[event.src_path] = 0
+		elif time.time() - self.last_modified[event.src_path] > 1:
+			self.last_modified[event.src_path] = time.time()
+		logger.debug("Sending focus")
+		CallAfter(self.send_focus)
+
+	def on_open_bskc_file(self, event: FileSystemEvent):
+		logger.debug("Open bskc file modified")
+		with open(event.src_path, 'r') as f:
+			logger.debug("Opening basilisk conversation")
+			CallAfter(self.open_bskc, f.read())
 
 
-def send_focus_signal():
-	with open(os.path.join(TMP_DIR, "focus_file"), 'w') as f:
-		f.write(str(time.time()))
-
-
-def init_file_watcher(callback: Callable) -> BaseObserverSubclassCallable:
-	event_handler = FileWatcher(callback)
+def init_file_watcher(**callbacks) -> BaseObserverSubclassCallable:
+	event_handler = FileWatcher(callbacks)
 	observer = Observer()
 	observer.schedule(event_handler, TMP_DIR, recursive=False)
+	logger.debug("Starting file watcher")
 	observer.start()
+
 	return observer
