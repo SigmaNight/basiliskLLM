@@ -49,6 +49,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
+RE_STREAM_BUFFER = re.compile(r".*[\n;:.?!)»\]}].*")
+RE_SPEECH_STREAM_BUFFER = re.compile(r"\n|[;:.?!)»\]}]")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -1175,7 +1177,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		# - newline (\n)
 		# - punctuation marks (;:.?!)
 		# - closing quotes/brackets (»"\]}])
-		if re.match(r".*[\n;:.?!)»\]}].*", self.stream_buffer):
+		if re.match(RE_STREAM_BUFFER, self.stream_buffer):
 			self._flush_stream_buffer()
 		new_time = time.time()
 		if new_time - self.last_time > 4:
@@ -1221,7 +1223,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		try:
 			# Find the last occurrence of punctuation mark or newline
-			matches = list(re.finditer(r"\n|[;:.?!)»\]}]", new_text))
+			matches = list(re.finditer(RE_SPEECH_STREAM_BUFFER, new_text))
 			if matches:
 				# Use the last match
 				last_match = matches[-1]
