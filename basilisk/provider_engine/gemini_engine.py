@@ -28,6 +28,13 @@ class GeminiEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
+	supported_attachment_formats: set[str] = {
+		"image/png",
+		"image/jpeg",
+		"image/webp",
+		"image/heic",
+		"image/heif",
+	}
 
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)

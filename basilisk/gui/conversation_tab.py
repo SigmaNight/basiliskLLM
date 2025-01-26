@@ -26,6 +26,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 	NotImageError,
+	parse_supported_attachment_formats,
 )
 from basilisk.decorators import ensure_no_task_running
 from basilisk.message_segment_manager import (
@@ -159,26 +160,30 @@ class ConversationTab(wx.Panel, BaseConversation):
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
-		self.images_list_label = wx.StaticText(
+		self.attachments_list_label = wx.StaticText(
 			self,
 			# Translators: This is a label for models in the main window
-			label=_("&Images:"),
+			label=_("&Attachments:"),
 		)
-		sizer.Add(self.images_list_label, proportion=0, flag=wx.EXPAND)
-		self.images_list = wx.ListCtrl(
+		sizer.Add(self.attachments_list_label, proportion=0, flag=wx.EXPAND)
+		self.attachments_list = wx.ListCtrl(
 			self, size=(800, 100), style=wx.LC_REPORT
 		)
-		self.images_list.Bind(wx.EVT_CONTEXT_MENU, self.on_images_context_menu)
-		self.images_list.Bind(wx.EVT_KEY_DOWN, self.on_images_key_down)
-		self.images_list.InsertColumn(0, _("Name"))
-		self.images_list.InsertColumn(1, _("Size"))
-		self.images_list.InsertColumn(2, _("Dimensions"))
-		self.images_list.InsertColumn(3, _("Path"))
-		self.images_list.SetColumnWidth(0, 200)
-		self.images_list.SetColumnWidth(1, 100)
-		self.images_list.SetColumnWidth(2, 100)
-		self.images_list.SetColumnWidth(3, 200)
-		sizer.Add(self.images_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.attachments_list.Bind(
+			wx.EVT_CONTEXT_MENU, self.on_attachments_context_menu
+		)
+		self.attachments_list.Bind(
+			wx.EVT_KEY_DOWN, self.on_attachments_key_down
+		)
+		self.attachments_list.InsertColumn(0, _("Name"))
+		self.attachments_list.InsertColumn(1, _("Size"))
+		self.attachments_list.InsertColumn(2, _("Dimensions"))
+		self.attachments_list.InsertColumn(3, _("Path"))
+		self.attachments_list.SetColumnWidth(0, 200)
+		self.attachments_list.SetColumnWidth(1, 100)
+		self.attachments_list.SetColumnWidth(2, 100)
+		self.attachments_list.SetColumnWidth(3, 200)
+		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
@@ -237,6 +242,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
+		self.refresh_attachments_list()
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
@@ -267,8 +273,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
 
-	def on_images_context_menu(self, event: wx.ContextMenuEvent):
-		selected = self.images_list.GetFirstSelected()
+	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
+		selected = self.attachments_list.GetFirstSelected()
 		menu = wx.Menu()
 
 		if selected != wx.NOT_FOUND:
@@ -276,7 +282,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
+			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
 
 			item = wx.MenuItem(
 				menu, wx.ID_ANY, _("Copy image URL") + " (Ctrl+C)"
@@ -290,16 +296,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
 		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_image_files, item)
+		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
 
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_url_dlg, item)
 
-		self.images_list.PopupMenu(menu)
+		self.attachments_list.PopupMenu(menu)
 		menu.Destroy()
 
-	def on_images_key_down(self, event: wx.KeyEvent):
+	def on_attachments_key_down(self, event: wx.KeyEvent):
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
@@ -307,7 +313,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
 			self.on_image_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
-			self.on_images_remove(None)
+			self.on_attachments_remove(None)
 		event.Skip()
 
 	def on_image_paste(self, event: wx.CommandEvent):
@@ -317,7 +323,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				file_data = wx.FileDataObject()
 				clipboard.GetData(file_data)
 				paths = file_data.GetFilenames()
-				self.add_images(paths)
+				self.add_attachment(paths)
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
@@ -344,22 +350,34 @@ class ConversationTab(wx.Panel, BaseConversation):
 				)
 				with path.open("wb") as f:
 					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
-				self.add_images([ImageFile(location=path)])
+				self.add_attachment([ImageFile(location=path)])
 
 			else:
 				log.info("Unsupported clipboard data")
 
-	def add_image_files(self, event: wx.CommandEvent = None):
+	def add_attachments_dlg(self, event: wx.CommandEvent = None):
+		wilrdcard = parse_supported_attachment_formats(
+			self.current_engine.supported_attachment_formats
+		)
+		if not wilrdcard:
+			wx.MessageBox(
+				# Translators: This message is displayed when there are no supported attachment formats.
+				_("This provider does not support any attachment formats."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		wilrdcard = _("All supported formats") + f" ({wilrdcard})|{wilrdcard}"
+
 		file_dialog = wx.FileDialog(
 			self,
-			message=_("Select one or more image files"),
+			message=_("Select one or more files to attach"),
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=_("Image files")
-			+ " (*.png;*.jpeg;*.jpg;*.gif)|*.png;*.jpeg;*.jpg;*.gif",
+			wildcard=wilrdcard,
 		)
 		if file_dialog.ShowModal() == wx.ID_OK:
 			paths = file_dialog.GetPaths()
-			self.add_images(paths)
+			self.add_attachment(paths)
 		file_dialog.Destroy()
 
 	def add_image_url_dlg(self, event: wx.CommandEvent = None):
@@ -397,7 +415,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		if force_add == wx.YES:
 			log.info("Forcing image addition")
-			self.add_image_files([ImageFile(location=url)])
+			self.add_attachments([ImageFile(location=url)])
 
 	def add_image_from_url(self, url: str):
 		image_file = None
@@ -424,7 +442,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		wx.CallAfter(self.add_images, [image_file])
+		wx.CallAfter(self.add_attachment, [image_file])
 
 		self.task = None
 
@@ -435,23 +453,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.task.start()
 
-	def on_images_remove(self, vent: wx.CommandEvent):
-		selection = self.images_list.GetFirstSelected()
+	def on_attachments_remove(self, vent: wx.CommandEvent):
+		selection = self.attachments_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
 		self.image_files.pop(selection)
-		self.refresh_images_list()
-		if selection >= self.images_list.GetItemCount():
+		self.refresh_attachments_list()
+		if selection >= self.attachments_list.GetItemCount():
 			selection -= 1
 		if selection >= 0:
-			self.images_list.SetItemState(
+			self.attachments_list.SetItemState(
 				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 			)
 		else:
 			self.prompt.SetFocus()
 
 	def on_copy_image_url(self, event: wx.CommandEvent):
-		selected = self.images_list.GetFirstSelected()
+		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
 		url = self.image_files[selected].location
@@ -475,27 +493,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
-	def refresh_images_list(self):
-		self.images_list.DeleteAllItems()
+	def refresh_attachments_list(self):
+		self.attachments_list.DeleteAllItems()
 		if not self.image_files:
-			self.images_list_label.Hide()
-			self.images_list.Hide()
+			self.attachments_list_label.Hide()
+			self.attachments_list.Hide()
 			self.Layout()
 			return
-		self.images_list_label.Show()
-		self.images_list.Show()
+		self.attachments_list_label.Show()
+		self.attachments_list.Show()
 		self.Layout()
 		for i, image in enumerate(self.image_files):
-			self.images_list.InsertItem(i, image.name)
-			self.images_list.SetItem(i, 1, image.display_size)
-			self.images_list.SetItem(i, 2, image.display_dimensions)
-			self.images_list.SetItem(i, 3, image.display_location)
-		self.images_list.SetItemState(
+			self.attachments_list.InsertItem(i, image.name)
+			self.attachments_list.SetItem(i, 1, image.display_size)
+			self.attachments_list.SetItem(i, 2, image.display_dimensions)
+			self.attachments_list.SetItem(i, 3, image.display_location)
+		self.attachments_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
-		self.images_list.EnsureVisible(i)
+		self.attachments_list.EnsureVisible(i)
 
-	def add_images(self, paths: list[str | ImageFile]):
+	def add_attachment(self, paths: list[str | ImageFile]):
 		log.debug(f"Adding images: {paths}")
 		for path in paths:
 			if isinstance(path, ImageFile):
@@ -503,8 +521,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			else:
 				file = ImageFile(location=path)
 				self.image_files.append(file)
-		self.refresh_images_list()
-		self.images_list.SetFocus()
+		self.refresh_attachments_list()
+		self.attachments_list.SetFocus()
 
 	def on_config_change(self):
 		self.refresh_accounts()
@@ -961,7 +979,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.messages.Clear()
 			self.message_segment_manager.clear()
 			self.image_files.clear()
-		self.refresh_images_list()
+		self.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
@@ -1189,7 +1207,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
 		self.image_files.clear()
-		self.refresh_images_list()
+		self.refresh_attachments_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
@@ -1298,7 +1316,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.image_files.clear()
-		self.refresh_images_list()
+		self.refresh_attachments_list()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
 		self._end_task()

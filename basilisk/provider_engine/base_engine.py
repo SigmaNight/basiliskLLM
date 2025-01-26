@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class BaseEngine(ABC):
 	capabilities: set[ProviderCapability] = set()
+	supported_attachment_formats: set[str] = {}
 
 	def __init__(self, account: Account) -> None:
 		self.account = account

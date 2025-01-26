@@ -32,6 +32,14 @@ class AnthropicEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
+	supported_attachment_formats: set[str] = {
+		"image/gif",
+		"image/jpeg",
+		"image/png",
+		"image/webp",
+		"application/pdf",
+		"text/plain",
+	}
 
 	def __init__(self, account: Account) -> None:
 		super().__init__(account)

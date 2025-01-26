@@ -86,6 +86,25 @@ def resize_image(
 	return True
 
 
+def parse_supported_attachment_formats(
+	supported_attachment_formats: set[str],
+) -> str:
+	"""
+	Parse the supported attachment formats into a wildcard string for use in file dialogs.
+	"""
+	wildcard_parts = []
+	for mime_type in sorted(supported_attachment_formats):
+		exts = mimetypes.guess_all_extensions(mime_type)
+		if exts:
+			log.debug(f"Adding wildcard for MIME type {mime_type}: {exts}")
+			wildcard_parts.append("*" + ";*".join(exts))
+		else:
+			log.warning(f"No extensions found for MIME type {mime_type}")
+
+	wildcard = ";".join(wildcard_parts)
+	return wildcard
+
+
 class ImageFileTypes(Enum):
 	UNKNOWN = "unknown"
 	IMAGE_LOCAL = "local"

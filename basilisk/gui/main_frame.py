@@ -298,7 +298,7 @@ class MainFrame(wx.Frame):
 
 	def post_screen_capture(self, imagefile: ImageFile | str):
 		log.debug("Screen capture received")
-		self.current_tab.add_images([imagefile])
+		self.current_tab.add_attachment([imagefile])
 		if not self.IsShown():
 			self.Show()
 			self.Restore()
@@ -469,7 +469,7 @@ class MainFrame(wx.Frame):
 		if from_url:
 			current_tab.add_image_url_dlg()
 		else:
-			current_tab.add_image_files()
+			current_tab.add_attachments_dlg()
 
 	def on_transcribe_audio(
 		self, event: wx.Event, from_microphone: bool = False
