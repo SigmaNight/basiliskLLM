@@ -16,7 +16,9 @@ from pydantic import (
 	PlainValidator,
 	SerializationInfo,
 	SerializerFunctionWrapHandler,
+	ValidationInfo,
 	field_serializer,
+	field_validator,
 )
 from upath import UPath
 
@@ -96,6 +98,8 @@ class ImageFileTypes(Enum):
 			return cls.IMAGE_URL
 		if isinstance(value, str) and value.lower() == "https":
 			return cls.IMAGE_URL
+		if isinstance(value, str) and value.lower() == "zip":
+			return cls.IMAGE_LOCAL
 		return cls.UNKNOWN
 
 
@@ -148,6 +152,21 @@ class ImageFile(BaseModel):
 			return wrap_handler(value)
 		return mapping.get(value, wrap_handler(value))
 
+	@field_validator("location", mode="before")
+	@classmethod
+	def validate_location(
+		cls, value: Any, info: ValidationInfo
+	) -> str | PydanticUPath:
+		if isinstance(value, str):
+			if info.context:
+				root_path = info.context.get("root_path")
+				if root_path and "://" not in value:
+					return root_path / value
+			return value
+		if not isinstance(value, UPath):
+			raise ValueError("Invalid location")
+		return value
+
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
 		if not self.name:
@@ -155,6 +174,8 @@ class ImageFile(BaseModel):
 			self.size = self._get_size()
 		if not self.dimensions:
 			self.dimensions = self._get_dimensions()
+
+	__init__.__pydantic_base_init__ = True
 
 	@property
 	def type(self) -> ImageFileTypes:

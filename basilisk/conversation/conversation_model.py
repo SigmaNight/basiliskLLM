@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
+from upath import UPath
 
 from .conversation_helper import AIModelInfo, create_bskc_file, open_bskc_file
 from .image_model import ImageFile
@@ -49,6 +50,8 @@ class MessageBlock(BaseModel):
 			)
 		super().__init__(**data)
 
+	__init__.__pydantic_base_init__ = True
+
 
 class Conversation(BaseModel):
 	system: Message | None = Field(default=None)
@@ -56,8 +59,8 @@ class Conversation(BaseModel):
 	title: str | None = Field(default=None)
 
 	@classmethod
-	def open(cls, file_path: str) -> Conversation:
-		return open_bskc_file(cls, file_path)
+	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
+		return open_bskc_file(cls, file_path, base_storage_path)
 
 	def save(self, file_path: str):
 		create_bskc_file(self, file_path)

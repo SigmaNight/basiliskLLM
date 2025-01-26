@@ -59,12 +59,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
+	@staticmethod
+	def conv_storage_path() -> UPath:
+		return UPath(
+			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		)
+
 	@classmethod
 	def open_conversation(
 		cls, parent: wx.Window, file_path: str, default_title: str
 	) -> ConversationTab:
 		log.debug(f"Opening conversation from {file_path}")
-		conversation = Conversation.open(file_path)
+		storage_path = cls.conv_storage_path()
+		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
 		return cls(parent, conversation=conversation, title=title)
 
@@ -74,19 +81,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		title: str = _("Untitled conversation"),
 		profile: Optional[config.ConversationProfile] = None,
 		conversation: Optional[Conversation] = None,
+		conv_storage_url: Optional[UPath] = None,
 	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
 		self.SetStatusText = self.TopLevelParent.SetStatusText
+		self.conv_storage_path = conv_storage_url or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
-		self.conv_storage_url = UPath(
-			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
-		)
 		self.task = None
 		self.stream_buffer = ""
 		self._speak_stream = True
@@ -321,7 +327,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 					return
 				img = bitmap_data.GetBitmap().ConvertToImage()
 				path = (
-					self.conv_storage_url
+					self.conv_storage_path
 					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
 				)
 				with path.open("wb") as f:
@@ -1075,7 +1081,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if config.conf().images.resize:
 			for image in self.image_files:
 				image.resize(
-					self.conv_storage_url / "optimized_images",
+					self.conv_storage_path / "optimized_images",
 					config.conf().images.max_width,
 					config.conf().images.max_height,
 					config.conf().images.quality,

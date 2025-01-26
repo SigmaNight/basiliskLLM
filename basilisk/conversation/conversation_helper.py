@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from fsspec.implementations.zip import ZipFileSystem
 from pydantic import BaseModel, Field, field_validator
+from upath import UPath
 
 from .image_model import ImageFile, ImageFileTypes
 
@@ -74,11 +75,32 @@ def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
 		)
 
 
+def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
+	for attachment in attachments:
+		if attachment.type == ImageFileTypes.IMAGE_URL:
+			continue
+		new_path = storage_path / attachment.location.name
+		with attachment.location.open(mode="rb") as attachment_file:
+			with new_path.open(mode="wb") as new_file:
+				shutil.copyfileobj(attachment_file, new_file)
+		attachment.location = new_path
+
+
 def read_conv_main_file(
-	model_cls: Conversation, fs: ZipFileSystem
+	model_cls: Conversation, conv_main_path: UPath, attachments_path: UPath
 ) -> Conversation:
-	with fs.open("conversation.json", mode="r") as conv_file:
-		return model_cls.model_validate_json(conv_file.read())
+	conversation = None
+	with conv_main_path.open(mode="r", encoding="utf-8") as conv_file:
+		conversation = model_cls.model_validate_json(
+			json_data=conv_file.read(),
+			context={"root_path": conv_main_path.parent},
+		)
+	for block in conversation.messages:
+		attachments = block.request.attachments
+		if not attachments:
+			continue
+		restore_attachments(attachments, attachments_path)
+	return conversation
 
 
 def create_bskc_file(conversation: Conversation, file_path: str):
@@ -91,14 +113,18 @@ def create_bskc_file(conversation: Conversation, file_path: str):
 		fs.close()
 
 
-def open_bskc_file(model_cls: Conversation, file_path: str) -> Conversation:
+def open_bskc_file(
+	model_cls: Conversation, file_path: str, base_storage_path: UPath
+) -> Conversation:
 	"""Open a Basilisk Conversation file."""
 	with open(file_path, mode="r+b") as bskc_file:
 		if not zipfile.is_zipfile(bskc_file):
 			raise zipfile.BadZipFile("The baskc file must be a zip archive.")
-		fs = ZipFileSystem(fo=bskc_file, mode="r")
-		if not fs.exists("conversation.json"):
+		zip_path = UPath("zip://", fo=bskc_file, mode="r")
+		conv_main_math = zip_path / "conversation.json"
+		if not conv_main_math.exists():
 			raise FileNotFoundError(
 				"The baskc file must contain a conversation.json file."
 			)
-		return read_conv_main_file(model_cls, fs)
+		attachments_path = base_storage_path / "attachments"
+		return read_conv_main_file(model_cls, conv_main_math, attachments_path)
