@@ -49,8 +49,9 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
-RE_STREAM_BUFFER = re.compile(r".*[\n;:.?!)»\]}].*")
-RE_SPEECH_STREAM_BUFFER = re.compile(r"\n|[;:.?!)»\]}]")
+COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
+RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
+RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
