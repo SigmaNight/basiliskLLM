@@ -35,8 +35,10 @@ class FileWatcher(FileSystemEventHandler):
 		logger.debug("Focus file modified")
 		if event.src_path not in self.last_modified:
 			self.last_modified[event.src_path] = 0
-		elif time.time() - self.last_modified[event.src_path] > 1:
-			self.last_modified[event.src_path] = time.time()
+		elif time.time() - self.last_modified[event.src_path] < 1:
+			logger.debug("Ignoring focus file modification")
+			return
+		self.last_modified[event.src_path] = time.time()
 		logger.debug("Sending focus")
 		CallAfter(self.send_focus)
 
