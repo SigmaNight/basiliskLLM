@@ -91,6 +91,23 @@ class ImageFileTypes(Enum):
 
 	@classmethod
 	def _missing_(cls, value: object) -> ImageFileTypes:
+		"""Determine the image file type based on a given string value.
+
+		This method is a custom implementation for handling enum value mapping when a non-standard value is provided. It maps specific string inputs to predefined ImageFileTypes.
+
+		Parameters:
+		    value (object): The input value to be mapped to an ImageFileTypes enum.
+
+		Returns:
+		    ImageFileTypes: The corresponding image file type based on the input value.
+		    - Returns IMAGE_URL for "data" or "https" strings (case-insensitive)
+		    - Returns IMAGE_LOCAL for "zip" string (case-insensitive)
+		    - Returns UNKNOWN for any other input that doesn't match the predefined mappings
+
+		Notes:
+		    - This method is typically used as a fallback for enum value resolution
+		    - Provides flexible type mapping for different image source representations
+		"""
 		if isinstance(value, str) and value.lower() == "data":
 			return cls.IMAGE_URL
 		if isinstance(value, str) and value.lower() == "https":
@@ -115,6 +132,24 @@ class ImageFile(BaseModel):
 	@classmethod
 	@measure_time
 	def build_from_url(cls, url: str) -> ImageFile:
+		"""Fetch an image from a given URL and create an ImageFile instance.
+
+		This class method retrieves an image from the specified URL, validates that it is an image,
+		and constructs an ImageFile with metadata about the image.
+
+		Parameters:
+		    url (str): The URL of the image to retrieve.
+
+		Returns:
+		    ImageFile: An instance of ImageFile with details about the retrieved image.
+
+		Raises:
+		    httpx.HTTPError: If there is an error during the HTTP request.
+		    NotImageError: If the URL does not point to an image (content type is not image/*).
+
+		Example:
+		    image = ImageFile.build_from_url("https://example.com/image.jpg")
+		"""
 		r = httpx.get(url, follow_redirects=True)
 		r.raise_for_status()
 		content_type = r.headers.get("content-type", "")
@@ -142,6 +177,25 @@ class ImageFile(BaseModel):
 		wrap_handler: SerializerFunctionWrapHandler,
 		info: SerializationInfo,
 	) -> PydanticUPath:
+		"""Serialize the location field with optional context-based mapping.
+
+		This method is a field serializer for the `location` attribute that allows dynamic
+		path translation based on a provided mapping context. If no mapping is available,
+		it returns the original value using the default serialization handler.
+
+		Parameters:
+		    value (PydanticUPath): The original location path to be serialized.
+		    wrap_handler (SerializerFunctionWrapHandler): The default serialization handler.
+		    info (SerializationInfo): Serialization context information.
+
+		Returns:
+		    PydanticUPath: The serialized location path, potentially remapped based on context.
+
+		Example:
+		    # With a mapping context
+		    context = {"attachment_mapping": {original_path: new_path}}
+		    serialized_location = ImageFile.change_location(original_path, default_handler, context)
+		"""
 		if not info.context:
 			return wrap_handler(value)
 		mapping = info.context.get("attachment_mapping")
@@ -154,6 +208,32 @@ class ImageFile(BaseModel):
 	def validate_location(
 		cls, value: Any, info: ValidationInfo
 	) -> str | PydanticUPath:
+		"""Validates and transforms the location of an image file.
+
+		This method ensures that the location is either a valid string or a UPath instance.
+		If a string is provided without a protocol and a root path is available in the context,
+		it prepends the root path to create an absolute path.
+
+		Parameters:
+		    cls (type): The class this method is attached to.
+		    value (Any): The location value to validate, which can be a string or UPath.
+		    info (ValidationInfo): Validation context containing additional information.
+
+		Returns:
+		    str | PydanticUPath: A validated and potentially transformed location.
+
+		Raises:
+		    ValueError: If the location is not a string or UPath instance.
+
+		Examples:
+		    # With root path context
+		    validate_location("image.jpg", context={"root_path": "/home/user"})
+		    # Returns: /home/user/image.jpg
+
+		    # With full URL or absolute path
+		    validate_location("https://example.com/image.jpg")
+		    # Returns: https://example.com/image.jpg
+		"""
 		if isinstance(value, str):
 			if info.context:
 				root_path = info.context.get("root_path")
@@ -165,6 +245,21 @@ class ImageFile(BaseModel):
 		return value
 
 	def __init__(self, /, **data: Any) -> None:
+		"""Initialize an ImageFile instance with optional data.
+
+		If no name is provided, automatically generates a name using the internal _get_name() method.
+		If no size is set, retrieves the file size using _get_size() method.
+		If no dimensions are specified, determines image dimensions using _get_dimensions() method.
+
+		Parameters:
+		    **data (Any): Keyword arguments for initializing the ImageFile instance.
+		                  Can include optional attributes like name, size, and dimensions.
+
+		Note:
+		    - Uses positional-only argument separator (/) to prevent naming conflicts
+		    - Calls the parent class initializer with provided data
+		    - Fills in missing attributes with derived values from internal methods
+		"""
 		super().__init__(**data)
 		if not self.name:
 			self.name = self._get_name()
@@ -176,6 +271,15 @@ class ImageFile(BaseModel):
 
 	@property
 	def type(self) -> ImageFileTypes:
+		"""Determine the type of image file based on its location protocol.
+
+		Returns:
+		    ImageFileTypes: An enum value representing the image file's source type,
+		    derived from the protocol of the image's location.
+
+		Raises:
+		    ValueError: If the protocol cannot be mapped to a known ImageFileTypes value.
+		"""
 		return ImageFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
@@ -213,6 +317,23 @@ class ImageFile(BaseModel):
 	def resize(
 		self, conv_folder: UPath, max_width: int, max_height: int, quality: int
 	):
+		"""Resize the image to specified dimensions and save to a new location.
+
+		This method resizes the image if it is not a URL, creating an optimized version
+		in the specified conversion folder. The original image remains unchanged.
+
+		Parameters:
+		    conv_folder (UPath): Folder where the resized image will be saved
+		    max_width (int): Maximum width for the resized image
+		    max_height (int): Maximum height for the resized image
+		    quality (int): Compression quality for the resized image (1-100)
+
+		Notes:
+		    - Skips resizing for URL-based images
+		    - Saves resized image in an "optimized_images" subdirectory
+		    - Sets `resize_location` to the new file path if resizing is successful
+		    - Uses the original file's extension for the resized image
+		"""
 		if ImageFileTypes.IMAGE_URL == self.type:
 			return
 		log.debug("Resizing image")
