@@ -1,4 +1,4 @@
-from .conversation_helper import PROMPT_TITLE, AIModelInfo
+from .conversation_helper import PROMPT_TITLE
 from .conversation_model import (
 	Conversation,
 	Message,
@@ -8,7 +8,6 @@ from .conversation_model import (
 from .image_model import URL_PATTERN, ImageFile, ImageFileTypes, NotImageError
 
 __all__ = [
-	"AIModelInfo",
 	"Conversation",
 	"ImageFile",
 	"ImageFileTypes",

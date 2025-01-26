@@ -6,7 +6,9 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 from upath import UPath
 
-from .conversation_helper import AIModelInfo, create_bskc_file, open_bskc_file
+from basilisk.provider_ai_model import AIModelInfo
+
+from .conversation_helper import create_bskc_file, open_bskc_file
 from .image_model import ImageFile
 
 

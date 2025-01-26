@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import BaseModel, Field, field_validator
+
+from .provider import Provider, get_provider
+
 
 @dataclass
 class ProviderAIModel:
@@ -54,3 +58,22 @@ class ProviderAIModel:
 		if self.max_output_tokens < 0:
 			return self.context_window
 		return self.max_output_tokens
+
+
+class AIModelInfo(BaseModel):
+	provider_id: str = Field(pattern=r"^[a-zA-Z]+$")
+	model_id: str = Field(pattern=r"^.+$")
+
+	@staticmethod
+	def get_provider_by_id(provider_id: str) -> Provider:
+		return get_provider(id=provider_id)
+
+	@field_validator("provider_id", mode="after")
+	@classmethod
+	def provider_must_exist(cls, value: str) -> str:
+		cls.get_provider_by_id(value)
+		return value
+
+	@property
+	def provider(self) -> Provider:
+		return self.get_provider_by_id(self.provider_id)

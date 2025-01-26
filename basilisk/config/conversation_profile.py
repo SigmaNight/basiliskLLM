@@ -15,8 +15,8 @@ from pydantic import (
 	model_validator,
 )
 
-from basilisk.conversation import AIModelInfo
 from basilisk.provider import Provider
+from basilisk.provider_ai_model import AIModelInfo
 
 from .account_config import Account, AccountInfo, get_account_config
 from .config_helper import (

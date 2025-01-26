@@ -4,10 +4,12 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Any, Iterable, Optional, Type
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Type
 
 from .decorators import measure_time
-from .provider_engine.base_engine import BaseEngine
+
+if TYPE_CHECKING:
+	from .provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
 
