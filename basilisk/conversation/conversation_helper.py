@@ -11,7 +11,7 @@ from upath import UPath
 from basilisk.config import conf
 from basilisk.decorators import measure_time
 
-from .image_model import ImageFile, ImageFileTypes
+from .attached_file import AttachmentFile, AttachmentFileTypes, ImageFile
 
 if TYPE_CHECKING:
 	from .conversation_model import Conversation
@@ -23,11 +23,13 @@ PROMPT_TITLE = "Generate a concise, relevant title in the conversation's main la
 
 
 def save_attachments(
-	attachments: list[ImageFile], attachment_path: str, fs: ZipFileSystem
+	attachments: list[AttachmentFile | ImageFile],
+	attachment_path: str,
+	fs: ZipFileSystem,
 ):
 	attachment_mapping = {}
 	for attachment in attachments:
-		if attachment.type == ImageFileTypes.IMAGE_URL:
+		if attachment.type == AttachmentFileTypes.URL:
 			continue
 		new_location = f"{attachment_path}/{attachment.location.name}"
 		with attachment.location.open(mode="rb") as attachment_file:
@@ -56,7 +58,7 @@ def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
 
 def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
 	for attachment in attachments:
-		if attachment.type == ImageFileTypes.IMAGE_URL:
+		if attachment.type == AttachmentFileTypes.URL:
 			continue
 		new_path = storage_path / attachment.location.name
 		with attachment.location.open(mode="rb") as attachment_file:

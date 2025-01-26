@@ -7,11 +7,13 @@ from typing import TYPE_CHECKING
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import TextBlock
+from anthropic.types.document_block_param import DocumentBlockParam
 from anthropic.types.image_block_param import ImageBlockParam, Source
+from anthropic.types.text_block_param import TextBlockParam
 
 from basilisk.conversation import (
+	AttachmentFileTypes,
 	Conversation,
-	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -168,15 +170,29 @@ class AnthropicEngine(BaseEngine):
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
 			for attachment in message.attachments:
-				if attachment.type != ImageFileTypes.IMAGE_URL:
+				mime_type = attachment.mime_type
+				if attachment.type != AttachmentFileTypes.URL:
 					source = Source(
-						data=attachment.encode_image(),
+						data=None,
 						media_type=attachment.mime_type,
 						type="base64",
 					)
-					contents.append(
-						ImageBlockParam(source=source, type="image")
-					)
+					if mime_type.startswith("image/"):
+						source["data"] = attachment.encode_image()
+						contents.append(
+							ImageBlockParam(source=source, type="image")
+						)
+					elif mime_type.startswith("application/"):
+						source["data"] = attachment.encode_base64()
+						contents.append(
+							DocumentBlockParam(source=source, type="document")
+						)
+					elif mime_type in ("text/csv", "text/plain"):
+						source["data"] = attachment.read_as_str()
+						source["type"] = "text"
+						contents.append(
+							TextBlockParam(source=source, type="document")
+						)
 		return {"role": message.role.value, "content": contents}
 
 	prepare_message_request = convert_message

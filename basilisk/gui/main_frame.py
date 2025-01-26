@@ -298,7 +298,7 @@ class MainFrame(wx.Frame):
 
 	def post_screen_capture(self, imagefile: ImageFile | str):
 		log.debug("Screen capture received")
-		self.current_tab.add_attachment([imagefile])
+		self.current_tab.add_attachments([imagefile])
 		if not self.IsShown():
 			self.Show()
 			self.Restore()

@@ -8,8 +8,8 @@ from upath import UPath
 
 from basilisk.provider_ai_model import AIModelInfo
 
+from .attached_file import AttachmentFile, ImageFile
 from .conversation_helper import create_bskc_file, open_bskc_file
-from .image_model import ImageFile
 
 
 class MessageRoleEnum(Enum):
@@ -21,7 +21,7 @@ class MessageRoleEnum(Enum):
 class Message(BaseModel):
 	role: MessageRoleEnum
 	content: str
-	attachments: list[ImageFile] | None = Field(default=None)
+	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 
 
 class MessageBlock(BaseModel):

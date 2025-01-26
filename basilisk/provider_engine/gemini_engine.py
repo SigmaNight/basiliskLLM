@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 import google.generativeai as genai
 
 from basilisk.conversation import (
+	AttachmentFileTypes,
 	Conversation,
 	ImageFile,
-	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -122,7 +122,7 @@ class GeminiEngine(BaseEngine):
 			)
 
 	def convert_image(self, image: ImageFile) -> genai.protos.Part:
-		if image.type == ImageFileTypes.IMAGE_URL:
+		if image.type == AttachmentFileTypes.URL:
 			raise NotImplementedError("Image URL not supported")
 		with image.send_location.open("rb") as f:
 			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())

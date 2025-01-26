@@ -20,12 +20,14 @@ from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	URL_PATTERN,
+	AttachmentFile,
 	Conversation,
 	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 	NotImageError,
+	get_mime_type,
 	parse_supported_attachment_formats,
 )
 from basilisk.decorators import ensure_no_task_running
@@ -40,6 +42,7 @@ from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .html_view_window import show_html_view_window
+from .read_only_message_dialog import ReadOnlyMessageDialog
 from .search_dialog import SearchDialog, SearchDirection
 
 if TYPE_CHECKING:
@@ -101,7 +104,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.bskc_path = bskc_path
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
-		self.image_files: list[ImageFile] = []
+		self.attachment_files: list[AttachmentFile | ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
@@ -177,12 +180,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.attachments_list.InsertColumn(0, _("Name"))
 		self.attachments_list.InsertColumn(1, _("Size"))
-		self.attachments_list.InsertColumn(2, _("Dimensions"))
-		self.attachments_list.InsertColumn(3, _("Path"))
 		self.attachments_list.SetColumnWidth(0, 200)
 		self.attachments_list.SetColumnWidth(1, 100)
-		self.attachments_list.SetColumnWidth(2, 100)
-		self.attachments_list.SetColumnWidth(3, 200)
 		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -278,6 +277,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu = wx.Menu()
 
 		if selected != wx.NOT_FOUND:
+			item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + "	Enter")
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_show_attachment_details, item)
+
 			item = wx.MenuItem(
 				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
 			)
@@ -293,7 +296,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
 		)
 		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
+		self.Bind(wx.EVT_MENU, self.on_attachments_paste, item)
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
@@ -311,19 +314,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
 			self.on_copy_image_url(None)
 		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
-			self.on_image_paste(None)
+			self.on_attachments_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
 			self.on_attachments_remove(None)
 		event.Skip()
 
-	def on_image_paste(self, event: wx.CommandEvent):
+	def on_attachments_paste(self, event: wx.CommandEvent):
 		with wx.TheClipboard as clipboard:
 			if clipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
 				log.debug("Pasting files from clipboard")
 				file_data = wx.FileDataObject()
 				clipboard.GetData(file_data)
 				paths = file_data.GetFilenames()
-				self.add_attachment(paths)
+				self.add_attachments(paths)
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
@@ -350,16 +353,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 				)
 				with path.open("wb") as f:
 					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
-				self.add_attachment([ImageFile(location=path)])
+				self.add_attachments([ImageFile(location=path)])
 
 			else:
 				log.info("Unsupported clipboard data")
 
 	def add_attachments_dlg(self, event: wx.CommandEvent = None):
-		wilrdcard = parse_supported_attachment_formats(
+		wildcard = parse_supported_attachment_formats(
 			self.current_engine.supported_attachment_formats
 		)
-		if not wilrdcard:
+		if not wildcard:
 			wx.MessageBox(
 				# Translators: This message is displayed when there are no supported attachment formats.
 				_("This provider does not support any attachment formats."),
@@ -367,17 +370,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		wilrdcard = _("All supported formats") + f" ({wilrdcard})|{wilrdcard}"
+		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
 
 		file_dialog = wx.FileDialog(
 			self,
 			message=_("Select one or more files to attach"),
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=wilrdcard,
+			wildcard=wildcard,
 		)
 		if file_dialog.ShowModal() == wx.ID_OK:
 			paths = file_dialog.GetPaths()
-			self.add_attachment(paths)
+			self.add_attachments(paths)
 		file_dialog.Destroy()
 
 	def add_image_url_dlg(self, event: wx.CommandEvent = None):
@@ -442,7 +445,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		wx.CallAfter(self.add_attachment, [image_file])
+		wx.CallAfter(self.add_attachments, [image_file])
 
 		self.task = None
 
@@ -453,11 +456,33 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.task.start()
 
+	def on_show_attachment_details(self, event: wx.CommandEvent):
+		selected = self.attachments_list.GetFirstSelected()
+		if selected == wx.NOT_FOUND:
+			return
+		image_file = self.attachment_files[selected]
+		details = {
+			_("Name"): image_file.name,
+			_("Size"): image_file.display_size,
+			_("Location"): image_file.location,
+		}
+		mime_type = image_file.mime_type
+		if mime_type:
+			details[_("MIME type")] = mime_type
+			if mime_type.startswith("image/"):
+				details[_("Dimensions")] = image_file.display_dimensions
+		details_str = "\n".join(
+			_("%s: %s") % (k, v) for k, v in details.items()
+		)
+		ReadOnlyMessageDialog(
+			self, _("Attachment details"), details_str
+		).ShowModal()
+
 	def on_attachments_remove(self, vent: wx.CommandEvent):
 		selection = self.attachments_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
-		self.image_files.pop(selection)
+		self.attachment_files.pop(selection)
 		self.refresh_attachments_list()
 		if selection >= self.attachments_list.GetItemCount():
 			selection -= 1
@@ -472,7 +497,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
-		url = self.image_files[selected].location
+		url = self.attachment_files[selected].location
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(url))
 
@@ -495,7 +520,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def refresh_attachments_list(self):
 		self.attachments_list.DeleteAllItems()
-		if not self.image_files:
+		if not self.attachment_files:
 			self.attachments_list_label.Hide()
 			self.attachments_list.Hide()
 			self.Layout()
@@ -503,24 +528,26 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
 		self.Layout()
-		for i, image in enumerate(self.image_files):
+		for i, image in enumerate(self.attachment_files):
 			self.attachments_list.InsertItem(i, image.name)
 			self.attachments_list.SetItem(i, 1, image.display_size)
-			self.attachments_list.SetItem(i, 2, image.display_dimensions)
-			self.attachments_list.SetItem(i, 3, image.display_location)
 		self.attachments_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
 		self.attachments_list.EnsureVisible(i)
 
-	def add_attachment(self, paths: list[str | ImageFile]):
+	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
 		log.debug(f"Adding images: {paths}")
 		for path in paths:
-			if isinstance(path, ImageFile):
-				self.image_files.append(path)
+			if isinstance(path, (AttachmentFile, ImageFile)):
+				self.attachment_files.append(path)
 			else:
-				file = ImageFile(location=path)
-				self.image_files.append(file)
+				mime_type = get_mime_type(path)
+				if mime_type.startswith("image/"):
+					file = ImageFile(location=path)
+				else:
+					file = AttachmentFile(location=path)
+				self.attachment_files.append(file)
 		self.refresh_attachments_list()
 		self.attachments_list.SetFocus()
 
@@ -889,7 +916,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				event.Skip()
 
 	def on_prompt_paste(self, event):
-		self.on_image_paste(event)
+		self.on_attachments_paste(event)
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		if self.conversation.messages:
@@ -978,7 +1005,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if need_clear:
 			self.messages.Clear()
 			self.message_segment_manager.clear()
-			self.image_files.clear()
+			self.attachment_files.clear()
 		self.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
@@ -1084,7 +1111,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return None
-		if self.image_files and not model.vision:
+		if self.attachment_files and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
 			)
@@ -1109,7 +1136,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not model:
 			return None
 		if config.conf().images.resize:
-			for image in self.image_files:
+			for image in self.attachment_files:
 				image.resize(
 					self.conv_storage_path,
 					config.conf().images.max_width,
@@ -1120,7 +1147,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			request=Message(
 				role=MessageRoleEnum.USER,
 				content=self.prompt.GetValue(),
-				attachments=self.image_files,
+				attachments=self.attachment_files,
 			),
 			model_id=model.id,
 			provider_id=self.current_account.provider.id,
@@ -1146,7 +1173,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_submit(self, event: wx.CommandEvent):
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self.prompt.GetValue() and not self.image_files:
+		if not self.prompt.GetValue() and not self.attachment_files:
 			self.prompt.SetFocus()
 			return
 		completion_kw = self.get_completion_args()
@@ -1206,7 +1233,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
-		self.image_files.clear()
+		self.attachment_files.clear()
 		self.refresh_attachments_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
@@ -1315,7 +1342,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.display_new_block(new_block)
 		self._handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
-		self.image_files.clear()
+		self.attachment_files.clear()
 		self.refresh_attachments_list()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
