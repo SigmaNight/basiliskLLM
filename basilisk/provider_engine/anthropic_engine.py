@@ -181,6 +181,26 @@ class AnthropicEngine(BaseEngine):
 		system_message: Message | None,
 		**kwargs,
 	) -> Message | Stream[MessageStreamEvent]:
+		"""
+		Send a completion request to the Anthropic API with specified parameters.
+		
+		Processes a message block and generates a response using the Anthropic API client. Supports both streaming and non-streaming modes of text generation.
+		
+		Parameters:
+		    new_block (MessageBlock): The message block containing generation parameters and model details.
+		    conversation (Conversation): The current conversation context.
+		    system_message (Message, optional): An optional system message to guide the AI's behavior.
+		    **kwargs: Additional keyword arguments to customize the API request.
+		
+		Returns:
+		    Message | Stream[MessageStreamEvent]: The API response, which can be either a complete message or a stream of message events.
+		
+		Notes:
+		    - Uses the specified model's configuration from `self.get_model()`
+		    - Supports dynamic configuration of generation parameters like temperature, max tokens, and top_p
+		    - Allows optional system message to provide context or instructions
+		    - Handles both streaming and non-streaming response modes based on `new_block.stream`
+		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
 		model = self.get_model(new_block.model.model_id)
 		params = {

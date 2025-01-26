@@ -41,6 +41,18 @@ class ConversationProfile(BaseModel):
 	stream_mode: bool = Field(default=True)
 
 	def __init__(self, **data: Any):
+		"""
+		Initialize a conversation profile with the provided data.
+		
+		Attempts to create a conversation profile by calling the parent class's initializer with the given data. 
+		
+		Parameters:
+		    **data (Any): Keyword arguments containing configuration details for the conversation profile.
+		
+		Raises:
+		    Exception: If initialization fails, logs an error and re-raises the original exception, 
+		               preventing the profile from being accessible.
+		"""
 		try:
 			super().__init__(**data)
 		except Exception as e:
@@ -53,6 +65,22 @@ class ConversationProfile(BaseModel):
 	@field_validator("ai_model_info", mode="before")
 	@classmethod
 	def convert_ai_model(cls, value: Optional[str]) -> Optional[dict[str, str]]:
+		"""
+		Convert a string representation of an AI model to a dictionary.
+		
+		Parameters:
+		    value (Optional[str]): A string in the format "provider_id/model_id" or None.
+		
+		Returns:
+		    Optional[dict[str, str]]: A dictionary with 'provider_id' and 'model_id' keys, 
+		    or the original value if not a string.
+		
+		Example:
+		    >>> convert_ai_model("openai/gpt-4")
+		    {"provider_id": "openai", "model_id": "gpt-4"}
+		    >>> convert_ai_model(None)
+		    None
+		"""
 		if isinstance(value, str):
 			provider_id, model_id = value.split("/", 1)
 			return {"provider_id": provider_id, "model_id": model_id}
@@ -60,6 +88,12 @@ class ConversationProfile(BaseModel):
 
 	@classmethod
 	def get_default(cls) -> ConversationProfile:
+		"""
+		Create a default conversation profile with minimal configuration.
+		
+		Returns:
+		    ConversationProfile: A conversation profile initialized with default name and an empty system prompt.
+		"""
 		return cls(name="default", system_prompt="")
 
 	@cached_property
@@ -79,12 +113,30 @@ class ConversationProfile(BaseModel):
 
 	@property
 	def ai_model_id(self) -> Optional[str]:
+		"""
+		Retrieves the model ID from the AI model information.
+		
+		Returns:
+		    Optional[str]: The model ID if AI model information is set, otherwise None.
+		"""
 		if self.ai_model_info is None:
 			return None
 		return self.ai_model_info.model_id
 
 	@property
 	def ai_provider(self) -> Optional[Provider]:
+		"""
+		Retrieves the AI provider associated with the conversation profile.
+		
+		Returns:
+		    Optional[Provider]: The provider of the AI model, determined by either the account's provider 
+		    or the AI model's provider. Returns None if no provider can be determined.
+		
+		Notes:
+		    - Prioritizes the account's provider if an account is set
+		    - Falls back to the AI model's provider if no account is set
+		    - Returns None if neither account nor AI model info is available
+		"""
 		if self.account is None and self.ai_model_info is None:
 			return None
 		if self.account:
@@ -93,17 +145,52 @@ class ConversationProfile(BaseModel):
 			return self.ai_model_info.provider
 
 	def set_model_info(self, provider_id: str, model_id: str):
+		"""
+		Set the AI model information for the conversation profile.
+		
+		Parameters:
+		    provider_id (str): The unique identifier of the AI model provider.
+		    model_id (str): The specific identifier of the AI model within the provider's ecosystem.
+		
+		Raises:
+		    ValueError: If either provider_id or model_id is an empty string.
+		
+		Example:
+		    profile = ConversationProfile()
+		    profile.set_model_info('openai', 'gpt-4')
+		"""
 		self.ai_model_info = AIModelInfo(
 			provider_id=provider_id, model_id=model_id
 		)
 
 	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
+		"""
+		Compare two conversation profiles for equality based on their unique identifier.
+		
+		Parameters:
+		    value (Optional[ConversationProfile]): Another conversation profile to compare with this instance.
+		
+		Returns:
+		    bool: True if the profiles have the same ID, False otherwise. Returns False if the compared value is None.
+		"""
 		if value is None:
 			return False
 		return self.id == value.id
 
 	@model_validator(mode="after")
 	def check_same_provider(self) -> ConversationProfile:
+		"""
+		Validates that the AI model provider matches the account provider.
+		
+		This method ensures that when both an account and AI model information are present,
+		the provider ID of the AI model matches the provider ID of the account.
+		
+		Raises:
+		    ValueError: If the AI model provider differs from the account provider.
+		
+		Returns:
+		    ConversationProfile: The current conversation profile instance if validation passes.
+		"""
 		if self.account is not None and self.ai_model_info is not None:
 			if self.ai_model_info.provider_id != self.account.provider.id:
 				raise ValueError(

@@ -61,6 +61,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
+		"""
+		Generate a unique storage path for a conversation based on the current timestamp.
+		
+		Returns:
+		    UPath: A memory-based URL path with a timestamp-specific identifier for storing conversation data.
+		
+		Notes:
+		    - Uses the current timestamp in ISO format (seconds precision)
+		    - Creates a unique path for each conversation to prevent conflicts
+		    - Uses a memory:// scheme for temporary storage
+		"""
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
 		)
@@ -69,6 +80,28 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def open_conversation(
 		cls, parent: wx.Window, file_path: str, default_title: str
 	) -> ConversationTab:
+		"""
+		Open a conversation from a file and create a new ConversationTab instance.
+		
+		This class method loads a conversation from a specified file path, generates a unique storage path,
+		and initializes a new ConversationTab with the loaded conversation details.
+		
+		Parameters:
+		    parent (wx.Window): The parent window for the conversation tab.
+		    file_path (str): The path to the conversation file to be opened.
+		    default_title (str): A fallback title to use if the conversation has no title.
+		
+		Returns:
+		    ConversationTab: A new ConversationTab instance with the loaded conversation.
+		
+		Raises:
+		    IOError: If the conversation file cannot be read or parsed.
+		
+		Example:
+		    conversation_tab = ConversationTab.open_conversation(
+		        parent_window, "/path/to/conversation.json", "My Conversation"
+		    )
+		"""
 		log.debug(f"Opening conversation from {file_path}")
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
@@ -90,6 +123,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		conv_storage_path: Optional[UPath] = None,
 		bskc_path: Optional[str] = None,
 	):
+		"""
+		Initialize a new conversation tab in the chat application.
+		
+		Parameters:
+		    parent (wx.Window): The parent window containing this conversation tab.
+		    title (str, optional): The title of the conversation. Defaults to "Untitled conversation".
+		    profile (config.ConversationProfile, optional): The conversation profile to apply. Defaults to None.
+		    conversation (Conversation, optional): An existing conversation to load. Defaults to a new Conversation.
+		    conv_storage_path (UPath, optional): Unique storage path for the conversation. Defaults to a generated path.
+		    bskc_path (str, optional): Path to a specific configuration file. Defaults to None.
+		
+		Initializes the conversation tab by:
+		    - Setting up the wx.Panel and BaseConversation base classes
+		    - Configuring conversation metadata and storage
+		    - Preparing UI components and data structures
+		    - Initializing recording and message management resources
+		"""
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
@@ -233,10 +283,35 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
+		"""
+		Initialize the conversation data with an optional profile.
+		
+		Parameters:
+		    profile (config.ConversationProfile, optional): The conversation profile to apply. 
+		        If None, uses the default profile settings.
+		
+		Behavior:
+		    - Applies the specified conversation profile to the current conversation
+		    - Refreshes the messages in the conversation tab without clearing existing content
+		"""
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
 	def on_choose_profile(self, event: wx.KeyEvent):
+		"""
+		Displays a context menu for selecting a conversation profile.
+		
+		This method triggers the creation of a profile selection menu from the main application frame
+		and shows it as a popup menu at the current cursor position. After the user makes a selection,
+		the menu is automatically destroyed.
+		
+		Parameters:
+		    event (wx.KeyEvent): The event that triggered the profile selection menu.
+		
+		Side Effects:
+		    - Displays a popup menu with available conversation profiles
+		    - Calls the main frame's profile application method when a profile is selected
+		"""
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
 		menu = main_frame.build_profile_menu(
 			main_frame.on_apply_conversation_profile
@@ -307,6 +382,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		event.Skip()
 
 	def on_image_paste(self, event: wx.CommandEvent):
+		"""
+		Handles pasting content from the clipboard into the conversation interface.
+		
+		Supports multiple clipboard data types:
+		- Files: Adds image files directly to the conversation
+		- Text: 
+		  - If a valid URL is detected, adds the image URL
+		  - Otherwise, pastes text into the prompt input
+		- Bitmap images: Saves the image to a temporary file and adds it to the conversation
+		
+		Parameters:
+		    event (wx.CommandEvent): The clipboard paste event
+		
+		Side Effects:
+		    - Adds image files to the conversation
+		    - Pastes text into the prompt input
+		    - Logs clipboard interaction details
+		    - Creates temporary image files for bitmap images
+		"""
 		with wx.TheClipboard as clipboard:
 			if clipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
 				log.debug("Pasting files from clipboard")
@@ -870,17 +964,57 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.on_image_paste(event)
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
+		"""
+		Insert the last user message from the conversation history into the prompt text control.
+		
+		This method retrieves the content of the most recent user message from the conversation
+		and sets it as the current value of the prompt input field. If no messages exist in
+		the conversation, no action is taken.
+		
+		Parameters:
+		    event (wx.CommandEvent, optional): The wxPython event that triggered this method.
+		        Defaults to None and is not used in the method's logic.
+		
+		Notes:
+		    - Useful for quickly reusing or editing the previous message
+		    - Silently does nothing if the conversation has no messages
+		"""
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
 	def extract_text_from_message(self, content: str) -> str:
+		"""
+		Extracts the text content from a message.
+		
+		Parameters:
+		    content (str): The message content to extract text from.
+		
+		Returns:
+		    str: The extracted text content of the message.
+		"""
 		if isinstance(content, str):
 			return content
 
 	def append_text_and_create_segment(
 		self, text, segment_type, new_block_ref, absolute_length
 	):
+		"""
+		Appends text to the messages control and creates a corresponding message segment.
+		
+		This method performs two primary actions:
+		1. Adds the specified text to the messages text control
+		2. Creates a new message segment with metadata about the text's position and type
+		
+		Parameters:
+		    text (str): The text to be appended to the messages control
+		    segment_type (str): The type/kind of message segment being added
+		    new_block_ref (object): Reference to the message block associated with this segment
+		    absolute_length (int): The current absolute position in the text control before appending
+		
+		Returns:
+		    int: The new absolute length of text in the messages control after appending
+		"""
 		self.messages.AppendText(text)
 		relative_length = self.messages.GetLastPosition() - absolute_length
 		absolute_length = self.messages.GetLastPosition()
@@ -894,6 +1028,21 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return absolute_length
 
 	def display_new_block(self, new_block: MessageBlock):
+		"""
+		Displays a new message block in the conversation text control.
+		
+		This method appends a new message block to the existing conversation, handling both request and response messages. It manages the formatting and segmentation of messages, including role labels and content.
+		
+		Parameters:
+		    new_block (MessageBlock): The message block to be displayed in the conversation.
+		
+		Notes:
+		    - Handles empty and non-empty message text controls
+		    - Supports configurable role labels from system configuration
+		    - Uses weak references to track message blocks
+		    - Preserves the original insertion point after displaying the block
+		    - Supports both request and optional response messages
+		"""
 		absolute_length = self.messages.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
 
@@ -953,6 +1102,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.SetInsertionPoint(pos)
 
 	def refresh_messages(self, need_clear: bool = True):
+		"""
+		Refreshes the messages displayed in the conversation tab.
+		
+		Parameters:
+		    need_clear (bool, optional): If True, clears existing messages, message segments, and image files before refreshing. 
+		        Defaults to True.
+		
+		Description:
+		    This method updates the conversation display by optionally clearing existing content and then 
+		    re-displaying all messages from the current conversation. It performs the following steps:
+		    - Optionally clears the messages list, message segment manager, and image files
+		    - Refreshes the images list
+		    - Iterates through all message blocks in the conversation and displays them
+		
+		Side Effects:
+		    - Modifies the UI by clearing and repopulating message display
+		    - Resets image file list
+		    - Updates image list display
+		"""
 		if need_clear:
 			self.messages.Clear()
 			self.message_segment_manager.clear()
@@ -1083,6 +1251,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
 
 	def get_new_message_block(self) -> MessageBlock | None:
+		"""
+		Constructs a new message block for the conversation based on current UI settings.
+		
+		Prepares a message block with user input, selected model, and generation parameters. If image resizing is enabled in configuration, it resizes attached images before creating the message block.
+		
+		Parameters:
+		    None
+		
+		Returns:
+		    MessageBlock: A configured message block containing user prompt, images, model details, and generation parameters.
+		    None: If no compatible model is available.
+		
+		Notes:
+		    - Checks model compatibility before creating the message block
+		    - Optionally resizes images according to configuration settings
+		    - Includes user prompt, attached images, model ID, provider ID, and generation parameters
+		"""
 		model = self.ensure_model_compatibility()
 		if not model:
 			return None
@@ -1265,7 +1450,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	@ensure_no_task_running
 	def generate_conversation_title(self):
-		"""Generate a title for the conversation tab based on the content of the conversation. Use the current model and account names."""
+		"""
+		Generate a title for the conversation tab by using the AI model to analyze the conversation content.
+		
+		This method attempts to create a concise title by sending a predefined title generation prompt to the current AI model. It handles the title generation process, including error management and sound feedback.
+		
+		Parameters:
+		    None
+		
+		Returns:
+		    str or None: A generated conversation title if successful, or None if title generation fails.
+		
+		Raises:
+		    Exception: Displays a wxPython message box if an error occurs during title generation.
+		
+		Notes:
+		    - Requires an active conversation with messages
+		    - Uses the current selected model and account
+		    - Plays a progress sound during title generation
+		    - Stops the sound after title generation completes
+		    - Uses a predefined system prompt (PROMPT_TITLE) for generating the title
+		"""
 		if not self.conversation.messages:
 			return
 		model = self.current_model
@@ -1307,6 +1512,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 			stop_sound()
 
 	def save_conversation(self, file_path: str) -> bool:
+		"""
+		Save the current conversation to a specified file path.
+		
+		Parameters:
+		    file_path (str): The target file path where the conversation will be saved.
+		
+		Returns:
+		    bool: True if the conversation was successfully saved, False otherwise.
+		
+		Raises:
+		    Exception: If an error occurs during the saving process, a message box is displayed with the error details.
+		
+		Side Effects:
+		    - Displays an error message dialog if saving fails
+		    - Logs a debug message about the save attempt
+		"""
 		log.debug(f"Saving conversation to {file_path}")
 		try:
 			self.conversation.save(file_path)

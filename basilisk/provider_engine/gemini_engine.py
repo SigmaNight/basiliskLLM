@@ -158,6 +158,26 @@ class GeminiEngine(BaseEngine):
 		system_message: Message | None,
 		**kwargs,
 	) -> genai.types.GenerateContentResponse:
+		"""
+		Generates a completion response using the Gemini AI model with specified configuration.
+		
+		Processes a message block and conversation to generate AI-generated content through the Gemini API. Configures the generative model with optional system instructions, generation parameters, and streaming preferences.
+		
+		Parameters:
+		    new_block (MessageBlock): Configuration block containing model and generation settings
+		    conversation (Conversation): The current conversation context
+		    system_message (Message | None): Optional system-level instruction message
+		    **kwargs: Additional keyword arguments for flexible configuration
+		
+		Returns:
+		    genai.types.GenerateContentResponse: The generated content response from the Gemini model
+		
+		Notes:
+		    - Calls the parent class's completion method for potential preprocessing
+		    - Supports optional system instructions
+		    - Configures generation parameters like max tokens, temperature, and top_p
+		    - Supports both streaming and non-streaming response modes
+		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
 		model = genai.GenerativeModel(
 			model_name=new_block.model.model_id,

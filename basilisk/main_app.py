@@ -28,6 +28,28 @@ log = logging.getLogger(__name__)
 
 class MainApp(wx.App):
 	def OnInit(self) -> bool:
+		"""
+		Initialize the application and set up the main window, logging, localization, and background services.
+		
+		This method is called when the application starts and performs several critical setup tasks:
+		- Configures exception handling and logging
+		- Sets up localization and language
+		- Initializes sound management and accessibility
+		- Creates the main application frame
+		- Sets up file watching
+		- Optionally starts a server thread
+		- Optionally starts an automatic update thread
+		
+		Parameters:
+		    self (MainApp): The application instance
+		
+		Returns:
+		    bool: Always returns True to indicate successful application initialization
+		
+		Raises:
+		    Various potential exceptions during initialization of components like sound manager, 
+		    file watcher, server thread, or update thread
+		"""
 		sys.excepthook = logging_uncaught_exceptions
 
 		self.conf = config.conf()
@@ -106,6 +128,19 @@ class MainApp(wx.App):
 		log.info("Automatic update thread started")
 
 	def OnExit(self) -> int:
+		"""
+		Handles the cleanup and exit process for the application.
+		
+		Performs the following cleanup tasks:
+		- Stops and joins the server thread if it exists
+		- Stops and joins the automatic update thread if running
+		- Stops and joins the file watcher
+		- Removes temporary files
+		- Logs exit-related events
+		
+		Returns:
+		    int: Always returns 0 to indicate successful application exit
+		"""
 		if self.server:
 			log.debug("Stopping server")
 			self.server.stop()
