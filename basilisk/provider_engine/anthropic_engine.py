@@ -33,6 +33,7 @@ class AnthropicEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.DOCUMENT,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
