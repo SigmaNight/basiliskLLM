@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from fsspec.implementations.zip import ZipFileSystem
 from upath import UPath
 
+from basilisk.config import conf
+
 from .image_model import ImageFile, ImageFileTypes
 
 if TYPE_CHECKING:
@@ -60,6 +62,13 @@ def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
 			with new_path.open(mode="wb") as new_file:
 				shutil.copyfileobj(attachment_file, new_file)
 		attachment.location = new_path
+		if conf().images.resize:
+			attachment.resize(
+				storage_path,
+				conf().images.max_width,
+				conf().images.max_height,
+				conf().images.quality,
+			)
 
 
 def read_conv_main_file(

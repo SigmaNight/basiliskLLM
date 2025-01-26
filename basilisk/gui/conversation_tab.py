@@ -1081,7 +1081,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if config.conf().images.resize:
 			for image in self.image_files:
 				image.resize(
-					self.conv_storage_path / "optimized_images",
+					self.conv_storage_path,
 					config.conf().images.max_width,
 					config.conf().images.max_height,
 					config.conf().images.quality,

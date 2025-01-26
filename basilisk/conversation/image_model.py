@@ -214,16 +214,14 @@ class ImageFile(BaseModel):
 
 	@measure_time
 	def resize(
-		self,
-		optimize_folder: UPath,
-		max_width: int,
-		max_height: int,
-		quality: int,
+		self, conv_folder: UPath, max_width: int, max_height: int, quality: int
 	):
 		if ImageFileTypes.IMAGE_URL == self.type:
 			return
 		log.debug("Resizing image")
-		resize_location = optimize_folder / self.location.name
+		resize_location = conv_folder.joinpath(
+			"optimized_images", self.location.name
+		)
 		with self.location.open(mode="rb") as src_file:
 			with resize_location.open(mode="wb") as dst_file:
 				success = resize_image(
