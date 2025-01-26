@@ -73,7 +73,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
-		return cls(parent, conversation=conversation, title=title)
+		return cls(
+			parent,
+			conversation=conversation,
+			title=title,
+			conv_storage_path=storage_path,
+			bskc_path=file_path,
+		)
 
 	def __init__(
 		self,
@@ -81,13 +87,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 		title: str = _("Untitled conversation"),
 		profile: Optional[config.ConversationProfile] = None,
 		conversation: Optional[Conversation] = None,
-		conv_storage_url: Optional[UPath] = None,
+		conv_storage_path: Optional[UPath] = None,
+		bskc_path: Optional[str] = None,
 	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
 		self.SetStatusText = self.TopLevelParent.SetStatusText
-		self.conv_storage_path = conv_storage_url or self.conv_storage_path()
+		self.bskc_path = bskc_path
+		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.image_files: list[ImageFile] = []
 		self.last_time = 0
@@ -1298,6 +1306,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 		finally:
 			stop_sound()
 
-	def save_conversation(self, file_path: str):
+	def save_conversation(self, file_path: str) -> bool:
 		log.debug(f"Saving conversation to {file_path}")
-		self.conversation.save(file_path)
+		try:
+			self.conversation.save(file_path)
+			return True
+		except Exception as e:
+			wx.MessageBox(
+				_("An error occurred while saving the conversation: ") + str(e),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return False

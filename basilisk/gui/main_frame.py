@@ -96,7 +96,9 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to save a conversation as a new file
 			_("Save conversation as") + "...\tCtrl+Shift+S",
 		)
-		save_as_conversation_item.Enable(False)
+		self.Bind(
+			wx.EVT_MENU, self.on_save_as_conversation, save_as_conversation_item
+		)
 		close_conversation_item = conversation_menu.Append(
 			wx.ID_ANY, _("Close conversation") + "\tCtrl+W"
 		)
@@ -739,6 +741,18 @@ class MainFrame(wx.Frame):
 				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return
+		if not current_tab.bskc_path:
+			current_tab.bskc_path = self.on_save_as_conversation(event)
+			return
+		current_tab.save_conversation(current_tab.bskc_path)
+
+	def on_save_as_conversation(self, event) -> Optional[str]:
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.MessageBox(
+				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return None
 		file_dialog = wx.FileDialog(
 			self,
 			# Translators: A title for the save conversation dialog
@@ -746,9 +760,12 @@ class MainFrame(wx.Frame):
 			wildcard=_("Basilisk conversation files") + "(*.bskc)|*.bskc",
 			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
 		)
+		file_path = None
 		if file_dialog.ShowModal() == wx.ID_OK:
-			current_tab.save_conversation(file_dialog.GetPath())
+			file_path = file_dialog.GetPath()
+			success = current_tab.save_conversation(file_path)
 		file_dialog.Destroy()
+		return file_path if success else None
 
 	def on_open_conversation(self, event):
 		file_dialog = wx.FileDialog(
