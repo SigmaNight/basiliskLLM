@@ -45,6 +45,7 @@ class AIModelInfo(BaseModel):
 def save_attachments(
 	attachments: list[ImageFile], attachment_path: str, fs: ZipFileSystem
 ):
+	attachment_mapping = {}
 	for attachment in attachments:
 		if attachment.type == ImageFileTypes.IMAGE_URL:
 			continue
@@ -52,17 +53,25 @@ def save_attachments(
 		with attachment.location.open(mode="rb") as attachment_file:
 			with fs.open(new_location, mode="wb") as new_file:
 				shutil.copyfileobj(attachment_file, new_file)
-		attachment.location = new_location
+		attachment_mapping[attachment.location] = new_location
+	return attachment_mapping
 
 
 def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
 	base_path = "attachments"
+	attachment_mapping = {}
 	for block in conversation.messages:
-		if block.request.attachments:
-			fs.mkdirs(base_path, exist_ok=True)
-			save_attachments(block.request.attachments, base_path, fs)
+		attachments = block.request.attachments
+		if not attachments:
+			continue
+		fs.makedirs(base_path, exist_ok=True)
+		attachment_mapping |= save_attachments(attachments, base_path, fs)
 	with fs.open("conversation.json", mode="w", encoding="utf-8") as conv_file:
-		conv_file.write(conversation.model_dump_json())
+		conv_file.write(
+			conversation.model_dump_json(
+				context={"attachment_mapping": attachment_mapping}
+			)
+		)
 
 
 def read_conv_main_file(

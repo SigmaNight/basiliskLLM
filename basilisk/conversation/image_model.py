@@ -10,7 +10,14 @@ from typing import Annotated, Any
 
 import httpx
 from PIL import Image
-from pydantic import BaseModel, Field, PlainValidator
+from pydantic import (
+	BaseModel,
+	Field,
+	PlainValidator,
+	SerializationInfo,
+	SerializerFunctionWrapHandler,
+	field_serializer,
+)
 from upath import UPath
 
 from basilisk.decorators import measure_time
@@ -125,6 +132,21 @@ class ImageFile(BaseModel):
 			description=content_type,
 			dimensions=dimensions,
 		)
+
+	@field_serializer("location", mode="wrap")
+	@classmethod
+	def change_location(
+		cls,
+		value: PydanticUPath,
+		wrap_handler: SerializerFunctionWrapHandler,
+		info: SerializationInfo,
+	) -> PydanticUPath:
+		if not info.context:
+			return wrap_handler(value)
+		mapping = info.context.get("attachment_mapping")
+		if not mapping:
+			return wrap_handler(value)
+		return mapping.get(value, wrap_handler(value))
 
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
