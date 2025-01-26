@@ -1171,7 +1171,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if re.match(r".*[\n;:.?!)»”\]}].*", self.stream_buffer):
+		# Flush buffer when encountering any of:
+		# - newline (\n)
+		# - punctuation marks (;:.?!)
+		# - closing quotes/brackets (»"\]}])
+		if re.match(r".*[\n;:.?!)»\]}].*", self.stream_buffer):
 			self._flush_stream_buffer()
 		new_time = time.time()
 		if new_time - self.last_time > 4:
@@ -1215,23 +1219,28 @@ class ConversationTab(wx.Panel, BaseConversation):
 				self.speech_stream_buffer = ""
 			return
 
-		# Find the last occurrence of punctuation mark or newline
-		matches = list(re.finditer(r"\n|[;:.?!)»”\]}]", new_text))
-		if matches:
-			# Use the last match
-			last_match = matches[-1]
-			part_to_handle = (
-				self.speech_stream_buffer + new_text[: last_match.end()]
-			)
-			remaining_text = new_text[last_match.end() :]
+		try:
+			# Find the last occurrence of punctuation mark or newline
+			matches = list(re.finditer(r"\n|[;:.?!)»\]}]", new_text))
+			if matches:
+				# Use the last match
+				last_match = matches[-1]
+				part_to_handle = (
+					self.speech_stream_buffer + new_text[: last_match.end()]
+				)
+				remaining_text = new_text[last_match.end() :]
 
-			if part_to_handle:
-				self._handle_accessible_output(part_to_handle)
+				if part_to_handle:
+					self._handle_accessible_output(part_to_handle)
 
-			# Update the buffer with the remaining text
-			self.speech_stream_buffer = remaining_text.lstrip()
-		else:
-			# Concatenate new text to the buffer if no punctuation is found
+				# Update the buffer with the remaining text
+				self.speech_stream_buffer = remaining_text.lstrip()
+			else:
+				# Concatenate new text to the buffer if no punctuation is found
+				self.speech_stream_buffer += new_text
+		except re.error as e:
+			log.error(f"Regex error in _handle_speech_stream_buffer: {e}")
+			# Fallback: treat the entire text as a single chunk
 			self.speech_stream_buffer += new_text
 
 	def _flush_stream_buffer(self):
