@@ -66,6 +66,7 @@ A configuration window will appear, allowing you to enter your API key and selec
 You can obtain an API key from your chosen AI provider. The app supports the following AI providers:
 
 - [Anthropic](https://www.anthropic.com/api)
+- [DeepSeek](https://www.deepseek.com/)
 - [Gemini](htps://makersuite.google.com/app/apikey)
 - [Mistral AI](https://mistral.ai/)
 - [OpenAI](https://platform.openai.com/)
