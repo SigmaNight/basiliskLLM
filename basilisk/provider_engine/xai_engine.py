@@ -23,7 +23,7 @@ class XAIEngine(OpenAIEngine):
 			ProviderAIModel(
 				id="grok-2-latest",
 				# Translators: This is a model description
-				description=_(""),
+				description="",
 				context_window=131072,
 				max_temperature=2.0,
 				default_temperature=1.0,
@@ -31,7 +31,7 @@ class XAIEngine(OpenAIEngine):
 			ProviderAIModel(
 				id="grok-2-vision-latest",
 				# Translators: This is a model description
-				description=_(""),
+				description="",
 				context_window=32768,
 				max_temperature=2.0,
 				default_temperature=1.0,
@@ -40,7 +40,7 @@ class XAIEngine(OpenAIEngine):
 			ProviderAIModel(
 				id="grok-beta",
 				# Translators: This is a model description
-				description=_(""),
+				description="",
 				context_window=131072,
 				max_temperature=2.0,
 				default_temperature=1.0,
@@ -48,7 +48,7 @@ class XAIEngine(OpenAIEngine):
 			ProviderAIModel(
 				id="grok-vision-beta",
 				# Translators: This is a model description
-				description=_(""),
+				description="",
 				context_window=8192,
 				max_temperature=2.0,
 				default_temperature=1.0,
