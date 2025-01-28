@@ -70,6 +70,7 @@ You can obtain an API key from your chosen AI provider. The app supports the fol
 - [Mistral AI](https://mistral.ai/)
 - [OpenAI](https://platform.openai.com/)
 - [OpenRouter](https://openrouter.ai/)
+- [xAI](https://x.ai/)
 
 ## Shortcuts
 

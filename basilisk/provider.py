@@ -109,6 +109,17 @@ providers = [
 		env_var_name_api_key="OPENROUTER_API_KEY",
 		engine_cls_path="basilisk.provider_engine.openrouter_engine.OpenRouterEngine",
 	),
+	Provider(
+		id="xai",
+		name="xAI",
+		api_type=ProviderAPIType.OPENAI,
+		base_url="https://api.x.ai/v1",
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="XAI_API_KEY",
+		env_var_name_organization_key=None,
+		engine_cls_path="basilisk.provider_engine.xai_engine.XAIEngine",
+	),
 ]
 
 
