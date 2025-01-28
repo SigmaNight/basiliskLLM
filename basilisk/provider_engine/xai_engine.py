@@ -19,6 +19,7 @@ class XAIEngine(OpenAIEngine):
 		Get models
 		"""
 		log.debug("Getting xAI models")
+		# See <https://console.x.ai/team/default/models>
 		models = [
 			ProviderAIModel(
 				id="grok-2-latest",
