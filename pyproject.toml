@@ -74,6 +74,7 @@ skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
 extend-select = ["INT","I","C90","D"]
+extend-ignore = ["D206"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
