@@ -1,3 +1,11 @@
+"""This module is the entry point for the Basilisk application.
+
+It provides a command-line interface for configuring and starting the application.
+The module parses command-line arguments, processes them, and initializes the application with the specified configurations.
+The module also checks for an existing instance of the application and displays a message if the application is already running.
+If the application is already running, the module sends signals to the running instance.
+"""
+
 import argparse
 import os
 import sys
@@ -11,6 +19,15 @@ from basilisk.singleton_instance import SingletonInstance
 
 
 def display_already_running_msg():
+	"""Display a message box indicating that the Basilisk application is already running.
+
+	This function uses the Windows API via ctypes to show a message box informing the user that the application is currently active. The message provides guidance on how to interact with the running instance.
+
+	Notes:
+	    - Uses Windows-specific MessageBoxW function
+	    - Displays an informational icon (0x40)
+	    - Message includes application name and interaction instructions
+	"""
 	import ctypes
 
 	ctypes.windll.user32.MessageBoxW(
@@ -22,6 +39,24 @@ def display_already_running_msg():
 
 
 def parse_args():
+	"""Parse command-line arguments for the Basilisk application.
+
+	Configures and processes command-line options to customize application startup and behavior.
+
+	Arguments:
+		--language, -l (str | None): Sets the application language. Defaults to None.
+		--log_level, -L (str | None): Sets the logging level. Valid levels are DEBUG, INFO, WARNING, ERROR, CRITICAL. Defaults to None.
+		--no-env-account, -N (bool): Disables loading accounts from environment variables. Defaults to False.
+		--minimize, -m (bool): Starts the application in a minimized window state. Defaults to False.
+		-n (bool): Shows a message window if another application instance is already running. Defaults to False.
+		bskc_file (str | None): Path to a Basilisk conversation file to open. Defaults to None.
+
+	Returns:
+		argparse.Namespace: Parsed command-line arguments with their respective values.
+
+	Example:
+		python -m basilisk --language en --log_level DEBUG --minimize conversation.bskc
+	"""
 	parser = argparse.ArgumentParser(
 		prog=APP_NAME,
 		description="Runs the application with customized configurations.",
