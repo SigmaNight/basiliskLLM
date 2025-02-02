@@ -57,11 +57,12 @@ class ImageFileTypes(StrEnum):
 
 	@classmethod
 	def _missing_(cls, value: object) -> ImageFileTypes:
-		if isinstance(value, str) and value.lower() == "data":
+		if not isinstance(value, str):
+			return cls.UNKNOWN
+		value_lower = value.lower()
+		if value_lower in {"http", "https", "data"}:
 			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "https":
-			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "zip":
+		if value.lower() == "zip":
 			return cls.IMAGE_LOCAL
 		return cls.UNKNOWN
 
