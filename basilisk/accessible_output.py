@@ -13,27 +13,31 @@ def get_accessible_output():
 	return accessible_output3.outputs.auto.Auto()
 
 
+@cache
+def get_clean_steps() -> list[tuple[re.Pattern | str]]:
+	"""Return a list of regex patterns and their replacements to clean text."""
+	log.debug("Initializing clean steps")
+	return [
+		# Remove bold and italics
+		(re.compile(r"\*\*(.*?)\*\*"), r"\1"),
+		(re.compile(r"__(.*?)__"), r"\1"),
+		(re.compile(r"\*(.*?)\*"), r"\1"),
+		(re.compile(r"_(.*?)_"), r"\1"),
+		# Remove links but keep the link text
+		(re.compile(r"\[([^\]]+)\]\([^\)]+\)"), r"\1"),
+		# Remove images (keep alt text)
+		(re.compile(r"!\[([^\]]*)\]\([^\)]+\)"), r"\1"),
+		# Remove headers
+		(re.compile(r"^#{1,6} (.*)", re.MULTILINE), r"\1"),
+		# Remove blockquotes
+		(re.compile(r"^> (.*)", re.MULTILINE), r"\1"),
+		# Remove horizontal rules
+		(re.compile(r"^-{3,}$", re.MULTILINE), ""),
+	]
+
+
 def clear_for_speak(text: str) -> str:
 	"""Remove common Markdown elements from text for accessible output."""
-	# Remove bold and italics
-	text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
-	text = re.sub(r"__(.*?)__", r"\1", text)
-	text = re.sub(r"\*(.*?)\*", r"\1", text)
-	text = re.sub(r"_(.*?)_", r"\1", text)
-
-	# Remove links but keep the link text
-	text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-
-	# Remove images (keep alt text)
-	text = re.sub(r"!\[([^\]]*)\]\([^\)]+\)", r"\1", text)
-
-	# Remove headers
-	text = re.sub(r"^#{1,6} (.*)", r"\1", text, flags=re.MULTILINE)
-
-	# Remove blockquotes
-	text = re.sub(r"^> (.*)", r"\1", text, flags=re.MULTILINE)
-
-	# Remove horizontal rules
-	text = re.sub(r"^-{3,}$", r"", text, flags=re.MULTILINE)
-
+	for pattern, replacement in get_clean_steps():
+		text = pattern.sub(replacement, text)
 	return text
