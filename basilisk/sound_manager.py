@@ -1,3 +1,5 @@
+"""Sound manager for playing sound effects."""
+
 import logging
 import threading
 import time
@@ -26,24 +28,45 @@ ALIASES = {
 
 
 class SoundManager:
+	"""Manager class for playing sound effects."""
+
 	def __init__(self):
+		"""Initialize the sound manager."""
 		self.current_sound = None
 		self.loop = False
 		self.loop_thread = None
 		self.sound_player = wx.adv.Sound()
 		self.thread_lock = threading.Lock()
-		self.sound_cache = {}
+		self.sound_cache: dict[Path, wx.adv.Sound] = {}
 
-	def _ensure_sound_loaded(self, file_path) -> wx.adv.Sound:
-		if file_path not in self.sound_cache:
-			sound = wx.adv.Sound()
-			if sound.Create(str(file_path)):
-				self.sound_cache[file_path] = sound
-			else:
-				raise IOError(f"Failed to load sound: {file_path}")
-		return self.sound_cache[file_path]
+	def _ensure_sound_loaded(self, file_path: Path) -> wx.adv.Sound:
+		"""Ensure that the sound file is loaded and cached.
+
+		Args:
+			file_path: Path to the sound file
+
+		Returns:
+			Loaded wx.adv.Sound object
+
+		Raises:
+			IOError: If the sound file could not be loaded
+		"""
+		if file_path in self.sound_cache:
+			return self.sound_cache[file_path]
+		sound = wx.adv.Sound()
+		if sound.Create(str(file_path)):
+			self.sound_cache[file_path] = sound
+		else:
+			raise IOError(f"Failed to load sound: {file_path}")
+		return sound
 
 	def _play_sound_loop(self, sound: wx.adv.Sound, delay: float = 0.1):
+		"""Play a sound in a loop until the loop flag is set to False.
+
+		Args:
+			sound: wx.adv.Sound object to play
+			delay: Delay between sound repetitions
+		"""
 		while self.loop:
 			sound.Play(wx.adv.SOUND_ASYNC | wx.adv.SOUND_LOOP)
 			while self.loop:
@@ -51,6 +74,12 @@ class SoundManager:
 			sound.Stop()
 
 	def play_sound(self, file_path: str, loop: bool = False):
+		"""Play a sound effect. If loop is True, the sound will be played in a loop.
+
+		Args:
+			file_path: Path to the sound file
+			loop: Whether to play the sound in a loop
+		"""
 		with self.thread_lock:
 			if file_path in ALIASES:
 				file_path = ALIASES[file_path]
@@ -70,6 +99,7 @@ class SoundManager:
 				sound.Play(wx.adv.SOUND_ASYNC)
 
 	def stop_sound(self):
+		"""Stop the currently playing sound effect."""
 		self.loop = False
 		if self.loop_thread is not None:
 			self.loop_thread.join(timeout=1)
@@ -77,13 +107,16 @@ class SoundManager:
 
 
 def initialize_sound_manager():
+	"""Initialize the global sound manager."""
 	global sound_manager
 	sound_manager = SoundManager()
 
 
 def play_sound(file_path: str, loop: bool = False):
+	"""Play a sound using the global sound manager. If loop is True, the sound will be played in a loop."""
 	sound_manager.play_sound(file_path, loop)
 
 
 def stop_sound():
+	"""Stop the currently playing sound effect using the global sound manager."""
 	sound_manager.stop_sound()
