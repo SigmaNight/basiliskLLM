@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum, IntEnum, auto
+from enum import IntEnum, StrEnum, auto
 
 
-class AccountSource(Enum):
-	ENV_VAR = "env_var"
-	CONFIG = "config"
+class AccountSource(StrEnum):
+	ENV_VAR = auto()
+	CONFIG = auto()
 
 	@classmethod
 	def get_labels(cls) -> dict[AccountSource, str]:
@@ -17,11 +17,11 @@ class AccountSource(Enum):
 		}
 
 
-class AutomaticUpdateMode(Enum):
-	OFF = "off"
-	NOTIFY = "notify"
-	DOWNLOAD = "download"
-	INSTALL = "install"
+class AutomaticUpdateMode(StrEnum):
+	OFF = auto()
+	NOTIFY = auto()
+	DOWNLOAD = auto()
+	INSTALL = auto()
 
 	@classmethod
 	def get_labels(cls) -> dict[AutomaticUpdateMode, str]:
@@ -37,23 +37,23 @@ class AutomaticUpdateMode(Enum):
 		}
 
 
-class CaptureMode(Enum):
-	FULL = "full"
-	PARTIAL = "partial"
-	WINDOW = "window"
+class CaptureMode(StrEnum):
+	FULL = auto()
+	PARTIAL = auto()
+	WINDOW = auto()
 
 
-class HotkeyAction(Enum):
+class HotkeyAction(IntEnum):
 	TOGGLE_VISIBILITY = 1
 	CAPTURE_FULL = 20
 	CAPTURE_WINDOW = 21
 
 
-class ImageFileTypes(Enum):
-	UNKNOWN = "unknown"
-	IMAGE_LOCAL = "local"
-	IMAGE_MEMORY = "memory"
-	IMAGE_URL = "http"
+class ImageFileTypes(StrEnum):
+	UNKNOWN = auto()
+	IMAGE_LOCAL = auto()
+	IMAGE_MEMORY = auto()
+	IMAGE_URL = auto()
 
 	@classmethod
 	def _missing_(cls, value: object) -> ImageFileTypes:
@@ -66,18 +66,18 @@ class ImageFileTypes(Enum):
 		return cls.UNKNOWN
 
 
-class KeyStorageMethod(Enum):
-	plain = "plain"
-	system = "system"
+class KeyStorageMethod(StrEnum):
+	PLAIN = auto()
+	SYSTEM = auto()
 
 
-class LogLevel(Enum):
+class LogLevel(StrEnum):
 	NOTSET = "off"
-	DEBUG = "debug"
-	INFO = "info"
-	WARNING = "warning"
-	ERROR = "error"
-	CRITICAL = "critical"
+	DEBUG = auto()
+	INFO = auto()
+	WARNING = auto()
+	ERROR = auto()
+	CRITICAL = auto()
 
 	@classmethod
 	def get_labels(cls) -> dict[LogLevel, str]:
@@ -97,10 +97,10 @@ class LogLevel(Enum):
 		}
 
 
-class MessageRole(Enum):
-	ASSISTANT = "assistant"
-	USER = "user"
-	SYSTEM = "system"
+class MessageRole(StrEnum):
+	ASSISTANT = auto()
+	USER = auto()
+	SYSTEM = auto()
 
 	@classmethod
 	def get_labels(cls) -> dict[MessageRole, str]:
@@ -112,30 +112,30 @@ class MessageRole(Enum):
 		}
 
 
-class MessageSegmentType(Enum):
-	PREFIX = "prefix"
-	CONTENT = "content"
-	SUFFIX = "suffix"
+class MessageSegmentType(StrEnum):
+	PREFIX = auto()
+	CONTENT = auto()
+	SUFFIX = auto()
 
 
-class ProviderAPIType(Enum):
-	OPENAI = "openai"
-	ANTHROPIC = "anthropic"
-	OLLAMA = "ollama"
-	GEMINI = "gemini"
+class ProviderAPIType(StrEnum):
+	OPENAI = auto()
+	ANTHROPIC = auto()
+	OLLAMA = auto()
+	GEMINI = auto()
 
 
-class ProviderCapability(Enum):
-	IMAGE = "image"
-	TEXT = "text"
-	STT = "stt"
-	TTS = "tts"
+class ProviderCapability(StrEnum):
+	IMAGE = auto()
+	TEXT = auto()
+	STT = auto()
+	TTS = auto()
 
 
-class ReleaseChannel(Enum):
-	STABLE = "stable"
-	BETA = "beta"
-	DEV = "dev"
+class ReleaseChannel(StrEnum):
+	STABLE = auto()
+	BETA = auto()
+	DEV = auto()
 
 	@classmethod
 	def get_labels(cls) -> dict[ReleaseChannel, str]:

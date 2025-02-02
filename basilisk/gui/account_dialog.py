@@ -13,9 +13,9 @@ log = logging.getLogger(__name__)
 
 key_storage_methods = {
 	# Translators: A label for the API key storage method in the account dialog
-	KeyStorageMethod.plain: _("Plain text"),
+	KeyStorageMethod.PLAIN: _("Plain text"),
 	# Translators: A label for the API key storage method in the account dialog
-	KeyStorageMethod.system: _("System keyring"),
+	KeyStorageMethod.SYSTEM: _("System keyring"),
 }
 
 
