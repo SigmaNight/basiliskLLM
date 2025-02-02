@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, IntEnum, auto
 
 
 class AccountSource(Enum):
@@ -149,12 +149,12 @@ class ReleaseChannel(Enum):
 		}
 
 
-class SearchDirection(Enum):
-	BACKWARD = 0
-	FORWARD = 1
+class SearchDirection(IntEnum):
+	BACKWARD = auto(0)
+	FORWARD = auto()
 
 
-class SearchMode(Enum):
-	PLAIN_TEXT = 0
-	EXTENDED = 1
-	REGEX = 2
+class SearchMode(IntEnum):
+	PLAIN_TEXT = auto(0)
+	EXTENDED = auto()
+	REGEX = auto()
