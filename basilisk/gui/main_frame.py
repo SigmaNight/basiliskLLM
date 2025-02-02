@@ -13,10 +13,11 @@ if sys.platform == 'win32':
 	import win32con
 import basilisk.config as config
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
+from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import ImageFile
+from basilisk.enums import CaptureMode, HotkeyAction
 from basilisk.logger import get_log_file_path
-from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
+from basilisk.screen_capture_thread import ScreenCaptureThread
 from basilisk.updater import BaseUpdater
 
 from .conversation_tab import ConversationTab

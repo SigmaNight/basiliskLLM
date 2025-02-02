@@ -4,7 +4,6 @@ import base64
 import logging
 import mimetypes
 import re
-from enum import Enum
 from io import BufferedReader, BufferedWriter, BytesIO
 from typing import Annotated, Any
 
@@ -23,6 +22,7 @@ from pydantic import (
 from upath import UPath
 
 from basilisk.decorators import measure_time
+from basilisk.enums import ImageFileTypes
 
 log = logging.getLogger(__name__)
 
@@ -84,23 +84,6 @@ def resize_image(
 	)
 	resized_image.save(target, optimize=True, quality=quality, format=format)
 	return True
-
-
-class ImageFileTypes(Enum):
-	UNKNOWN = "unknown"
-	IMAGE_LOCAL = "local"
-	IMAGE_MEMORY = "memory"
-	IMAGE_URL = "http"
-
-	@classmethod
-	def _missing_(cls, value: object) -> ImageFileTypes:
-		if isinstance(value, str) and value.lower() == "data":
-			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "https":
-			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "zip":
-			return cls.IMAGE_LOCAL
-		return cls.UNKNOWN
 
 
 class NotImageError(ValueError):

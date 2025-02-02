@@ -1,10 +1,5 @@
 from .conversation_helper import PROMPT_TITLE
-from .conversation_model import (
-	Conversation,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-)
+from .conversation_model import Conversation, Message, MessageBlock
 from .image_model import URL_PATTERN, ImageFile, ImageFileTypes, NotImageError
 
 __all__ = [
@@ -13,7 +8,6 @@ __all__ = [
 	"ImageFileTypes",
 	"Message",
 	"MessageBlock",
-	"MessageRoleEnum",
 	"NotImageError",
 	"PROMPT_TITLE",
 	"URL_PATTERN",

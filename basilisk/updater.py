@@ -14,7 +14,8 @@ from xml.etree import ElementTree as ET
 
 import httpx
 
-from basilisk.config import BasiliskConfig, ReleaseChannelEnum
+from basilisk.config import BasiliskConfig
+from basilisk.enums import ReleaseChannel
 
 from .consts import APP_REPO, UNINSTALL_FILE_NAME, WORKFLOW_NAME
 from .global_vars import base_path
@@ -422,11 +423,11 @@ class GithubUpdater(BaseUpdater):
 def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
 	log.info(f"Getting updater from channel: {conf.general.release_channel}")
 	match conf.general.release_channel:
-		case ReleaseChannelEnum.STABLE:
+		case ReleaseChannel.STABLE:
 			return GithubUpdater(pre_release=False)
-		case ReleaseChannelEnum.BETA:
+		case ReleaseChannel.BETA:
 			return GithubUpdater(pre_release=True)
-		case ReleaseChannelEnum.DEV:
+		case ReleaseChannel.DEV:
 			return NigthlyUpdater()
 
 

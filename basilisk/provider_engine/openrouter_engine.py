@@ -6,9 +6,10 @@ from functools import cached_property
 import httpx
 
 from basilisk.decorators import measure_time
+from basilisk.enums import ProviderCapability
 
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .openai_engine import OpenAIEngine
 
 log = logging.getLogger(__name__)
 

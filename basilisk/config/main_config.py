@@ -4,11 +4,8 @@ from functools import cache
 
 from pydantic import BaseModel, Field, model_validator
 
-from .config_enums import (
-	AutomaticUpdateModeEnum,
-	LogLevelEnum,
-	ReleaseChannelEnum,
-)
+from basilisk.enums import AutomaticUpdateMode, LogLevel, ReleaseChannel
+
 from .config_helper import (
 	BasiliskBaseSettings,
 	get_settings_config_dict,
@@ -23,11 +20,11 @@ config_file_name = "config.yml"
 class GeneralSettings(BaseModel):
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
-	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
-	automatic_update_mode: AutomaticUpdateModeEnum = Field(
-		default=AutomaticUpdateModeEnum.NOTIFY
+	log_level: LogLevel = Field(default=LogLevel.INFO)
+	automatic_update_mode: AutomaticUpdateMode = Field(
+		default=AutomaticUpdateMode.NOTIFY
 	)
-	release_channel: ReleaseChannelEnum = Field(default=ReleaseChannelEnum.BETA)
+	release_channel: ReleaseChannel = Field(default=ReleaseChannel.BETA)
 	last_update_check: datetime | None = Field(default=None)
 	quit_on_close: bool = Field(default=False)
 

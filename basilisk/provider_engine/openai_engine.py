@@ -17,16 +17,12 @@ from openai.types.chat.chat_completion_content_part_image_param import (
 	ImageURL,
 )
 
-from basilisk.conversation import (
-	Conversation,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-)
+from basilisk.conversation import Conversation, Message, MessageBlock
+from basilisk.enums import MessageRole, ProviderCapability
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderAIModel
 
 log = logging.getLogger(__name__)
 
@@ -325,7 +321,7 @@ class OpenAIEngine(BaseEngine):
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
+			role=MessageRole.ASSISTANT,
 			content=response.choices[0].message.content,
 		)
 		return new_block

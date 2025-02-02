@@ -12,6 +12,7 @@ import basilisk.global_vars as global_vars
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.accessible_output import get_accessible_output
 from basilisk.consts import APP_NAME, TMP_DIR
+from basilisk.enums import AutomaticUpdateMode
 from basilisk.file_watcher import init_file_watcher
 from basilisk.localization import init_translation
 from basilisk.logger import (
@@ -72,10 +73,7 @@ class MainApp(wx.App):
 			self.server = ServerThread(self.frame, self.conf.server.port)
 			self.server.start()
 		self.auto_update = None
-		if (
-			self.conf.general.automatic_update_mode
-			!= config.AutomaticUpdateModeEnum.OFF
-		):
+		if self.conf.general.automatic_update_mode != AutomaticUpdateMode.OFF:
 			self.start_auto_update_thread()
 		log.info("Application started")
 		return True
@@ -88,13 +86,13 @@ class MainApp(wx.App):
 		target_func = (
 			automatic_update_check
 			if self.conf.general.automatic_update_mode
-			== config.AutomaticUpdateModeEnum.NOTIFY
+			== AutomaticUpdateMode.NOTIFY
 			else automatic_update_download
 		)
 		callback_func = (
 			self.frame.show_update_notification
 			if self.conf.general.automatic_update_mode
-			== config.AutomaticUpdateModeEnum.NOTIFY
+			== AutomaticUpdateMode.NOTIFY
 			else self.frame.show_update_download
 		)
 		self.auto_update = threading.Thread(

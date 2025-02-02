@@ -1,19 +1,9 @@
 import re
-from enum import Enum
 from typing import List
 
 import wx
 
-
-class SearchDirection(Enum):
-	BACKWARD = 0
-	FORWARD = 1
-
-
-class SearchMode(Enum):
-	PLAIN_TEXT = 0
-	EXTENDED = 1
-	REGEX = 2
+from basilisk.enums import SearchDirection, SearchMode
 
 
 def adjust_utf16_position(

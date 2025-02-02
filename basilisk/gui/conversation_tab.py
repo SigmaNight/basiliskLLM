@@ -24,17 +24,15 @@ from basilisk.conversation import (
 	ImageFile,
 	Message,
 	MessageBlock,
-	MessageRoleEnum,
 	NotImageError,
 )
 from basilisk.decorators import ensure_no_task_running
+from basilisk.enums import MessageRole, MessageSegmentType, ProviderCapability
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
-	MessageSegmentType,
 )
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
@@ -55,12 +53,7 @@ RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
-	ROLE_LABELS: dict[MessageRoleEnum, str] = {
-		# Translators: Label indicating that the message is from the user in a conversation
-		MessageRoleEnum.USER: _("User:") + ' ',
-		# Translators: Label indicating that the message is from the assistant in a conversation
-		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
-	}
+	ROLE_LABELS = MessageRole.get_labels()
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
@@ -1084,7 +1077,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		system_prompt = self.system_prompt_txt.GetValue()
 		if not system_prompt:
 			return None
-		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
+		return Message(role=MessageRole.SYSTEM, content=system_prompt)
 
 	def get_new_message_block(self) -> MessageBlock | None:
 		model = self.ensure_model_compatibility()
@@ -1100,7 +1093,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				)
 		return MessageBlock(
 			request=Message(
-				role=MessageRoleEnum.USER,
+				role=MessageRole.USER,
 				content=self.prompt.GetValue(),
 				attachments=self.image_files,
 			),
@@ -1164,9 +1157,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		new_block = kwargs["new_block"]
 		if kwargs.get("stream", False):
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT, content=""
-			)
+			new_block.response = Message(role=MessageRole.ASSISTANT, content="")
 			wx.CallAfter(self._pre_handle_completion_with_stream, new_block)
 			for chunk in self.current_engine.completion_response_with_stream(
 				response
@@ -1325,9 +1316,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		play_sound("progress", loop=True)
 		try:
 			new_block = MessageBlock(
-				request=Message(
-					role=MessageRoleEnum.USER, content=PROMPT_TITLE
-				),
+				request=Message(role=MessageRole.USER, content=PROMPT_TITLE),
 				provider_id=self.current_account.provider.id,
 				model_id=model.id,
 				temperature=self.temperature_spinner.GetValue(),

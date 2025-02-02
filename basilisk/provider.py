@@ -2,23 +2,16 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Type
 
 from .decorators import measure_time
+from .enums import ProviderAPIType
 
 if TYPE_CHECKING:
 	from .provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
-
-
-class ProviderAPIType(Enum):
-	OPENAI = "openai"
-	ANTHROPIC = "anthropic"
-	OLLAMA = "ollama"
-	GEMINI = "gemini"
 
 
 @dataclass

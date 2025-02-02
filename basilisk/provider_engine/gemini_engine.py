@@ -6,16 +6,10 @@ from typing import TYPE_CHECKING
 
 import google.generativeai as genai
 
-from basilisk.conversation import (
-	Conversation,
-	ImageFile,
-	ImageFileTypes,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-)
+from basilisk.conversation import Conversation, ImageFile, Message, MessageBlock
+from basilisk.enums import ImageFileTypes, MessageRole, ProviderCapability
 
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderAIModel
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -104,12 +98,12 @@ class GeminiEngine(BaseEngine):
 			),
 		]
 
-	def convert_role(self, role: MessageRoleEnum) -> str:
-		if role == MessageRoleEnum.ASSISTANT:
+	def convert_role(self, role: MessageRole) -> str:
+		if role == MessageRole.ASSISTANT:
 			return "model"
-		elif role == MessageRoleEnum.USER:
+		elif role == MessageRole.USER:
 			return "user"
-		elif role == MessageRoleEnum.SYSTEM:
+		elif role == MessageRole.SYSTEM:
 			raise NotImplementedError(
 				"System role must be set on the model instance"
 			)
@@ -167,7 +161,7 @@ class GeminiEngine(BaseEngine):
 		**kwargs,
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=response.text
+			role=MessageRole.ASSISTANT, content=response.text
 		)
 		return new_block
 

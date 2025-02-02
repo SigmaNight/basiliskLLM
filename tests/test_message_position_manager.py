@@ -1,9 +1,9 @@
 import unittest
 
+from basilisk.enums import MessageSegmentType
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
-	MessageSegmentType,
 )
 
 

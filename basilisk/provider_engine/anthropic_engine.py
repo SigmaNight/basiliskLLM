@@ -9,20 +9,15 @@ from anthropic.types import Message as AnthropicMessage
 from anthropic.types import TextBlock
 from anthropic.types.image_block_param import ImageBlockParam, Source
 
-from basilisk.conversation import (
-	Conversation,
-	ImageFileTypes,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-)
+from basilisk.conversation import Conversation, Message, MessageBlock
+from basilisk.enums import ImageFileTypes, MessageRole, ProviderCapability
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
 	from anthropic.types.message_stream_event import MessageStreamEvent
 
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderAIModel
 
 log = logging.getLogger(__name__)
 
@@ -209,6 +204,6 @@ class AnthropicEngine(BaseEngine):
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=response.content[0].text
+			role=MessageRole.ASSISTANT, content=response.content[0].text
 		)
 		return new_block

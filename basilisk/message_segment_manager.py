@@ -1,18 +1,12 @@
 import logging
 import weakref
 from dataclasses import dataclass
-from enum import Enum
 from typing import List, Optional
 
 from basilisk.conversation import MessageBlock
+from basilisk.enums import MessageSegmentType
 
 log = logging.getLogger(__name__)
-
-
-class MessageSegmentType(Enum):
-	PREFIX = "prefix"
-	CONTENT = "content"
-	SUFFIX = "suffix"
 
 
 @dataclass

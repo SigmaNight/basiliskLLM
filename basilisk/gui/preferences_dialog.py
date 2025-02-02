@@ -3,52 +3,18 @@ import logging
 import wx
 from babel import Locale
 
-from basilisk.config import (
-	AutomaticUpdateModeEnum,
-	LogLevelEnum,
-	ReleaseChannelEnum,
-)
 from basilisk.config import conf as get_conf
+from basilisk.enums import AutomaticUpdateMode, LogLevel, ReleaseChannel
 from basilisk.localization import get_app_locale, get_supported_locales
 from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)
 
-LOG_LEVELS = {
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.NOTSET: _("Off"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.DEBUG: _("Debug"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.INFO: _("Info"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.WARNING: _("Warning"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.ERROR: _("Error"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.CRITICAL: _("Critical"),
-}
+log_levels = LogLevel.get_labels()
 
-release_channels = {
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.STABLE: _("Stable"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.BETA: _("Beta"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.DEV: _("Development"),
-}
+release_channels = ReleaseChannel.get_labels()
 
-
-auto_update_modes = {
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.OFF: _("Off"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.NOTIFY: _("Notify new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.DOWNLOAD: _("Download new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.INSTALL: _("Install new version"),
-}
+auto_update_modes = AutomaticUpdateMode.get_labels()
 
 
 class PreferencesDialog(wx.Dialog):
@@ -72,10 +38,10 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.ALIGN_LEFT,
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level_value = LOG_LEVELS[self.conf.general.log_level]
+		log_level_value = log_levels[self.conf.general.log_level]
 		self.log_level = wx.ComboBox(
 			panel,
-			choices=list(LOG_LEVELS.values()),
+			choices=list(log_levels.values()),
 			value=log_level_value,
 			style=wx.CB_READONLY,
 		)
@@ -342,7 +308,7 @@ class PreferencesDialog(wx.Dialog):
 
 	def on_ok(self, event):
 		log.debug("Saving configuration")
-		self.conf.general.log_level = list(LOG_LEVELS.keys())[
+		self.conf.general.log_level = list(log_levels.keys())[
 			self.log_level.GetSelection()
 		]
 		self.conf.general.language = list(self.languages.keys())[

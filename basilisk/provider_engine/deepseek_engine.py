@@ -8,10 +8,11 @@ from openai.types.chat import (
 	ChatCompletionUserMessageParam,
 )
 
-from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.conversation import Message, MessageBlock
+from basilisk.enums import MessageRole, ProviderCapability
 
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .openai_engine import OpenAIEngine
 
 log = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class DeepSeekAIEngine(OpenAIEngine):
 		if reasoning_content:
 			content = f"```think\n{reasoning_content}\n```\n\n{content}"
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=content
+			role=MessageRole.ASSISTANT, content=content
 		)
 		return new_block
 

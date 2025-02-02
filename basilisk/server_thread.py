@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import wx
 
-from basilisk.screen_capture_thread import CaptureMode
+from basilisk.enums import CaptureMode
 
 if TYPE_CHECKING:
 	from basilisk.gui.main_frame import MainFrame

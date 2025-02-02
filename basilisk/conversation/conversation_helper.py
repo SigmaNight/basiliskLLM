@@ -10,8 +10,9 @@ from upath import UPath
 
 from basilisk.config import conf
 from basilisk.decorators import measure_time
+from basilisk.enums import ImageFileTypes
 
-from .image_model import ImageFile, ImageFileTypes
+from .image_model import ImageFile
 
 if TYPE_CHECKING:
 	from .conversation_model import Conversation

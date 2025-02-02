@@ -1,25 +1,19 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 from upath import UPath
 
+from basilisk.enums import MessageRole
 from basilisk.provider_ai_model import AIModelInfo
 
 from .conversation_helper import create_bskc_file, open_bskc_file
 from .image_model import ImageFile
 
 
-class MessageRoleEnum(Enum):
-	ASSISTANT = "assistant"
-	USER = "user"
-	SYSTEM = "system"
-
-
 class Message(BaseModel):
-	role: MessageRoleEnum
+	role: MessageRole
 	content: str
 	attachments: list[ImageFile] | None = Field(default=None)
 

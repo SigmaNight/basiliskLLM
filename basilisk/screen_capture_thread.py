@@ -3,12 +3,12 @@ from __future__ import annotations
 import datetime
 import threading
 import typing
-from enum import Enum
 
 import wx
 from PIL import ImageGrab
 
 from basilisk.conversation import ImageFile
+from basilisk.enums import CaptureMode
 
 if typing.TYPE_CHECKING:
 	from io import BufferedWriter
@@ -16,12 +16,6 @@ if typing.TYPE_CHECKING:
 	from upath import UPath
 
 	from basilisk.gui.main_frame import MainFrame
-
-
-class CaptureMode(Enum):
-	FULL = "full"
-	PARTIAL = "partial"
-	WINDOW = "window"
 
 
 class ScreenCaptureThread(threading.Thread):

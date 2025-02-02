@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
+from basilisk.enums import ProviderCapability
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_capability import ProviderCapability
 
 if TYPE_CHECKING:
 	from basilisk.config import Account

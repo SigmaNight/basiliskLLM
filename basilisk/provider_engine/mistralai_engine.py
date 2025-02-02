@@ -1,8 +1,10 @@
 import logging
 from functools import cached_property
 
+from basilisk.enums import ProviderCapability
+
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .openai_engine import OpenAIEngine
 
 log = logging.getLogger(__name__)
 
