@@ -15,9 +15,7 @@ class XAIEngine(OpenAIEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		log.debug("Getting xAI models")
 		# See <https://console.x.ai/team/default/models>
 		models = [

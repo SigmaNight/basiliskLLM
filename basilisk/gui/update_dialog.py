@@ -10,9 +10,7 @@ log = getLogger(__name__)
 
 
 def show_release_notes(updater: BaseUpdater):
-	"""
-	Display the release notes for the latest version of basiliskLLM.
-	"""
+	"""Display the release notes for the latest version of basiliskLLM."""
 	from .html_view_window import HtmlViewWindow
 
 	HtmlViewWindow(

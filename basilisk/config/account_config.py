@@ -87,9 +87,7 @@ AccountInfo = Union[UUID4, AccountInfoStr]
 
 
 class Account(BaseModel):
-	"""
-	Manage API key and organization key
-	"""
+	"""Manage API key and organization key"""
 
 	model_config = ConfigDict(populate_by_name=True)
 	id: UUID4 = Field(default_factory=uuid4)
@@ -246,8 +244,7 @@ config_file_name = "accounts.yml"
 
 
 class AccountManager(BasiliskBaseSettings):
-	"""
-	Manage multiple accounts for different providers
+	"""Manage multiple accounts for different providers
 	A provider can have several accounts
 	"""
 

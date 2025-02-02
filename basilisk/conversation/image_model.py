@@ -35,9 +35,7 @@ URL_PATTERN = re.compile(
 
 
 def get_image_dimensions(reader: BufferedReader) -> tuple[int, int]:
-	"""
-	Get the dimensions of an image.
-	"""
+	"""Get the dimensions of an image."""
 	img = Image.open(reader)
 	return img.size
 
@@ -50,8 +48,7 @@ def resize_image(
 	max_height: int = 0,
 	quality: int = 85,
 ) -> bool:
-	"""
-	Compress an image and save it to a specified file by resizing according to
+	"""Compress an image and save it to a specified file by resizing according to
 	given maximum dimensions and adjusting the quality.
 
 	@param src: path to the source image.

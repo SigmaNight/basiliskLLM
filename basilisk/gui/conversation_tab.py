@@ -1224,8 +1224,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			log.error("Error during speech output", exc_info=True)
 
 	def _handle_speech_stream_buffer(self, new_text: str = ''):
-		"""
-		Processes incoming speech stream text. If the input `new_text` is not a valid string
+		"""Processes incoming speech stream text. If the input `new_text` is not a valid string
 		or is empty, it forces flushing the current buffer to the accessible output handler.
 		If `new_text` contains punctuation or newlines, it processes text up to the last
 		occurrence, sends that portion to the output handler, and retains the remaining

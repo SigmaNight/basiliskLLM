@@ -43,9 +43,7 @@ class OpenRouterEngine(OpenAIEngine):
 	@cached_property
 	@measure_time
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		models = []
 		log.debug("Getting openRouter models")
 		url = "https://openrouter.ai/api/v1/models"

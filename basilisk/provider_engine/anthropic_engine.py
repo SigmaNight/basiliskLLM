@@ -38,17 +38,13 @@ class AnthropicEngine(BaseEngine):
 
 	@cached_property
 	def client(self) -> Anthropic:
-		"""
-		Property to return the client object
-		"""
+		"""Property to return the client object"""
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		super().models
 		log.debug("Getting Anthropic models")
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>

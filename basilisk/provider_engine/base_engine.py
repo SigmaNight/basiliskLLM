@@ -22,23 +22,17 @@ class BaseEngine(ABC):
 	@cached_property
 	@abstractmethod
 	def client(self):
-		"""
-		Property to return the client object
-		"""
+		"""Property to return the client object"""
 		pass
 
 	@cached_property
 	@abstractmethod
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		pass
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
-		"""
-		Get model
-		"""
+		"""Get model"""
 		model_list = [model for model in self.models if model.id == model_id]
 		if not model_list:
 			return None
@@ -48,16 +42,12 @@ class BaseEngine(ABC):
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
-		"""
-		Prepare message request
-		"""
+		"""Prepare message request"""
 		pass
 
 	@abstractmethod
 	def prepare_message_response(self, response: Any) -> Message:
-		"""
-		Prepare message response
-		"""
+		"""Prepare message response"""
 		pass
 
 	def get_messages(
@@ -66,9 +56,7 @@ class BaseEngine(ABC):
 		conversation: Conversation,
 		system_message: Message | None = None,
 	) -> list[Message]:
-		"""
-		Get messages
-		"""
+		"""Get messages"""
 		messages = []
 		if system_message:
 			messages.append(self.prepare_message_request(system_message))
@@ -92,38 +80,28 @@ class BaseEngine(ABC):
 		system_message: Message | None,
 		**kwargs,
 	):
-		"""
-		Completion
-		"""
+		"""Completion"""
 		pass
 
 	@abstractmethod
 	def completion_response_with_stream(self, stream: Any, **kwargs):
-		"""
-		Response with stream
-		"""
+		"""Response with stream"""
 		pass
 
 	@abstractmethod
 	def completion_response_without_stream(
 		self, response: Any, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
-		"""
-		Response without stream
-		"""
+		"""Response without stream"""
 		pass
 
 	@staticmethod
 	def get_user_agent() -> str:
-		"""
-		Get user agent
-		"""
+		"""Get user agent"""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
 
 	def get_transcription(self, *args, **kwargs) -> str:
-		"""
-		Get transcription from audio file
-		"""
+		"""Get transcription from audio file"""
 		raise NotImplementedError(
 			"Transcription not implemented for this engine"
 		)

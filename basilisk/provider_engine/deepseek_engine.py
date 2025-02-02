@@ -21,9 +21,7 @@ class DeepSeekAIEngine(OpenAIEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		log.debug("Getting DeepSeek models")
 		# See <https://api-docs.deepseek.com/quick_start/pricing>
 		models = [

@@ -19,8 +19,7 @@ class SearchMode(Enum):
 def adjust_utf16_position(
 	text: str, position: int, reverse: bool = False
 ) -> int:
-	"""
-	Adjust the given position in the text to account for characters outside of the Basic Multilingual Plane (BMP).
+	"""Adjust the given position in the text to account for characters outside of the Basic Multilingual Plane (BMP).
 
 	Characters outside the BMP are represented by surrogate pairs in UTF-16, taking up two positions instead of one.
 	This function adjusts the given position to account for these surrogate pairs.

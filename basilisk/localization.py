@@ -17,7 +17,7 @@ LOCALE_DIR = resource_path / Path("locale")
 
 
 def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
-	"""get all supported translation language from the locale directory and check if a mo file exwist for the language"""
+	"""Get all supported translation language from the locale directory and check if a mo file exwist for the language"""
 	supported_locales = [Locale.parse(DEFAULT_LANG)]
 	mo_sub_path = Path("LC_MESSAGES", f"{domain}.mo")
 	log.debug("Locale directory: %s", LOCALE_DIR)

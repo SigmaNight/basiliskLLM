@@ -23,9 +23,7 @@ class ProviderAPIType(Enum):
 
 @dataclass
 class Provider:
-	"""
-	Manage API key
-	"""
+	"""Manage API key"""
 
 	id: str
 	name: str
@@ -41,9 +39,7 @@ class Provider:
 	@cached_property
 	@measure_time
 	def engine_cls(self) -> Type[BaseEngine]:
-		"""
-		Get engine class
-		"""
+		"""Get engine class"""
 		try:
 			module_path, class_name = self.engine_cls_path.rsplit(".", 1)
 			module = __import__(module_path, fromlist=[class_name])
@@ -135,9 +131,7 @@ providers = [
 
 
 def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
-	"""
-	Get provider by criteria
-	"""
+	"""Get provider by criteria"""
 	match_providers = providers
 	for k, v in kwargs.items():
 		match_providers = filter(
@@ -147,9 +141,7 @@ def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 
 
 def get_provider(**kwargs: dict[str, Any]) -> Provider:
-	"""
-	Get provider by criteria
-	"""
+	"""Get provider by criteria"""
 	match_providers = list(get_providers(**kwargs))
 	if not match_providers or len(match_providers) == 0:
 		raise ValueError("No provider found")

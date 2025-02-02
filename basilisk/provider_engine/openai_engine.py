@@ -44,9 +44,7 @@ class OpenAIEngine(BaseEngine):
 
 	@cached_property
 	def client(self) -> OpenAI:
-		"""
-		Property to return the client object
-		"""
+		"""Property to return the client object"""
 		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
@@ -61,9 +59,7 @@ class OpenAIEngine(BaseEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		super().models
 		log.debug("Getting openAI models")
 		# See <https://platform.openai.com/docs/models>
@@ -333,9 +329,7 @@ class OpenAIEngine(BaseEngine):
 	def get_transcription(
 		self, audio_file_path: str, response_format: str = "json"
 	) -> str:
-		"""
-		Get transcription from audio file
-		"""
+		"""Get transcription from audio file"""
 		file = open(audio_file_path, "rb")
 		transcription = self.client.audio.transcriptions.create(
 			model="whisper-1", file=file, response_format=response_format

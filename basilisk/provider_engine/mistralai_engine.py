@@ -12,9 +12,7 @@ class MistralAIEngine(OpenAIEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		log.debug("Getting MistralAI models")
 		# See <https://docs.mistral.ai/getting-started/models/>
 		models = [

@@ -47,8 +47,7 @@ class MainFrame(wx.Frame):
 
 	def init_ui(self):
 		def update_item_label_suffix(item: wx.MenuItem, suffix: str = "..."):
-			"""
-			Update the label of the given item to include ellipsis at the end if not already present.
+			"""Update the label of the given item to include ellipsis at the end if not already present.
 
 			:param item: The item whose label is to be updated.
 			:param suffix: The suffix to add to the label.
@@ -648,10 +647,9 @@ class MainFrame(wx.Frame):
 		return manage_profile_item
 
 	def build_profile_menu(self, event_handler) -> wx.Menu:
-		"""
-		Build the conversation profile menu.
+		"""Build the conversation profile menu.
 
-			:return: The conversation profile menu.
+		:return: The conversation profile menu.
 		"""
 		profile_menu = wx.Menu()
 		for profile in config.conversation_profiles():
@@ -662,10 +660,9 @@ class MainFrame(wx.Frame):
 		return profile_menu
 
 	def build_name_conversation_menu(self) -> wx.Menu:
-		"""
-		Build the name conversation menu.
+		"""Build the name conversation menu.
 
-			:return: The name conversation menu.
+		:return: The name conversation menu.
 		"""
 		name_conversation_menu = wx.Menu()
 		manual_item = name_conversation_menu.Append(

@@ -16,9 +16,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 class HtmlViewWindow(wx.Frame):
-	"""
-	A window to display HTML content. Converts Markdown to HTML if needed.
-	"""
+	"""A window to display HTML content. Converts Markdown to HTML if needed."""
 
 	def __init__(
 		self,
@@ -95,8 +93,7 @@ def show_html_view_window(
 	content_format: str = "markdown",
 	title: str = "HTML Message",
 ):
-	"""
-	Display an HTML message window.
+	"""Display an HTML message window.
 
 	:param parent: Parent window.
 	:param content: Content to display.

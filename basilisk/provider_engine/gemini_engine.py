@@ -35,17 +35,14 @@ class GeminiEngine(BaseEngine):
 
 	@property
 	def client(self) -> None:
-		"""
-		Property to return the client object
-		"""
+		"""Property to return the client object"""
 		raise NotImplementedError("Getting client not supported for Gemini")
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
-		"""
+		"""Get models"""
 		# See <https://ai.google.dev/gemini-api/docs/models/gemini?hl=en>
+
 		return [
 			ProviderAIModel(
 				id="gemini-2.0-flash-exp",

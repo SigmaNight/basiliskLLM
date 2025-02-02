@@ -8,9 +8,7 @@ from .provider import Provider, get_provider
 
 @dataclass
 class ProviderAIModel:
-	"""
-	Provider AI Model
-	"""
+	"""Provider AI Model"""
 
 	id: str
 	name: str | None = field(default=None)
