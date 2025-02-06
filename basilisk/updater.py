@@ -1,3 +1,4 @@
+"""Module for updating the application."""
 import platform
 import re
 import subprocess
@@ -20,7 +21,7 @@ from .consts import APP_REPO, UNINSTALL_FILE_NAME, WORKFLOW_NAME
 from .global_vars import base_path
 
 log = getLogger(__name__)
-
+# This script is used to update the portable version of the application.
 update_portable_script = r"""@echo off
 REM Check if the portable ZIP file path is provided
 if "%~1"=="" (
@@ -77,20 +78,46 @@ exit /b 0
 
 
 class BaseUpdater(ABC):
+	"""Base class for application updaters. This class defines the interface for application updaters."""
+
 	@abstractmethod
 	def latest_version(self) -> str:
+		"""Get the latest version of the application. This method should be implemented by the derived class.
+
+		Returns:
+			The latest version of the application as a string.
+		"""
 		pass
 
 	@property
 	def release_notes(self) -> Optional[str]:
+		"""Get the release notes for the latest version of the application. This method should be implemented by the derived class.
+
+		Returns:
+			The release notes for the latest version of the application as a string.
+		"""
 		return None
 
 	@cached_property
 	def is_update_enable(self) -> bool:
+		"""Check if the application is enabled for updates.
+
+		Returns:
+			True if the application is packaged as an executable or if the application is installed, False otherwise.
+		"""
 		return getattr(sys, "frozen", False)
 
 	@cached_property
 	def current_version(self) -> str:
+		"""Get the current version of the application.
+
+		Raises:
+			NotImplementedError: If the application is not packaged as an executable.
+
+		Returns:
+			The current version of the application as a string.
+
+		"""
 		if getattr(sys, "frozen", False):
 			from BUILD_CONSTANTS import BUILD_RELEASE_STRING  # noqa # type: ignore
 
@@ -101,6 +128,11 @@ class BaseUpdater(ABC):
 			)
 
 	def is_update_available(self) -> bool:
+		"""Check if an update is available for the application.
+
+		Returns:
+			True if the latest version string is different from the current version string, False otherwise.
+		"""
 		current_version = self.current_version
 		log.info(f"Current version: {current_version}")
 		latest_version = self.latest_version
@@ -109,6 +141,11 @@ class BaseUpdater(ABC):
 
 	@cached_property
 	def get_app_architecture(self) -> str:
+		"""Get the architecture of the application.
+
+		Returns:
+			The architecture of the application as a string (e.g., 'x64' or 'x86').
+		"""
 		arch = platform.architecture()[0]
 		if arch == "64bit":
 			return "x64"
@@ -119,6 +156,11 @@ class BaseUpdater(ABC):
 
 	@cached_property
 	def is_app_installed(self) -> bool:
+		"""Check if the application is installed.
+
+		Returns:
+			True if the application is installed, False otherwise.
+		"""
 		if self.is_update_enable:
 			return base_path.joinpath(UNINSTALL_FILE_NAME).exists()
 		else:
@@ -133,6 +175,17 @@ class BaseUpdater(ABC):
 		grafical_callback: Callable[[int, int], None] = None,
 		stop_download: bool = False,
 	) -> bool:
+		"""Download a file from a URL and save it to a temporary file.
+
+		Args:
+			link: The URL to download the file from.
+			file_tmp: The temporary file to save the downloaded data to.
+			grafical_callback: A callback function to update a progress bar. Defaults to None.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			True if the download was successful, False otherwise.
+		"""
 		response = httpx.get(link, follow_redirects=True)
 		response.raise_for_status()
 		total_length = int(response.headers.get("Content-Length", 0))
@@ -151,8 +204,17 @@ class BaseUpdater(ABC):
 
 	@abstractmethod
 	def download_installer(
-		self, grafical_callback: Callable[[int, int], None]
+		self, grafical_callback: Callable[[int, int], None], stop_download: bool = False
 	) -> Optional[str]:
+		"""Download the installer for the application. This method should be implemented by the derived class.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded installer file as a string, or None if the download failed.
+		"""
 		pass
 
 	@abstractmethod
@@ -161,6 +223,15 @@ class BaseUpdater(ABC):
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
 	) -> Optional[str]:
+		"""Download the portable version of the application. This method should be implemented by the derived class.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded portable file as a string, or None if the download failed.
+		"""
 		pass
 
 	def download(
@@ -168,6 +239,18 @@ class BaseUpdater(ABC):
 		grafical_callback: Callable[[int, int], None] = None,
 		stop_download: bool = False,
 	) -> bool:
+		"""Download the update for the application.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar. Defaults to None.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Raises:
+			NotImplementedError: If the application is not packaged as an executable.
+
+		Returns:
+			True if the download was successful, False otherwise.
+		"""
 		if self.is_update_enable:
 			if self.is_app_installed:
 				log.debug("starting download installer")
@@ -186,6 +269,7 @@ class BaseUpdater(ABC):
 			)
 
 	def update_with_installer(self):
+		"""Update the installed version of the application using the downloaded installer."""
 		subprocess.Popen(
 			executable=self.downloaded_file,
 			args=["/SILENT"],
@@ -199,7 +283,8 @@ class BaseUpdater(ABC):
 		)
 
 	def update_portable(self):
-		update_script_path = base_path.joinpath("update_portable.bat")
+		"""Update the portable version of the application using the downloaded portable file."""
+		update_script_path = base_path / "update_portable.bat"
 		with open(update_script_path, "w") as update_script:
 			update_script.write(update_portable_script)
 		subprocess.Popen(
@@ -214,6 +299,12 @@ class BaseUpdater(ABC):
 		)
 
 	def update(self):
+		"""Update the application using the downloaded update file.
+
+		Raises:
+		Exception: If the update file has not been downloaded.
+			NotImplementedError: If the application is not packaged as an executable.
+		"""
 		if self.is_update_enable:
 			if not getattr(self, "downloaded_file", None):
 				raise Exception("Download the update first")
@@ -228,13 +319,21 @@ class BaseUpdater(ABC):
 
 
 class NigthlyUpdater(BaseUpdater):
+	"""Class for updating the application from the nightly build."""
+
 	def __init__(self):
+		"""Initialize the NigthlyUpdater class. Set the URL for the nightly build."""
 		self.url = (
 			f"https://nightly.link/{APP_REPO}/workflows/{WORKFLOW_NAME}/master"
 		)
 
 	@cached_property
 	def artifact_xml_table(self) -> ET.Element:
+		"""Get the XML table containing the artifact links.
+
+		Returns:
+			The XML table containing the artifact links as an ElementTree object.
+		"""
 		response = httpx.get(self.url)
 		response.raise_for_status()
 		table_pattern = re.compile(r"(<table>.*?</table>)", re.DOTALL)
@@ -244,6 +343,13 @@ class NigthlyUpdater(BaseUpdater):
 
 	@cached_property
 	def latest_version(self) -> str:
+		"""Get the latest version of the application.
+
+		Parse the XML table to find the latest version of the application. The version is extracted from the artifact links.
+
+		Returns:
+			The latest version of the application as a string.
+		"""
 		log.info("Getting latest version")
 		version_links = self.artifact_xml_table.findall(".//th/a")
 		unique_version = set()
@@ -259,6 +365,14 @@ class NigthlyUpdater(BaseUpdater):
 		return unique_version.pop()
 
 	def get_download_link(self, installer: bool) -> str:
+		"""Get the download link for the application.
+
+		Args:
+			installer: A flag to indicate if the installer or the portable version of the application is being downloaded.
+
+		Returns:
+			The download link for the application as a string.
+		"""
 		architecture = self.get_app_architecture
 		artifact_links = self.artifact_xml_table.findall(".//td/a")
 		artifact_prefix_name = (
@@ -273,6 +387,17 @@ class NigthlyUpdater(BaseUpdater):
 		grafical_callback: Callable[[int, int], None] = None,
 		stop_download=False,
 	) -> Optional[str]:
+		"""Download the installer for the application.
+
+		The installer is downloaded from the nightly build link and extracted from the ZIP file.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar. Defaults to None.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded installer file as a string, or None if the download failed.
+		"""
 		log.info("Downloading installer")
 		link = self.get_download_link(True)
 		log.debug(f"Installer link: {link}")
@@ -290,6 +415,17 @@ class NigthlyUpdater(BaseUpdater):
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
 	) -> str | None:
+		"""Download the portable version of the application.
+
+		The portable version is downloaded from the nightly build link and saved to a ZIP file.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded portable file as a string, or None if the download failed.
+		"""
 		log.info("getting link for portable")
 		link = self.get_download_link(False)
 		log.debug(f"Portable link: {link}")
@@ -309,6 +445,20 @@ class NigthlyUpdater(BaseUpdater):
 	def extract_installer_from_zip(
 		self, zip_tmp_file: tempfile.NamedTemporaryFile
 	) -> str:
+		"""Extract the installer from the ZIP file.
+
+		Args:
+			zip_tmp_file: The ZIP file containing the installer.
+
+		Returns:
+			The path to the extracted installer file as a string.
+
+		Raises:
+			Exception: If the installer is not found in the ZIP file.
+
+		Returns:
+			The path to the extracted installer file as a string.
+		"""
 		log.info(
 			f"Extracting installer from artifact zip file: {zip_tmp_file.name}"
 		)
@@ -331,7 +481,14 @@ class NigthlyUpdater(BaseUpdater):
 
 
 class GithubUpdater(BaseUpdater):
+	"""Class for updating the application from the GitHub releases."""
+
 	def __init__(self, pre_release: bool = False):
+		"""Initialize the GithubUpdater class. Set the URL for the GitHub releases.
+
+		Args:
+			pre_release: A flag to indicate if pre-releases should be included. Defaults to False.
+		"""
 		self.url = f"https://api.github.com/repos/{APP_REPO}/releases"
 		self.headers = {
 			"Accept": "application/vnd.github+json",
@@ -341,6 +498,11 @@ class GithubUpdater(BaseUpdater):
 
 	@cached_property
 	def release_data(self) -> dict[str, Any]:
+		"""Get the release data from the GitHub API.
+
+		Returns:
+			The release data as a dictionary.
+		"""
 		url = self.url
 		if not self.pre_release:
 			url += "/latest"
@@ -356,13 +518,35 @@ class GithubUpdater(BaseUpdater):
 
 	@property
 	def release_notes(self) -> Optional[str]:
+		"""Get the release notes for the latest version of the application.
+
+		Extract the release notes from the release data.
+
+		Returns:
+			The release notes for the latest version of the application as a string.
+		"""
 		return self.release_data.get("body", None)
 
 	@cached_property
 	def latest_version(self) -> str:
+		"""Get the latest version of the application.
+
+		The version is a git tag which contains a 'v' prefix.
+
+		Returns:
+			The latest version of the application as a string.
+		"""
 		return self.release_data["tag_name"][1:]
 
 	def get_download_link(self, installer: bool) -> str:
+		"""Get the download link for the application release.
+
+		Args:
+			installer: A flag to indicate if the installer or the portable version of the application is being downloaded.
+
+		Returns:
+			The download link for the application as a string.
+		"""
 		data = self.release_data
 		architecture = self.get_app_architecture
 		assets = data["assets"]
@@ -381,6 +565,17 @@ class GithubUpdater(BaseUpdater):
 		grafical_callback: Callable[[int, int], None] = None,
 		stop_download=False,
 	) -> Optional[str]:
+		"""Download the installer for the application.
+
+		The installer is downloaded from the GitHub release link.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar. Defaults to None.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded installer file as a string, or None if the download failed.
+		"""
 		log.info("Downloading installer")
 		link = self.get_download_link(True)
 		log.debug(f"Installer link: {link}")
@@ -402,6 +597,17 @@ class GithubUpdater(BaseUpdater):
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
 	) -> str | None:
+		"""Download the portable version of the application.
+
+		The portable version is downloaded from the GitHub release link.
+
+		Args:
+			grafical_callback: A callback function to update a progress bar.
+			stop_download: A flag to stop the download process. Defaults to False.
+
+		Returns:
+			The path to the downloaded portable file as a string, or None if the download failed.
+		"""
 		link = self.get_download_link(False)
 		log.debug(f"Portable link: {link}")
 		with tempfile.NamedTemporaryFile(
@@ -420,6 +626,14 @@ class GithubUpdater(BaseUpdater):
 
 
 def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
+	"""Get the updater object based on the release channel.
+
+	Args:
+		conf: The Basilisk configuration object.
+
+	Returns:
+		The updater object based on the release channel.
+	"""
 	log.info(f"Getting updater from channel: {conf.general.release_channel}")
 	match conf.general.release_channel:
 		case ReleaseChannelEnum.STABLE:
@@ -436,6 +650,17 @@ def automatic_update_check(
 	stop: bool = False,
 	retries: int = 20,
 ) -> Optional[BaseUpdater]:
+	"""Check for updates automatically based on the configuration settings.
+
+	Args:
+		conf: The Basilisk configuration object.
+		notify_update_callback: A callback function to notify the user of an available update. Defaults to None.
+		stop: A flag to stop the update process. Defaults to False.
+		retries: The number of retries to attempt. Defaults to 20.
+
+	Returns:
+		The updater object if an update is available, None otherwise.
+	"""
 	updater = get_updater_from_channel(conf)
 	if not updater.is_update_enable:
 		log.error("Update are disabled for source application")
@@ -482,6 +707,17 @@ def automatic_update_download(
 	stop: bool = False,
 	retries: int = 20,
 ) -> Optional[BaseUpdater]:
+	"""Download the update automatically based on the configuration settings.
+
+	Args:
+		conf: The Basilisk configuration object.
+		notify_update_callback: A callback function to notify the user of an available update. Defaults to None.
+		stop: A flag to stop the update process. Defaults to False.
+		retries: The number of retries to attempt. Defaults to 20.
+
+	Returns:
+		The updater object if the update was downloaded successfully, None otherwise.
+	"""
 	updater = automatic_update_check(conf, None, retries)
 	if not updater:
 		return None
