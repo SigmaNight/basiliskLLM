@@ -38,7 +38,6 @@ repos:
       - id: poetry-lock
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
-        args: ["--no-update"]
 -   repo: https://github.com/commitizen-tools/commitizen
     rev: v4.1.1
     hooks:
