@@ -30,7 +30,7 @@ accessible-output3 = {git = "https://github.com/SigmaNight/accessible_output3.gi
 anthropic = "^0.45.2"
 babel = "^2.15.0"
 cx-freeze = "^7.2.7"
-fsspec = "^2024.10.0"
+fsspec = "^2025.2.0"
 google-generativeai = "^0.8.4"
 httpx = "^0.28.1"
 keyring = "^25.6.0"
