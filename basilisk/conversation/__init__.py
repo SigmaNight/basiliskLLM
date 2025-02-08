@@ -1,3 +1,5 @@
+"""Module for managing conversation between users and the bot."""
+
 from .conversation_helper import PROMPT_TITLE
 from .conversation_model import (
 	Conversation,
