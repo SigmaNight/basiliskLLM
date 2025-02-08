@@ -2,7 +2,7 @@
 
 import os
 import tempfile
-from enum import Enum
+from enum import IntEnum
 
 # application name
 APP_NAME = "basiliskLLM"
@@ -37,7 +37,9 @@ FOCUS_FILE = os.path.join(TMP_DIR, "focus_file")
 OPEN_BSKC_FILE = os.path.join(TMP_DIR, "open_bskc_file")
 
 
-class HotkeyAction(Enum):
+class HotkeyAction(IntEnum):
+	"""Enumeration of hotkey actions."""
+
 	TOGGLE_VISIBILITY = 1
 	CAPTURE_FULL = 20
 	CAPTURE_WINDOW = 21

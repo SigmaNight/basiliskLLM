@@ -98,9 +98,13 @@ def resize_image(
 class ImageFileTypes(enum.StrEnum):
 	"""Enumeration of image file types based on their source location."""
 
+	# The image file type is unknown.
 	UNKNOWN = enum.auto()
+	# The image file is stored on the local filesystem.
 	IMAGE_LOCAL = enum.auto()
+	# The image file is stored in memory (RAM).
 	IMAGE_MEMORY = enum.auto()
+	# The image file is stored at a URL.
 	IMAGE_URL = enum.auto()
 
 	@classmethod

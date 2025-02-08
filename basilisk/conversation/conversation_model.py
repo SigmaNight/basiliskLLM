@@ -17,8 +17,11 @@ from .image_model import ImageFile
 class MessageRoleEnum(enum.StrEnum):
 	"""Enumeration of the roles that a message can have in a conversation."""
 
+	# The message is from the bot assistant.
 	ASSISTANT = enum.auto()
+	# The message is from the user.
 	USER = enum.auto()
+	# The message is a system message.
 	SYSTEM = enum.auto()
 
 
