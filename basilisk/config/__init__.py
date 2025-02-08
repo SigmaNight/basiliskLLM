@@ -1,3 +1,5 @@
+"""Configuration module for Basilisk."""
+
 from .account_config import Account, AccountManager, AccountOrganization
 from .account_config import get_account_config as accounts
 from .config_enums import (

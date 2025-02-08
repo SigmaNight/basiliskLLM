@@ -1,8 +1,10 @@
+"""fodule for managing conversational profile configurations."""
+
 from __future__ import annotations
 
 import logging
 from functools import cache, cached_property
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Iterable, Optional
 from uuid import UUID, uuid4
 
 from pydantic import (
@@ -29,6 +31,8 @@ log = logging.getLogger(__name__)
 
 
 class ConversationProfile(BaseModel):
+	"""A configuration model for a conversation profile."""
+
 	model_config = ConfigDict(revalidate_instances="always")
 	id: UUID4 = Field(default_factory=uuid4)
 	name: str
@@ -45,12 +49,12 @@ class ConversationProfile(BaseModel):
 
 		Attempts to create a conversation profile by calling the parent class's initializer with the given data.
 
-		Parameters:
-		    **data (Any): Keyword arguments containing configuration details for the conversation profile.
+		Args:
+			data: Keyword arguments containing configuration details for the conversation profile.
 
 		Raises:
-		    Exception: If initialization fails, logs an error and re-raises the original exception,
-		               preventing the profile from being accessible.
+			Exception: If initialization fails, logs an error and re-raises the original exception,
+			preventing the profile from being accessible.
 		"""
 		try:
 			super().__init__(**data)
@@ -63,21 +67,20 @@ class ConversationProfile(BaseModel):
 
 	@field_validator("ai_model_info", mode="before")
 	@classmethod
-	def convert_ai_model(cls, value: Optional[str]) -> Optional[dict[str, str]]:
+	def convert_ai_model(cls, value: str | None) -> dict[str, str] | None:
 		"""Convert a string representation of an AI model to a dictionary.
 
-		Parameters:
-		    value (Optional[str]): A string in the format "provider_id/model_id" or None.
+		Args:
+			value: A string in the format "provider_id/model_id" or None.
 
 		Returns:
-		    Optional[dict[str, str]]: A dictionary with 'provider_id' and 'model_id' keys,
-		    or the original value if not a string.
+			A dictionary with 'provider_id' and 'model_id' keys, or the original value if not a string.
 
 		Example:
-		    >>> convert_ai_model("openai/gpt-4")
-		    {"provider_id": "openai", "model_id": "gpt-4"}
-		    >>> convert_ai_model(None)
-		    None
+			>>> convert_ai_model("openai/gpt-4")
+			{"provider_id": "openai", "model_id": "gpt-4"}
+			>>> convert_ai_model(None)
+			None
 		"""
 		if isinstance(value, str):
 			provider_id, model_id = value.split("/", 1)
@@ -89,17 +92,29 @@ class ConversationProfile(BaseModel):
 		"""Create a default conversation profile with minimal configuration.
 
 		Returns:
-		    ConversationProfile: A conversation profile initialized with default name and an empty system prompt.
+			A conversation profile initialized with default name and an empty system prompt.
 		"""
 		return cls(name="default", system_prompt="")
 
 	@cached_property
-	def account(self) -> Optional[Account]:
+	def account(self) -> Account | None:
+		"""Retrieves the account associated with the conversation profile.
+
+		Returns:
+			The account associated with the conversation profile, or None if no account is set.
+		"""
 		if self.account_info is None:
 			return None
 		return get_account_config().get_account_from_info(self.account_info)
 
-	def set_account(self, account: Optional[Account]):
+	def set_account(self, account: Account | None):
+		"""Set the account associated with the conversation profile.
+
+		Update the account cached property and the account info field based on the provided account.
+
+		Args:
+			account: The account to associate with the conversation profile. Set to None to remove the account association.
+		"""
 		if account is None:
 			self.account_info = None
 			if "account" in self.__dict__:
@@ -109,28 +124,26 @@ class ConversationProfile(BaseModel):
 			self.__dict__["account"] = account
 
 	@property
-	def ai_model_id(self) -> Optional[str]:
+	def ai_model_id(self) -> str | None:
 		"""Retrieves the model ID from the AI model information.
 
 		Returns:
-		    Optional[str]: The model ID if AI model information is set, otherwise None.
+		The model ID if AI model information is set, otherwise None.
 		"""
 		if self.ai_model_info is None:
 			return None
 		return self.ai_model_info.model_id
 
 	@property
-	def ai_provider(self) -> Optional[Provider]:
+	def ai_provider(self) -> Provider | None:
 		"""Retrieves the AI provider associated with the conversation profile.
 
-		Returns:
-		    Optional[Provider]: The provider of the AI model, determined by either the account's provider
-		    or the AI model's provider. Returns None if no provider can be determined.
-
 		Notes:
-		    - Prioritizes the account's provider if an account is set
-		    - Falls back to the AI model's provider if no account is set
-		    - Returns None if neither account nor AI model info is available
+			- Prioritizes the account's provider if an account is set
+			- Falls back to the AI model's provider if no account is set
+			- Returns None if neither account nor AI model info is available
+		Returns:
+			The provider of the AI model, determined by either the account's provider or the AI model's provider. Returns None if no provider can be determined.
 		"""
 		if self.account is None and self.ai_model_info is None:
 			return None
@@ -142,29 +155,29 @@ class ConversationProfile(BaseModel):
 	def set_model_info(self, provider_id: str, model_id: str):
 		"""Set the AI model information for the conversation profile.
 
-		Parameters:
-		    provider_id (str): The unique identifier of the AI model provider.
-		    model_id (str): The specific identifier of the AI model within the provider's ecosystem.
+		Args:
+			provider_id: The unique identifier of the AI model provider.
+			model_id: The specific identifier of the AI model within the provider's ecosystem.
 
 		Raises:
-		    ValueError: If either provider_id or model_id is an empty string.
+			ValueError: If either provider_id or model_id is an empty string.
 
 		Example:
-		    profile = ConversationProfile()
-		    profile.set_model_info('openai', 'gpt-4')
+			profile = ConversationProfile()
+			profile.set_model_info('openai', 'gpt-4')
 		"""
 		self.ai_model_info = AIModelInfo(
 			provider_id=provider_id, model_id=model_id
 		)
 
-	def __eq__(self, value: Optional[ConversationProfile]) -> bool:
+	def __eq__(self, value: ConversationProfile | None) -> bool:
 		"""Compare two conversation profiles for equality based on their unique identifier.
 
-		Parameters:
-		    value (Optional[ConversationProfile]): Another conversation profile to compare with this instance.
+		Args:
+			value: Another conversation profile to compare with this instance.
 
 		Returns:
-		    bool: True if the profiles have the same ID, False otherwise. Returns False if the compared value is None.
+			True if the profiles have the same ID, False otherwise. Returns False if the compared value is None.
 		"""
 		if value is None:
 			return False
@@ -178,10 +191,10 @@ class ConversationProfile(BaseModel):
 		the provider ID of the AI model matches the provider ID of the account.
 
 		Raises:
-		    ValueError: If the AI model provider differs from the account provider.
+			ValueError: If the AI model provider differs from the account provider.
 
 		Returns:
-		    ConversationProfile: The current conversation profile instance if validation passes.
+			ConversationProfile: The current conversation profile instance if validation passes.
 		"""
 		if self.account is not None and self.ai_model_info is not None:
 			if self.ai_model_info.provider_id != self.account.provider.id:
@@ -192,6 +205,13 @@ class ConversationProfile(BaseModel):
 
 	@model_validator(mode="after")
 	def check_model_params(self) -> ConversationProfile:
+		"""Validates that model parameters are set correctly.
+
+		This method ensures that model parameters are only set when an AI model is present.
+
+		Raises:
+			ValueError: If model parameters are set without an AI model.
+		"""
 		if self.ai_model_info is None:
 			if self.max_tokens is not None:
 				raise ValueError("Max tokens must be None without model")
@@ -206,6 +226,8 @@ config_file_name = "profiles.yml"
 
 
 class ConversationProfileManager(BasiliskBaseSettings):
+	"""A configuration model for managing conversation profiles."""
+
 	model_config = get_settings_config_dict(config_file_name)
 
 	profiles: list[OnErrorOmit[ConversationProfile]] = Field(
@@ -214,7 +236,15 @@ class ConversationProfileManager(BasiliskBaseSettings):
 
 	default_profile_id: Optional[UUID4] = Field(default=None)
 
-	def get_profile(self, **kwargs: dict) -> Optional[ConversationProfile]:
+	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
+		"""Retrieve a conversation profile based on the provided key-value pairs.
+
+		Args:
+			kwargs: Keyword arguments containing the profile attributes to match.
+
+		Returns:
+			The first conversation profile that matches all the provided attributes, or None if no profile is found.
+		"""
 		return next(
 			filter(
 				lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
@@ -224,12 +254,22 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		)
 
 	@cached_property
-	def default_profile(self) -> Optional[ConversationProfile]:
+	def default_profile(self) -> ConversationProfile | None:
+		"""Retrieves the default conversation profile.
+
+		Returns:
+			The default conversation profile if set, otherwise None.
+		"""
 		if self.default_profile_id is None:
 			return None
 		return self.get_profile(id=self.default_profile_id)
 
-	def set_default_profile(self, value: Optional[ConversationProfile]):
+	def set_default_profile(self, value: ConversationProfile | None):
+		"""Set the default conversation profile.
+
+		Args:
+			value: The conversation profile to set as the default. Set to None to remove the default profile.
+		"""
 		if value is None:
 			self.default_profile_id = None
 		else:
@@ -239,6 +279,14 @@ class ConversationProfileManager(BasiliskBaseSettings):
 
 	@model_validator(mode="after")
 	def check_default_profile(self) -> ConversationProfileManager:
+		"""Validates that the default profile is set and exists.
+
+		Raises:
+			ValueError: If the default profile is not found.
+
+		Returns:
+		The current conversation profile manager instance if validation passes.
+		"""
 		if self.default_profile_id is None:
 			return self
 		if self.default_profile is None:
@@ -246,12 +294,27 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		return self
 
 	def __iter__(self) -> Iterable[ConversationProfile]:
+		"""Iterate over the conversation profiles.
+
+		Returns:
+			An iterator over the conversation profiles.
+		"""
 		return iter(self.profiles)
 
 	def add(self, profile: ConversationProfile):
+		"""Add a conversation profile to the config.
+
+		Args:
+			profile: The conversation profile to add.
+		"""
 		self.profiles.append(profile)
 
 	def remove(self, profile: ConversationProfile):
+		"""Remove a conversation profile from the config.
+
+		Args:
+			profile: The conversation profile to remove.
+		"""
 		if profile == self.default_profile:
 			self.default_profile_id = None
 			if "default_profile" in self.__dict__:
@@ -259,9 +322,26 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		self.profiles.remove(profile)
 
 	def __len__(self) -> int:
+		"""Get the number of conversation profiles.
+
+		Returns:
+			The number of conversation profiles in the config.
+		"""
 		return len(self.profiles)
 
-	def __getitem__(self, index: Union[int, UUID]) -> ConversationProfile:
+	def __getitem__(self, index: int | UUID) -> ConversationProfile:
+		"""Get a conversation profile by index or ID.
+
+		Args:
+			index: The index or ID of the conversation profile to retrieve.
+
+		Returns:
+			The conversation profile at the specified index or with the specified ID.
+
+		Raises:
+			KeyError: If no profile is found with the provided index or ID.
+			TypeError: If the index type is not an integer or UUID.
+		"""
 		if isinstance(index, int):
 			return self.profiles[index]
 		elif isinstance(index, UUID):
@@ -273,10 +353,27 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			raise TypeError(f"Invalid index type: {type(index)}")
 
 	def __delitem__(self, index: int):
+		"""Remove a conversation profile by index.
+
+		Args:
+			index: The index of the conversation profile to remove.
+
+		Raises:
+			IndexError: If the index is out of range.
+		"""
 		profile = self.profiles[index]
 		self.remove(profile)
 
-	def __setitem__(self, index: Union[int, UUID], value: ConversationProfile):
+	def __setitem__(self, index: int | UUID, value: ConversationProfile):
+		"""Set a conversation profile by index or ID.
+
+		Args:
+			index: The index or ID of the conversation profile to set.
+			value: The conversation profile to set.
+
+		Raises:
+			TypeError: If the index type is not an integer or UUID.
+		"""
 		if isinstance(index, int):
 			self.profiles[index] = value
 		elif isinstance(index, UUID):
@@ -290,6 +387,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			raise TypeError(f"Invalid index type: {type(index)}")
 
 	def save(self):
+		"""Save the conversation profile config to a file."""
 		save_config_file(
 			self.model_dump(
 				mode="json", exclude_defaults=True, exclude_none=True
@@ -300,5 +398,10 @@ class ConversationProfileManager(BasiliskBaseSettings):
 
 @cache
 def get_conversation_profile_config() -> ConversationProfileManager:
+	"""Get the conversation profile configuration. Cache the result for future calls.
+
+	Returns:
+		The conversation profile configuration manager.
+	"""
 	log.debug("Loading conversation profile config")
 	return ConversationProfileManager()

@@ -1,3 +1,5 @@
+"""Main configuration file for BasiliskLLM appication."""
+
 import logging
 from datetime import datetime
 from functools import cache
@@ -21,6 +23,8 @@ config_file_name = "config.yml"
 
 
 class GeneralSettings(BaseModel):
+	"""General settings for BasiliskLLM."""
+
 	language: str = Field(default="auto")
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
@@ -33,6 +37,8 @@ class GeneralSettings(BaseModel):
 
 
 class ConversationSettings(BaseModel):
+	"""Conversation settings for BasiliskLLM."""
+
 	role_label_user: str | None = Field(default=None)
 	role_label_assistant: str | None = Field(default=None)
 	nav_msg_select: bool = Field(default=False)
@@ -42,6 +48,8 @@ class ConversationSettings(BaseModel):
 
 
 class ImagesSettings(BaseModel):
+	"""Image settings for BasiliskLLM."""
+
 	max_height: int = Field(default=720)
 	max_width: int = Field(default=0)
 	quality: int = Field(default=85, ge=1, le=100)
@@ -49,21 +57,29 @@ class ImagesSettings(BaseModel):
 
 
 class RecordingsSettings(BaseModel):
+	"""Recording settings for BasiliskLLM."""
+
 	sample_rate: int = Field(default=16000, ge=8000, le=48000)
 	channels: int = Field(default=1, ge=1, le=2)
 	dtype: str = Field(default="int16")
 
 
 class ServerSettings(BaseModel):
+	"""Server settings for BasiliskLLM."""
+
 	port: int = Field(default=4242)
 	enable: bool = Field(default=True)
 
 
 class NetworkSettings(BaseModel):
+	"""Network settings for BasiliskLLM."""
+
 	use_system_cert_store: bool = Field(default=True)
 
 
 class BasiliskConfig(BasiliskBaseSettings):
+	"""BasiliskLLM configuration settings."""
+
 	model_config = get_settings_config_dict(config_file_name)
 
 	general: GeneralSettings = Field(default_factory=GeneralSettings)
@@ -78,6 +94,14 @@ class BasiliskConfig(BasiliskBaseSettings):
 	@model_validator(mode="before")
 	@classmethod
 	def migrate_accounts(cls, value: dict) -> dict:
+		"""Migrate accounts to its own config file.
+
+		Args:
+			value: The configuration settings.
+
+		Returns:
+			The configuration settings with the accounts removed.
+		"""
 		accounts = value.pop("accounts", None)
 		if not accounts:
 			return value
@@ -91,6 +115,7 @@ class BasiliskConfig(BasiliskBaseSettings):
 		return value
 
 	def save(self):
+		"""Save the configuration settings."""
 		save_config_file(
 			self.model_dump(
 				mode="json",
@@ -104,5 +129,10 @@ class BasiliskConfig(BasiliskBaseSettings):
 
 @cache
 def get_basilisk_config() -> BasiliskConfig:
+	"""Get the Basilisk configuration settings. Cache the result for future calls.
+
+	Returns:
+		The Basilisk configuration settings.
+	"""
 	log.debug("Loading Basilisk config")
 	return BasiliskConfig()
