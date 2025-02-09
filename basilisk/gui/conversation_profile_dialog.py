@@ -1,3 +1,5 @@
+"""Dialog windows for managing conversation profiles in the BasiliskLLM application."""
+
 from logging import getLogger
 from typing import Optional
 
@@ -11,13 +13,23 @@ log = getLogger(__name__)
 
 
 class EditConversationProfileDialog(wx.Dialog, BaseConversation):
+	"""Dialog for creating or editing a conversation profile."""
+
 	def __init__(
 		self,
-		parent,
+		parent: wx.Window,
 		title: str,
-		size=(400, 400),
-		profile: Optional[ConversationProfile] = None,
+		size: tuple[int, int] = (400, 400),
+		profile: ConversationProfile | None = None,
 	):
+		"""Initialize the dialog for creating or editing a conversation profile.
+
+		Args:
+			parent: The parent window for the dialog.
+			title: The title of the dialog window.
+			size: The size of the dialog window.
+			profile: The profile to edit or None to create a new profile.
+		"""
 		wx.Dialog.__init__(self, parent=parent, title=title, size=size)
 		BaseConversation.__init__(self)
 		self.profile = profile
@@ -26,6 +38,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
+		"""Initialize the user interface elements of the dialog."""
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 
 		label = wx.StaticText(
@@ -75,9 +88,15 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 
 	def apply_profile(
 		self,
-		profile: Optional[ConversationProfile],
+		profile: ConversationProfile | None,
 		fall_back_default_account: bool = False,
 	):
+		"""Apply the settings from a conversation profile to the dialog controls.
+
+		Args:
+			profile: The profile to apply settings from.
+			fall_back_default_account: Whether to use the default account if none is specified.
+		"""
 		super().apply_profile(profile, fall_back_default_account)
 		if not profile:
 			return None
@@ -85,7 +104,12 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(profile.account is not None)
 
-	def on_ok(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Handle the OK button click by saving the profile settings.
+
+		Validates the profile settings and creates or updates the conversation profile
+		with the current dialog values.
+		"""
 		if not self.profile:
 			self.profile = ConversationProfile.model_construct()
 		self.profile.name = self.profile_name_txt.GetValue()
@@ -130,14 +154,24 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		ConversationProfile.model_validate(self.profile)
 		self.EndModal(wx.ID_OK)
 
-	def on_cancel(self, event):
+	def on_cancel(self, event: wx.Event | None):
+		"""Handle the Cancel button click by closing the dialog without saving."""
 		self.EndModal(wx.ID_CANCEL)
 
 
 class ConversationProfileDialog(wx.Dialog):
-	"""Manage conversation profiles"""
+	"""Dialog for managing conversation profiles."""
 
-	def __init__(self, parent, title, size=(400, 400)):
+	def __init__(
+		self, parent: wx.Window, title: str, size: tuple[int, int] = (400, 400)
+	):
+		"""Initialize the dialog for managing conversation profiles.
+
+		Args:
+			parent: The parent window for the dialog.
+			title: The title of the dialog window.
+			size: The size of the dialog window.
+		"""
 		super().__init__(parent, title=title, size=size)
 		self.profiles = conversation_profiles()
 		self.menu_update = False
@@ -145,6 +179,7 @@ class ConversationProfileDialog(wx.Dialog):
 		self.init_data()
 
 	def init_ui(self):
+		"""Initialize the user interface elements of the dialog."""
 		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 		label = wx.StaticText(
@@ -221,15 +256,26 @@ class ConversationProfileDialog(wx.Dialog):
 		self.SetEscapeId(self.close_button.GetId())
 
 	def init_data(self):
+		"""Initialize the dialog data and update the UI."""
 		self.update_ui()
 
 	@property
 	def current_profile_index(self) -> Optional[int]:
+		"""Get the index of the currently selected profile.
+
+		Returns:
+			The index of the selected profile or None if no profile is selected.
+		"""
 		index = self.list_profile_ctrl.GetFirstSelected()
 		return index if index != wx.NOT_FOUND else None
 
 	@property
 	def current_profile(self) -> Optional[ConversationProfile]:
+		"""Get the currently selected conversation profile.
+
+		Returns:
+			The selected profile or None if no profile is selected.
+		"""
 		return (
 			self.profiles[self.current_profile_index]
 			if self.current_profile_index is not None
@@ -237,11 +283,17 @@ class ConversationProfileDialog(wx.Dialog):
 		)
 
 	def update_ui(self):
+		"""Update the user interface to reflect the current profiles list."""
 		self.list_profile_ctrl.DeleteAllItems()
 		for profile_name in map(lambda x: x.name, self.profiles):
 			self.list_profile_ctrl.Append([profile_name])
 
-	def on_add(self, event):
+	def on_add(self, event: wx.Event | None):
+		"""Handle adding a new conversation profile.
+
+		Args:
+			event: The event that triggered the add action.
+		"""
 		dialog = EditConversationProfileDialog(
 			self,
 			# translators: Dialog title to add a new conversation profile
@@ -255,7 +307,12 @@ class ConversationProfileDialog(wx.Dialog):
 			self.menu_update = True
 		dialog.Destroy()
 
-	def on_edit(self, event):
+	def on_edit(self, event: wx.Event | None):
+		"""Handle editing the selected conversation profile.
+
+		Args:
+			event: The event that triggered the edit action.
+		"""
 		profile_index = self.current_profile_index
 		if profile_index is None:
 			return
@@ -278,9 +335,19 @@ class ConversationProfileDialog(wx.Dialog):
 		dialog.Destroy()
 
 	def update_profile_detail(self, profile: ConversationProfile):
+		"""Update the profile details text area with the selected profile's information.
+
+		Args:
+			profile: The profile whose details should be displayed.
+		"""
 		self.profile_detail_text.SetValue(self.build_profile_summary(profile))
 
-	def on_remove(self, event):
+	def on_remove(self, event: wx.Event | None):
+		"""Handle removing the selected conversation profile.
+
+		Args:
+			event: The event that triggered the remove action.
+		"""
 		profile = self.current_profile
 		if profile is None:
 			return
@@ -299,7 +366,12 @@ class ConversationProfileDialog(wx.Dialog):
 			self.on_list_item_selected(None)
 			self.menu_update = True
 
-	def on_default(self, event):
+	def on_default(self, event: wx.Event | None):
+		"""Handle setting the selected profile as the default profile.
+
+		Args:
+			event: The event that triggered the default action.
+		"""
 		profile = self.current_profile
 		if profile is None:
 			return
@@ -307,6 +379,14 @@ class ConversationProfileDialog(wx.Dialog):
 		self.profiles.save()
 
 	def build_profile_summary(self, profile: ConversationProfile) -> str:
+		"""Build a human-readable summary of a conversation profile.
+
+		Args:
+			profile: The profile to summarize.
+
+		Returns:
+			A formatted string containing the profile's settings.
+		"""
 		if profile is None:
 			return ""
 		# translators: Summary of a conversation profile
@@ -335,7 +415,12 @@ class ConversationProfileDialog(wx.Dialog):
 			summary += _("System prompt:") + f"\n{profile.system_prompt}"
 		return summary
 
-	def on_list_item_selected(self, event):
+	def on_list_item_selected(self, event: wx.Event | None):
+		"""Handle selection changes in the profiles list.
+
+		Args:
+			event: The event that triggered the selection change.
+		"""
 		profile = self.current_profile
 		enable = profile is not None
 		self.profile_detail_label.Enable(enable)
@@ -346,10 +431,22 @@ class ConversationProfileDialog(wx.Dialog):
 		self.remove_btn.Enable(enable)
 		self.default_btn.SetValue(profile == self.profiles.default_profile)
 
-	def on_close(self, event):
+	def on_close(self, event: wx.Event | None):
+		"""Handle the dialog close event.
+
+		Args:
+			event: The event that triggered the close action.
+		"""
 		self.EndModal(wx.ID_CLOSE)
 
 	def on_list_profile_key_down(self, event: wx.KeyEvent):
+		"""Handle keyboard events in the profiles list.
+
+		Supports Delete for removing profiles and Enter for editing profiles.
+
+		Args:
+			event: The key event that triggered the action.
+		"""
 		if event.GetKeyCode() == wx.WXK_DELETE:
 			self.on_remove(event)
 		elif event.GetKeyCode() == wx.WXK_RETURN:
