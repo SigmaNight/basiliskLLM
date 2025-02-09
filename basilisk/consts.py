@@ -9,6 +9,16 @@ APP_NAME = "basiliskLLM"
 
 # application author
 APP_AUTHOR = "SigmaNight"
+# application authors list
+APP_AUTHORS = ["André-Abush Clause", "Clément Boussiron", "Nael Sayegh"]
+
+# application translators list
+APP_TRANSLATORS = [
+	"André-Abush Clause (French)",
+	"Clément Boussiron (French)",
+	"Daniil Lepke (Russian)",
+	"Umut Korkmaz (Turkish)",
+]
 
 # application repository
 APP_REPO = f"{APP_AUTHOR}/{APP_NAME}"

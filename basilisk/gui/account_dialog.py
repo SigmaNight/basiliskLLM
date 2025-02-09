@@ -1,3 +1,5 @@
+"""Account dialog for managing accounts and organizations in the basiliskLLM application."""
+
 import logging
 from typing import Optional
 
@@ -20,13 +22,23 @@ key_storage_methods = KeyStorageMethodEnum.get_labels()
 
 
 class EditAccountOrganizationDialog(wx.Dialog):
+	"""Dialog for editing account organization settings in the basiliskLLM application."""
+
 	def __init__(
 		self,
 		parent: wx.Window,
 		title: str,
 		organization: Optional[AccountOrganization] = None,
-		size: tuple = (400, 200),
+		size: tuple[int, int] = (400, 200),
 	):
+		"""Initialize the dialog for editing account organization settings.
+
+		Args:
+			parent: The parent window.
+			title: The title of the dialog.
+			organization: The organization to edit. If None, a new organization will be created.
+			size: The size of the dialog.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.organization = organization
@@ -38,6 +50,10 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		self.name.SetFocus()
 
 	def init_ui(self):
+		"""Initialize the user interface of the dialog.
+
+		The dialog contains fields for entering the organization name, key storage method, and key.
+		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -89,6 +105,10 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		sizer.Add(bSizer, 0, wx.ALL, 5)
 
 	def init_data(self):
+		"""Initialize the data for the dialog.
+
+		If an organization is provided, the organization's name, key storage method, and key are set in the dialog.
+		"""
 		if not self.organization:
 			self.key_storage_method.SetSelection(0)
 			return
@@ -105,9 +125,14 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		self.key.SetValue(self.organization.key.get_secret_value())
 
 	def update_data(self):
+		"""Update the data in the dialog."""
 		pass
 
-	def on_ok(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Handle the OK button click event.
+
+		Validate the organization name, key storage method, and key. If the organization is valid, set the organization data and close the dialog.
+		"""
 		if not self.name.GetValue():
 			msg = _("Please enter a name")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
@@ -138,14 +163,32 @@ class EditAccountOrganizationDialog(wx.Dialog):
 			)
 		self.EndModal(wx.ID_OK)
 
-	def on_cancel(self, event):
+	def on_cancel(self, event: wx.Event | None):
+		"""Handle the Cancel button click event.
+
+		Close the dialog without saving any changes.
+		"""
 		self.EndModal(wx.ID_CANCEL)
 
 
 class AccountOrganizationDialog(wx.Dialog):
+	"""Dialog for managing account organizations in the basiliskLLM application."""
+
 	def __init__(
-		self, parent: wx.Window, title: str, account: Account, size=(400, 400)
+		self,
+		parent: wx.Window,
+		title: str,
+		account: Account,
+		size: tuple[int, int] = (400, 400),
 	):
+		"""Initialize the dialog for managing account organizations.
+
+		Args:
+			parent: The parent window.
+			title: The title of the dialog.
+			account: The account to manage organizations for.
+			size: The size of the dialog.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.account_source_labels = AccountSource.get_labels()
 		self.parent = parent
@@ -157,6 +200,10 @@ class AccountOrganizationDialog(wx.Dialog):
 		self.Show()
 
 	def init_ui(self):
+		"""Initialize the user interface of the dialog.
+
+		The dialog contains a list of organizations, and buttons for adding, editing, and removing organizations.
+		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -181,9 +228,7 @@ class AccountOrganizationDialog(wx.Dialog):
 			# Translators: A label in account dialog
 			_("Source"),
 		)
-		self.organization_list.Bind(
-			wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected
-		)
+		self.organization_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.update_ui)
 		self.organization_list.Bind(wx.EVT_KEY_DOWN, self.on_org_list_key_down)
 		sizer.Add(self.organization_list, 1, wx.EXPAND)
 
@@ -203,19 +248,27 @@ class AccountOrganizationDialog(wx.Dialog):
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK)
-		btn.Bind(wx.EVT_BUTTON, self.onOK)
+		btn.Bind(wx.EVT_BUTTON, self.on_ok)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		btn = wx.Button(panel, wx.ID_CANCEL)
-		btn.Bind(wx.EVT_BUTTON, self.onCancel)
+		btn.Bind(wx.EVT_BUTTON, self.on_cancel)
 		bSizer.Add(btn, 0, wx.ALL, 5)
 
 		sizer.Add(bSizer, 0, wx.ALL, 5)
 
 	def init_data(self):
+		"""Initialize the data for the dialog.
+
+		The organizations for the account are set in the dialog.
+		"""
 		self.organizations = self.account.organizations or []
 
 	def update_data(self):
+		"""Update the data in the dialog.
+
+		Add the organisations data to the list control.
+		"""
 		for organization in self.organizations:
 			self.organization_list.Append(
 				(
@@ -227,7 +280,14 @@ class AccountOrganizationDialog(wx.Dialog):
 				)
 			)
 
-	def update_ui(self):
+	def update_ui(self, event: wx.Event | None):
+		"""Update the user interface of the dialog.
+
+		Enable or disable the edit and remove buttons based on the selected organization.
+
+		Args:
+			event: The event that triggered the update. If None, the update was not triggered by an event.
+		"""
 		selected_item = self.organization_list.GetFirstSelected()
 		if selected_item == -1:
 			self.edit_btn.Disable()
@@ -241,10 +301,11 @@ class AccountOrganizationDialog(wx.Dialog):
 		self.edit_btn.Enable()
 		self.remove_btn.Enable()
 
-	def on_item_selected(self, event):
-		self.update_ui()
+	def on_add(self, event: wx.Event | None):
+		"""Handle the Add button click event.
 
-	def on_add(self, event):
+		Open the EditAccountOrganizationDialog to add a new organization to the account.
+		"""
 		dialog = EditAccountOrganizationDialog(self, _("Add organization"))
 		if dialog.ShowModal() == wx.ID_OK:
 			organization = dialog.organization
@@ -268,7 +329,11 @@ class AccountOrganizationDialog(wx.Dialog):
 			self.organization_list.GetItemCount() - 1
 		)
 
-	def on_edit(self, event):
+	def on_edit(self, event: wx.Event | None):
+		"""Handle the Edit button click event.
+
+		Open the EditAccountOrganizationDialog to edit the selected organization.
+		"""
 		selected_item = self.organization_list.GetFirstSelected()
 		organization = self.organizations[selected_item]
 		dialog = EditAccountOrganizationDialog(
@@ -296,7 +361,11 @@ class AccountOrganizationDialog(wx.Dialog):
 		)
 		self.organization_list.EnsureVisible(selected_item)
 
-	def on_remove(self, event):
+	def on_remove(self, event: wx.Event | None):
+		"""Handle the Remove button click event.
+
+		Remove the selected organization from the account.
+		"""
 		index = self.organization_list.GetFirstSelected()
 		organization = self.organizations[index]
 		# Translators: A confirmation message in account dialog for removing organization
@@ -313,14 +382,26 @@ class AccountOrganizationDialog(wx.Dialog):
 		self.organizations.pop(index)
 		self.update_ui()
 
-	def onOK(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Handle the OK button click event.
+
+		Save the organizations to the account and close the dialog.
+		"""
 		self.account.organizations = self.organizations
 		self.EndModal(wx.ID_OK)
 
-	def onCancel(self, event):
+	def on_cancel(self, event: wx.Event | None):
+		"""Handle the Cancel button click event.
+
+		Close the dialog without saving any changes.
+		"""
 		self.EndModal(wx.ID_CANCEL)
 
 	def on_org_list_key_down(self, event: wx.KeyEvent):
+		"""Handle the key down event on the organization list.
+
+		Handle the Enter and Delete keys to edit and remove organizations.
+		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_edit(event)
 		elif event.GetKeyCode() == wx.WXK_DELETE:
@@ -330,7 +411,23 @@ class AccountOrganizationDialog(wx.Dialog):
 
 
 class EditAccountDialog(wx.Dialog):
-	def __init__(self, parent, title, size=(400, 400), account: Account = None):
+	"""Dialog for editing or creating accounts in the basiliskLLM application."""
+
+	def __init__(
+		self,
+		parent: wx.Window,
+		title: str,
+		size: tuple[int, int] = (400, 400),
+		account: Account | None = None,
+	):
+		"""Initialize the dialog for editing account settings.
+
+		Args:
+			parent: The parent window.
+			title: The title of the dialog.
+			size: The size of the dialog.
+			account: The account to edit. If None, a new account will be created.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.account = account
@@ -343,6 +440,11 @@ class EditAccountDialog(wx.Dialog):
 		self.name.SetFocus()
 
 	def init_ui(self):
+		"""Initialize the user interface of the dialog.
+
+		The dialog contains fields for entering the account name, provider,
+		API key storage method, API key, and organization selection.
+		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -418,6 +520,11 @@ class EditAccountDialog(wx.Dialog):
 		sizer.Add(bSizer, 0, wx.ALL, 5)
 
 	def init_data(self):
+		"""Initialize the data for the dialog.
+
+		If an account is provided, the account's name, provider, API key,
+		and organization settings are set in the dialog.
+		"""
 		if not self.account:
 			self.api_key_storage_method.SetSelection(0)
 			return
@@ -461,6 +568,10 @@ class EditAccountDialog(wx.Dialog):
 			self.organization.SetSelection(index)
 
 	def update_ui(self):
+		"""Update the user interface of the dialog.
+
+		Enable or disable API key and organization fields based on the selected provider's requirements.
+		"""
 		provider_index = self.provider.GetSelection()
 		if provider_index == -1:
 			log.debug("No provider selected")
@@ -473,7 +584,15 @@ class EditAccountDialog(wx.Dialog):
 		if self.account:
 			self.organization.Enable(provider.organization_mode_available)
 
-	def on_ok(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Handle the OK button click event.
+
+		Validate the account settings and create or update the account.
+		Close the dialog if all validations pass.
+
+		Args:
+			event: The event that triggered the OK button click. If None, the OK button was not clicked.
+		"""
 		if not self.name.GetValue():
 			msg = _("Please enter a name")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
@@ -530,14 +649,30 @@ class EditAccountDialog(wx.Dialog):
 			)
 		self.EndModal(wx.ID_OK)
 
-	def on_cancel(self, event):
+	def on_cancel(self, event: wx.Event | None):
+		"""Handle the Cancel button click event.
+
+		Close the dialog without saving any changes.
+
+		Args:
+			event: The event that triggered the Cancel button click. If None, the Cancel button was not clicked.
+		"""
 		self.EndModal(wx.ID_CANCEL)
 
 
 class AccountDialog(wx.Dialog):
-	"""Manage account settings"""
+	"""Manage accounts in the basiliskLLM application."""
 
-	def __init__(self, parent, title, size=(400, 400)):
+	def __init__(
+		self, parent: wx.Window, title: str, size: tuple[int, int] = (400, 400)
+	):
+		"""Initialize the dialog for managing accounts.
+
+		Args:
+			parent: The parent window.
+			title: The title of the dialog.
+			size: The size of the dialog.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.account_source_labels = AccountSource.get_labels()
 		self.parent = parent
@@ -548,6 +683,11 @@ class AccountDialog(wx.Dialog):
 		self.Show()
 
 	def init_ui(self):
+		"""Initialize the user interface of the dialog.
+
+		The dialog contains a list of accounts, buttons for adding, editing, removing accounts,
+		managing organizations, and setting the default account.
+		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -571,7 +711,7 @@ class AccountDialog(wx.Dialog):
 			# Translators: A label in account dialog
 			_("Source")
 		)
-		self.account_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_item_selected)
+		self.account_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.update_ui)
 		self.account_list.Bind(wx.EVT_KEY_DOWN, self.on_account_list_key_down)
 		sizer.Add(self.account_list, 1, wx.EXPAND)
 
@@ -616,14 +756,31 @@ class AccountDialog(wx.Dialog):
 		sizer.Add(btn, 0, wx.ALL, 5)
 
 	def init_data(self):
+		"""Initialize the data for the dialog.
+
+		Get the singleton account manager instance.
+		"""
 		self.account_manager = accounts()
 
 	def _get_organization_name(self, account: Account) -> str:
+		"""Get a display name for the active organization of an account.
+
+		Args:
+			account: The account to get the organization name for.
+
+		Returns:
+			A string containing either the organization name or "No (personal)" if no organization is active.
+		"""
 		if not account.active_organization:
 			return _("No (personal)")
 		return account.active_organization.name
 
 	def add_account_to_list_ctrl(self, account: Account):
+		"""Add an account to the list control.
+
+		Args:
+			account: The account to add to the list control.
+		"""
 		self.account_list.Append(
 			(
 				account.name,
@@ -634,10 +791,22 @@ class AccountDialog(wx.Dialog):
 		)
 
 	def update_data(self):
+		"""Update the data shown in the dialog.
+
+		Add all accounts from the account manager to the list control.
+		"""
 		for account in self.account_manager:
 			self.add_account_to_list_ctrl(account)
 
-	def update_ui(self):
+	def update_ui(self, event: wx.Event | None = None):
+		"""Update the user interface elements based on the selected account.
+
+		Enable/disable buttons based on the account source and provider capabilities.
+		Update the default account toggle button state.
+
+		Args:
+			event: The event that triggered the update. If None, the update was not triggered by an event.
+		"""
 		account = self.account_manager[self.account_list.GetFirstSelected()]
 		log.debug(f"Selected account: {account}")
 		editable = account.source != AccountSource.ENV_VAR
@@ -651,10 +820,14 @@ class AccountDialog(wx.Dialog):
 			self.account_manager.default_account == account
 		)
 
-	def on_item_selected(self, event):
-		self.update_ui()
-
 	def on_account_list_key_down(self, event: wx.KeyEvent):
+		"""Handle the key down event on the account list.
+
+		Handle the Enter and Delete keys to edit and remove accounts.
+
+		Args:
+			event: The key down event.
+		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_edit(event)
 		elif event.GetKeyCode() == wx.WXK_DELETE:
@@ -662,7 +835,14 @@ class AccountDialog(wx.Dialog):
 		else:
 			event.Skip()
 
-	def on_manage_organizations(self, event):
+	def on_manage_organizations(self, event: wx.Event | None):
+		"""Handle the Manage organizations button click event.
+
+		Open the AccountOrganizationDialog to manage organizations for the selected account.
+
+		Args:
+			event: The event that triggered the Manage organizations button click.
+		"""
 		index = self.account_list.GetFirstSelected()
 		account = self.account_manager[index]
 		dialog = AccountOrganizationDialog(
@@ -683,7 +863,14 @@ class AccountDialog(wx.Dialog):
 		)
 		self.account_list.EnsureVisible(index)
 
-	def on_add(self, event):
+	def on_add(self, event: wx.Event | None):
+		"""Handle the Add button click event.
+
+		Open the EditAccountDialog to add a new account to the account manager.
+
+		Args:
+			event: The event that triggered the Add button click.
+		"""
 		dialog = EditAccountDialog(self, _("Add account"))
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
@@ -701,7 +888,14 @@ class AccountDialog(wx.Dialog):
 		self.account_list.EnsureVisible(self.account_list.GetItemCount() - 1)
 		self.update_ui()
 
-	def on_edit(self, event):
+	def on_edit(self, event: wx.Event | None):
+		"""Handle the Edit button click event.
+
+		Open the EditAccountDialog to edit the selected account.
+
+		Args:
+			event: The event that triggered the Edit button click.
+		"""
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
@@ -737,7 +931,14 @@ class AccountDialog(wx.Dialog):
 		self.account_list.EnsureVisible(index)
 		self.update_ui()
 
-	def on_remove(self, event):
+	def on_remove(self, event: wx.Event | None):
+		"""Handle the Remove button click event.
+
+		Remove the selected account from the account manager.
+
+		Args:
+			event: The event that triggered the Remove button click.
+		"""
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
@@ -757,7 +958,14 @@ class AccountDialog(wx.Dialog):
 		self.account_manager.save()
 		self.account_list.DeleteItem(index)
 
-	def on_default_account(self, event):
+	def on_default_account(self, event: wx.Event | None):
+		"""Handle the default account toggle button click event.
+
+		Set the selected account as the default account.
+
+		Args:
+			event: The event that triggered the default account toggle button click.
+		"""
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
@@ -771,5 +979,12 @@ class AccountDialog(wx.Dialog):
 		self.account_manager.save()
 		self.update_ui()
 
-	def on_close(self, event):
+	def on_close(self, event: wx.Event | None):
+		"""Handle the Close button click event.
+
+		Close the dialog.
+
+		Args:
+			event: The event that triggered the Close button click.
+		"""
 		self.EndModal(wx.ID_OK)

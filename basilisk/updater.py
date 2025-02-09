@@ -1,4 +1,5 @@
 """Module for updating the application."""
+
 import platform
 import re
 import subprocess
@@ -204,7 +205,9 @@ class BaseUpdater(ABC):
 
 	@abstractmethod
 	def download_installer(
-		self, grafical_callback: Callable[[int, int], None], stop_download: bool = False
+		self,
+		grafical_callback: Callable[[int, int], None],
+		stop_download: bool = False,
 	) -> Optional[str]:
 		"""Download the installer for the application. This method should be implemented by the derived class.
 
