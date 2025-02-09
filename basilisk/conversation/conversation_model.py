@@ -24,6 +24,22 @@ class MessageRoleEnum(enum.StrEnum):
 	# The message is a system message.
 	SYSTEM = enum.auto()
 
+	@classmethod
+	def get_labels(cls) -> dict[MessageRoleEnum, str]:
+		"""Get the labels for the different message roles.
+
+		Returns:
+			A dictionary mapping each message role to its corresponding translated labels.
+		"""
+		return {
+			# Translators: Label indicating that the message is from the user in a conversation
+			cls.USER: _("User:") + ' ',
+			# Translators: Label indicating that the message is from the assistant in a conversation
+			cls.ASSISTANT: _("Assistant:") + ' ',
+			# Translators: Label indicating that the message is a system message in a conversation
+			cls.SYSTEM: _("System:") + ' ',
+		}
+
 
 class Message(BaseModel):
 	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
