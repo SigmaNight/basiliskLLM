@@ -8,7 +8,6 @@ from .config_enums import (
 	KeyStorageMethodEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,
-	get_account_source_labels,
 )
 from .conversation_profile import ConversationProfile
 from .conversation_profile import (
@@ -28,7 +27,6 @@ __all__ = [
 	"conf",
 	"ConversationProfile",
 	"conversation_profiles",
-	"get_account_source_labels",
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",

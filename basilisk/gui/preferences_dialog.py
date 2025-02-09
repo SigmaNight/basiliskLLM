@@ -14,41 +14,11 @@ from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)
 
-LOG_LEVELS = {
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.NOTSET: _("Off"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.DEBUG: _("Debug"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.INFO: _("Info"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.WARNING: _("Warning"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.ERROR: _("Error"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.CRITICAL: _("Critical"),
-}
+LOG_LEVELS = LogLevelEnum.get_labels()
 
-release_channels = {
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.STABLE: _("Stable"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.BETA: _("Beta"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.DEV: _("Development"),
-}
+release_channels = ReleaseChannelEnum.get_labels()
 
-
-auto_update_modes = {
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.OFF: _("Off"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.NOTIFY: _("Notify new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.DOWNLOAD: _("Download new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.INSTALL: _("Install new version"),
-}
+auto_update_modes = AutomaticUpdateModeEnum.get_labels()
 
 
 class PreferencesDialog(wx.Dialog):

@@ -11,18 +11,12 @@ from basilisk.config import (
 	AccountSource,
 	KeyStorageMethodEnum,
 	accounts,
-	get_account_source_labels,
 )
 from basilisk.provider import get_provider, providers
 
 log = logging.getLogger(__name__)
 
-key_storage_methods = {
-	# Translators: A label for the API key storage method in the account dialog
-	KeyStorageMethodEnum.plain: _("Plain text"),
-	# Translators: A label for the API key storage method in the account dialog
-	KeyStorageMethodEnum.system: _("System keyring"),
-}
+key_storage_methods = KeyStorageMethodEnum.get_labels()
 
 
 class EditAccountOrganizationDialog(wx.Dialog):
@@ -153,7 +147,7 @@ class AccountOrganizationDialog(wx.Dialog):
 		self, parent: wx.Window, title: str, account: Account, size=(400, 400)
 	):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
-		self.account_source_labels = get_account_source_labels()
+		self.account_source_labels = AccountSource.get_labels()
 		self.parent = parent
 		self.account = account
 		self.init_ui()
@@ -545,7 +539,7 @@ class AccountDialog(wx.Dialog):
 
 	def __init__(self, parent, title, size=(400, 400)):
 		wx.Dialog.__init__(self, parent, title=title, size=size)
-		self.account_source_labels = get_account_source_labels()
+		self.account_source_labels = AccountSource.get_labels()
 		self.parent = parent
 		self.init_ui()
 		self.init_data()
