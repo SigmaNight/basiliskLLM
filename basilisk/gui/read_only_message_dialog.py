@@ -1,8 +1,19 @@
+"""Module for the ReadOnlyMessageDialog class."""
+
 import wx
 
 
 class ReadOnlyMessageDialog(wx.Dialog):
-	def __init__(self, parent, title, message):
+	"""Dialog for displaying a read-only message."""
+
+	def __init__(self, parent: wx.Window, title: str, message: str):
+		"""Initialize the dialog.
+
+		Args:
+			parent: The parent window.
+			title: The dialog title.
+			message: The message to display.
+		"""
 		super().__init__(parent, title=title, size=(800, 600))
 
 		vbox = wx.BoxSizer(wx.VERTICAL)
@@ -27,6 +38,11 @@ class ReadOnlyMessageDialog(wx.Dialog):
 		self.SetSizer(vbox)
 
 	def on_key_down(self, event):
+		"""Close the dialog on escape key press.
+
+		Args:
+			event: The key down event.
+		"""
 		if event.GetKeyCode() == wx.WXK_ESCAPE:
 			self.Close()
 		else:

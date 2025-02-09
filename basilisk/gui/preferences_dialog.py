@@ -1,3 +1,5 @@
+"""Preferences dialog for the BasiliskLLM application."""
+
 import logging
 
 import wx
@@ -22,7 +24,18 @@ auto_update_modes = AutomaticUpdateModeEnum.get_labels()
 
 
 class PreferencesDialog(wx.Dialog):
-	def __init__(self, parent, title, size=(400, 400)):
+	"""A dialog to configure the application preferences."""
+
+	def __init__(
+		self, parent: wx.Window, title: str, size: tuple[int, int] = (400, 400)
+	):
+		"""Create the dialog.
+
+		Args:
+			parent: The parent window.
+			title: The dialog title.
+			size: The dialog size.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.conf = get_conf()
@@ -31,6 +44,7 @@ class PreferencesDialog(wx.Dialog):
 		self.Show()
 
 	def init_ui(self):
+		"""Create the user interface."""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -304,13 +318,23 @@ class PreferencesDialog(wx.Dialog):
 		panel.Layout()
 		self.Layout()
 
-	def on_resize(self, event):
+	def on_resize(self, event: wx.Event | None):
+		"""Enable or disable the image resizing options.
+
+		Args:
+			event: The event that enable or disable the options.
+		"""
 		val = self.image_resize.GetValue()
 		self.image_max_height.Enable(val)
 		self.image_max_width.Enable(val)
 		self.image_quality.Enable(val)
 
-	def on_ok(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Save the configuration and close the dialog.
+
+		Args:
+			event: The event that triggered the save.
+		"""
 		log.debug("Saving configuration")
 		self.conf.general.log_level = list(LOG_LEVELS.keys())[
 			self.log_level.GetSelection()
@@ -357,10 +381,18 @@ class PreferencesDialog(wx.Dialog):
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):
+		"""Close the dialog without saving the configuration."""
 		self.EndModal(wx.ID_CANCEL)
 
 	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
-		"""Get all supported languages and set the current language as default"""
+		"""Get all supported languages and set the current language as default.
+
+		Args:
+			cur_locale: The current locale.
+
+		Returns:
+			A dictionary with the supported languages.
+		"""
 		self.languages = {
 			# Translators: A label for the language in the settings dialog
 			"auto": _("System default (auto)")

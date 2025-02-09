@@ -1,19 +1,25 @@
+"""Search dialog for searching text in a wx.TextCtrl."""
+
+import enum
 import re
-from enum import Enum
 from typing import List
 
 import wx
 
 
-class SearchDirection(Enum):
-	BACKWARD = 0
-	FORWARD = 1
+class SearchDirection(enum.IntEnum):
+	"""Enumeration for search directions."""
+
+	BACKWARD = enum.auto(0)
+	FORWARD = enum.auto()
 
 
-class SearchMode(Enum):
-	PLAIN_TEXT = 0
-	EXTENDED = 1
-	REGEX = 2
+class SearchMode(enum.IntEnum):
+	"""Enumeration for search modes."""
+
+	PLAIN_TEXT = enum.auto(0)
+	EXTENDED = enum.auto()
+	REGEX = enum.auto()
 
 
 def adjust_utf16_position(
@@ -24,13 +30,13 @@ def adjust_utf16_position(
 	Characters outside the BMP are represented by surrogate pairs in UTF-16, taking up two positions instead of one.
 	This function adjusts the given position to account for these surrogate pairs.
 
-	Parameters:
-	text (str): The input string.
-	position (int): The original position in the string.
-	reverse (bool): If True, the function will adjust the position in the reverse direction.
+	Args:
+		text: The input string.
+		position: The original position in the string.
+		reverse: If True, the function will adjust the position in the reverse direction.
 
 	Returns:
-	int: The adjusted position reflecting the presence of surrogate pairs.
+		The adjusted position reflecting the presence of surrogate pairs.
 	"""
 	relevant_text = text[:position]
 	count_high_surrogates = sum(1 for c in relevant_text if ord(c) >= 0x10000)
@@ -43,6 +49,8 @@ def adjust_utf16_position(
 
 
 class SearchDialog(wx.Dialog):
+	"""Dialog for searching text in a wx.TextCtrl."""
+
 	def __init__(
 		self,
 		parent: wx.Window,
@@ -51,6 +59,14 @@ class SearchDialog(wx.Dialog):
 		title: str = _("Search"),
 		search_list: List[str] = [],
 	) -> None:
+		"""Initialize the dialog.
+
+		Args:
+			parent: The parent window.
+			text: The text control to search in.
+			title: The dialog title.
+			search_list: The list of search strings.
+		"""
 		super().__init__(
 			parent,
 			title=title,
@@ -68,6 +84,7 @@ class SearchDialog(wx.Dialog):
 		self._search_combo.SetFocus()
 
 	def _create_ui(self) -> None:
+		"""Create the dialog UI."""
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
 
 		search_text_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -169,6 +186,7 @@ class SearchDialog(wx.Dialog):
 		self.SetSizerAndFit(main_sizer)
 
 	def _bind_events(self) -> None:
+		"""Bind events to the dialog controls."""
 		self._find_button.Bind(wx.EVT_BUTTON, self._on_find)
 		self._mode_radio_plain.Bind(wx.EVT_RADIOBUTTON, self._on_mode_change)
 		self._mode_radio_extended.Bind(wx.EVT_RADIOBUTTON, self._on_mode_change)
@@ -176,6 +194,7 @@ class SearchDialog(wx.Dialog):
 		self.Bind(wx.EVT_CLOSE, self._on_close)
 
 	def _apply_initial_values(self) -> None:
+		"""Apply the initial values to the dialog controls."""
 		self._dir_radio_forward.SetValue(
 			self._search_direction == SearchDirection.FORWARD
 		)
@@ -195,33 +214,48 @@ class SearchDialog(wx.Dialog):
 		self._update_search_choice()
 
 	def _update_search_choice(self) -> None:
+		"""Update the search choice combo box."""
 		self._search_combo.Clear()
 		self._search_combo.AppendItems(self._search_list)
 
 	def _update_dot_all_visibility(self) -> None:
+		"""Update the visibility of the "Dot matches all" checkbox."""
 		if self._mode_radio_regex.GetValue():
 			self._search_dot_all_checkbox.Show()
 		else:
 			self._search_dot_all_checkbox.Hide()
 		self.Layout()
 
-	def _compile_search_pattern(self, search_text: str) -> re.Pattern:
+	def _compile_search_pattern(self, query_text: str) -> re.Pattern:
+		"""Compile the search pattern based on the search mode.
+
+		Args:
+			query_text: The search text to compile.
+		"""
 		flags = 0 if self._case_sensitive else re.IGNORECASE
 		flags |= re.UNICODE
 		if self._search_dot_all and self._search_mode == SearchMode.REGEX:
 			flags |= re.DOTALL
 		if self._search_mode == SearchMode.EXTENDED:
-			search_text = (
-				search_text.replace(r'\n', '\n')
+			query_text = (
+				query_text.replace(r'\n', '\n')
 				.replace(r'\t', '\t')
 				.replace(r'\r', '\r')
 				.replace(r'\x00', '\x00')
 				.replace(r'\x1F', '\x1f')
 				.replace(r'\x7F', '\x7f')
 			)
-		return re.compile(search_text, flags)
+		return re.compile(query_text, flags)
 
 	def _find_matches(self, search_text: str) -> List[re.Match]:
+		"""Find all matches of the search text in the text control.
+
+		Args:
+			search_text: The text to search for.
+
+		Returns:
+			List[re.Match]: A list of regex matches.
+		"""
 		text_content = self._text.GetValue()
 		if not self._case_sensitive:
 			text_content = text_content.lower()
@@ -240,10 +274,21 @@ class SearchDialog(wx.Dialog):
 		return list(pattern.finditer(text_content))
 
 	def _select_text(self, start: int, end: int):
+		"""Select the text in the text control.
+
+		Args:
+			start: The start position of the selection.
+			end: The end position of the selection.
+		"""
 		self._text.SetSelection(start, end)
 		self._text.SetFocus()
 
 	def _on_find(self, event: wx.Event) -> None:
+		"""Handle the find button click event.
+
+		Args:
+			event: The event object.
+		"""
 		if self.IsModal():
 			self.EndModal(wx.ID_OK)
 
@@ -320,25 +365,47 @@ class SearchDialog(wx.Dialog):
 		)
 
 	def _on_close(self, event: wx.Event) -> None:
+		"""Handle the dialog close event.
+
+		Args:
+			event: The event object.
+		"""
 		self.EndModal(wx.ID_CANCEL)
 
 	def _on_mode_change(self, event: wx.Event) -> None:
+		"""Handle the search mode radio button change event.
+
+		Args:
+			event: The event object.
+		"""
 		self._update_dot_all_visibility()
 
 	@property
 	def search_direction(self) -> SearchDirection:
+		"""Get the search direction.
+
+		Returns:
+			The search direction.
+		"""
 		return self._search_direction
 
 	@search_direction.setter
 	def search_direction(self, value: SearchDirection) -> None:
+		"""Set the search direction.
+
+		Args:
+			value: The search direction.
+		"""
 		if value not in {SearchDirection.BACKWARD, SearchDirection.FORWARD}:
 			raise ValueError("search_direction must be a SearchDirection")
 		self._search_direction = value
 
 	def search_previous(self) -> None:
+		"""Search for the previous match."""
 		self._dir_radio_backward.SetValue(True)
 		self._on_find(None)
 
 	def search_next(self) -> None:
+		"""Search for the next match."""
 		self._dir_radio_forward.SetValue(True)
 		self._on_find(None)
