@@ -3,8 +3,7 @@ import logging
 from functools import cached_property
 from typing import Iterator
 
-from ollama import ChatResponse, Client, show
-from ollama import list as list_models
+from ollama import ChatResponse, Client
 
 from basilisk.conversation import (
 	Conversation,
@@ -32,9 +31,9 @@ class OllamaEngine(BaseEngine):
 		Get models
 		"""
 		models = []
-		models_list = list_models().models
+		models_list = self.client.list().models
 		for model in models_list:
-			info = show(model.model)
+			info = self.client.show(model.model)
 			context_length = 0
 			description = json.dumps(info.modelinfo, indent=2)
 			description += f"\n\n{info.license}"
@@ -61,8 +60,11 @@ class OllamaEngine(BaseEngine):
 		"""
 		Get client
 		"""
-		log.info(self.account.provider.base_url)
-		return Client(host=str(self.account.provider.base_url))
+		base_url = self.account.custom_base_url or str(
+			self.account.provider.base_url
+		)
+		log.info(f"Base URL: {base_url}")
+		return Client(host=base_url)
 
 	def completion(
 		self,
