@@ -1,3 +1,9 @@
+"""Module for Anthropic API integration.
+
+This module provides the AnthropicEngine class for interacting with the Anthropic API,
+implementing capabilities for text and image generation.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -28,23 +34,46 @@ log = logging.getLogger(__name__)
 
 
 class AnthropicEngine(BaseEngine):
+	"""Engine implementation for Anthropic API integration.
+
+	Provides functionality for interacting with Anthropic's Claude models,
+	supporting both text and image processing capabilities.
+
+	Attributes:
+		capabilities: Set of supported capabilities including
+			text and image generation.
+	"""
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
 
 	def __init__(self, account: Account) -> None:
+		"""Initializes the engine with the given account.
+
+		Args:
+			account: The provider account configuration.
+		"""
 		super().__init__(account)
 
 	@cached_property
 	def client(self) -> Anthropic:
-		"""Property to return the client object"""
+		"""Property to return the client object for the Anthropic API.
+
+		Returns:
+			The client object for the Anthropic API initialized with the account API key.
+		"""
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Get models"""
+		"""Get models
+
+		Returns:
+			List of Anthropic models.
+		"""
 		super().models
 		log.debug("Getting Anthropic models")
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
@@ -153,6 +182,14 @@ class AnthropicEngine(BaseEngine):
 		]
 
 	def convert_message(self, message: Message) -> dict:
+		"""Converts internal message format to Anthropic API format.
+
+		Args:
+			message: Message to be converted.
+
+		Returns:
+			Message in Anthropic API format with role and content.
+		"""
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
 			for attachment in message.attachments:
@@ -177,24 +214,16 @@ class AnthropicEngine(BaseEngine):
 		system_message: Message | None,
 		**kwargs,
 	) -> Message | Stream[MessageStreamEvent]:
-		"""Send a completion request to the Anthropic API with specified parameters.
+		"""Sends a completion request to the Anthropic API.
 
-		Processes a message block and generates a response using the Anthropic API client. Supports both streaming and non-streaming modes of text generation.
-
-		Parameters:
-		    new_block (MessageBlock): The message block containing generation parameters and model details.
-		    conversation (Conversation): The current conversation context.
-		    system_message (Message, optional): An optional system message to guide the AI's behavior.
-		    **kwargs: Additional keyword arguments to customize the API request.
+		Args:
+			new_block: Message block with generation parameters.
+			conversation: Current conversation context.
+			system_message: Optional system-level instruction message.
+			**kwargs: Additional API request parameters.
 
 		Returns:
-		    Message | Stream[MessageStreamEvent]: The API response, which can be either a complete message or a stream of message events.
-
-		Notes:
-		    - Uses the specified model's configuration from `self.get_model()`
-		    - Supports dynamic configuration of generation parameters like temperature, max tokens, and top_p
-		    - Allows optional system message to provide context or instructions
-		    - Handles both streaming and non-streaming response modes based on `new_block.stream`
+			Either a complete message or a stream of message events.
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
 		model = self.get_model(new_block.model.model_id)
@@ -215,6 +244,14 @@ class AnthropicEngine(BaseEngine):
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
 	):
+		"""Processes streaming response from Anthropic API.
+
+		Args:
+			stream: Stream of message events from the API.
+
+		Yields:
+			Text content from each event.
+		"""
 		for event in stream:
 			match event.type:
 				case "content_block_delta":
@@ -223,6 +260,16 @@ class AnthropicEngine(BaseEngine):
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
+		"""Processes non-streaming response from Anthropic API.
+
+		Args:
+			response: Complete message from the API.
+			new_block: Message block to update.
+			**kwargs: Additional processing parameters.
+
+		Returns:
+			Updated message block with response.
+		"""
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content=response.content[0].text
 		)

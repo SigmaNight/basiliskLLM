@@ -1,3 +1,9 @@
+"""Module for MistralAI API integration.
+
+This module provides the MistralAIEngine class for interacting with the MistralAI API,
+implementing capabilities for text generation using various MistralAI models.
+"""
+
 import logging
 from functools import cached_property
 
@@ -8,11 +14,24 @@ log = logging.getLogger(__name__)
 
 
 class MistralAIEngine(OpenAIEngine):
+	"""Engine implementation for MistralAI API integration.
+
+	Extends OpenAIEngine to provide MistralAI-specific model configurations and capabilities.
+	Supports text generation through various MistralAI models.
+
+	Attributes:
+		capabilities: Set of supported capabilities (currently text only).
+	"""
+
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Get models"""
+		"""Retrieves available MistralAI models.
+
+		Returns:
+			List of supported MistralAI models with their configurations.
+		"""
 		log.debug("Getting MistralAI models")
 		# See <https://docs.mistral.ai/getting-started/models/>
 		models = [

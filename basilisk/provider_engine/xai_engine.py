@@ -1,3 +1,9 @@
+"""Module for xAI API integration.
+
+This module provides the XAIEngine class for interacting with the xAI API,
+implementing capabilities for both text and image generation.
+"""
+
 import logging
 from functools import cached_property
 
@@ -8,6 +14,15 @@ log = logging.getLogger(__name__)
 
 
 class XAIEngine(OpenAIEngine):
+	"""Engine implementation for xAI API integration.
+
+	Extends OpenAIEngine to provide xAI-specific model configurations and capabilities.
+	Supports both text and image generation through the xAI API.
+
+	Attributes:
+		capabilities: Set of supported capabilities including text and image generation.
+	"""
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
@@ -15,7 +30,11 @@ class XAIEngine(OpenAIEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Get models"""
+		"""Retrieves available xAI models.
+
+		Returns:
+			List of supported xAI models with their configurations.
+		"""
 		log.debug("Getting xAI models")
 		# See <https://console.x.ai/team/default/models>
 		models = [
