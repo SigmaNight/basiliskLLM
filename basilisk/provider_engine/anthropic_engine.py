@@ -69,7 +69,7 @@ class AnthropicEngine(BaseEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Get models
+		"""Get models available for the Anthropic ai provider.
 
 		Returns:
 			List of Anthropic models.

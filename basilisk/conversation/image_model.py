@@ -1,4 +1,4 @@
-""" "Module for managing for image in conversation."""
+"""Module for managing for image in conversation."""
 
 from __future__ import annotations
 
@@ -300,7 +300,7 @@ class ImageFile(BaseModel):
 
 	@property
 	def display_size(self) -> str:
-		""" "Get the human-readable size of the image file.
+		"""Get the human-readable size of the image file.
 
 		Returns:
 			The size of the image file in a human-readable format (e.g., "1.23 MB").

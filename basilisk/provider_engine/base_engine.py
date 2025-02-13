@@ -135,7 +135,7 @@ class BaseEngine(ABC):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
-		**kwargs: Dict[str, Any],
+		**kwargs: dict[str, Any],
 	) -> Any:
 		"""Generates a completion response.
 
