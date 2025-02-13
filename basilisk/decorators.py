@@ -1,3 +1,5 @@
+"""Decorators for the BasiliskLLM application."""
+
 import logging
 import time
 from functools import wraps
@@ -9,6 +11,15 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_no_task_running(method: Callable):
+	"""Decorator to ensure no task is running before starting a new one.
+
+	Args:
+		method: The method to decorate (task runner).
+
+	Returns:
+		The decorated method.
+	"""
+
 	@wraps(method)
 	def wrapper(instance, *args, **kwargs):
 		if instance.task is not None and instance.task.is_alive():
@@ -25,6 +36,15 @@ def ensure_no_task_running(method: Callable):
 
 
 def measure_time(method: Callable):
+	"""Decorator to measure the time taken by a method.
+
+	Args:
+		method: The method to decorate (time measurement).
+
+	Returns:
+		The decorated method.
+	"""
+
 	@wraps(method)
 	def wrapper(*args, **kwargs):
 		if not logger.isEnabledFor(logging.DEBUG):
