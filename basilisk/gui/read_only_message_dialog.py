@@ -1,10 +1,20 @@
-"""Module for the ReadOnlyMessageDialog class."""
+"""Module for displaying read-only messages in a dialog.
+
+This module provides a dialog based on wx.Dialog for displaying read-only text messages
+with a close button and escape key support for dismissal.
+"""
 
 import wx
 
 
 class ReadOnlyMessageDialog(wx.Dialog):
-	"""Dialog for displaying a read-only message."""
+	"""Dialog for displaying a read-only message in a scrollable text control.
+
+	This dialog is based on wx.Dialog and provides:
+	- A read-only text control for displaying messages
+	- A close button
+	- Support for closing via the escape key
+	"""
 
 	def __init__(self, parent: wx.Window, title: str, message: str):
 		"""Initialize the dialog.

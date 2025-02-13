@@ -15,6 +15,10 @@ from basilisk.consts import APP_AUTHOR, APP_NAME
 def get_log_file_path() -> Path:
 	"""Get log file path for Basilisk application.
 
+	The path is determined by:
+	- user_data_path if configured
+	- platformdirs.user_log_path() otherwise
+
 	Returns:
 		The path to the log file depending on the configuration
 	"""
@@ -36,7 +40,7 @@ def setup_logging(level: str) -> None:
 	Configure the format of the log messages and the logging level.
 
 	Args:
-		level: logging level to set
+		level: logging level to set. 'OFF' is converted to 'NOTSET'.
 	"""
 	level = level.upper()
 	if level == "OFF":

@@ -1,4 +1,11 @@
-"""A module to display HTML content in a window. Supports Markdown content."""
+"""A module to display HTML content in a window.
+
+Features:
+- Supports both HTML and Markdown content
+- Markdown to HTML conversion with extended features
+- Copy to clipboard functionality
+- Responsive web view.
+"""
 
 import markdown2
 import wx
@@ -18,7 +25,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 class HtmlViewWindow(wx.Frame):
-	"""A window to display HTML content. Converts Markdown to HTML if needed."""
+	"""A window to display HTML content. Converts Markdown to HTML if needed.
+
+	Supported Markdown features:
+	- Fenced code blocks
+	- Tables
+	- Strikethrough
+	- HTML-friendly tags
+	"""
 
 	def __init__(
 		self,

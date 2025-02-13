@@ -1,4 +1,13 @@
-"""Sound manager for playing sound effects."""
+"""Sound manager for playing sound effects in the application.
+
+This module provides a centralized sound management system that handles:
+- Loading and caching of sound files
+- Asynchronous playback of sound effects
+- Looped playback functionality
+- Global sound management through singleton pattern
+
+Supported formats are determined by the wx.adv.Sound capabilities.
+"""
 
 import logging
 import threading
@@ -65,7 +74,7 @@ class SoundManager:
 
 		Args:
 			sound: wx.adv.Sound object to play
-			delay: Delay between sound repetitions
+			delay: Delay in seconds between sound repetitions to prevent CPU overload (default: 0.1)
 		"""
 		while self.loop:
 			sound.Play(wx.adv.SOUND_ASYNC | wx.adv.SOUND_LOOP)
@@ -77,7 +86,7 @@ class SoundManager:
 		"""Play a sound effect. If loop is True, the sound will be played in a loop.
 
 		Args:
-			file_path: Path to the sound file
+			file_path: Path to the sound file or  a predefined alias from aliases mapping
 			loop: Whether to play the sound in a loop
 		"""
 		with self.thread_lock:

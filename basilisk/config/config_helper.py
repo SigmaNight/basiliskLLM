@@ -63,6 +63,10 @@ user_config_path = get_user_config_path(
 def get_config_file_paths(file_path: str) -> list[Path]:
 	"""Get the paths to search for a config file.
 
+	Paths are searched in the following order:
+	1. user_data_path if defined
+	2. user_config_path
+
 	Args:
 		file_path: The path to the config file.
 
@@ -109,7 +113,9 @@ def get_settings_config_dict(file_path: str) -> SettingsConfigDict:
 
 
 def save_config_file(conf_dict: dict, file_path: str) -> None:
-	"""Save a config file.
+	"""Save a config file in YAML format.
+
+	The config is saved with 2-space indentation and preserves key order.
 
 	Args:
 		conf_dict: The config dictionary to save.

@@ -6,12 +6,12 @@ This module contains global variables that are used throughout the application. 
 import sys
 from pathlib import Path
 
-# fase directory of the application executable
+# base directory of the application executable
 base_path = Path(
 	sys.executable if getattr(sys, "frozen", False) else __file__
 ).parent
 
-# application configuration inside the base directory (usefull for portable installations)
+# application configuration inside the base directory (useful for portable installations)
 user_data_path = (
 	base_path / Path("user_data")
 	if (base_path / "user_data").exists()

@@ -37,7 +37,7 @@ class KeyStorageMethodEnum(enum.StrEnum):
 	SYSTEM = enum.auto()
 
 	@classmethod
-	def get_labels(cls) -> dict[str, str]:
+	def get_labels(cls) -> dict[KeyStorageMethodEnum, str]:
 		"""Return a dict of key storage method labels.
 
 		Returns:

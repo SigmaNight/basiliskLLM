@@ -36,7 +36,7 @@ def ensure_no_task_running(method: Callable):
 
 
 def measure_time(method: Callable):
-	"""Decorator to measure the time taken by a method.
+	"""Decorator to measure the time taken by a method in seconds.
 
 	Args:
 		method: The method to decorate (time measurement).

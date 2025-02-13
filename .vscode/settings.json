@@ -12,5 +12,5 @@
     "autoDocstring.quoteStyle": "\"\"\"",
     "ruff.enable": true,
     "ruff.importStrategy": "fromEnvironment",
-    "ruff.organizeImports": true,
+    "ruff.organizeImports": true
 }

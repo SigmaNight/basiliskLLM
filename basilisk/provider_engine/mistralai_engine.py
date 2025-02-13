@@ -60,7 +60,7 @@ class MistralAIEngine(OpenAIEngine):
 				name="Mistral Large",
 				# Translators: This is a model description
 				description=_(
-					"Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024"
+					"Our top-tier reasoning model for high-complexity tasks with the latest version v2 released July 2024"
 				),
 				context_window=131000,
 				max_temperature=1.0,

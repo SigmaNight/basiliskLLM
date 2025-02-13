@@ -1,10 +1,19 @@
-"""This module provide a dialog to name a conversation."""
+"""This module provides a dialog for naming or renaming conversations.
+
+The dialog supports both manual name entry and automatic name generation based on conversation content.
+"""
 
 import wx
 
 
 class NameConversationDialog(wx.Dialog):
-	"""A dialog to name a conversation."""
+	"""A dialog to name a conversation.
+
+	Features:
+	- Manual name entry
+	- Automatic name generation
+	- Support for both initial naming and renaming
+	"""
 
 	def __init__(self, parent, title="", auto=False):
 		"""Create the dialog.

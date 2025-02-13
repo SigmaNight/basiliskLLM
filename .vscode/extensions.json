@@ -6,6 +6,6 @@
         "github.vscode-github-actions",
         "github.vscode-pull-request-github",
         "ms-python.python",
-        "njpwerner.autodocstring",
+        "njpwerner.autodocstring"
     ]
 }

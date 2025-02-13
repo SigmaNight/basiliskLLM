@@ -1,11 +1,23 @@
-"""Module to ensure that only one instance of basiliskLLM is running at a time."""
+"""Module to ensure that only one instance of basiliskLLM is running at a time.
+
+This module implements a file-based locking mechanism to prevent multiple instances
+of the application from running simultaneously. It manages a lock file containing
+the process ID (PID) of the running instance.
+"""
 
 import atexit
 import os
 
 
 class SingletonInstance:
-	"""Class to ensure that only one instance of basiliskLLM is running at a time."""
+	"""Class to ensure that only one instance of basiliskLLM is running at a time.
+
+	This class implements a file-based locking mechanism that:
+	- Creates a lock file containing the process ID
+	- Prevents multiple instances from running simultaneously
+	- Automatically releases the lock on program exit
+	- Provides methods to check for existing instances
+	"""
 
 	def __init__(self, lock_file: str):
 		"""Initialize the SingletonInstance object.
@@ -18,6 +30,10 @@ class SingletonInstance:
 
 	def acquire(self) -> bool:
 		"""Acquire the lock.
+
+		This method attempts to create a lock file and write the current process ID.
+		It handles errors during file operations and automatically registers cleanup
+		on program exit.
 
 		Returns:
 			True if the lock was acquired, False otherwise.
@@ -35,7 +51,10 @@ class SingletonInstance:
 		return True
 
 	def release(self):
-		"""Release the lock."""
+		"""Release the lock.
+
+		This method closes the lock file and removes it from the filesystem.
+		"""
 		if self.lock_handle:
 			try:
 				self.lock_handle.close()
