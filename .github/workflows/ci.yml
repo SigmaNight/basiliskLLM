@@ -18,7 +18,7 @@ jobs:
   build_app:
     uses: ./.github/workflows/build_app.yml
 
-  ruff:
+  style:
     uses: ./.github/workflows/ruff.yml
 
   localization:
