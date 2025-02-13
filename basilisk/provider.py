@@ -1,8 +1,10 @@
+"""Module to manage AI providers general information."""
+
 from __future__ import annotations
 
+import enum
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Type
 
@@ -14,16 +16,30 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class ProviderAPIType(Enum):
-	OPENAI = "openai"
-	ANTHROPIC = "anthropic"
-	OLLAMA = "ollama"
-	GEMINI = "gemini"
+class ProviderAPIType(enum.StrEnum):
+	"""Define different API types for AI providers."""
+
+	OPENAI = enum.auto()
+	ANTHROPIC = enum.auto()
+	OLLAMA = enum.auto()
+	GEMINI = enum.auto()
 
 
 @dataclass
 class Provider:
-	"""Manage API key"""
+	"""Represents an AI provider.
+
+	Attributes:
+		id: The unique identifier for the provider
+		name: The name of the provider
+		api_type: The type of API the provider uses
+		engine_cls_path: The path to the provider's engine class
+		base_url: The base URL for the provider's API
+		organization_mode_available: Whether the provider supports organization mode
+		require_api_key: Whether the provider requires an API key
+		custom: Whether the provider is custom
+		env_var_name_api_key: The environment variable name to get the API key
+	"""
 
 	id: str
 	name: str
@@ -39,7 +55,11 @@ class Provider:
 	@cached_property
 	@measure_time
 	def engine_cls(self) -> Type[BaseEngine]:
-		"""Get engine class"""
+		"""Get the provider's engine class.
+
+		Returns:
+			The provider's engine class
+		"""
 		try:
 			module_path, class_name = self.engine_cls_path.rsplit(".", 1)
 			module = __import__(module_path, fromlist=[class_name])
@@ -131,7 +151,14 @@ providers = [
 
 
 def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
-	"""Get provider by criteria"""
+	"""Get providers by criteria.
+
+	Args:
+		**kwargs: Criteria to filter providers by (e.g. name="OpenAI")
+
+	Returns:
+		Iterable of providers that match the criteria
+	"""
 	match_providers = providers
 	for k, v in kwargs.items():
 		match_providers = filter(
@@ -141,7 +168,17 @@ def get_providers(**kwargs: dict[str, Any]) -> Iterable[Provider]:
 
 
 def get_provider(**kwargs: dict[str, Any]) -> Provider:
-	"""Get provider by criteria"""
+	"""Get provider by criteria.
+
+	Args:
+		**kwargs: Criteria to filter providers by (e.g. name="OpenAI")
+
+	Returns:
+		The provider that matches the criteria
+
+	Raises:
+		ValueError: If no provider is found or multiple providers are found
+	"""
 	match_providers = list(get_providers(**kwargs))
 	if not match_providers or len(match_providers) == 0:
 		raise ValueError("No provider found")
