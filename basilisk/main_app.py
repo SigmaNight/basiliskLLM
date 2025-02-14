@@ -13,6 +13,7 @@ import basilisk.global_vars as global_vars
 from basilisk.accessible_output import get_accessible_output
 from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.file_watcher import init_file_watcher
+from basilisk.hotkeys import HotkeyHandlerMixin
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	get_log_file_path,
@@ -26,7 +27,7 @@ from basilisk.updater import automatic_update_check, automatic_update_download
 log = logging.getLogger(__name__)
 
 
-class MainApp(wx.App):
+class MainApp(wx.App, HotkeyHandlerMixin):
 	def OnInit(self) -> bool:
 		sys.excepthook = logging_uncaught_exceptions
 
@@ -48,6 +49,8 @@ class MainApp(wx.App):
 		initialize_sound_manager()
 		log.info("sound manager initialized")
 		get_accessible_output()
+		self.init_hotkeys()
+		log.info("hotkeys initialized")
 		from basilisk.gui.main_frame import MainFrame
 
 		frame_style = wx.DEFAULT_FRAME_STYLE
