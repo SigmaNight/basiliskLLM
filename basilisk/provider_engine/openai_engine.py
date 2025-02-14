@@ -102,10 +102,10 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="o1",
+				id="o3-mini",
 				# Translators: This is a model description
 				description=_(
-					"Points to the most recent snapshot of the o1 model"
+					"Our most recent small reasoning model, providing high intelligence at the same cost and latency targets of o1-mini. o3-mini also supports key developer features, like Structured Outputs, function calling, Batch API, and more. Like other models in the o-series, it is designed to excel at science, math, and coding tasks."
 				),
 				context_window=200000,
 				max_output_tokens=100000,
@@ -113,13 +113,13 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="o1-preview",
+				id="o1",
 				# Translators: This is a model description
 				description=_(
-					"Points to the most recent snapshot of the o1-preview model"
+					"Points to the most recent snapshot of the o1 model"
 				),
-				context_window=128000,
-				max_output_tokens=32768,
+				context_window=200000,
+				max_output_tokens=100000,
 				vision=True,
 				max_temperature=2.0,
 			),
@@ -299,7 +299,7 @@ class OpenAIEngine(BaseEngine):
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
-			"model": new_block.model.id,
+			"model": new_block.model.model_id,
 			"messages": self.get_messages(
 				new_block, conversation, system_message
 			),
@@ -319,14 +319,14 @@ class OpenAIEngine(BaseEngine):
 		for chunk in stream:
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
-				yield self.normalize_linesep(delta.content)
+				yield delta.content
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=self.normalize_linesep(response.choices[0].message.content),
+			content=response.choices[0].message.content,
 		)
 		return new_block
 

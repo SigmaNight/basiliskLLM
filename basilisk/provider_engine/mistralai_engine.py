@@ -23,7 +23,7 @@ class MistralAIEngine(OpenAIEngine):
 				name="Ministral 3B",
 				# Translators: This is a model description
 				description=_("World’s best edge model"),
-				context_window=128000,
+				context_window=131000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),
@@ -45,9 +45,21 @@ class MistralAIEngine(OpenAIEngine):
 				description=_(
 					"Our top-tier reasoning model for high-complexity tasks with the lastest version v2 released July 2024"
 				),
-				context_window=128000,
+				context_window=131000,
 				max_temperature=1.0,
 				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="pixtral-large-latest",
+				name="Pixtral Large",
+				# Translators: This is a model description
+				description=_(
+					"Our frontier-class multimodal model released November 2024"
+				),
+				context_window=131000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
 			),
 			ProviderAIModel(
 				id="mistral-small-latest",
@@ -67,7 +79,7 @@ class MistralAIEngine(OpenAIEngine):
 				description=_(
 					"Our cutting-edge language model for coding released May 2024"
 				),
-				context_window=32000,
+				context_window=256000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),
@@ -78,7 +90,7 @@ class MistralAIEngine(OpenAIEngine):
 				description=_(
 					"A 12B model with image understanding capabilities in addition to text"
 				),
-				context_window=128000,
+				context_window=131000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 				vision=True,
@@ -91,37 +103,6 @@ class MistralAIEngine(OpenAIEngine):
 					"A 12B model built with the partnership with Nvidia. It is easy to use and a drop-in replacement in any system using Mistral 7B that it supersedes"
 				),
 				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="open-mistral-7b",
-				name="Mistral 7B",
-				# Translators: This is a model description
-				description=_("Our first dense model released September 2023"),
-				context_window=32000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="open-mixtral-8x7b",
-				name="Mixtral 8x7B",
-				# Translators: This is a model description
-				description=_(
-					"Our first sparse mixture-of-experts released December 2023"
-				),
-				context_window=32000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="open-mixtral-8x22b",
-				name="Mixtral 8x22B",
-				# Translators: This is a model description
-				description=_(
-					"Our best open source model to date released April 2024"
-				),
-				context_window=64000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),

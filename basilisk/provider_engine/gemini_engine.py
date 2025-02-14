@@ -8,11 +8,12 @@ import google.generativeai as genai
 
 from basilisk.conversation import (
 	Conversation,
+	ImageFile,
+	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.image_file import ImageFile, ImageFileTypes
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -44,7 +45,19 @@ class GeminiEngine(BaseEngine):
 		"""
 		Get models
 		"""
+		# See <https://ai.google.dev/gemini-api/docs/models/gemini?hl=en>
 		return [
+			ProviderAIModel(
+				id="gemini-2.0-flash-exp",
+				# Translators: This is a model description
+				description=_(
+					"Next generation features, speed, and multimodal generation for a diverse variety of tasks"
+				),
+				context_window=1048576,
+				max_output_tokens=8192,
+				vision=True,
+				default_temperature=1.0,
+			),
 			ProviderAIModel(
 				id="gemini-1.5-flash-latest",
 				# Translators: This is a model description
@@ -89,37 +102,6 @@ class GeminiEngine(BaseEngine):
 				vision=True,
 				default_temperature=1.0,
 			),
-			ProviderAIModel(
-				id="gemini-1.0-pro-latest",
-				# Translators: This is a model description
-				description=_(
-					"The best model for scaling across a wide range of tasks. This is the latest model."
-				),
-				context_window=30720,
-				max_output_tokens=2048,
-				default_temperature=0.9,
-			),
-			ProviderAIModel(
-				id="gemini-1.0-pro",
-				# Translators: This is a model description
-				description=_(
-					"The best model for scaling across a wide range of tasks"
-				),
-				context_window=30720,
-				max_output_tokens=2048,
-				default_temperature=0.9,
-			),
-			ProviderAIModel(
-				id="gemini-1.0-pro-vision-latest",
-				# Translators: This is a model description
-				description=_(
-					'The best image understanding model to handle a broad range of applications'
-				),
-				context_window=12288,
-				max_output_tokens=4096,
-				vision=True,
-				default_temperature=0.4,
-			),
 		]
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
@@ -159,7 +141,7 @@ class GeminiEngine(BaseEngine):
 	) -> genai.types.GenerateContentResponse:
 		super().completion(new_block, conversation, system_message, **kwargs)
 		model = genai.GenerativeModel(
-			model_name=new_block.model.id,
+			model_name=new_block.model.model_id,
 			system_instruction=system_message.content
 			if system_message
 			else None,
@@ -185,8 +167,7 @@ class GeminiEngine(BaseEngine):
 		**kwargs,
 	) -> MessageBlock:
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=self.normalize_linesep(response.text),
+			role=MessageRoleEnum.ASSISTANT, content=response.text
 		)
 		return new_block
 
@@ -196,4 +177,4 @@ class GeminiEngine(BaseEngine):
 		for chunk in stream:
 			chunk_text = chunk.text
 			if chunk_text:
-				yield self.normalize_linesep(chunk_text)
+				yield chunk_text

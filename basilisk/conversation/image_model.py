@@ -10,10 +10,19 @@ from typing import Annotated, Any
 
 import httpx
 from PIL import Image
-from pydantic import BaseModel, PlainValidator
+from pydantic import (
+	BaseModel,
+	Field,
+	PlainValidator,
+	SerializationInfo,
+	SerializerFunctionWrapHandler,
+	ValidationInfo,
+	field_serializer,
+	field_validator,
+)
 from upath import UPath
 
-from .decorators import measure_time
+from basilisk.decorators import measure_time
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +98,8 @@ class ImageFileTypes(Enum):
 			return cls.IMAGE_URL
 		if isinstance(value, str) and value.lower() == "https":
 			return cls.IMAGE_URL
+		if isinstance(value, str) and value.lower() == "zip":
+			return cls.IMAGE_LOCAL
 		return cls.UNKNOWN
 
 
@@ -102,7 +113,7 @@ class ImageFile(BaseModel):
 	description: str | None = None
 	size: int | None = None
 	dimensions: tuple[int, int] | None = None
-	resize_location: PydanticUPath | None = None
+	resize_location: PydanticUPath | None = Field(default=None, exclude=True)
 
 	@classmethod
 	@measure_time
@@ -126,6 +137,36 @@ class ImageFile(BaseModel):
 			dimensions=dimensions,
 		)
 
+	@field_serializer("location", mode="wrap")
+	@classmethod
+	def change_location(
+		cls,
+		value: PydanticUPath,
+		wrap_handler: SerializerFunctionWrapHandler,
+		info: SerializationInfo,
+	) -> PydanticUPath:
+		if not info.context:
+			return wrap_handler(value)
+		mapping = info.context.get("attachment_mapping")
+		if not mapping:
+			return wrap_handler(value)
+		return mapping.get(value, wrap_handler(value))
+
+	@field_validator("location", mode="before")
+	@classmethod
+	def validate_location(
+		cls, value: Any, info: ValidationInfo
+	) -> str | PydanticUPath:
+		if isinstance(value, str):
+			if info.context:
+				root_path = info.context.get("root_path")
+				if root_path and "://" not in value:
+					return root_path / value
+			return value
+		if not isinstance(value, UPath):
+			raise ValueError("Invalid location")
+		return value
+
 	def __init__(self, /, **data: Any) -> None:
 		super().__init__(**data)
 		if not self.name:
@@ -133,6 +174,8 @@ class ImageFile(BaseModel):
 			self.size = self._get_size()
 		if not self.dimensions:
 			self.dimensions = self._get_dimensions()
+
+	__init__.__pydantic_base_init__ = True
 
 	@property
 	def type(self) -> ImageFileTypes:
@@ -171,16 +214,14 @@ class ImageFile(BaseModel):
 
 	@measure_time
 	def resize(
-		self,
-		optimize_folder: UPath,
-		max_width: int,
-		max_height: int,
-		quality: int,
+		self, conv_folder: UPath, max_width: int, max_height: int, quality: int
 	):
 		if ImageFileTypes.IMAGE_URL == self.type:
 			return
 		log.debug("Resizing image")
-		resize_location = optimize_folder / self.location.name
+		resize_location = conv_folder.joinpath(
+			"optimized_images", self.location.name
+		)
 		with self.location.open(mode="rb") as src_file:
 			with resize_location.open(mode="wb") as dst_file:
 				success = resize_image(

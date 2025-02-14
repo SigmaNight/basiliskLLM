@@ -4,10 +4,12 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cached_property
-from typing import Any, Iterable, Optional, Type
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Type
 
 from .decorators import measure_time
-from .provider_engine.base_engine import BaseEngine
+
+if TYPE_CHECKING:
+	from .provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +69,17 @@ providers = [
 		engine_cls_path="basilisk.provider_engine.anthropic_engine.AnthropicEngine",
 	),
 	Provider(
+		id="deepseek",
+		name="DeepSeek",
+		api_type=ProviderAPIType.OPENAI,
+		base_url="https://api.deepseek.com/v1",
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="DEEPSEEK_API_KEY",
+		env_var_name_organization_key=None,
+		engine_cls_path="basilisk.provider_engine.deepseek_engine.DeepSeekAIEngine",
+	),
+	Provider(
 		id="gemini",
 		name="Gemini",
 		base_url="https://generativelanguage.googleapis.com",
@@ -106,6 +119,17 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
 		engine_cls_path="basilisk.provider_engine.openrouter_engine.OpenRouterEngine",
+	),
+	Provider(
+		id="xai",
+		name="xAI",
+		api_type=ProviderAPIType.OPENAI,
+		base_url="https://api.x.ai/v1",
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="XAI_API_KEY",
+		env_var_name_organization_key=None,
+		engine_cls_path="basilisk.provider_engine.xai_engine.XAIEngine",
 	),
 ]
 

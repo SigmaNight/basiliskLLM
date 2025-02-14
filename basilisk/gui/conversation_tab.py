@@ -19,15 +19,15 @@ from basilisk import global_vars
 from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
+	URL_PATTERN,
 	Conversation,
-	ImageUrlMessageContent,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	TextMessageContent,
+	NotImageError,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.image_file import URL_PATTERN, ImageFile, NotImageError
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
@@ -49,6 +49,9 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
+COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
+RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
+RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -59,26 +62,51 @@ class ConversationTab(wx.Panel, BaseConversation):
 		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
 	}
 
+	@staticmethod
+	def conv_storage_path() -> UPath:
+		return UPath(
+			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+		)
+
+	@classmethod
+	def open_conversation(
+		cls, parent: wx.Window, file_path: str, default_title: str
+	) -> ConversationTab:
+		log.debug(f"Opening conversation from {file_path}")
+		storage_path = cls.conv_storage_path()
+		conversation = Conversation.open(file_path, storage_path)
+		title = conversation.title or default_title
+		return cls(
+			parent,
+			conversation=conversation,
+			title=title,
+			conv_storage_path=storage_path,
+			bskc_path=file_path,
+		)
+
 	def __init__(
 		self,
 		parent: wx.Window,
 		title: str = _("Untitled conversation"),
 		profile: Optional[config.ConversationProfile] = None,
+		conversation: Optional[Conversation] = None,
+		conv_storage_path: Optional[UPath] = None,
+		bskc_path: Optional[str] = None,
 	):
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
-		self.SetStatusText = parent.GetParent().GetParent().SetStatusText
-		self.conversation = Conversation()
+		self.SetStatusText = self.TopLevelParent.SetStatusText
+		self.bskc_path = bskc_path
+		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
+		self.conversation = conversation or Conversation()
 		self.image_files: list[ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
-		self.conv_storage_url = UPath(
-			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
-		)
 		self.task = None
 		self.stream_buffer = ""
+		self.speech_stream_buffer = ""
 		self._speak_stream = True
 		self._stop_completion = False
 		self._search_dialog = None
@@ -209,8 +237,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
-		self.refresh_images_list()
 		self.apply_profile(profile, True)
+		self.refresh_messages(need_clear=False)
 
 	def on_choose_profile(self, event: wx.KeyEvent):
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
@@ -311,7 +339,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 					return
 				img = bitmap_data.GetBitmap().ConvertToImage()
 				path = (
-					self.conv_storage_url
+					self.conv_storage_path
 					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
 				)
 				with path.open("wb") as f:
@@ -822,9 +850,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 		match (modifiers, key_code):
-			case (
-				(wx.MOD_NONE, wx.WXK_RETURN)
-				| (wx.MOD_NONE, wx.WXK_NUMPAD_ENTER)
+			case (wx.MOD_NONE, wx.WXK_RETURN) | (
+				wx.MOD_NONE,
+				wx.WXK_NUMPAD_ENTER,
 			):
 				if config.conf().conversation.shift_enter_mode:
 					self.on_submit(event)
@@ -834,9 +862,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			case (wx.MOD_CONTROL, wx.WXK_UP):
 				if not self.prompt.GetValue():
 					self.insert_previous_prompt()
-			case (
-				(wx.MOD_CONTROL, wx.WXK_RETURN)
-				| (wx.MOD_CONTROL, wx.WXK_NUMPAD_ENTER)
+			case (wx.MOD_CONTROL, wx.WXK_RETURN) | (
+				wx.MOD_CONTROL,
+				wx.WXK_NUMPAD_ENTER,
 			):
 				self.on_submit(event)
 			case _:
@@ -850,16 +878,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
-	def extract_text_from_message(
-		self, content: list[TextMessageContent | ImageUrlMessageContent] | str
-	) -> str:
+	def extract_text_from_message(self, content: str) -> str:
 		if isinstance(content, str):
 			return content
-		text = ""
-		for item in content:
-			if item.type == "text":
-				text += item.text
-		return text
 
 	def append_text_and_create_segment(
 		self, text, segment_type, new_block_ref, absolute_length
@@ -935,10 +956,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.messages.SetInsertionPoint(pos)
 
-	def refresh_messages(self):
-		self.messages.Clear()
-		self.message_segment_manager.clear()
-		self.image_files.clear()
+	def refresh_messages(self, need_clear: bool = True):
+		if need_clear:
+			self.messages.Clear()
+			self.message_segment_manager.clear()
+			self.image_files.clear()
 		self.refresh_images_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
@@ -1071,7 +1093,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if config.conf().images.resize:
 			for image in self.image_files:
 				image.resize(
-					self.conv_storage_url / "optimized_images",
+					self.conv_storage_path,
 					config.conf().images.max_width,
 					config.conf().images.max_height,
 					config.conf().images.quality,
@@ -1082,7 +1104,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				content=self.prompt.GetValue(),
 				attachments=self.image_files,
 			),
-			model=model,
+			model_id=model.id,
+			provider_id=self.current_account.provider.id,
 			temperature=self.temperature_spinner.GetValue(),
 			top_p=self.top_p_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
@@ -1170,7 +1193,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _handle_completion_with_stream(self, chunk: str):
 		self.stream_buffer += chunk
-		if re.match(r".+[\n:.?!]\s?$", self.stream_buffer):
+		# Flush buffer when encountering any of:
+		# - newline (\n)
+		# - punctuation marks (;:.?!)
+		# - closing quotes/brackets (»"\]}])
+		if re.match(RE_STREAM_BUFFER, self.stream_buffer):
 			self._flush_stream_buffer()
 		new_time = time.time()
 		if new_time - self.last_time > 4:
@@ -1196,6 +1223,48 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception:
 			log.error("Error during speech output", exc_info=True)
 
+	def _handle_speech_stream_buffer(self, new_text: str = ''):
+		"""
+		Processes incoming speech stream text. If the input `new_text` is not a valid string
+		or is empty, it forces flushing the current buffer to the accessible output handler.
+		If `new_text` contains punctuation or newlines, it processes text up to the last
+		occurrence, sends that portion to the output handler, and retains the remaining
+		text in the buffer.
+
+		Args:
+			new_text (str): The new incoming text to process. If not a string or empty,
+							the buffer is processed immediately.
+		"""
+		if not isinstance(new_text, str) or not new_text:
+			if self.speech_stream_buffer:
+				self._handle_accessible_output(self.speech_stream_buffer)
+				self.speech_stream_buffer = ""
+			return
+
+		try:
+			# Find the last occurrence of punctuation mark or newline
+			matches = list(re.finditer(RE_SPEECH_STREAM_BUFFER, new_text))
+			if matches:
+				# Use the last match
+				last_match = matches[-1]
+				part_to_handle = (
+					self.speech_stream_buffer + new_text[: last_match.end()]
+				)
+				remaining_text = new_text[last_match.end() :]
+
+				if part_to_handle:
+					self._handle_accessible_output(part_to_handle)
+
+				# Update the buffer with the remaining text
+				self.speech_stream_buffer = remaining_text.lstrip()
+			else:
+				# Concatenate new text to the buffer if no punctuation is found
+				self.speech_stream_buffer += new_text
+		except re.error as e:
+			log.error(f"Regex error in _handle_speech_stream_buffer: {e}")
+			# Fallback: treat the entire text as a single chunk
+			self.speech_stream_buffer += new_text
+
 	def _flush_stream_buffer(self):
 		pos = self.messages.GetInsertionPoint()
 		text = self.stream_buffer
@@ -1204,7 +1273,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			and (self.messages.HasFocus() or self.prompt.HasFocus())
 			and self.GetTopLevelParent().IsShown()
 		):
-			self._handle_accessible_output(text)
+			self._handle_speech_stream_buffer(new_text=text)
 		self.messages.AppendText(text)
 		self.stream_buffer = ""
 		self.messages.SetInsertionPoint(pos)
@@ -1217,6 +1286,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _post_completion_with_stream(self, new_block: MessageBlock):
 		self._flush_stream_buffer()
+		self._handle_speech_stream_buffer()
 		self._update_last_segment_length()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
@@ -1258,7 +1328,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				request=Message(
 					role=MessageRoleEnum.USER, content=PROMPT_TITLE
 				),
-				model=model,
+				provider_id=self.current_account.provider.id,
+				model_id=model.id,
 				temperature=self.temperature_spinner.GetValue(),
 				top_p=self.top_p_spinner.GetValue(),
 				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
@@ -1285,3 +1356,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		finally:
 			stop_sound()
+
+	def save_conversation(self, file_path: str) -> bool:
+		log.debug(f"Saving conversation to {file_path}")
+		try:
+			self.conversation.save(file_path)
+			return True
+		except Exception as e:
+			wx.MessageBox(
+				_("An error occurred while saving the conversation: ") + str(e),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return False

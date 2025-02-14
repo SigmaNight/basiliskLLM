@@ -6,7 +6,8 @@
     #define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
 #endif
 
-[setup]
+[Setup]
+WiZardStyle=modern
 AppVersion={#MyAppVersion}
 AppName=basiliskLLM
 AppPublisher=SigmaNight
@@ -38,7 +39,7 @@ UsePreviousSetupType=yes
 UsePreviousTasks=yes
 ShowTasksTreeLines=no
 
-[languages]
+[Languages]
 Name: "en"; MessagesFile: "compiler:Default.isl"
 name: "french"; MessagesFile: "compiler:Languages\French.isl"
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -48,12 +49,12 @@ Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
 [Files]
 Source: "dist\*"; DestDir: "{app}"; Excludes: "\user_data"; Flags: recursesubdirs createallsubdirs sortfilesbyextension ignoreversion
 
-[tasks]
+[Tasks]
 Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
+Name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; hotkey: "CTRL+ALT+SHIFT+A"
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; HotKey: "ctrl+alt+a"
 Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
 Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n -m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
 
@@ -62,6 +63,13 @@ CreateDirError=Unable to create directory: %1
 CopyFileError=Unable to copy file from: %1 to: %2
 
 
+[Registry]
+Root: HKA; subkey: "Software\Classes\.bskc"; ValueType: string; ValueName: ""; ValueData: "BasiliskLLM.File"; Flags: uninsdeletekey createvalueifdoesntexist
+Root: HKA; subkey: "Software\Classes\BasiliskLLM.File"; ValueType: string; ValueName: ""; ValueData: "BasiliskLLM conversation file"; Flags: uninsdeletekey createvalueifdoesntexist
+Root: HKA; subkey: "Software\Classes\BasiliskLLM.File"; ValueType: string; ValueName: ""; ValueData: "BasiliskLLM conversation file"; Flags: uninsdeletekey createvalueifdoesntexist; Languages: en
+Root: HKA; subkey: "Software\Classes\BasiliskLLM.File"; ValueType: string; ValueName: ""; ValueData: "Fichier de conversation basiliskLLM"; Flags: uninsdeletekey createvalueifdoesntexist; Languages: french
+Root: HKA; subkey: "Software\Classes\BasiliskLLM.File\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\basilisk.exe,0"; Flags: uninsdeletekey createvalueifdoesntexist
+Root: HKA; subkey: "Software\Classes\BasiliskLLM.File\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\basilisk.exe"" ""%1"""; Flags: uninsdeletekey createvalueifdoesntexist
 
 [Code]
 procedure CopyDirectoryTree(const SourceDir, DestDir: string);
@@ -90,7 +98,7 @@ begin
       begin
         if not FileExists(DestPath) then
         begin
-          if not FileCopy(SourcePath, DestPath, False) then
+          if not CopyFile(SourcePath, DestPath, False) then
           begin
             MsgBox(FmtMessage(CustomMessage('CopyFileError'), [SourcePath, DestPath]), mbError, MB_OK);
             Exit;
