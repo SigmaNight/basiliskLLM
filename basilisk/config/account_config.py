@@ -131,7 +131,7 @@ class Account(BaseModel):
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
-	custom_base_url: Optional[str] = Field(default=None)
+	custom_base_url: Optional[str] = Field(default=None, pattern="^https?://[\\w.-]+(?::\\d+)?(?:/[\\w.-]*)*/?$")
 
 	def __init__(self, **data: Any):
 		"""Initialize an account instance. If an error occurs, log the error and raise an exception."""
