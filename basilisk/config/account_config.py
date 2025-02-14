@@ -190,7 +190,7 @@ class Account(BaseModel):
 				raise ValueError("API key not found in keyring")
 			return SecretStr(value)
 		elif not data["provider"].require_api_key and value is None:
-			return
+			return None
 		else:
 			raise ValueError("Invalid API key storage method")
 
