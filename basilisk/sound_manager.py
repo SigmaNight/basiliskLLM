@@ -96,7 +96,7 @@ class SoundManager:
 		"""Play a sound effect. If loop is True, the sound will be played in a loop.
 
 		Args:
-			file_path: Path to the sound file or  a predefined alias from aliases mapping
+			file_path: Path to the sound file or a predefined alias from aliases mapping
 			loop: Whether to play the sound in a loop
 		"""
 		with self.thread_lock:
