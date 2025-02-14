@@ -37,10 +37,20 @@ ALIASES = {
 
 
 class SoundManager:
-	"""Manager class for playing sound effects."""
+	"""Manager class for playing sound effects.
+
+	This class implements a thread-safe sound manager with caching capabilities.
+	It supports both one-shot and looped playback of sound effects.
+	"""
 
 	def __init__(self):
-		"""Initialize the sound manager."""
+		"""Initialize the sound manager.
+
+		Sets up:
+		- Sound cache for efficient playback
+		- Threading support for looped playback
+		- wx.adv.Sound player
+		"""
 		self.current_sound = None
 		self.loop = False
 		self.loop_thread = None

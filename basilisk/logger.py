@@ -1,4 +1,9 @@
-"""Logging utilities for Basilisk application."""
+"""Logging utilities for Basilisk application.
+
+This module provides utilities for configuring and managing logging across the Basilisk
+application, including file and console logging setup, log level management, and
+uncaught exception handling.
+"""
 
 import logging
 import sys
@@ -57,10 +62,12 @@ def setup_logging(level: str) -> None:
 
 
 def set_log_level(level: str) -> None:
-	"""Change global log level to new level and update all loggers accordingly.
+	"""Change global log level to new level and propagate to all handlers.
+
+	Updates both the root logger and all its handlers to use the new log level.
 
 	Args:
-		level: new log level
+		level: new log level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
 	"""
 	cur_level = logging.getLevelName(logging.root.getEffectiveLevel())
 	if cur_level == level:
@@ -78,6 +85,10 @@ def logging_uncaught_exceptions(
 	exc_traceback: TracebackType,
 ) -> None:
 	"""Log uncaught exceptions to the appropriate logger.
+
+	Handles uncaught exceptions by logging them to the logger corresponding to the
+	exception's module. KeyboardInterrupt is treated as a special case and logged
+	at INFO level instead of ERROR.
 
 	Args:
 		exc_type: exception type is an exception class
