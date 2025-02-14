@@ -6,7 +6,7 @@ jobs:
   build_windows:
     runs-on: windows-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         arch: [x64, x86]
 
