@@ -8,7 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64, x86]
+        arch:
+          - x64
+          #- x86
 
     steps:
       - name: checkout repository
