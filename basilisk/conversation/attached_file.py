@@ -194,6 +194,7 @@ class AttachmentFile(BaseModel):
 		if not self.name:
 			self.name = self._get_name()
 		self.size = self._get_size()
+
 	@property
 	def type(self) -> AttachmentFileTypes:
 		"""Determine the type of file based on its location protocol.
