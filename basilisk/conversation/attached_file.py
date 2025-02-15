@@ -23,6 +23,7 @@ from pydantic import (
 	field_validator,
 )
 from upath import UPath
+from upath.implementations.local import WindowsUPath
 
 from basilisk.decorators import measure_time
 
@@ -201,6 +202,8 @@ class AttachmentFile(BaseModel):
 		Returns:
 			An enum value representing the file's source type, derived from the protocol of the file's location.
 		"""
+		if isinstance(self.location, WindowsUPath):
+			return AttachmentFileTypes.LOCAL
 		return AttachmentFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
@@ -426,17 +429,6 @@ class ImageFile(AttachmentFile):
 			self.dimensions = self._get_dimensions()
 
 	__init__.__pydantic_base_init__ = True
-
-	def type(self) -> AttachmentFileTypes:
-		"""Determine the type of image file based on its location protocol.
-
-		Returns:
-			ImageFileTypes: An enum value representing the image file's source type, derived from the protocol of the image's location.
-
-		Raises:
-			ValueError: If the protocol cannot be mapped to a known ImageFileTypes value.
-		"""
-		return AttachmentFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
 		"""Get the name of the image file.

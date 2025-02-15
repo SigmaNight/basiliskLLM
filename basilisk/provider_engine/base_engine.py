@@ -127,8 +127,8 @@ class BaseEngine(ABC):
 					self.prepare_message_response(block.response),
 				]
 			)
-			messages.append(self.prepare_message_request(new_block.request))
-			return messages
+		messages.append(self.prepare_message_request(new_block.request))
+		return messages
 
 	@abstractmethod
 	def completion(

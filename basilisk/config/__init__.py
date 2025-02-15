@@ -1,6 +1,11 @@
 """Configuration module for Basilisk."""
 
-from .account_config import Account, AccountManager, AccountOrganization
+from .account_config import (
+	CUSTOM_BASE_URL_PATTERN,
+	Account,
+	AccountManager,
+	AccountOrganization,
+)
 from .account_config import get_account_config as accounts
 from .config_enums import (
 	AccountSource,
@@ -27,6 +32,8 @@ __all__ = [
 	"conf",
 	"ConversationProfile",
 	"conversation_profiles",
+	"CUSTOM_BASE_URL_PATTERN",
+	"get_account_source_labels",
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",
