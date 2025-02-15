@@ -9,6 +9,7 @@ from more_itertools import first, locate
 from pydantic import SecretStr
 
 from basilisk.config import (
+	CUSTOM_BASE_URL_PATTERN,
 	Account,
 	AccountOrganization,
 	AccountSource,
@@ -20,9 +21,6 @@ from basilisk.provider import Provider, get_provider, providers
 log = logging.getLogger(__name__)
 
 key_storage_methods = KeyStorageMethodEnum.get_labels()
-CUSTOM_BASE_URL_PATTERN = (
-	r"^https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(/[\w./%\-]*)?"
-)
 
 
 class EditAccountOrganizationDialog(wx.Dialog):

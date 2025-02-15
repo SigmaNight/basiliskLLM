@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from functools import cache, cached_property
 from os import getenv
 from typing import Annotated, Any, Iterable, Optional, Union
@@ -37,6 +38,10 @@ from .config_helper import (
 )
 
 log = logging.getLogger(__name__)
+
+CUSTOM_BASE_URL_PATTERN = re.compile(
+	r"^https?://[\w.-]+(?::\d{1,5})?(?:/[\w-]+)*/?$"
+)
 
 
 class AccountOrganization(BaseModel):
@@ -132,7 +137,9 @@ class Account(BaseModel):
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 	custom_base_url: Optional[str] = Field(
-		default=None, pattern="^https?://[\\w.-]+(?::\\d+)?(?:/[\\w.-]*)*/?$"
+		default=None,
+		pattern=CUSTOM_BASE_URL_PATTERN,
+		description="Custom base URL for the API provider. Must be a valid HTTP/HTTPS URL.",
 	)
 
 	def __init__(self, **data: Any):
