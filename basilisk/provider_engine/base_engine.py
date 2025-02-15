@@ -1,3 +1,9 @@
+"""Base module for AI provider engines.
+
+This module defines the abstract base class for all AI provider engines,
+establishing the common interface and shared functionality.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -14,30 +20,52 @@ if TYPE_CHECKING:
 
 
 class BaseEngine(ABC):
+	"""Abstract base class for AI provider engines.
+
+	Defines the interface that all provider-specific engines must implement,
+	providing common functionality and type definitions.
+
+	Attributes:
+		capabilities: Set of supported provider capabilities.
+	"""
+
 	capabilities: set[ProviderCapability] = set()
 
 	def __init__(self, account: Account) -> None:
+		"""Initializes the engine with the given account.
+
+		Args:
+		account: The provider account configuration.
+		"""
 		self.account = account
 
 	@cached_property
 	@abstractmethod
 	def client(self):
-		"""
-		Property to return the client object
-		"""
+		"""Property to return the provider client object."""
 		pass
 
 	@cached_property
 	@abstractmethod
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
+		"""Get models available for the provider.
+
+		Returns:
+			List of supported provider models with their configurations.
 		"""
 		pass
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
-		"""
-		Get model
+		"""Retrieves a specific model by its ID.
+
+		Args:
+			model_id: Identifier of the model to retrieve.
+
+		Returns:
+			The requested model if found, None otherwise.
+
+		Raises:
+			ValueError: If multiple models are found with the same ID.
 		"""
 		model_list = [model for model in self.models if model.id == model_id]
 		if not model_list:
@@ -48,15 +76,25 @@ class BaseEngine(ABC):
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
-		"""
-		Prepare message request
+		"""Prepare message request for provider API.
+
+		Args:
+			message: The message to prepare.
+
+		Returns:
+			The prepared message in provider-specific format.
 		"""
 		pass
 
 	@abstractmethod
 	def prepare_message_response(self, response: Any) -> Message:
-		"""
-		Prepare message response
+		"""Prepare message response.
+
+		Args:
+			response: The response to prepare.
+
+		Returns:
+			The prepared response in Message format.
 		"""
 		pass
 
@@ -66,8 +104,15 @@ class BaseEngine(ABC):
 		conversation: Conversation,
 		system_message: Message | None = None,
 	) -> list[Message]:
-		"""
-		Get messages
+		"""Prepares message history for API requests.
+
+		Args:
+			new_block: Current message block being processed.
+			conversation: Full conversation history.
+			system_message: Optional system-level instruction message.
+
+		Returns:
+			List of prepared messages in provider-specific format.
 		"""
 		messages = []
 		if system_message:
@@ -81,8 +126,8 @@ class BaseEngine(ABC):
 					self.prepare_message_response(block.response),
 				]
 			)
-		messages.append(self.prepare_message_request(new_block.request))
-		return messages
+			messages.append(self.prepare_message_request(new_block.request))
+			return messages
 
 	@abstractmethod
 	def completion(
@@ -90,17 +135,34 @@ class BaseEngine(ABC):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
-		**kwargs,
-	):
-		"""
-		Completion
+		**kwargs: dict[str, Any],
+	) -> Any:
+		"""Generates a completion response.
+
+		Processes a message block and conversation to generate AI-generated content.
+		Configures the generative model with optional system instructions, generation parameters, and streaming preferences.
+
+		Args:
+			new_block: Configuration block containing model ,message request and other generation settings.
+			conversation: The current conversation context (paste message request and response).
+			system_message: Optional system-level instruction message.
+			**kwargs: Additional keyword arguments for flexible configuration.
+
+		Returns:
+			The generated content response from the provider.
 		"""
 		pass
 
 	@abstractmethod
-	def completion_response_with_stream(self, stream: Any, **kwargs):
-		"""
-		Response with stream
+	def completion_response_with_stream(self, stream: Any, **kwargs) -> Any:
+		"""Handle completion response with stream.
+
+		Args:
+			stream: Stream response from the provider.
+			**kwargs: Additional keyword arguments for flexible configuration.
+
+		Returns:
+			Stream response from the provider.
 		"""
 		pass
 
@@ -108,22 +170,16 @@ class BaseEngine(ABC):
 	def completion_response_without_stream(
 		self, response: Any, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
-		"""
-		Response without stream
-		"""
+		"""Handle completion response without stream."""
 		pass
 
 	@staticmethod
 	def get_user_agent() -> str:
-		"""
-		Get user agent
-		"""
+		"""Get a user agent sting for the application."""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
 
 	def get_transcription(self, *args, **kwargs) -> str:
-		"""
-		Get transcription from audio file
-		"""
+		"""Get transcription from audio file."""
 		raise NotImplementedError(
 			"Transcription not implemented for this engine"
 		)

@@ -1,10 +1,12 @@
+"""Module for managing for image in conversation."""
+
 from __future__ import annotations
 
 import base64
+import enum
 import logging
 import mimetypes
 import re
-from enum import Enum
 from io import BufferedReader, BufferedWriter, BytesIO
 from typing import Annotated, Any
 
@@ -35,8 +37,13 @@ URL_PATTERN = re.compile(
 
 
 def get_image_dimensions(reader: BufferedReader) -> tuple[int, int]:
-	"""
-	Get the dimensions of an image.
+	"""Get the dimensions of an image.
+
+	Args:
+		reader: A file-like object containing the image data.
+
+	Returns:
+		A tuple containing the width and height of the image.
 	"""
 	img = Image.open(reader)
 	return img.size
@@ -50,16 +57,18 @@ def resize_image(
 	max_height: int = 0,
 	quality: int = 85,
 ) -> bool:
-	"""
-	Compress an image and save it to a specified file by resizing according to
-	given maximum dimensions and adjusting the quality.
+	"""Compress an image and save it to a specified file.
 
-	@param src: path to the source image.
-	@param max_width: Maximum width for the compressed image. If 0, only `max_height` is used to calculate the ratio.
-	@param max_height: Maximum height for the compressed image. If 0, only `max_width` is used to calculate the ratio.
-	@param quality: the quality of the compressed image
-	@param target: output path for the compressed image
-	@return: True if the image was successfully compressed and saved, False otherwise
+	Args:
+		src: path to the source image.
+		format: The format of the compressed image (e.g., "JPEG", "PNG").
+		max_width: Maximum width for the compressed image. If 0, only `max_height` is used to calculate the ratio.
+		max_height: Maximum height for the compressed image. If 0, only `max_width` is used to calculate the ratio.
+		quality: the quality of the compressed image (1-100).
+		target: Output path for the compressed image file.
+
+	Returns:
+		True if the image was successfully compressed and saved, False otherwise
 	"""
 	if max_width <= 0 and max_height <= 0:
 		log.debug("No resizing needed")
@@ -86,28 +95,53 @@ def resize_image(
 	return True
 
 
-class ImageFileTypes(Enum):
-	UNKNOWN = "unknown"
-	IMAGE_LOCAL = "local"
-	IMAGE_MEMORY = "memory"
-	IMAGE_URL = "http"
+class ImageFileTypes(enum.StrEnum):
+	"""Enumeration of image file types based on their source location."""
+
+	# The image file type is unknown.
+	UNKNOWN = enum.auto()
+	# The image file is stored on the local filesystem.
+	IMAGE_LOCAL = enum.auto()
+	# The image file is stored in memory (RAM).
+	IMAGE_MEMORY = enum.auto()
+	# The image file is stored at a URL.
+	IMAGE_URL = enum.auto()
 
 	@classmethod
 	def _missing_(cls, value: object) -> ImageFileTypes:
-		if isinstance(value, str) and value.lower() == "data":
+		"""Determine the image file type based on a given string value.
+
+		This method is a custom implementation for handling enum value mapping when a non-standard value is provided. It maps specific string inputs to predefined ImageFileTypes.
+		The mapping is as follows:
+		- "http", "https", "data" -> ImageFileTypes.IMAGE_URL
+		- "zip" -> ImageFileTypes.IMAGE_LOCAL
+		- Any other value -> ImageFileTypes.UNKNOWN
+
+		Args:
+			value: The input value to be mapped to an ImageFileTypes enum.
+
+		Returns:
+		The corresponding ImageFileTypes enum value for the given input.
+		"""
+		if isinstance(value, str):
+			return cls.UNKNOWN
+		value_lower = value.lower()
+		if value_lower in {"http", "https", "data"}:
 			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "https":
-			return cls.IMAGE_URL
-		if isinstance(value, str) and value.lower() == "zip":
+		if value.lower() == "zip":
 			return cls.IMAGE_LOCAL
 		return cls.UNKNOWN
 
 
 class NotImageError(ValueError):
+	"""Exception raised when a URL does not point to an image file."""
+
 	pass
 
 
 class ImageFile(BaseModel):
+	"""Represents an image file with metadata and optional resizing capabilities."""
+
 	location: PydanticUPath
 	name: str | None = None
 	description: str | None = None
@@ -118,6 +152,24 @@ class ImageFile(BaseModel):
 	@classmethod
 	@measure_time
 	def build_from_url(cls, url: str) -> ImageFile:
+		"""Fetch an image from a given URL and create an ImageFile instance.
+
+		This class method retrieves an image from the specified URL, validates that it is an image,
+		and constructs an ImageFile with metadata about the image.
+
+		Args:
+			url: The URL of the image to retrieve.
+
+		Returns:
+			An instance of ImageFile with details about the retrieved image.
+
+		Raises:
+			httpx.HTTPError: If there is an error during the HTTP request.
+			NotImageError: If the URL does not point to an image (content type is not image/*).
+
+		Example:
+			image = ImageFile.build_from_url("https://example.com/image.jpg")
+		"""
 		r = httpx.get(url, follow_redirects=True)
 		r.raise_for_status()
 		content_type = r.headers.get("content-type", "")
@@ -145,6 +197,20 @@ class ImageFile(BaseModel):
 		wrap_handler: SerializerFunctionWrapHandler,
 		info: SerializationInfo,
 	) -> PydanticUPath:
+		"""Serialize the location field with optional context-based mapping.
+
+		This method is a field serializer for the `location` attribute that allows dynamic
+		path translation based on a provided mapping context. If no mapping is available,
+		it returns the original value using the default serialization handler.
+
+		Args:
+			value: The original location path to be serialized.
+			wrap_handler: The default serialization handler.
+			info: Serialization context information.
+
+		Returns:
+			PydanticUPath: The serialized location path, potentially remapped based on context.
+		"""
 		if not info.context:
 			return wrap_handler(value)
 		mapping = info.context.get("attachment_mapping")
@@ -157,6 +223,22 @@ class ImageFile(BaseModel):
 	def validate_location(
 		cls, value: Any, info: ValidationInfo
 	) -> str | PydanticUPath:
+		"""Validates and transforms the location of an image file.
+
+		This method ensures that the location is either a valid string or a UPath instance.
+		If a string is provided without a protocol and a root path is available in the context,
+		it prepends the root path to create an absolute path.
+
+		Args:
+			value: The location value to validate, which can be a string or UPath.
+			info: Validation context containing additional information.
+
+		Returns:
+			A validated and potentially transformed location.
+
+		Raises:
+			ValueError: If the location is not a string or UPath instance.
+		"""
 		if isinstance(value, str):
 			if info.context:
 				root_path = info.context.get("root_path")
@@ -168,6 +250,15 @@ class ImageFile(BaseModel):
 		return value
 
 	def __init__(self, /, **data: Any) -> None:
+		"""Initialize an ImageFile instance with optional data.
+
+		If no name is provided, automatically generates a name using the internal _get_name() method.
+		If no size is set, retrieves the file size using _get_size() method.
+		If no dimensions are specified, determines image dimensions using _get_dimensions() method.
+
+		Args:
+			data: Keyword arguments for initializing the ImageFile instance. Can include optional attributes like name, size, and dimensions.
+		"""
 		super().__init__(**data)
 		if not self.name:
 			self.name = self._get_name()
@@ -179,18 +270,41 @@ class ImageFile(BaseModel):
 
 	@property
 	def type(self) -> ImageFileTypes:
+		"""Determine the type of image file based on its location protocol.
+
+		Returns:
+			ImageFileTypes: An enum value representing the image file's source type, derived from the protocol of the image's location.
+
+		Raises:
+			ValueError: If the protocol cannot be mapped to a known ImageFileTypes value.
+		"""
 		return ImageFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
+		"""Get the name of the image file.
+
+		Returns:
+			The name of the image file, extracted from the file path.
+		"""
 		return self.location.name
 
 	def _get_size(self) -> int | None:
+		"""Get the size of the image file.
+
+		Returns:
+			The size of the image file in bytes, or None if the size cannot be determined.
+		"""
 		if self.type == ImageFileTypes.IMAGE_URL:
 			return None
 		return self.location.stat().st_size
 
 	@property
 	def display_size(self) -> str:
+		"""Get the human-readable size of the image file.
+
+		Returns:
+			The size of the image file in a human-readable format (e.g., "1.23 MB").
+		"""
 		size = self.size
 		if size is None:
 			return _("Unknown")
@@ -208,6 +322,11 @@ class ImageFile(BaseModel):
 
 	@property
 	def display_dimensions(self) -> str:
+		"""Get the human-readable dimensions of the image.
+
+		Returns:
+			The dimensions of the image in a human-readable format (e.g., "1920 x 1080").
+		"""
 		if self.dimensions is None:
 			return _("Unknown")
 		return f"{self.dimensions[0]} x {self.dimensions[1]}"
@@ -216,6 +335,17 @@ class ImageFile(BaseModel):
 	def resize(
 		self, conv_folder: UPath, max_width: int, max_height: int, quality: int
 	):
+		"""Resize the image to specified dimensions and save to a new location.
+
+		This method resizes the image if it is not a URL, creating an optimized version
+		in the specified conversion folder. The original image remains unchanged.
+
+		Args:
+			conv_folder: Folder where the resized image will be saved
+			max_width: Maximum width for the resized image
+			max_height: Maximum height for the resized image
+			quality: Compression quality for the resized image (1-100)
+		"""
 		if ImageFileTypes.IMAGE_URL == self.type:
 			return
 		log.debug("Resizing image")
@@ -236,10 +366,20 @@ class ImageFile(BaseModel):
 
 	@property
 	def send_location(self) -> UPath:
+		"""Get the location of the image to send.
+
+		Returns:
+			The location of the image to send, which is either the original location or the resized location if available.
+		"""
 		return self.resize_location or self.location
 
 	@measure_time
 	def encode_image(self) -> str:
+		"""Encode the image file as a base64 string.
+
+		Returns:
+			A base64-encoded string representing the image file.
+		"""
 		if self.size and self.size > 1024 * 1024 * 1024:
 			log.warning(
 				f"Large image ({self.display_size}) being encoded to base64"
@@ -249,6 +389,11 @@ class ImageFile(BaseModel):
 
 	@property
 	def mime_type(self) -> str | None:
+		"""Get the MIME type of the image file.
+
+		Returns:
+			The MIME type of the image file, or None if the type cannot be determined.
+		"""
 		if self.type == ImageFileTypes.IMAGE_URL:
 			return None
 		mime_type, _ = mimetypes.guess_type(self.send_location)
@@ -256,6 +401,11 @@ class ImageFile(BaseModel):
 
 	@property
 	def url(self) -> str:
+		"""Get the URL of the image file.
+
+		Returns:
+			The URL of the image file, or the base64-encoded image data if the image is in memory.
+		"""
 		if not isinstance(self.type, ImageFileTypes):
 			raise ValueError("Invalid image type")
 		if self.type == ImageFileTypes.IMAGE_URL:
@@ -265,6 +415,11 @@ class ImageFile(BaseModel):
 
 	@property
 	def display_location(self):
+		"""Get the display location of the image file.
+
+		Returns:
+			The display location of the image file, truncated if necessary.
+		"""
 		location = str(self.location)
 		if location.startswith("data:image/"):
 			location = f"{location[:50]}...{location[-10:]}"
@@ -272,6 +427,11 @@ class ImageFile(BaseModel):
 
 	@staticmethod
 	def remove_location(location: UPath):
+		"""Remove an image file at the specified location.
+
+		Args:
+			location: The location of the image file to remove.
+		"""
 		log.debug(f"Removing image at {location}")
 		try:
 			fs = location.fs
@@ -280,6 +440,7 @@ class ImageFile(BaseModel):
 			log.error(f"Error deleting image at {location}: {e}")
 
 	def __del__(self):
+		"""Delete the image file and its resized version."""
 		if self.type == ImageFileTypes.IMAGE_URL:
 			return
 		if self.resize_location:

@@ -1,13 +1,18 @@
+"""Module for the BasiliskLLM connector for NVDA.
+
+This module provides a global plugin for NVDA that allows the user to send information to BasiliskLLM.
+"""
+
 import socket
 
-import addonHandler
-import api
-import config
-import controlTypes
-import globalPluginHandler
-import gui
-import ui
-from scriptHandler import script
+import addonHandler  # type: ignore
+import api  # type: ignore
+import config  # type: ignore
+import controlTypes  # type: ignore
+import globalPluginHandler  # type: ignore
+import gui  # type: ignore
+import ui  # type: ignore
+from scriptHandler import script  # type: ignore
 
 addonHandler.initTranslation()
 
@@ -16,7 +21,15 @@ config.conf.spec["basiliskLLM"] = confSpecs
 conf = config.conf["basiliskLLM"]
 
 
-def send_message(message: str):
+def send_message(message: str) -> bool:
+	"""Send a message to BasiliskLLM application.
+
+	Args:
+		message: The message to send to BasiliskLLM.
+
+	Returns:
+		True if the message was sent successfully, False otherwise.
+	"""
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	server_address = ("127.0.0.1", conf["port"])
 	success = False
@@ -34,9 +47,16 @@ def send_message(message: str):
 
 
 class SettingsDlg(gui.settingsDialogs.SettingsPanel):
+	"""nvda settings panel for BasiliskLLM connector."""
+
 	title = "BasiliskLLM Connector"
 
 	def makeSettings(self, settingsSizer):
+		"""Create the settings panel.
+
+		Args:
+			settingsSizer: The sizer to add the settings to.
+		"""
 		sHelper = gui.guiHelper.BoxSizerHelper(self, sizer=settingsSizer)
 		self.port = sHelper.addLabeledControl(
 			# Translators: This is a label for a text field where the user can fill the port number in the settings dialog.
@@ -48,21 +68,30 @@ class SettingsDlg(gui.settingsDialogs.SettingsPanel):
 		)
 
 	def onSave(self):
+		"""Save the settings."""
 		conf["port"] = self.port.GetValue()
 
 
 class GlobalPlugin(globalPluginHandler.GlobalPlugin):
+	"""NVDA Global plugin for BasiliskLLM connector."""
+
 	scriptCategory = "BasiliskLLM Connector"
 
 	def __init__(self):
+		"""Initialize the global plugin."""
 		super().__init__()
 		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.append(
 			SettingsDlg
 		)
 
-	def checkScreenCurtain(self):
-		import vision
-		from visionEnhancementProviders.screenCurtain import (
+	def checkScreenCurtain(self) -> bool:
+		"""Check if the screen curtain is running.
+
+		Returns:
+			True if the screen curtain is running, False otherwise.
+		"""
+		import vision  # type: ignore
+		from visionEnhancementProviders.screenCurtain import (  # type: ignore
 			ScreenCurtainProvider,
 		)
 
@@ -85,12 +114,23 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 	def send_message(
 		data: str, success_msg: str = _("Image sent to BasiliskLLM")
 	):
+		"""Send a message to BasiliskLLM application.
+
+		Args:
+			data: The message to send to BasiliskLLM.
+			success_msg: The message to display on success. Defaults to "Image sent to BasiliskLLM".
+		"""
 		if not send_message(data):
 			ui.message(_("Unable to send image to BasiliskLLM. Is it running?"))
 		else:
 			ui.message(success_msg)
 
 	def _get_base_url(self):
+		"""Get the base URL of the current image.
+
+		Returns:
+			The base URL of the current image.
+		"""
 		obj = api.getNavigatorObject()
 		url = None
 		while obj:
@@ -112,6 +152,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		),
 	)
 	def script_grabObject(self, gesture):
+		"""Grab the current navigator object and send it to BasiliskLLM.
+
+		Args:
+			gesture: The gesture that triggered this script.
+		"""
 		if self.checkScreenCurtain():
 			return
 		nav = api.getNavigatorObject()
@@ -133,8 +178,11 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		description=_("Send the current src of the image to BasiliskLLM"),
 	)
 	def script_sendURL(self, gesture):
-		if self.checkScreenCurtain():
-			return
+		"""Send the current src of the image to BasiliskLLM.
+
+		Args:
+			gesture: The gesture that triggered this script.
+		"""
 		nav = api.getNavigatorObject()
 		name = nav.name
 		if nav.IA2Attributes and "src" in nav.IA2Attributes:
@@ -153,6 +201,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 			ui.message(_("src not found. Is this an image?"))
 
 	def terminate(self):
+		"""Terminate the global plugin."""
 		gui.settingsDialogs.NVDASettingsDialog.categoryClasses.remove(
 			SettingsDlg
 		)

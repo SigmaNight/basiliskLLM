@@ -1,3 +1,5 @@
+"""Preferences dialog for the BasiliskLLM application."""
+
 import logging
 
 import wx
@@ -14,45 +16,26 @@ from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)
 
-LOG_LEVELS = {
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.NOTSET: _("Off"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.DEBUG: _("Debug"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.INFO: _("Info"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.WARNING: _("Warning"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.ERROR: _("Error"),
-	# Translators: A label for the log level in the settings dialog
-	LogLevelEnum.CRITICAL: _("Critical"),
-}
+LOG_LEVELS = LogLevelEnum.get_labels()
 
-release_channels = {
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.STABLE: _("Stable"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.BETA: _("Beta"),
-	# Translators: A label for the release channel in the settings dialog
-	ReleaseChannelEnum.DEV: _("Development"),
-}
+release_channels = ReleaseChannelEnum.get_labels()
 
-
-auto_update_modes = {
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.OFF: _("Off"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.NOTIFY: _("Notify new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.DOWNLOAD: _("Download new version"),
-	# Translators: A label for the automatic update mode in the settings dialog
-	AutomaticUpdateModeEnum.INSTALL: _("Install new version"),
-}
+auto_update_modes = AutomaticUpdateModeEnum.get_labels()
 
 
 class PreferencesDialog(wx.Dialog):
-	def __init__(self, parent, title, size=(400, 400)):
+	"""A dialog to configure the application preferences."""
+
+	def __init__(
+		self, parent: wx.Window, title: str, size: tuple[int, int] = (400, 400)
+	):
+		"""Create the dialog.
+
+		Args:
+			parent: The parent window.
+			title: The dialog title.
+			size: The dialog size.
+		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
 		self.conf = get_conf()
@@ -61,6 +44,7 @@ class PreferencesDialog(wx.Dialog):
 		self.Show()
 
 	def init_ui(self):
+		"""Create the user interface."""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		panel.SetSizer(sizer)
@@ -334,13 +318,23 @@ class PreferencesDialog(wx.Dialog):
 		panel.Layout()
 		self.Layout()
 
-	def on_resize(self, event):
+	def on_resize(self, event: wx.Event | None):
+		"""Enable or disable the image resizing options.
+
+		Args:
+			event: The event that enable or disable the options.
+		"""
 		val = self.image_resize.GetValue()
 		self.image_max_height.Enable(val)
 		self.image_max_width.Enable(val)
 		self.image_quality.Enable(val)
 
-	def on_ok(self, event):
+	def on_ok(self, event: wx.Event | None):
+		"""Save the configuration and close the dialog.
+
+		Args:
+			event: The event that triggered the save.
+		"""
 		log.debug("Saving configuration")
 		self.conf.general.log_level = list(LOG_LEVELS.keys())[
 			self.log_level.GetSelection()
@@ -387,10 +381,18 @@ class PreferencesDialog(wx.Dialog):
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event):
+		"""Close the dialog without saving the configuration."""
 		self.EndModal(wx.ID_CANCEL)
 
 	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
-		"""Get all supported languages and set the current language as default"""
+		"""Get all supported languages and set the current language as default.
+
+		Args:
+			cur_locale: The current locale.
+
+		Returns:
+			A dictionary with the supported languages.
+		"""
 		self.languages = {
 			# Translators: A label for the language in the settings dialog
 			"auto": _("System default (auto)")

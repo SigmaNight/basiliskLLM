@@ -1,3 +1,18 @@
+"""Implements the conversation tab interface for the BasiliskLLM chat application.
+
+This module provides the ConversationTab class, which handles all UI and logic for individual
+chat conversations. It manages message display, user input, audio recording, image attachments,
+and interaction with AI providers.
+
+Features:
+- Text input/output with markdown support
+- Image attachment handling
+- Audio recording and transcription
+- Message navigation and searching
+- Accessible output integration
+- Streaming message support
+"""
+
 from __future__ import annotations
 
 import datetime
@@ -55,15 +70,33 @@ RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 
 class ConversationTab(wx.Panel, BaseConversation):
-	ROLE_LABELS: dict[MessageRoleEnum, str] = {
-		# Translators: Label indicating that the message is from the user in a conversation
-		MessageRoleEnum.USER: _("User:") + ' ',
-		# Translators: Label indicating that the message is from the assistant in a conversation
-		MessageRoleEnum.ASSISTANT: _("Assistant:") + ' ',
-	}
+	"""A tab panel that manages a single conversation with an AI assistant.
+
+	This class provides a complete interface for interacting with AI models, including:
+	- Text input and output
+	- Image attachment handling
+	- Audio recording and transcription
+	- Message history navigation
+	- Accessible output integration
+	- Stream mode for real-time responses
+
+	Attributes:
+		ROLE_LABELS (dict): Maps message roles to their display labels
+		title (str): The conversation tab's title
+		conversation (Conversation): The underlying conversation data
+		image_files (list[ImageFile]): Currently attached image files
+		message_segment_manager (MessageSegmentManager): Manages message text segments
+	"""
+
+	ROLE_LABELS = MessageRoleEnum.get_labels()
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
+		"""Generate a unique storage path for a conversation based on the current timestamp.
+
+		Returns:
+		A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
+		"""
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
 		)
@@ -72,6 +105,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def open_conversation(
 		cls, parent: wx.Window, file_path: str, default_title: str
 	) -> ConversationTab:
+		"""Open a conversation from a file and create a new ConversationTab instance.
+
+		This class method loads a conversation from a specified file path, generates a unique storage path,
+		and initializes a new ConversationTab with the loaded conversation details.
+
+		Args:
+			parent: The parent window for the conversation tab.
+			file_path: The path to the conversation file to be opened.
+			default_title: A fallback title to use if the conversation has no title.
+
+		Returns:
+			A new ConversationTab instance with the loaded conversation.
+
+		Raises:
+			IOError: If the conversation file cannot be read or parsed.
+
+		Example:
+			conversation_tab = ConversationTab.open_conversation(
+				parent_window, "/path/to/conversation.json", "My Conversation"
+			)
+		"""
 		log.debug(f"Opening conversation from {file_path}")
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
@@ -93,6 +147,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		conv_storage_path: Optional[UPath] = None,
 		bskc_path: Optional[str] = None,
 	):
+		"""Initialize a new conversation tab in the chat application.
+
+		Initializes the conversation tab by:
+		- Setting up the wx.Panel and BaseConversation base classes
+		- Configuring conversation metadata and storage
+		- Preparing UI components and data structures
+		- Initializing recording and message management resources
+
+		Args:
+			parent: The parent window containing this conversation tab.
+			title: The title of the conversation. Defaults to "Untitled conversation".
+			profile: The conversation profile to apply. Defaults to None.
+			conversation: An existing conversation to load. Defaults to a new Conversation.
+			conv_storage_path: Unique storage path for the conversation. Defaults to a generated path.
+			bskc_path: Path to a specific configuration file. Defaults to None.
+		"""
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
@@ -115,6 +185,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
+		"""Initialize and layout all UI components of the conversation tab.
+
+		Creates and configures:
+		- Account selection combo box
+		- System prompt input
+		- Message history display
+		- User prompt input
+		- Image list
+		- Model selection
+		- Generation parameters
+		- Control buttons
+		"""
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -237,10 +319,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
+		"""Initialize the conversation data with an optional profile.
+
+		Args:
+			profile: Configuration profile to apply
+		"""
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
-	def on_choose_profile(self, event: wx.KeyEvent):
+	def on_choose_profile(self, event: wx.KeyEvent | None):
+		"""Displays a context menu for selecting a conversation profile.
+
+		This method triggers the creation of a profile selection menu from the main application frame
+		and shows it as a popup menu at the current cursor position. After the user makes a selection,
+		the menu is automatically destroyed.
+
+		Args:
+			event: The event that triggered the profile selection menu.
+		"""
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
 		menu = main_frame.build_profile_menu(
 			main_frame.on_apply_conversation_profile
@@ -249,6 +345,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Destroy()
 
 	def on_char_hook(self, event: wx.KeyEvent):
+		"""Handle keyboard shortcuts for the conversation tab.
+
+		Args:
+			event: The keyboard event
+		"""
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 		actions = {(wx.MOD_CONTROL, ord('P')): self.on_choose_profile}
@@ -258,7 +359,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			event.Skip()
 
-	def on_account_change(self, event: wx.CommandEvent):
+	def on_account_change(self, event: wx.CommandEvent | None):
+		"""Handle account selection changes in the conversation tab.
+
+		Updates the model list based on the selected account's.
+		Enables/disables the record button based on the selected account's capabilities.
+
+		Args:
+			event: The account selection event
+		"""
 		account = super().on_account_change(event)
 		if not account:
 			return
@@ -267,7 +376,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
 
-	def on_images_context_menu(self, event: wx.ContextMenuEvent):
+	def on_images_context_menu(self, event: wx.ContextMenuEvent | None):
+		"""Display context menu for the images list.
+
+		Provides options for:
+		- Removing selected images
+		- Copying image URLs
+		- Pasting images
+		- Adding image files
+		- Adding image URLs
+
+		Args:
+			event (wx.ContextMenuEvent): The context menu trigger event
+		"""
 		selected = self.images_list.GetFirstSelected()
 		menu = wx.Menu()
 
@@ -300,6 +421,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Destroy()
 
 	def on_images_key_down(self, event: wx.KeyEvent):
+		"""Handle keyboard shortcuts for the images list.
+
+		Supports:
+		- Ctrl+C: Copy image URL
+		- Ctrl+V: Paste image
+		- Delete: Remove selected image
+
+		Args:
+			event: The keyboard event
+		"""
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
@@ -310,7 +441,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.on_images_remove(None)
 		event.Skip()
 
-	def on_image_paste(self, event: wx.CommandEvent):
+	def on_image_paste(self, event: wx.CommandEvent | None):
+		"""Handles pasting content from the clipboard into the conversation interface.
+
+		Supports multiple clipboard data types:
+		- Files: Adds image files directly to the conversation
+		- Text:
+			- If a valid URL is detected, adds the image URL
+			- Otherwise, pastes text into the prompt input
+		- Bitmap images: Saves the image to a temporary file and adds it to the conversation
+
+		Args:
+		event: The clipboard paste event
+		"""
 		with wx.TheClipboard as clipboard:
 			if clipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
 				log.debug("Pasting files from clipboard")
@@ -349,7 +492,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			else:
 				log.info("Unsupported clipboard data")
 
-	def add_image_files(self, event: wx.CommandEvent = None):
+	def add_image_files(self, event: wx.CommandEvent | None):
+		"""Open a file dialog to select and add image files to the conversation.
+
+		Args:
+			event: Event triggered by the add image files action
+		"""
 		file_dialog = wx.FileDialog(
 			self,
 			message=_("Select one or more image files"),
@@ -362,7 +510,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.add_images(paths)
 		file_dialog.Destroy()
 
-	def add_image_url_dlg(self, event: wx.CommandEvent = None):
+	def add_image_url_dlg(self, event: wx.CommandEvent | None):
+		"""Open a dialog to input an image URL and add it to the conversation.
+
+		Args:
+			event: Event triggered by the add image URL action
+		"""
 		url_dialog = wx.TextEntryDialog(
 			self,
 			# Translators: This is a label for image URL in conversation tab
@@ -383,6 +536,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url_dialog.Destroy()
 
 	def force_image_from_url(self, url: str, content_type: str):
+		"""Handle adding an image from a URL with a non-image content type.
+
+		Displays a warning message to the user and prompts for confirmation to proceed.
+
+		Args:
+			url: The URL of the image
+			content_type: The content type of the URL
+		"""
 		log.warning(
 			f"The {url} URL seems to not point to an image. The content type is {content_type}."
 		)
@@ -400,6 +561,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.add_image_files([ImageFile(location=url)])
 
 	def add_image_from_url(self, url: str):
+		"""Add an image to the conversation from a URL.
+
+		Args:
+			url: The URL of the image to add
+		"""
 		image_file = None
 		try:
 			image_file = ImageFile.build_from_url(url)
@@ -425,17 +591,26 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			return
 		wx.CallAfter(self.add_images, [image_file])
-
 		self.task = None
 
 	@ensure_no_task_running
 	def add_image_url_thread(self, url: str):
+		"""Start a thread to add an image to the conversation from a URL.
+
+		Args:
+			url: The URL of the image to add
+		"""
 		self.task = threading.Thread(
 			target=self.add_image_from_url, args=(url,)
 		)
 		self.task.start()
 
-	def on_images_remove(self, vent: wx.CommandEvent):
+	def on_images_remove(self, event: wx.CommandEvent | None):
+		"""Remove the selected image from the conversation.
+
+		Args:
+			event: Event triggered by the remove image action
+		"""
 		selection = self.images_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
@@ -450,7 +625,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			self.prompt.SetFocus()
 
-	def on_copy_image_url(self, event: wx.CommandEvent):
+	def on_copy_image_url(self, event: wx.CommandEvent | None):
+		"""Copy the URL of the selected image to the clipboard.
+
+		Args:
+			event: Event triggered by the copy image URL action
+		"""
 		selected = self.images_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
@@ -459,6 +639,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			clipboard.SetData(wx.TextDataObject(url))
 
 	def refresh_accounts(self):
+		"""Update the account selection combo box with current accounts.
+
+		Preserves the current selection if possible, otherwise selects the first account.
+		"""
 		account_index = self.account_combo.GetSelection()
 		account_id = None
 		if account_index != wx.NOT_FOUND:
@@ -475,7 +659,28 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
+	def get_dispay_images(self) -> list[tuple[str, str, str]]:
+		"""Generate a list of image file display information for the images list.
+
+		Returns:
+			A list of image file display information tuples
+		"""
+		return [
+			(
+				img.name,
+				img.display_size,
+				img.display_dimensions,
+				img.display_location,
+			)
+			for img in self.image_files
+		]
+
 	def refresh_images_list(self):
+		"""Update the images list display with current image files.
+
+		Shows/hides the images list based on whether there are images to display.
+		Updates all image information columns.
+		"""
 		self.images_list.DeleteAllItems()
 		if not self.image_files:
 			self.images_list_label.Hide()
@@ -485,17 +690,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.images_list_label.Show()
 		self.images_list.Show()
 		self.Layout()
-		for i, image in enumerate(self.image_files):
-			self.images_list.InsertItem(i, image.name)
-			self.images_list.SetItem(i, 1, image.display_size)
-			self.images_list.SetItem(i, 2, image.display_dimensions)
-			self.images_list.SetItem(i, 3, image.display_location)
+		for img_info in self.get_dispay_images():
+			self.images_list.Append(img_info)
+		last_index = len(self.image_files) - 1
 		self.images_list.SetItemState(
-			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
+			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
-		self.images_list.EnsureVisible(i)
+		self.images_list.EnsureVisible(last_index)
 
 	def add_images(self, paths: list[str | ImageFile]):
+		"""Add one or more images to the conversation.
+
+		Args:
+			paths: List of image paths or ImageFile objects to add
+		"""
 		log.debug(f"Adding images: {paths}")
 		for path in paths:
 			if isinstance(path, ImageFile):
@@ -507,6 +715,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.images_list.SetFocus()
 
 	def on_config_change(self):
+		"""Handle configuration changes in the conversation tab.
+
+		Update account, model list and advanced mode settings.
+		"""
 		self.refresh_accounts()
 		self.on_account_change(None)
 		self.on_model_change(None)
@@ -515,6 +727,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def add_standard_context_menu_items(
 		self, menu: wx.Menu, include_paste: bool = True
 	):
+		"""Add standard context menu items to a menu.
+
+		Args:
+			menu: The menu to add items to
+			include_paste: Whether to include the paste item
+		"""
 		menu.Append(wx.ID_UNDO)
 		menu.Append(wx.ID_REDO)
 		menu.Append(wx.ID_CUT)
@@ -526,6 +744,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def _do_search_in_messages(
 		self, direction: SearchDirection = SearchDirection.FORWARD
 	):
+		"""Open the search dialog for searching in the messages.
+
+		Args:
+			direction: The search direction (forward or backward)
+		"""
 		if not self._search_dialog:
 			self._search_dialog = SearchDialog(self, self.messages)
 		self._search_dialog._dir_radio_forward.SetValue(
@@ -539,20 +762,42 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._search_dialog._search_combo.SelectAll()
 		self._search_dialog.ShowModal()
 
-	def on_search_in_messages(self, event: wx.CommandEvent = None):
+	def on_search_in_messages(self, event: wx.CommandEvent | None = None):
+		"""Handle searching in the messages.
+
+		Args:
+			event: The event that triggered the search action
+		"""
 		self._do_search_in_messages()
 
-	def on_search_in_messages_previous(self, event: wx.CommandEvent = None):
+	def on_search_in_messages_previous(
+		self, event: wx.CommandEvent | None = None
+	):
+		"""Search for the previous occurrence in the messages.
+
+		Args:
+			event: The event that triggered the search action
+		"""
 		if not self._search_dialog:
 			return self._do_search_in_messages(SearchDirection.BACKWARD)
 		self._search_dialog.search_previous()
 
-	def on_search_in_messages_next(self, event: wx.CommandEvent = None):
+	def on_search_in_messages_next(self, event: wx.CommandEvent | None = None):
+		"""Search for the next occurrence in the messages.
+
+		Args:
+			event: The event that triggered the search action
+		"""
 		if not self._search_dialog:
 			return self._do_search_in_messages()
 		self._search_dialog.search_next()
 
 	def navigate_message(self, previous: bool):
+		"""Navigate to the previous or next message in the conversation.
+
+		Args:
+			previous: Whether to navigate to the previous message
+		"""
 		self.message_segment_manager.absolute_position = (
 			self.messages.GetInsertionPoint()
 		)
@@ -579,13 +824,28 @@ class ConversationTab(wx.Panel, BaseConversation):
 				current_message = self.messages.GetRange(start, end)
 				self._handle_accessible_output(current_message)
 
-	def go_to_previous_message(self, event: wx.CommandEvent = None):
+	def go_to_previous_message(self, event: wx.CommandEvent | None = None):
+		"""Navigate to the previous message in the conversation.
+
+		Args:
+			event: The event that triggered the navigation action
+		"""
 		self.navigate_message(True)
 
-	def go_to_next_message(self, event: wx.CommandEvent = None):
+	def go_to_next_message(self, event: wx.CommandEvent | None = None):
+		"""Navigate to the next message in the conversation.
+
+		Args:
+			event: The event that triggered the navigation action
+		"""
 		self.navigate_message(False)
 
-	def move_to_start_of_message(self, event: wx.CommandEvent = None):
+	def move_to_start_of_message(self, event: wx.CommandEvent | None = None):
+		"""Move the cursor to the start of the current message.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
@@ -593,6 +853,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._handle_accessible_output(_("Start of message"))
 
 	def move_to_end_of_message(self, event: wx.CommandEvent = None):
+		"""Move the cursor to the end of the current message.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
@@ -600,6 +865,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._handle_accessible_output(_("End of message"))
 
 	def get_range_for_current_message(self) -> tuple[int, int]:
+		"""Get the range of the current message in the messages text control.
+
+		Returns:
+			A tuple containing the start and end positions of the current message
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
@@ -608,13 +878,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return start, end
 
 	def select_current_message(self):
-		start, end = self.get_range_for_current_message()
-		self.messages.SetSelection(start, end)
+		"""Select the current message in the messages text control."""
+		self.messages.SetSelection(*self.get_range_for_current_message())
 
-	def on_select_message(self, event: wx.CommandEvent = None):
+	def on_select_message(self, event: wx.CommandEvent | None = None):
+		"""Select the current message in the messages text control.
+
+		Args:
+			event: The event that triggered the selection action
+		"""
 		self.select_current_message()
 
-	def on_toggle_speak_stream(self, event: wx.CommandEvent = None):
+	def on_toggle_speak_stream(self, event: wx.CommandEvent | None = None):
+		"""Toggle the stream speaking mode.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		if event:
 			return wx.CallLater(500, self.on_toggle_speak_stream)
 		self._speak_stream = not self._speak_stream
@@ -624,7 +904,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			braille=True,
 		)
 
-	def on_read_current_message(self, event: wx.CommandEvent = None):
+	def on_read_current_message(self, event: wx.CommandEvent | None = None):
+		"""Read the current message in the messages text control.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
 		cursor_pos = self.messages.GetInsertionPoint()
@@ -635,7 +920,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		content = self.messages.GetRange(start, end)
 		self._handle_accessible_output(content, force=True)
 
-	def on_show_as_html(self, event: wx.CommandEvent = None):
+	def on_show_as_html(self, event: wx.CommandEvent | None = None):
+		"""Show the current message as HTML in a new window.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		start = self.message_segment_manager.start
@@ -643,7 +933,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		content = self.messages.GetRange(start, end)
 		show_html_view_window(self, content, "markdown")
 
-	def on_copy_message(self, event: wx.CommandEvent = None):
+	def on_copy_message(self, event: wx.CommandEvent | None = None):
+		"""Copy the current message to the clipboard.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.select_current_message()
 		self.messages.Copy()
@@ -652,7 +947,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			_("Message copied to clipboard"), braille=True
 		)
 
-	def on_remove_message_block(self, event: wx.CommandEvent = None):
+	def on_remove_message_block(self, event: wx.CommandEvent | None = None):
+		"""Remove the current message block from the conversation.
+
+		Args:
+			event: The event that triggered the action
+		"""
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		message_block = (
@@ -669,7 +969,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			wx.Bell()
 
-	def on_messages_key_down(self, event: wx.KeyEvent = None):
+	def on_messages_key_down(self, event: wx.KeyEvent):
+		"""Handle keyboard shortcuts for the messages text control.
+
+		Supports:
+		- Space: Read current message
+		- Shift+Space: Toggle stream speaking mode
+		- J: Go to previous message
+		- K: Go to next message
+		- S: Select current message
+		- H: Show current message as HTML
+		- C: Copy current message
+		- B: Move to start of message
+		- N: Move to end of message
+		- Shift+Delete: Remove current message block
+		- F3: Search in messages (forward)
+		- Shift+F3: Search in messages (backward)
+		- Ctrl+F: open Search in messages dialog
+
+		Args:
+			event: The keyboard event
+		"""
 		if not self.conversation.messages:
 			event.Skip()
 			return
@@ -701,6 +1021,26 @@ class ConversationTab(wx.Panel, BaseConversation):
 			event.Skip()
 
 	def on_messages_context_menu(self, event: wx.ContextMenuEvent):
+		"""Display context menu for the messages text control.
+
+		Provides options for:
+		- Reading the current message
+		- Toggling stream speaking mode
+		- Showing the current message as HTML
+		- Copying the current message
+		- Selecting the current message
+		- Going to the previous message
+		- Going to the next message
+		- Moving to the start of the current message
+		- Moving to the end of the current message
+		- Removing the current message block
+		- Searching in the messages
+		- Searching for the next occurrence
+		- Searching for the previous occurrence
+
+		Args:
+			event: The context menu trigger event
+		"""
 		menu = wx.Menu()
 
 		if self.conversation.messages:
@@ -826,6 +1166,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Destroy()
 
 	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
+		"""Display context menu for the prompt text control.
+
+		Provides options for:
+		- Inserting the previous prompt
+		- Submitting the current prompt
+		- Pasting content from the clipboard
+		- Copying content from the prompt
+		- Cutting content from the prompt
+		- Selecting all content in the prompt
+
+		Args:
+			event: The context menu trigger event
+		"""
 		menu = wx.Menu()
 		item = wx.MenuItem(
 			menu, wx.ID_ANY, _("Insert previous prompt") + " (Ctrl+Up)"
@@ -847,6 +1200,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Destroy()
 
 	def on_prompt_key_down(self, event: wx.KeyEvent):
+		"""Handle keyboard shortcuts for the prompt text control.
+
+		Supports:
+		- Ctrl+Up: Insert previous prompt
+		- Ctrl+Enter: Submit the current prompt
+		- Ctrl+V: Paste content from the clipboard
+		- Ctrl+C: Copy content from the prompt
+		- Ctrl+X: Cut content from the prompt
+		- Ctrl+A: Select all content in the prompt
+
+		Args:
+			event: The keyboard event
+		"""
 		modifiers = event.GetModifiers()
 		key_code = event.GetKeyCode()
 		match (modifiers, key_code):
@@ -871,20 +1237,63 @@ class ConversationTab(wx.Panel, BaseConversation):
 				event.Skip()
 
 	def on_prompt_paste(self, event):
+		"""Handle pasting content from the clipboard into the prompt text control.
+
+		Supports pasting text and images from the clipboard.
+
+		Args:
+			event: The paste event
+		"""
 		self.on_image_paste(event)
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
+		"""Insert the last user message from the conversation history into the prompt text control.
+
+		This method retrieves the content of the most recent user message from the conversation
+		and sets it as the current value of the prompt input field. If no messages exist in
+		the conversation, no action is taken.
+
+		Args:
+			event: The wxPython event that triggered this method. Defaults to None and is not used in the method's logic.
+		"""
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
 			self.prompt.SetValue(last_user_message)
 
 	def extract_text_from_message(self, content: str) -> str:
+		"""Extracts the text content from a message.
+
+		Args:
+		content: The message content to extract text from.
+
+		Returns:
+		The extracted text content of the message.
+		"""
 		if isinstance(content, str):
 			return content
 
 	def append_text_and_create_segment(
-		self, text, segment_type, new_block_ref, absolute_length
+		self,
+		text: str,
+		segment_type: MessageSegmentType,
+		new_block_ref: MessageBlock,
+		absolute_length: int,
 	):
+		"""Appends text to the messages control and creates a corresponding message segment.
+
+		This method performs two primary actions:
+		1. Adds the specified text to the messages text control
+		2. Creates a new message segment with metadata about the text's position and type
+
+		Args:
+			text: The text to be appended to the messages control
+			segment_type: The type/kind of message segment being added
+			new_block_ref: Reference to the message block associated with this segment
+			absolute_length: The current absolute position in the text control before appending
+
+		Returns:
+			The new absolute length of text in the messages control after appending
+		"""
 		self.messages.AppendText(text)
 		relative_length = self.messages.GetLastPosition() - absolute_length
 		absolute_length = self.messages.GetLastPosition()
@@ -898,6 +1307,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return absolute_length
 
 	def display_new_block(self, new_block: MessageBlock):
+		"""Displays a new message block in the conversation text control.
+
+		This method appends a new message block to the existing conversation, handling both request and response messages. It manages the formatting and segmentation of messages, including role labels and content.
+
+		Parameters:
+		    new_block (MessageBlock): The message block to be displayed in the conversation.
+
+		Notes:
+		    - Handles empty and non-empty message text controls
+		    - Supports configurable role labels from system configuration
+		    - Uses weak references to track message blocks
+		    - Preserves the original insertion point after displaying the block
+		    - Supports both request and optional response messages
+		"""
 		absolute_length = self.messages.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
 
@@ -957,6 +1380,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.SetInsertionPoint(pos)
 
 	def refresh_messages(self, need_clear: bool = True):
+		"""Refreshes the messages displayed in the conversation tab.
+
+		This method updates the conversation display by optionally clearing existing content and then
+		re-displaying all messages from the current conversation. It performs the following steps:
+		- Optionally clears the messages list, message segment manager, and image files
+		- Refreshes the images list
+		- Iterates through all message blocks in the conversation and displays them
+
+		Args:
+			need_clear: If True, clears existing messages, message segments, and image files before refreshing. Defaults to True.
+		"""
 		if need_clear:
 			self.messages.Clear()
 			self.message_segment_manager.clear()
@@ -966,6 +1400,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.display_new_block(block)
 
 	def transcribe_audio_file(self, audio_file: str = None):
+		"""Transcribe an audio file using the current provider's STT capabilities.
+
+		Args:
+			audio_file: Path to audio file. If None, starts recording. Defaults to None.
+		"""
 		if not self.recording_thread:
 			module = __import__(
 				"basilisk.recording_thread", fromlist=["RecordingThread"]
@@ -982,6 +1421,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.recording_thread.start()
 
 	def on_transcribe_audio_file(self):
+		"""Transcribe an audio file using the current provider's STT capabilities."""
 		cur_provider = self.current_engine
 		if ProviderCapability.STT not in cur_provider.capabilities:
 			wx.MessageBox(
@@ -1006,18 +1446,26 @@ class ConversationTab(wx.Panel, BaseConversation):
 			dlg.Destroy()
 
 	def on_recording_started(self):
+		"""Handle the start of audio recording."""
 		play_sound("recording_started")
 		self.SetStatusText(_("Recording..."))
 
 	def on_recording_stopped(self):
+		"""Handle the end of audio recording."""
 		play_sound("recording_stopped")
 		self.SetStatusText(_("Recording stopped"))
 
 	def on_transcription_started(self):
+		"""Handle the start of audio transcription."""
 		play_sound("progress", loop=True)
 		self.SetStatusText(_("Transcribing..."))
 
 	def on_transcription_received(self, transcription):
+		"""Handle the receipt of a transcription result.
+
+		Args:
+			transcription: The transcription result
+		"""
 		stop_sound()
 		self.SetStatusText(_("Ready"))
 		self.prompt.AppendText(transcription.text)
@@ -1027,6 +1475,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.prompt.SetFocus()
 
 	def on_transcription_error(self, error):
+		"""Handle an error during audio transcription.
+
+		Args:
+			error: The error that occurred
+		"""
 		stop_sound()
 		self.SetStatusText(_("Ready"))
 		wx.MessageBox(
@@ -1036,12 +1489,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 
 	def toggle_recording(self, event: wx.CommandEvent):
+		"""Toggle audio recording on/off.
+
+		Args:
+			event: The button event
+		"""
 		if self.recording_thread and self.recording_thread.is_alive():
 			self.stop_recording()
 		else:
 			self.start_recording()
 
 	def start_recording(self):
+		"""Start audio recording."""
 		cur_provider = self.current_engine
 		if ProviderCapability.STT not in cur_provider.capabilities:
 			wx.MessageBox(
@@ -1055,11 +1514,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.transcribe_audio_file()
 
 	def stop_recording(self):
+		"""Stop audio recording."""
 		self.recording_thread.stop()
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
 	def ensure_model_compatibility(self) -> ProviderAIModel | None:
+		"""Check if current model is compatible with requested operations.
+
+		Returns:
+			The current model if compatible, None otherwise
+		"""
 		model = self.current_model
 		if not model:
 			wx.MessageBox(
@@ -1081,12 +1546,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return model
 
 	def get_system_message(self) -> Message | None:
+		"""Get the system message from the system prompt input.
+
+		Returns:
+			System message if set, None otherwise
+		"""
 		system_prompt = self.system_prompt_txt.GetValue()
 		if not system_prompt:
 			return None
 		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
 
 	def get_new_message_block(self) -> MessageBlock | None:
+		"""Constructs a new message block for the conversation based on current UI settings.
+
+		Prepares a message block with user input, selected model, and generation parameters. If image resizing is enabled in configuration, it resizes attached images before creating the message block.
+
+		Returns:
+			A configured message block containing user prompt, images, model details, and generation parameters.
+		If no compatible model is available or no user input is provided, returns None.
+		"""
 		model = self.ensure_model_compatibility()
 		if not model:
 			return None
@@ -1113,6 +1591,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:
+		"""Get the arguments for the completion request.
+
+		Returns:
+			A dictionary containing the arguments for the completion request.
+		If no new message block is available, returns None.
+		"""
 		new_block = self.get_new_message_block()
 		if not new_block:
 			return None
@@ -1126,6 +1610,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
+		"""Handle the submission of a new message block for completion.
+
+		Args:
+			event: The event that triggered the submission action
+		"""
 		if not self.submit_btn.IsEnabled():
 			return
 		if not self.prompt.GetValue() and not self.image_files:
@@ -1145,9 +1634,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 		log.debug(f"Task {self.task.ident} started")
 
 	def on_stop_completion(self, event: wx.CommandEvent):
+		"""Handle the stopping of the current completion task.
+
+		Args:
+			event: The event that triggered the stop action
+		"""
 		self._stop_completion = True
 
-	def _handle_completion(self, engine: BaseEngine, **kwargs):
+	def _handle_completion(self, engine: BaseEngine, **kwargs: dict[str, Any]):
+		"""Handle the completion of a new message block.
+
+		Args:
+			engine: The engine to use for completion
+			kwargs: The keyword arguments for the completion request
+		"""
 		try:
 			play_sound("progress", loop=True)
 			response = engine.completion(**kwargs)
@@ -1184,6 +1684,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			wx.CallAfter(self._post_completion_without_stream, new_block)
 
 	def _pre_handle_completion_with_stream(self, new_block: MessageBlock):
+		"""Prepare for handling a completion response with streaming.
+
+		Args:
+			new_block: The new message block to be displayed
+		"""
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
@@ -1192,6 +1697,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.refresh_images_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
+		"""Handle a completion response chunk for streaming.
+
+		Args:
+			chunk: The completion response chunk to be displayed
+		"""
 		self.stream_buffer += chunk
 		# Flush buffer when encountering any of:
 		# - newline (\n)
@@ -1224,16 +1734,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 			log.error("Error during speech output", exc_info=True)
 
 	def _handle_speech_stream_buffer(self, new_text: str = ''):
-		"""
-		Processes incoming speech stream text. If the input `new_text` is not a valid string
-		or is empty, it forces flushing the current buffer to the accessible output handler.
+		"""Processes incoming speech stream text.
+
+		If the input `new_text` is not a valid string or is empty, it forces flushing the current buffer to the accessible output handler.
 		If `new_text` contains punctuation or newlines, it processes text up to the last
 		occurrence, sends that portion to the output handler, and retains the remaining
 		text in the buffer.
 
 		Args:
-			new_text (str): The new incoming text to process. If not a string or empty,
-							the buffer is processed immediately.
+			new_text (str): The new incoming text to process. If not a string or empty, the buffer is processed immediately.
 		"""
 		if not isinstance(new_text, str) or not new_text:
 			if self.speech_stream_buffer:
@@ -1266,6 +1775,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.speech_stream_buffer += new_text
 
 	def _flush_stream_buffer(self):
+		"""Flush the current speech stream buffer to the messages text control and accessible output handler."""
 		pos = self.messages.GetInsertionPoint()
 		text = self.stream_buffer
 		if (
@@ -1279,12 +1789,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.SetInsertionPoint(pos)
 
 	def _update_last_segment_length(self):
+		"""Update the length of the last message segment to match the current text control position."""
 		last_position = self.messages.GetLastPosition()
 		self.message_segment_manager.absolute_position = last_position
 		last_segment = self.message_segment_manager.segments[-1]
 		last_segment.length += last_position - self.message_segment_manager.end
 
 	def _post_completion_with_stream(self, new_block: MessageBlock):
+		"""Finalize the completion process for a streaming response.
+
+		Args:
+			new_block: The new message block to be displayed
+		"""
 		self._flush_stream_buffer()
 		self._handle_speech_stream_buffer()
 		self._update_last_segment_length()
@@ -1293,6 +1809,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _post_completion_without_stream(self, new_block: MessageBlock):
+		"""Finalize the completion process for a non-streaming response.
+
+		Args:
+			new_block: The new message block to be displayed
+		"""
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
 		self._handle_accessible_output(new_block.response.content)
@@ -1304,6 +1825,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._end_task()
 
 	def _end_task(self, success: bool = True):
+		"""End the current completion task.
+
+		Args:
+			success: Whether the task completed successfully
+		"""
 		self.task.join()
 		log.debug(f"Task {self.task.ident} ended")
 		self.task = None
@@ -1316,7 +1842,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	@ensure_no_task_running
 	def generate_conversation_title(self):
-		"""Generate a title for the conversation tab based on the content of the conversation. Use the current model and account names."""
+		"""Generate a title for the conversation tab by using the AI model to analyze the conversation content.
+
+		This method attempts to create a concise title by sending a predefined title generation prompt to the current AI model. It handles the title generation process, including error management and sound feedback.
+
+		Returns:
+			A generated conversation title if successful, or None if title generation fails.
+		"""
 		if not self.conversation.messages:
 			return
 		model = self.current_model
@@ -1358,6 +1890,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 			stop_sound()
 
 	def save_conversation(self, file_path: str) -> bool:
+		"""Save the current conversation to a specified file path.
+
+		This method saves the current conversation to a file in JSON format. It handles the saving process, including error management and user feedback.
+
+		Args:
+			file_path: The target file path where the conversation will be saved.
+
+		Returns:
+		True if the conversation was successfully saved, False otherwise.
+		"""
 		log.debug(f"Saving conversation to {file_path}")
 		try:
 			self.conversation.save(file_path)

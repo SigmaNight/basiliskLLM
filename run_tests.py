@@ -1,3 +1,8 @@
+"""Unit tests runner for the project.
+
+This script automatically discovers and runs all unit tests located in the 'tests' directory.
+"""
+
 import unittest
 
 test_loader = unittest.TestLoader()

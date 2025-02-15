@@ -48,9 +48,9 @@ pywin32 = { version = "^308", markers = "sys_platform == 'win32'" }
 pyyaml = "^6.0.1"
 sounddevice = "^0.5.1"
 truststore = "^0.10.1"
+universal-pathlib = "^0.2.6"
 watchdog = "^6.0.0"
 wxpython = "^4.2.2"
-universal-pathlib = "^0.2.6"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.2.0"
@@ -73,12 +73,19 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT","I","C90"]
+extend-select = ["INT","I","C90","D"]
+extend-ignore = ["D206"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
 [tool.ruff.lint.isort]
 known-first-party = ["basilisk"]
 split-on-trailing-comma = false
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"

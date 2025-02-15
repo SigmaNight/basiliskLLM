@@ -1,3 +1,9 @@
+"""Module for handling audio recording and transcription in a separate thread.
+
+This module provides functionality to record audio, save it as a WAV file,
+and process the recording for transcription using a provided engine.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -22,6 +28,12 @@ log = logging.getLogger(__name__)
 
 
 class RecordingThread(threading.Thread):
+	"""Thread class for handling audio recording and transcription.
+
+	This class manages the recording of audio input, saves it to a WAV file,
+	and processes it for transcription using a provided engine.
+	"""
+
 	def __init__(
 		self,
 		provider_engine: BaseEngine,
@@ -30,6 +42,18 @@ class RecordingThread(threading.Thread):
 		audio_file_path=None,
 		response_format: str = "json",
 	):
+		"""Initialize the recording thread.
+
+		Args:
+			provider_engine: Engine to handle audio transcription.
+			recordings_settings: Configuration for audio recording.
+			conversation_tab: GUI tab managing the conversation.
+			audio_file_path: Path to existing audio file. Defaults to None.
+			response_format: Format for transcription response. Defaults to "json".
+
+		Raises:
+			ValueError: If provider_engine or recordings_settings are not provided.
+		"""
 		super(RecordingThread, self).__init__()
 		if not provider_engine:
 			raise ValueError("No provider engine provided.")
@@ -46,6 +70,11 @@ class RecordingThread(threading.Thread):
 		self._want_abort = False
 
 	def run(self):
+		"""Execute the recording and transcription process.
+
+		Records audio if no existing file is provided, saves it to a WAV file,
+		and processes it for transcription. Updates the GUI with status changes.
+		"""
 		if not self.audio_file_path:
 			self.audio_file_path = self.get_filename()
 			self.audio_data = np_array([], dtype=self.recordings_settings.dtype)
@@ -67,6 +96,11 @@ class RecordingThread(threading.Thread):
 		self.process_transcription(self.audio_file_path)
 
 	def record_audio(self, sampleRate: int):
+		"""Record audio from the input device.
+
+		Args:
+			sampleRate: The sample rate for audio recording.
+		"""
 		chunk_size = 1024
 		self._recording = True
 		with sd.InputStream(
@@ -83,7 +117,14 @@ class RecordingThread(threading.Thread):
 					break
 		self._recording = False
 
-	def save_wav(self, filename: str, data, sample_rate: int):
+	def save_wav(self, filename: str, data: np_array, sample_rate: int):
+		"""Save recorded audio data to a WAV file.
+
+		Args:
+			filename: Path where the WAV file will be saved.
+			data: Audio data to be saved.
+			sample_rate: Sample rate of the audio data.
+		"""
 		if self._want_abort:
 			return
 		wavefile = wave.open(filename, "wb")
@@ -94,13 +135,24 @@ class RecordingThread(threading.Thread):
 		wavefile.close()
 
 	def stop(self):
+		"""Stop the current recording process."""
 		self._stop_record = True
 		self._recording = False
 
 	def get_filename(self):
+		"""Get the default filename for saving the recording.
+
+		Returns:
+			Path to the temporary WAV file.
+		"""
 		return os.path.join(tempfile.gettempdir(), "basilisk_last_record.wav")
 
 	def process_transcription(self, audio_file_path: str):
+		"""Process the audio file for transcription.
+
+		Args:
+			audio_file_path: Path to the audio file to transcribe.
+		"""
 		if self._want_abort:
 			return
 		try:
@@ -119,5 +171,6 @@ class RecordingThread(threading.Thread):
 			wx.CallAfter(self.conversation_tab.on_transcription_error, str(err))
 
 	def abort(self):
+		"""Abort the recording and transcription process."""
 		self._stop_record = True
 		self._want_abort = True

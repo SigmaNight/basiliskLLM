@@ -1,3 +1,12 @@
+"""A module to display HTML content in a window.
+
+Features:
+- Supports both HTML and Markdown content
+- Markdown to HTML conversion with extended features
+- Copy to clipboard functionality
+- Responsive web view.
+"""
+
 import markdown2
 import wx
 import wx.html2
@@ -16,8 +25,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 class HtmlViewWindow(wx.Frame):
-	"""
-	A window to display HTML content. Converts Markdown to HTML if needed.
+	"""A window to display HTML content. Converts Markdown to HTML if needed.
+
+	Supported Markdown features:
+	- Fenced code blocks
+	- Tables
+	- Strikethrough
+	- HTML-friendly tags
 	"""
 
 	def __init__(
@@ -27,6 +41,14 @@ class HtmlViewWindow(wx.Frame):
 		content_format: str,
 		title: str = "HTML Message",
 	):
+		"""Create a new HtmlViewWindow.
+
+		Args:
+			parent: Parent window.
+			content: Content to display.
+			content_format: Format of the content ('html' or 'markdown').
+			title: Window title.
+		"""
 		if content_format not in VALID_FORMATS:
 			raise ValueError(
 				f"Invalid format: '{content_format}'. Supported formats: {VALID_FORMATS}"
@@ -50,6 +72,7 @@ class HtmlViewWindow(wx.Frame):
 		self._init_ui()
 
 	def _init_ui(self):
+		"""Initialize the UI components."""
 		panel = wx.Panel(self)
 
 		self._close_button = wx.Button(panel, id=wx.ID_CLOSE)
@@ -76,9 +99,11 @@ class HtmlViewWindow(wx.Frame):
 		panel.SetSizer(main_sizer)
 
 	def _on_close(self, event: wx.Event):
+		"""Close the window."""
 		self.Close()
 
-	def _on_copy(self, event: wx.Event):
+	def _on_copy(self, event: wx.Event | None = None):
+		"""Copy the content to the clipboard."""
 		if wx.TheClipboard.Open():
 			html_data_object = wx.HTMLDataObject(self._content)
 			wx.TheClipboard.SetData(html_data_object)
@@ -95,13 +120,13 @@ def show_html_view_window(
 	content_format: str = "markdown",
 	title: str = "HTML Message",
 ):
-	"""
-	Display an HTML message window.
+	"""Display an HTML message window.
 
-	:param parent: Parent window.
-	:param content: Content to display.
-	:param content_format: Format of the content ('html' or 'markdown').
-	:param title: Window title.
+	Args:
+		parent: Parent window.
+		content: Content to display.
+		content_format: Format of the content ('html' or 'markdown').
+		title: Window title.
 	"""
 	window = HtmlViewWindow(parent, content, content_format, title)
 	window.Show()

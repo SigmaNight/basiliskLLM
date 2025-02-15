@@ -1,3 +1,9 @@
+"""Module for OpenAI API integration.
+
+This module provides the OpenAIEngine class for interacting with the OpenAI API,
+implementing capabilities for text, image, and audio generation/processing.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -32,6 +38,15 @@ log = logging.getLogger(__name__)
 
 
 class OpenAIEngine(BaseEngine):
+	"""Engine implementation for OpenAI API integration.
+
+	Provides functionality for interacting with OpenAI's models, supporting text,
+	image, speech-to-text, and text-to-speech capabilities.
+
+	Attributes:
+		capabilities: Set of supported capabilities including text, image, STT, and TTS.
+	"""
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
@@ -40,12 +55,19 @@ class OpenAIEngine(BaseEngine):
 	}
 
 	def __init__(self, account: Account) -> None:
+		"""Initializes the OpenAI engine.
+
+		Args:
+			account: Account configuration for the OpenAI provider.
+		"""
 		super().__init__(account)
 
 	@cached_property
 	def client(self) -> OpenAI:
-		"""
-		Property to return the client object
+		"""Creates and configures the OpenAI client.
+
+		Returns:
+			Configured OpenAI client instance.
 		"""
 		super().client
 		organization_key = (
@@ -61,8 +83,10 @@ class OpenAIEngine(BaseEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
+		"""Retrieves available OpenAI models.
+
+		Returns:
+			List of supported OpenAI models with their configurations.
 		"""
 		super().models
 		log.debug("Getting openAI models")
@@ -259,6 +283,14 @@ class OpenAIEngine(BaseEngine):
 	def prepare_message_request(
 		self, message: Message
 	) -> ChatCompletionUserMessageParam:
+		"""Prepares a message for OpenAI API request.
+
+		Args:
+			message: Message to be prepared.
+
+		Returns:
+			OpenAI API compatible message parameter.
+		"""
 		super().prepare_message_request(message)
 		content = [
 			ChatCompletionContentPartTextParam(
@@ -280,6 +312,14 @@ class OpenAIEngine(BaseEngine):
 	def prepare_message_response(
 		self, response: Message
 	) -> ChatCompletionAssistantMessageParam:
+		"""Prepares an assistant message response.
+
+		Args:
+			response: Response message to be prepared.
+
+		Returns:
+			OpenAI API compatible assistant message parameter.
+		"""
 		super().prepare_message_response(response)
 		return ChatCompletionAssistantMessageParam(
 			role=response.role.value,
@@ -297,6 +337,18 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		**kwargs,
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+		"""Generates a chat completion using the OpenAI API.
+
+		Args:
+			new_block: The message block containing generation parameters.
+			conversation: The conversation history context.
+			system_message: Optional system message to guide the AI's behavior.
+			**kwargs: Additional keyword arguments for the API request.
+
+		Returns:
+			Either a complete chat completion response or a generator for streaming
+			chat completion chunks.
+		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
 			"model": new_block.model.model_id,
@@ -316,6 +368,14 @@ class OpenAIEngine(BaseEngine):
 	def completion_response_with_stream(
 		self, stream: Generator[ChatCompletionChunk, None, None]
 	):
+		"""Processes a streaming completion response.
+
+		Args:
+			stream: Generator of chat completion chunks.
+
+		Yields:
+			Content from each chunk in the stream.
+		"""
 		for chunk in stream:
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
@@ -324,6 +384,16 @@ class OpenAIEngine(BaseEngine):
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
+		"""Processes a non-streaming completion response.
+
+		Args:
+			response: The chat completion response.
+			new_block: The message block to update with the response.
+			**kwargs: Additional keyword arguments.
+
+		Returns:
+			Updated message block containing the response.
+		"""
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content,
@@ -333,8 +403,14 @@ class OpenAIEngine(BaseEngine):
 	def get_transcription(
 		self, audio_file_path: str, response_format: str = "json"
 	) -> str:
-		"""
-		Get transcription from audio file
+		"""Transcribes audio to text using OpenAI's Whisper model.
+
+		Args:
+			audio_file_path: Path to the audio file.
+			response_format: Format of the response (defaults to "json").
+
+		Returns:
+			Transcription of the audio content.
 		"""
 		file = open(audio_file_path, "rb")
 		transcription = self.client.audio.transcriptions.create(

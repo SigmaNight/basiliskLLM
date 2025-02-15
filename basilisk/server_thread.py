@@ -1,3 +1,5 @@
+"""Server thread for receiving commands from external applications like screen readers."""
+
 from __future__ import annotations
 
 import logging
@@ -17,7 +19,15 @@ log = logging.getLogger(__name__)
 
 
 class ServerThread(threading.Thread):
+	"""Thread for receiving commands from external applications like screen readers."""
+
 	def __init__(self, frame: MainFrame, port: int) -> None:
+		"""Initialize the server thread.
+
+		Args:
+			frame: Application main frame instance
+			port: port to listen on
+		"""
 		super().__init__()
 		self.frame = frame
 		self.port = port
@@ -25,6 +35,14 @@ class ServerThread(threading.Thread):
 		self.daemon = True
 
 	def run(self) -> None:
+		"""Start the server thread.
+
+		Listen on localhost with the specified port for incoming connections and process the received data.
+		Socket errors and connection timeouts are handled gracefully. The server will:
+		- Log errors without crashing
+		- Continue listening after connection failures
+		- Clean up resources when stopped
+		"""
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		if not sock:
 			log.error("Failed to create socket")
@@ -54,6 +72,29 @@ class ServerThread(threading.Thread):
 		sock.close()
 
 	def manage_rcv_data(self, data: bytes) -> None:
+		r"""Process the received data.
+
+		Evaluate the received data and call the appropriate method on the main frame.
+
+		Examples:
+			screenshot commands:
+				Full screen:
+					grab:full
+				Active window:
+					grab:window
+				Partial screen:
+					grab:0, 0, 100, 100
+				Partial screen with a name:
+					grab:0, 0, 100, 100\nname
+			URL Commands:
+				Add images:
+					url:https://example.com/image.png
+				Add an image from a URL with a name:
+					url:https://example.com/image.png\nname
+
+		Args:
+			data: data received from the client
+		"""
 		data = data.decode("utf-8")
 		if data.startswith("grab:"):
 			grab_mode = data.split(':', 1)[1].strip()
@@ -88,4 +129,5 @@ class ServerThread(threading.Thread):
 			log.error(f"no action for data: {data}")
 
 	def stop(self):
+		"""Stop the server thread."""
 		self.running.clear()

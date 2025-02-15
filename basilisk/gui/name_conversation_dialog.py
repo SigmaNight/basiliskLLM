@@ -1,8 +1,28 @@
+"""This module provides a dialog for naming or renaming conversations.
+
+The dialog supports both manual name entry and automatic name generation based on conversation content.
+"""
+
 import wx
 
 
 class NameConversationDialog(wx.Dialog):
+	"""A dialog to name a conversation.
+
+	Features:
+	- Manual name entry
+	- Automatic name generation
+	- Support for both initial naming and renaming
+	"""
+
 	def __init__(self, parent, title="", auto=False):
+		"""Create the dialog.
+
+		Args:
+			parent: The parent window.
+			title: The initial title.
+			auto: If True, the dialog will automatically generate a name.
+		"""
 		super(NameConversationDialog, self).__init__(
 			parent, title=_("Name conversation"), size=(300, 200)
 		)
@@ -16,6 +36,7 @@ class NameConversationDialog(wx.Dialog):
 			self.on_generate(None)
 
 	def _create_ui(self):
+		"""Create the user interface."""
 		vbox = wx.BoxSizer(wx.VERTICAL)
 
 		label = wx.StaticText(
@@ -54,9 +75,15 @@ class NameConversationDialog(wx.Dialog):
 		self.SetSizer(vbox)
 
 	def get_name(self):
+		"""Return the entered name."""
 		return self.text_ctrl.GetValue()
 
-	def on_generate(self, event):
+	def on_generate(self, event: wx.Event | None):
+		"""Generate a name for the conversation.
+
+		Args:
+			event: The event that triggered the generation.
+		"""
 		try:
 			title = self.parent.current_tab.generate_conversation_title()
 			if title:

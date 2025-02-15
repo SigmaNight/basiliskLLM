@@ -1,3 +1,5 @@
+"""Module for managing accounts configuration for different AI providers."""
+
 from __future__ import annotations
 
 import logging
@@ -38,11 +40,13 @@ log = logging.getLogger(__name__)
 
 
 class AccountOrganization(BaseModel):
+	"""Manage organization key for an account."""
+
 	model_config = ConfigDict(populate_by_name=True)
 	id: UUID4 = Field(default_factory=uuid4)
 	name: str
 	key_storage_method: KeyStorageMethodEnum = Field(
-		default=KeyStorageMethodEnum.plain
+		default=KeyStorageMethodEnum.PLAIN
 	)
 	key: SecretStr
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
@@ -52,14 +56,28 @@ class AccountOrganization(BaseModel):
 	def validate_key(
 		cls, value: Optional[Any], info: ValidationInfo
 	) -> SecretStr:
+		"""Validate organization key and return a SecretStr instance.
+
+		Depending on the key storage method, the key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is retrieved using the account ID.
+
+		Args:
+			value: Organization key value in the configuration file.
+			info: Validation information.
+
+		Returns:
+			The organization key as a SecretStr instance.
+
+		Raises:
+			ValueError: If the key is not a string or the key storage method is invalid.
+		"""
 		if isinstance(value, SecretStr):
 			return value
 		data = info.data
-		if data["key_storage_method"] == KeyStorageMethodEnum.plain:
+		if data["key_storage_method"] == KeyStorageMethodEnum.PLAIN:
 			if not isinstance(value, str):
 				raise ValueError("Key must be a string")
 			return SecretStr(value)
-		elif data["key_storage_method"] == KeyStorageMethodEnum.system:
+		elif data["key_storage_method"] == KeyStorageMethodEnum.SYSTEM:
 			value = keyring.get_password(APP_NAME, str(data["id"]))
 			if not value:
 				raise ValueError("Key not found in keyring")
@@ -69,16 +87,27 @@ class AccountOrganization(BaseModel):
 
 	@field_serializer("key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> str:
-		if self.key_storage_method == KeyStorageMethodEnum.plain:
+		"""Serialize the organization key to a string in case of JSON serialization.
+
+		Depending on the key storage method, the key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is saved using the account ID.
+
+		Args:
+			value: Organization key value.
+
+		Returns:
+			The organization key as a string. Can be None if the key storage method is system.
+		"""
+		if self.key_storage_method == KeyStorageMethodEnum.PLAIN:
 			return value.get_secret_value()
-		elif self.key_storage_method == KeyStorageMethodEnum.system:
+		elif self.key_storage_method == KeyStorageMethodEnum.SYSTEM:
 			keyring.set_password(
 				APP_NAME, str(self.id), value.get_secret_value()
 			)
 		return None
 
 	def delete_keyring_password(self):
-		if self.key_storage_method == KeyStorageMethodEnum.system:
+		"""Delete the organization key from the system keyring."""
+		if self.key_storage_method == KeyStorageMethodEnum.SYSTEM:
 			keyring.delete_password(APP_NAME, str(self.id))
 
 
@@ -87,9 +116,7 @@ AccountInfo = Union[UUID4, AccountInfoStr]
 
 
 class Account(BaseModel):
-	"""
-	Manage API key and organization key
-	"""
+	"""Manage API key and organization key."""
 
 	model_config = ConfigDict(populate_by_name=True)
 	id: UUID4 = Field(default_factory=uuid4)
@@ -98,7 +125,7 @@ class Account(BaseModel):
 		validation_alias="provider_id", serialization_alias="provider_id"
 	)
 	api_key_storage_method: Optional[KeyStorageMethodEnum] = Field(
-		default=KeyStorageMethodEnum.plain
+		default=KeyStorageMethodEnum.PLAIN
 	)
 	api_key: Optional[SecretStr] = Field(default=None)
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
@@ -106,6 +133,7 @@ class Account(BaseModel):
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
 
 	def __init__(self, **data: Any):
+		"""Initialize an account instance. If an error occurs, log the error and raise an exception."""
 		try:
 			super().__init__(**data)
 		except Exception as e:
@@ -117,6 +145,14 @@ class Account(BaseModel):
 
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
+		"""Serialize the provider to a string. This is used when the provider is used in the JSON serialization.
+
+		Args:
+			value: Provider instance.
+
+		Returns:
+			The provider ID as a string.
+		"""
 		return value.id
 
 	@field_validator("api_key", mode="before")
@@ -124,14 +160,28 @@ class Account(BaseModel):
 	def validate_api_key(
 		cls, value: Optional[Any], info: ValidationInfo
 	) -> Optional[SecretStr]:
+		"""Validate the API key and return a SecretStr instance.
+
+		Depending on the key storage method, the API key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is retrieved using the account ID.
+
+		Args:
+			value: API key value in the configuration file.
+			info: Validation information.
+
+		Returns:
+			The API key as a SecretStr instance.
+
+		Raises:
+			ValueError: If the API key is not a string or the key storage method is invalid.
+		"""
 		if isinstance(value, SecretStr):
 			return value
 		data = info.data
-		if data["api_key_storage_method"] == KeyStorageMethodEnum.plain:
+		if data["api_key_storage_method"] == KeyStorageMethodEnum.PLAIN:
 			if not isinstance(value, str):
 				raise ValueError("API key must be a string")
 			return SecretStr(value)
-		elif data["api_key_storage_method"] == KeyStorageMethodEnum.system:
+		elif data["api_key_storage_method"] == KeyStorageMethodEnum.SYSTEM:
 			value = keyring.get_password(APP_NAME, str(data["id"]))
 			if not value:
 				raise ValueError("API key not found in keyring")
@@ -141,9 +191,19 @@ class Account(BaseModel):
 
 	@field_serializer("api_key", when_used="json")
 	def dump_secret(self, value: SecretStr) -> Optional[str]:
-		if self.api_key_storage_method == KeyStorageMethodEnum.plain:
+		"""Serialize the API key to a string in case of JSON serialization.
+
+		Depending on the key storage method, the API key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is saved using the account ID.
+
+		Args:
+			value: API key value.
+
+		Returns:
+			The API key as a string. Can be None if the key storage method is system.
+		"""
+		if self.api_key_storage_method == KeyStorageMethodEnum.PLAIN:
 			return value.get_secret_value()
-		elif self.api_key_storage_method == KeyStorageMethodEnum.system:
+		elif self.api_key_storage_method == KeyStorageMethodEnum.SYSTEM:
 			keyring.set_password(
 				APP_NAME, str(self.id), value.get_secret_value()
 			)
@@ -152,6 +212,17 @@ class Account(BaseModel):
 	@field_validator("provider", mode="plain")
 	@classmethod
 	def validate_provider(cls, value: Any) -> Provider:
+		"""Validate the provider and return a Provider instance.
+
+		Args:
+			value: Provider instance or provider ID.
+
+		Returns:
+			Provider instance.
+
+		Raises:
+			ValueError: If no provider exists for the given ID.
+		"""
 		if isinstance(value, Provider):
 			return value
 		if isinstance(value, str):
@@ -159,6 +230,14 @@ class Account(BaseModel):
 
 	@model_validator(mode="after")
 	def require_keys(self) -> Account:
+		"""Validate the account and check if the API key is required.
+
+		Raises:
+			ValueError: If the API key is required but not provided or the organization mode is not available and an organization is active.
+
+		Returns:
+			The account instance.
+		"""
 		if self.provider.require_api_key and not self.api_key:
 			raise ValueError(f"API key for {self.provider.name} is required")
 		if (
@@ -172,6 +251,14 @@ class Account(BaseModel):
 
 	@model_validator(mode="after")
 	def validate_active_organization(self) -> Account:
+		"""Validate the account and check if the active organization exists.
+
+		Raises:
+			ValueError: If no organizations are found or the active organization does not exist.
+
+		Returns:
+			The account instance.
+		"""
 		if not self.active_organization_id:
 			return self
 		if not self.organizations:
@@ -188,6 +275,11 @@ class Account(BaseModel):
 
 	@cached_property
 	def active_organization(self) -> Optional[AccountOrganization]:
+		"""Get the active organization for the account.
+
+		Returns:
+			The active organization instance or None if no active organization is set.
+		"""
 		if not self.active_organization_id:
 			return None
 		return next(
@@ -199,6 +291,7 @@ class Account(BaseModel):
 		)
 
 	def reset_active_organization(self):
+		"""Reset the active organization cached property for the account."""
 		try:
 			del self.__dict__["active_organization"]
 		except KeyError:
@@ -206,33 +299,66 @@ class Account(BaseModel):
 
 	@property
 	def active_organization_name(self) -> Optional[str]:
+		"""Get the name of the active organization for the account.
+
+		Returns:
+			The name of the active organization or None if no active organization is set.
+		"""
 		return (
 			self.active_organization.name if self.active_organization else None
 		)
 
 	@property
 	def active_organization_key(self) -> Optional[SecretStr]:
+		"""Get the key of the active organization for the account.
+
+		Returns:
+			The key of the active organization or None if no active organization is set.
+		"""
 		return (
 			self.active_organization.key if self.active_organization else None
 		)
 
 	def delete_keyring_password(self):
+		"""Delete the API key and organization keys from the system keyring."""
 		if self.organizations:
 			for org in self.organizations:
 				org.delete_keyring_password()
-		if self.api_key_storage_method == KeyStorageMethodEnum.system:
+		if self.api_key_storage_method == KeyStorageMethodEnum.SYSTEM:
 			keyring.delete_password(APP_NAME, str(self.id))
 
 	def get_account_info(self) -> AccountInfo:
+		"""Get a summary of the account information.
+
+		This meshod create a string for representing account information in other configurations file like conversation profile.
+
+		Returns:
+			A string representing the account information.
+		"""
 		if self.source == AccountSource.ENV_VAR:
 			return f"env:{self.provider.name}"
 		return self.id
 
 	def __eq__(self, value: Account) -> bool:
+		"""Compare two accounts by their ID.
+
+		Args:
+			value: Account instance to compare with.
+
+		Returns:
+			True if the accounts have the same ID, False otherwise.
+		"""
 		return self.id == value.id
 
 	@property
 	def display_name(self) -> str:
+		"""Get the display name of the account.
+
+		Aedding the account name, organization name, and provider name. If no active organization is set, the organization name is set to "Personal".
+
+		Returns:
+			The display name of the account.
+		"""
 		organization = (
 			self.active_organization.name
 			if self.active_organization
@@ -246,10 +372,7 @@ config_file_name = "accounts.yml"
 
 
 class AccountManager(BasiliskBaseSettings):
-	"""
-	Manage multiple accounts for different providers
-	A provider can have several accounts
-	"""
+	"""Manage multiple accounts for different AI providers. This is stored in the accounts.yml file."""
 
 	model_config = get_settings_config_dict(config_file_name)
 
@@ -261,6 +384,11 @@ class AccountManager(BasiliskBaseSettings):
 
 	@cached_property
 	def default_account(self) -> Account:
+		"""Get the default account for the configuration. If the default account is not found, use the first account.
+
+		Returns:
+			The default account instance.
+		"""
 		account = self.get_account_from_info(self.default_account_info)
 		if not account:
 			log.warning(
@@ -270,6 +398,14 @@ class AccountManager(BasiliskBaseSettings):
 		return account
 
 	def get_account_from_info(self, value: AccountInfo) -> Optional[Account]:
+		"""Get an account instance from the account information.
+
+		Args:
+			value: Account information as a UUID or a string.
+
+		Returns:
+			The account instance if found, None otherwise.
+		"""
 		if isinstance(value, UUID):
 			try:
 				return self[value]
@@ -290,6 +426,14 @@ class AccountManager(BasiliskBaseSettings):
 			return self.accounts[index]
 
 	def set_default_account(self, value: Optional[Account]):
+		"""Set the default account for the configuration.
+
+		Args:
+			value: Account instance or account information.
+
+		Raises:
+			ValueError: If the account is not an instance of Account.
+		"""
 		if not value or not isinstance(value, Account):
 			self.default_account_info = None
 			del self.__dict__["default_account"]
@@ -302,7 +446,14 @@ class AccountManager(BasiliskBaseSettings):
 	def add_accounts_from_env_vars(
 		cls, accounts: list[Account]
 	) -> list[Account]:
-		"""Load accounts from environment variables"""
+		"""Load accounts from environment variables for each provider.
+
+		Args:
+			accounts: List of accounts previously loaded from the configuration file.
+
+		Returns:
+			List of accounts with the accounts loaded from environment variables added.
+		"""
 		if global_vars.args.no_env_account:
 			return accounts
 		for provider in providers:
@@ -352,12 +503,32 @@ class AccountManager(BasiliskBaseSettings):
 		handler: SerializerFunctionWrapHandler,
 		info: FieldSerializationInfo,
 	) -> list[dict[str, Any]]:
+		"""Serialize accounts to a list of dictionaries. This is used when the accounts are serialized to JSON.
+
+		Remove The account information from the configuration file if the account source is environment variable.
+
+		Args:
+			accounts: List of accounts to serialize.
+			handler: The handler for the serialization function.
+			info: Serialization information.
+
+		Returns:
+			List of dictionaries representing the accounts.
+		"""
 		accounts_config = filter(
 			lambda x: x.source == AccountSource.CONFIG, accounts
 		)
 		return handler(list(accounts_config), info)
 
 	def add(self, account: Account):
+		"""Add an account to the configuration.
+
+		Args:
+			account: Account instance to add.
+
+		Raises:
+			ValueError: If the account is not an instance of Account.
+		"""
 		if not isinstance(account, Account):
 			raise ValueError("Account must be an instance of Account")
 		self.accounts.append(account)
@@ -368,22 +539,60 @@ class AccountManager(BasiliskBaseSettings):
 	def get_accounts_by_provider(
 		self, provider_name: Optional[str] = None
 	) -> Iterable[Account]:
+		"""Get accounts by provider name.
+
+		Args:
+			provider_name: Provider name to filter accounts.
+
+		Returns:
+			Iterable of accounts for the provider.
+		"""
 		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
 	def remove(self, account: Account):
+		"""Remove an account from the configuration.
+
+		Args:
+			account: Account instance to remove.
+
+		Raises:
+			ValueError: If the account is not found in the configuration.
+		"""
 		account.delete_keyring_password()
 		self.accounts.remove(account)
 
 	def clear(self):
+		"""Clear all accounts from the configuration."""
 		self.accounts.clear()
 
-	def __len__(self):
+	def __len__(self) -> int:
+		"""Get the number of accounts in the configuration.
+
+		Returns:
+			The number of accounts in the configuration.
+		"""
 		return len(self.accounts)
 
 	def __iter__(self):
+		"""Iterate over the accounts in the configuration.
+
+		Returns:
+			An iterator for the accounts in the configuration.
+		"""
 		return iter(self.accounts)
 
-	def __getitem__(self, index: Union[int, UUID]) -> Account:
+	def __getitem__(self, index: int | UUID) -> Account:
+		"""Get an account by index or ID. If the index is an integer, return the account at that index. If the index is a UUID, return the account with that ID.
+
+		Args:
+			index: Index or ID of the account.
+
+		Returns:
+			The account instance.
+
+		Raises:
+			KeyError: If the account is not found.
+		"""
 		if isinstance(index, int):
 			return self.accounts[index]
 		elif isinstance(index, UUID):
@@ -392,7 +601,13 @@ class AccountManager(BasiliskBaseSettings):
 			except StopIteration:
 				raise KeyError(f"Account with id {index} not found")
 
-	def __setitem__(self, index: Union[int, UUID], value: Account):
+	def __setitem__(self, index: int | UUID, value: Account):
+		"""Set an account by index or ID. If the index is an integer, set the account at that index. If the index is a UUID, set the account with that ID.
+
+		Args:
+			index: Index or ID of the account.
+			value: Account instance to set.
+		"""
 		if isinstance(index, int):
 			self.accounts[index] = value
 		elif isinstance(index, UUID):
@@ -403,6 +618,7 @@ class AccountManager(BasiliskBaseSettings):
 				self.accounts[index] = value
 
 	def save(self):
+		"""Save the accounts configuration to the accounts.yml file."""
 		save_config_file(
 			self.model_dump(
 				mode="json",
@@ -416,5 +632,10 @@ class AccountManager(BasiliskBaseSettings):
 
 @cache
 def get_account_config() -> AccountManager:
+	"""Get the account configuration instance. This is cached to avoid loading the configuration multiple times.
+
+	Returns:
+		AccountManager instance.
+	"""
 	log.debug("Loading account config")
 	return AccountManager()

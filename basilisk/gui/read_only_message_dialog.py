@@ -1,8 +1,29 @@
+"""Module for displaying read-only messages in a dialog.
+
+This module provides a dialog based on wx.Dialog for displaying read-only text messages
+with a close button and escape key support for dismissal.
+"""
+
 import wx
 
 
 class ReadOnlyMessageDialog(wx.Dialog):
-	def __init__(self, parent, title, message):
+	"""Dialog for displaying a read-only message in a scrollable text control.
+
+	This dialog is based on wx.Dialog and provides:
+	- A read-only text control for displaying messages
+	- A close button
+	- Support for closing via the escape key
+	"""
+
+	def __init__(self, parent: wx.Window, title: str, message: str):
+		"""Initialize the dialog.
+
+		Args:
+			parent: The parent window.
+			title: The dialog title.
+			message: The message to display.
+		"""
 		super().__init__(parent, title=title, size=(800, 600))
 
 		vbox = wx.BoxSizer(wx.VERTICAL)
@@ -27,6 +48,11 @@ class ReadOnlyMessageDialog(wx.Dialog):
 		self.SetSizer(vbox)
 
 	def on_key_down(self, event):
+		"""Close the dialog on escape key press.
+
+		Args:
+			event: The key down event.
+		"""
 		if event.GetKeyCode() == wx.WXK_ESCAPE:
 			self.Close()
 		else:
