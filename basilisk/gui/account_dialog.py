@@ -1,6 +1,7 @@
 """Account dialog for managing accounts and organizations in the basiliskLLM application."""
 
 import logging
+import re
 from typing import Optional
 
 import wx
@@ -19,6 +20,9 @@ from basilisk.provider import Provider, get_provider, providers
 log = logging.getLogger(__name__)
 
 key_storage_methods = KeyStorageMethodEnum.get_labels()
+CUSTOM_BASE_URL_PATTERN = (
+	r"^https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+(/[\w./%\-]*)?"
+)
 
 
 class EditAccountOrganizationDialog(wx.Dialog):
@@ -596,7 +600,8 @@ class EditAccountDialog(wx.Dialog):
 			)
 			self.organization_text_ctrl.SetSelection(index)
 
-	def get_selected_provider(self) -> Optional[Provider]:
+	@property
+	def provider(self) -> Optional[Provider]:
 		"""Get the provider object from the selected provider name.
 
 		Returns:
@@ -610,7 +615,7 @@ class EditAccountDialog(wx.Dialog):
 
 	def update_ui(self) -> None:
 		"""Update UI elements based on selected provider."""
-		provider = self.get_selected_provider()
+		provider = self.provider
 		if not provider:
 			self._disable_all_fields()
 			return
@@ -666,43 +671,63 @@ class EditAccountDialog(wx.Dialog):
 		"""
 		error_message = self._validate_form()
 		if error_message:
+			msg, field = error_message
 			wx.MessageBox(
-				error_message,
+				msg,
 				# Translators: A title for the error message in account dialog
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
+			field.SetFocus()
 			return
 
 		self._save_account_data()
 		self.EndModal(wx.ID_OK)
 
-	def _validate_form(self) -> Optional[str]:
-		"""Validate form data and return error message if invalid."""
+	def _validate_form(self) -> Optional[tuple[str, wx.Window]]:
+		"""Validate form data and return a tuple of error message and field to focus on if any.
+		Returns None if form data is valid.
+		"""
 		if not self.name.GetValue():
 			# Translators: An error message in account dialog
-			return _("Please enter a name")
+			return _("Please enter a name"), self.name
 
-		provider = self.get_selected_provider()
+		provider = self.provider
 		if not provider:
 			# Translators: An error message in account dialog
-			return _("Please select a provider")
+			return _("Please select a provider"), self.provider_combo
 
 		if provider.require_api_key:
 			if self.api_key_storage_method_combo.GetSelection() == wx.NOT_FOUND:
 				# Translators: An error message in account dialog
-				return _("Please select an API key storage method")
+				return _(
+					"Please select an API key storage method"
+				), self.api_key_storage_method_combo
+
 			if not self.api_key_text_ctrl.GetValue():
 				# Translators: An error message in account dialog
 				return _(
 					"Please enter an API key. It is required for this provider"
-				)
+				), self.api_key_text_ctrl
+
+		if (
+			self.provider.allow_custom_base_url
+			and self.custom_base_url_text_ctrl.GetValue()
+		):
+			if not re.match(
+				CUSTOM_BASE_URL_PATTERN,
+				self.custom_base_url_text_ctrl.GetValue(),
+			):
+				# Translators: An error message in account dialog
+				return _(
+					"Please enter a valid custom base URL"
+				), self.custom_base_url_text_ctrl
 
 		return None
 
 	def _save_account_data(self) -> None:
 		"""Save form data to account object."""
-		provider = self.get_selected_provider()
+		provider = self.provider
 		organization_index = self.organization_text_ctrl.GetSelection()
 		active_organization = None
 		if (
