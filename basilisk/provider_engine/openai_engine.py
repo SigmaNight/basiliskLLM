@@ -78,7 +78,8 @@ class OpenAIEngine(BaseEngine):
 		return OpenAI(
 			api_key=self.account.api_key.get_secret_value(),
 			organization=organization_key,
-			base_url=str(self.account.provider.base_url),
+			base_url=self.account.custom_base_url
+			or str(self.account.provider.base_url),
 		)
 
 	@cached_property
