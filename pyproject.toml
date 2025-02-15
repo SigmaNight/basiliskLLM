@@ -51,6 +51,7 @@ truststore = "^0.10.1"
 universal-pathlib = "^0.2.6"
 watchdog = "^6.0.0"
 wxpython = "^4.2.2"
+ollama = "^0.4.7"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.2.1"

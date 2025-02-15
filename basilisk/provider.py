@@ -117,6 +117,17 @@ providers = [
 		allow_custom_base_url=True,
 	),
 	Provider(
+		id="ollama",
+		name="Ollama",
+		base_url="http://127.0.0.1:11434",
+		api_type=ProviderAPIType.OLLAMA,
+		organization_mode_available=False,
+		require_api_key=False,
+		env_var_name_api_key="OLLAMA_API_KEY",
+		engine_cls_path="basilisk.provider_engine.ollama_engine.OllamaEngine",
+		allow_custom_base_url=True,
+	),
+	Provider(
 		id="openai",
 		name="OpenAI",
 		base_url="https://api.openai.com/v1",
