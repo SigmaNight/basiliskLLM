@@ -775,7 +775,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 						_("Error"),
 						wx.OK | wx.ICON_ERROR,
 					)
-					return
+					continue
 				if mime_type.startswith("image/"):
 					file = ImageFile(location=path)
 				else:
