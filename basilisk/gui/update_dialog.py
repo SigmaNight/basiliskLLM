@@ -1,3 +1,5 @@
+"""This module Provides dialog windows for checking and downloading basiliskLLM updates."""
+
 import threading
 from logging import getLogger
 
@@ -10,8 +12,10 @@ log = getLogger(__name__)
 
 
 def show_release_notes(updater: BaseUpdater):
-	"""
-	Display the release notes for the latest version of basiliskLLM.
+	"""Display the release notes for the latest version of basiliskLLM.
+
+	Args:
+		updater: The updater instance containing release notes.
 	"""
 	from .html_view_window import HtmlViewWindow
 
@@ -24,6 +28,12 @@ def show_release_notes(updater: BaseUpdater):
 
 
 class DownloadUpdateDialog(wx.Dialog):
+	"""Dialog window for downloading basiliskLLM updates.
+
+	This dialog shows download progress and provides options to start the update
+	process or view release notes.
+	"""
+
 	def __init__(
 		self,
 		parent: wx.Window,
@@ -33,6 +43,16 @@ class DownloadUpdateDialog(wx.Dialog):
 		*args,
 		**kwargs,
 	):
+		"""Initialize the dialog.
+
+		Args:
+			parent: Parent window.
+			title: Title of the dialog window.
+			updater: Instance of the updater to handle downloads.
+			size: Window size. Defaults to (400, 400).
+			*args: Additional positional arguments for wx.Dialog.
+			**kwargs: Additional keyword arguments for wx.Dialog.
+		"""
 		wx.Dialog.__init__(
 			self, parent, title=title, size=size, *args, **kwargs
 		)
@@ -86,6 +106,11 @@ class DownloadUpdateDialog(wx.Dialog):
 			self.Layout()
 
 	def on_download_update(self):
+		"""Handle the download process in a separate thread.
+
+		Downloads the update using the updater instance and updates the UI
+		when finished or if an error occurs.
+		"""
 		try:
 			log.info("starting download update")
 			download_finished = self.updater.download(
@@ -98,6 +123,7 @@ class DownloadUpdateDialog(wx.Dialog):
 			wx.CallAfter(self.on_download_error, e)
 
 	def on_download_finished(self):
+		"""Update the UI when the download is complete."""
 		self.downloading_label.Hide()
 		self.downloading_gauge.Hide()
 		self.download_finished_label.Show()
@@ -110,25 +136,46 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.update_button.SetFocus()
 		self.Layout()
 
-	def on_update(self, event):
+	def on_update(self, event: wx.Event | None):
+		"""Handle the update button click.
+
+		Args:
+			event: The button click event.
+		"""
 		log.info("starting update basiliskLLM")
 		self.updater.update()
 		self.Destroy()
 		wx.GetApp().GetTopWindow().Close()
 
 	def on_download_progress(self, downloaded_length: int, total_length: int):
+		"""Update the progress bar during download.
+
+		Args:
+			downloaded_length: Number of bytes downloaded.
+			total_length: Total number of bytes to download.
+		"""
 		download_percent = int(downloaded_length / total_length * 100)
 		log.debug(
 			f"Download progress: {download_percent}% - {downloaded_length} / {total_length}"
 		)
 		wx.CallAfter(self.downloading_gauge.SetValue, download_percent)
 
-	def on_cancel(self, event):
+	def on_cancel(self, event: wx.Event | None):
+		"""Handle the cancel button click.
+
+		Args:
+			event: The button click event.
+		"""
 		if hasattr(self, "download_thread") and self.download_thread.is_alive():
 			self.stop_download = True
 		self.Destroy()
 
 	def on_download_error(self, error: Exception):
+		"""Display an error message when download fails.
+
+		Args:
+			error: The error that occurred during download.
+		"""
 		wx.MessageDialog(
 			self,
 			_("Error downloading update: %s") % error,
@@ -138,6 +185,12 @@ class DownloadUpdateDialog(wx.Dialog):
 
 
 class UpdateDialog(wx.Dialog):
+	"""Dialog window for checking and initiating basiliskLLM updates.
+
+	This dialog checks for available updates and allows users to start
+	the download process or view release notes.
+	"""
+
 	def __init__(
 		self,
 		parent: wx.Window,
@@ -147,7 +200,16 @@ class UpdateDialog(wx.Dialog):
 		*args,
 		**kwargs,
 	):
-		log.debug("Creating update dialog")
+		"""Initialize the dialog.
+
+		Args:
+			parent: Parent window.
+			title: Title of the dialog window.
+			size: Window size. Defaults to (400, 400).
+			updater: Updater instance. Defaults to None.
+			*args: Additional positional arguments for wx.Dialog.
+			**kwargs: Additional keyword arguments for wx.Dialog.
+		"""
 		wx.Dialog.__init__(
 			self, parent, title=title, size=size, *args, **kwargs
 		)
@@ -196,6 +258,13 @@ class UpdateDialog(wx.Dialog):
 			self.init_without_updater()
 
 	def init_with_updater(self, updater: BaseUpdater):
+		"""Initialize the dialog with an existing updater instance.
+
+		Update the UI to show the current and latest version numbers.
+
+		Args:
+			updater: The updater instance to use.
+		"""
 		log.debug("Initializing update dialog with updater")
 		self.updater = updater
 		self.current_version_label.SetLabel(
@@ -204,6 +273,10 @@ class UpdateDialog(wx.Dialog):
 		self.on_update_available()
 
 	def init_without_updater(self):
+		"""Initialize the dialog by creating a new updater instance.
+
+		Check for updates in a separate thread and update the UI accordingly.
+		"""
 		self.updater = get_updater_from_channel(conf())
 		if not self.updater.is_update_enable:
 			log.error("Update are disabled for source application")
@@ -233,6 +306,7 @@ class UpdateDialog(wx.Dialog):
 		self.check_thread.start()
 
 	def on_update_available(self):
+		"""Update the UI to show that an update is available."""
 		log.debug("prepare dialog for update available")
 		self.checking_label.Hide()
 		self.checking_gauge.Hide()
@@ -252,6 +326,7 @@ class UpdateDialog(wx.Dialog):
 		self.Layout()
 
 	def on_no_updates(self):
+		"""Update the UI to show that no updates are available."""
 		self.checking_label.Hide()
 		self.checking_gauge.Hide()
 		self.update_message_label.SetLabel(
@@ -261,6 +336,7 @@ class UpdateDialog(wx.Dialog):
 		self.Layout()
 
 	def on_check_for_updates(self):
+		"""Check for updates in a separate thread."""
 		log.debug("Checking for updates")
 		try:
 			update_available = self.updater.is_update_available()
@@ -273,7 +349,12 @@ class UpdateDialog(wx.Dialog):
 			wx.CallAfter(self.on_check_update_error, e)
 			self.Destroy()
 
-	def on_update(self, event):
+	def on_update(self, event: wx.Event | None):
+		"""Handle the update button click.
+
+		Args:
+			event: The button click event.
+		"""
 		download_dialog = DownloadUpdateDialog(
 			parent=self.Parent,
 			title=_("Downloading update"),
@@ -283,10 +364,20 @@ class UpdateDialog(wx.Dialog):
 		download_dialog.ShowModal()
 		self.Destroy()
 
-	def on_close(self, event):
+	def on_close(self, event: wx.Event | None):
+		"""Handle the close button click.
+
+		Args:
+			event: The button click event.
+		"""
 		self.Destroy()
 
 	def on_check_update_error(self, error: Exception):
+		"""Display an error message when update check fails.
+
+		Args:
+			error: The error that occurred during the update check.
+		"""
 		wx.MessageDialog(
 			self,
 			_("Error checking for updates: %s") % error,

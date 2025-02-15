@@ -1,3 +1,5 @@
+"""Module to handle the translation of the application."""
+
 import gettext
 import locale
 import logging
@@ -17,7 +19,14 @@ LOCALE_DIR = resource_path / Path("locale")
 
 
 def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
-	"""get all supported translation language from the locale directory and check if a mo file exwist for the language"""
+	"""Get the supported locales for the application from the compiled translation files.
+
+	Args:
+		domain: The domain of the translation to check for the compiled files (default: APP_NAME)
+
+	Returns:
+		A list of supported locales for the application
+	"""
 	supported_locales = [Locale.parse(DEFAULT_LANG)]
 	mo_sub_path = Path("LC_MESSAGES", f"{domain}.mo")
 	log.debug("Locale directory: %s", LOCALE_DIR)
@@ -34,14 +43,28 @@ def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 
 
 def get_app_locale(language: Optional[str]) -> Locale:
-	"""Get the current application locale"""
+	"""Get the current application locale based on the system locale or the provided language.
+
+	Args:
+		language: The language to use for the application (default: None)
+
+	Returns:
+		The locale to use for the application based on the system locale or the provided language string.
+	"""
 	if language is None or language == "auto":
 		language = locale.getdefaultlocale()[0]
 	return Locale.parse(language)
 
 
 def get_wx_locale(current_locale: Locale) -> wx.Locale:
-	"""Get the wxPython locale name from the babel locale"""
+	"""Get the wxPython locale name from the babel locale.
+
+	Args:
+		current_locale: The current locale to get the wxPython locale for.
+
+	Returns:
+		The wxPython locale object for the current locale.
+	"""
 	find_language = wx.Locale.FindLanguageInfo(current_locale.language)
 	if find_language:
 		log.debug(
@@ -53,7 +76,11 @@ def get_wx_locale(current_locale: Locale) -> wx.Locale:
 
 
 def setup_translation(locale: Locale) -> None:
-	"""Setup the translation for the application"""
+	"""Setup the translation for the application based on the provided locale.
+
+	Args:
+		locale: The locale to use for the translation.
+	"""
 	translation = gettext.translation(
 		domain=APP_NAME,
 		localedir=LOCALE_DIR,
@@ -65,7 +92,14 @@ def setup_translation(locale: Locale) -> None:
 
 
 def init_translation(language: Optional[str]) -> wx.Locale:
-	"""Initialize the translation for the application"""
+	"""Initialize the translation for the application based on the provided language.
+
+	Args:
+		language: The language to use for the application (default: None)
+
+	Returns:
+		The wxPython locale object for the current locale.
+	"""
 	app_locale = get_app_locale(language)
 	# Initialize the translation
 	setup_translation(app_locale)

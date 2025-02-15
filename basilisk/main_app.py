@@ -1,3 +1,11 @@
+"""Module for the main application class and initialization.
+
+This module contains the MainApp class, which is the main application class for Basilisk. It is responsible for initializing the application, setting up the main window, logging, localization, and background services. The MainApp class is a subclass of wx.App, which is the main application class for wxPython applications.
+
+Returns:
+	MainApp: The main application class for Basilisk.
+"""
+
 import logging
 import shutil
 import sys
@@ -27,9 +35,28 @@ log = logging.getLogger(__name__)
 
 
 class MainApp(wx.App):
-	def OnInit(self) -> bool:
-		sys.excepthook = logging_uncaught_exceptions
+	"""Main application class for Basilisk."""
 
+	def OnInit(self) -> bool:
+		"""Initialize the application and set up the main window.
+
+		This method is called when the application starts and performs several critical setup tasks:
+		- Configures exception handling and logging
+		- Sets up localization and language
+		- Initializes sound management and accessibility
+		- Creates the main application frame
+		- Sets up file watching
+		- Optionally starts a server thread
+		- Optionally starts an automatic update thread
+
+		Returns:
+			returns True to indicate successful application initialization
+
+		Raises:
+			Various potential exceptions during initialization of components like sound manager,
+			file watcher, server thread, or update thread
+		"""
+		sys.excepthook = logging_uncaught_exceptions
 		self.conf = config.conf()
 		log_level = (
 			global_vars.args.log_level or self.conf.general.log_level.name
@@ -48,20 +75,9 @@ class MainApp(wx.App):
 		initialize_sound_manager()
 		log.info("sound manager initialized")
 		get_accessible_output()
-		from basilisk.gui.main_frame import MainFrame
-
-		frame_style = wx.DEFAULT_FRAME_STYLE
-		if global_vars.args.minimize:
-			frame_style |= wx.MINIMIZE
-		self.frame = MainFrame(
-			None,
-			title=APP_NAME,
-			conf=self.conf,
-			style=frame_style,
-			open_file=global_vars.args.bskc_file,
-		)
-		self.frame.Show(not global_vars.args.minimize)
-		self.SetTopWindow(self.frame)
+		log.info("accessible output initialized")
+		self.init_main_frame()
+		log.info("main frame initialized")
 		self.init_system_cert_store()
 		self.file_watcher = init_file_watcher(
 			send_focus=self.bring_window_to_focus,
@@ -80,10 +96,38 @@ class MainApp(wx.App):
 		log.info("Application started")
 		return True
 
+	def init_main_frame(self):
+		"""Initializes the main application frame.
+
+		Creates an instance of the MainFrame class and sets it as the top window for the application. The frame is then shown, and the application is set to the top window.
+		"""
+		from basilisk.gui.main_frame import MainFrame
+
+		frame_style = wx.DEFAULT_FRAME_STYLE
+		if global_vars.args.minimize:
+			frame_style |= wx.MINIMIZE
+		self.frame = MainFrame(
+			None,
+			title=APP_NAME,
+			conf=self.conf,
+			style=frame_style,
+			open_file=global_vars.args.bskc_file,
+		)
+		self.frame.Show(not global_vars.args.minimize)
+		self.SetTopWindow(self.frame)
+
 	def bring_window_to_focus(self):
+		"""Brings the main application window to the front and gives it focus.
+
+		This method is called by the file watcher when a Basilisk file is opened externally. It ensures that the main application window is brought to the front and given focus.
+		"""
 		wx.CallAfter(self.frame.toggle_visibility, None)
 
 	def start_auto_update_thread(self):
+		"""Starts the automatic update thread.
+
+		Creates a new thread to handle automatic updates based on the configuration settings. The thread is started in the background and runs until the application exits or the thread is stopped.
+		"""
 		self.stop_auto_update = False
 		target_func = (
 			automatic_update_check
@@ -106,6 +150,18 @@ class MainApp(wx.App):
 		log.info("Automatic update thread started")
 
 	def OnExit(self) -> int:
+		"""Handles the cleanup and exit process for the application.
+
+		Performs the following cleanup tasks:
+		- Stops and joins the server thread if it exists
+		- Stops and joins the automatic update thread if running
+		- Stops and joins the file watcher
+		- Removes temporary files
+		- Logs exit-related events
+
+		Returns:
+		Always returns 0 to indicate successful application exit
+		"""
 		if self.server:
 			log.debug("Stopping server")
 			self.server.stop()
@@ -126,6 +182,10 @@ class MainApp(wx.App):
 		return 0
 
 	def init_system_cert_store(self):
+		"""Initializes the system certificate store for SSL connections.
+
+		Activates the system certificate store for SSL connections if the configuration setting is enabled. If the setting is disabled, the certifi certificate store is used instead. If an error occurs during activation, an error message is displayed to the user.
+		"""
 		if not self.conf.network.use_system_cert_store:
 			log.info("Use certifi certificate store")
 			return

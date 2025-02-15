@@ -38,21 +38,21 @@ repos:
       - id: poetry-lock
         files: "^(pyproject.toml|poetry.lock)$"
         always_run: false
-        args: ["--no-update"]
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.1.1
+    rev: v4.2.1
     hooks:
       - id: commitizen
         stages:
           - "commit-msg"
 -   repo: https://github.com/executablebooks/mdformat
-    rev: "0.7.21"
+    rev: "0.7.22"
     hooks:
       - id: mdformat
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.9.3"
+    rev: "v0.9.6"
     hooks:
       - id: ruff-format
       - id: ruff
+        args: ["--fix", "--ignore", "D"]

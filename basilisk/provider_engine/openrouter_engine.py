@@ -1,3 +1,9 @@
+"""Module for OpenRouter API integration.
+
+This module provides the OpenRouterEngine class for interacting with the OpenRouter API,
+implementing capabilities for text and image generation across multiple AI models.
+"""
+
 import logging
 from datetime import datetime
 from decimal import Decimal, getcontext
@@ -16,12 +22,29 @@ getcontext().prec = 20
 
 
 class OpenRouterEngine(OpenAIEngine):
+	"""Engine implementation for OpenRouter API integration.
+
+	Extends OpenAIEngine to provide OpenRouter-specific model configurations and capabilities.
+	Supports accessing multiple AI models through a single API.
+
+	Attributes:
+		capabilities: Set of supported capabilities including text and image generation.
+	"""
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
 
 	def summarize_pricing(self, pricing: dict[str, dict[str, str]]) -> str:
+		"""Formats pricing information into a human-readable string.
+
+		Args:
+			pricing: Raw pricing data from the API.
+
+		Returns:
+			Formatted pricing information string.
+		"""
 		if not isinstance(pricing, dict):
 			return ""
 		out = "\n"
@@ -43,8 +66,10 @@ class OpenRouterEngine(OpenAIEngine):
 	@cached_property
 	@measure_time
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
+		"""Retrieves available models from OpenRouter API.
+
+		Returns:
+			List of supported models with their configurations.
 		"""
 		models = []
 		log.debug("Getting openRouter models")

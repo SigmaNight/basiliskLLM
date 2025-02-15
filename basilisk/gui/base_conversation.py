@@ -1,3 +1,5 @@
+"""Base conversation module providing core conversation UI components and functionality."""
+
 from __future__ import annotations
 
 import logging
@@ -18,28 +20,64 @@ log = logging.getLogger(__name__)
 
 
 class FloatSpinTextCtrlAccessible(wx.Accessible):
-	def __init__(self, win: wx.Window = None, name: str = None):
+	"""Accessible wrapper for FloatSpin text control to improve screen reader support."""
+
+	def __init__(self, win: wx.Window | None = None, name: str | None = None):
+		"""Initialize the FloatSpinTextCtrlAccessible instance.
+
+		Args:
+			win: The window to make accessible
+			name: The accessible name for the control
+		"""
 		super().__init__(win)
 		self._name = name
 
-	def GetName(self, childId):
+	def GetName(self, childId: int) -> tuple[int, str]:
+		"""Get the accessible name for the control.
+
+		Args:
+			childId: The child ID of the control
+
+		Returns:
+			a tuple containing the accessible status and name of the control
+		"""
 		if self._name:
 			return (wx.ACC_OK, self._name)
 		return super().GetName(childId)
 
 
 class BaseConversation:
+	"""Base class implementing core conversation functionality and UI components.
+
+	Provides the foundation for managing LLM conversations including:
+	- Account selection and management
+	- Model selection and configuration
+	- System prompt handling
+	- Parameter controls (temperature, tokens, etc)
+	"""
+
 	def __init__(self):
+		"""Initialize the BaseConversation instance."""
 		self.accounts_engines: dict[UUID, BaseEngine] = {}
 
 	@property
 	def current_engine(self) -> Optional[BaseEngine]:
+		"""Get the engine instance based on the selected account.
+
+		Returns:
+			The engine instance for the selected account or None if no account is selected.
+		"""
 		account = self.current_account
 		if not account:
 			return None
 		return self.accounts_engines[account.id]
 
 	def create_account_widget(self) -> wx.StaticText:
+		"""Create and configure the account selection combo box.
+
+		Returns:
+			The label widget for the account selector
+		"""
 		label = wx.StaticText(
 			self,
 			# Translators: This is a label for account in the main window
@@ -53,6 +91,11 @@ class BaseConversation:
 
 	@property
 	def current_account(self) -> Optional[config.Account]:
+		"""Get the currently selected account.
+
+		Returns:
+			The currently selected account or None if no account is selected.
+		"""
 		accounts = config.accounts()
 		account_index = self.account_combo.GetSelection()
 		if account_index == wx.NOT_FOUND:
@@ -62,8 +105,14 @@ class BaseConversation:
 	def set_account_combo(
 		self,
 		account: config.Account,
-		accounts: Optional[config.AccountManager] = None,
+		accounts: config.AccountManager | None = None,
 	):
+		"""Set the selected account in the account combo box.
+
+		Args:
+			account: The account to select
+			accounts: Account manager instance to use
+		"""
 		if accounts is None:
 			accounts = config.accounts()
 		index = next(locate(accounts, lambda a: a == account), wx.NOT_FOUND)
@@ -72,12 +121,21 @@ class BaseConversation:
 			self.on_account_change(None)
 
 	def select_default_account(self):
+		"""Select the default account if available."""
 		if len(self.account_combo.GetItems()) == 0:
 			return
 		accounts = config.accounts()
 		self.set_account_combo(accounts.default_account, accounts)
 
 	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
+		"""Get list of account display names.
+
+		Args:
+			force_refresh: Whether to force refresh organization info
+
+		Returns:
+		List of account display names
+		"""
 		accounts = []
 		for account in config.accounts():
 			if force_refresh:
@@ -85,7 +143,14 @@ class BaseConversation:
 			accounts.append(account.display_name)
 		return accounts
 
-	def on_account_change(self, event) -> Optional[config.Account]:
+	def on_account_change(
+		self, event: wx.Event | None
+	) -> Optional[config.Account]:
+		"""Handle account selection change events.
+
+		Args:
+			event: The event triggering the account change
+		"""
 		account = self.current_account
 		if not account:
 			return None
@@ -96,6 +161,11 @@ class BaseConversation:
 		return account
 
 	def create_system_prompt_widget(self) -> wx.StaticText:
+		"""Create and configure the system prompt text control.
+
+		Returns:
+			wx.StaticText: The label widget for the system prompt
+		"""
 		label = wx.StaticText(
 			self,
 			# Translators: This is a label for system prompt in the main window
@@ -109,6 +179,11 @@ class BaseConversation:
 		return label
 
 	def create_model_widget(self) -> wx.StaticText:
+		"""Create and configure the model selection list control.
+
+		Returns:
+			wx.StaticText: The label widget for the model list
+		"""
 		label = wx.StaticText(self, label=_("M&odels:"))
 		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
 		# Translators: This label appears in the main window's list of models
@@ -129,17 +204,28 @@ class BaseConversation:
 		return label
 
 	def update_model_list(self):
+		"""Update the model list with current engine's available models."""
 		self.model_list.DeleteAllItems()
 		for model in self.get_display_models():
 			self.model_list.Append(model)
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
+		"""Get list of models for display.
+
+		Returns:
+			List of model display information in a tuple format e.g. (name, vision, context window)
+		"""
 		engine = self.current_engine
 		if not engine:
 			return []
 		return [m.display_model for m in engine.models]
 
 	def set_model_list(self, model: Optional[ProviderAIModel]):
+		"""Set the selected model in the model list.
+
+		Args:
+			model: Model to select
+		"""
 		engine = self.current_engine
 		if not engine:
 			return
@@ -157,6 +243,11 @@ class BaseConversation:
 
 	@property
 	def current_model(self) -> Optional[ProviderAIModel]:
+		"""Get the currently selected model.
+
+		Returns:
+			The currently selected model or None if no model is selected.
+		"""
 		engine = self.current_engine
 		if not engine:
 			return None
@@ -165,7 +256,12 @@ class BaseConversation:
 			return None
 		return engine.models[model_index]
 
-	def on_model_change(self, event):
+	def on_model_change(self, event: wx.Event | None):
+		"""Handle model selection change events.
+
+		Args:
+			event: The event triggering the model change
+		"""
 		model = self.current_model
 		if not model:
 			return
@@ -177,6 +273,12 @@ class BaseConversation:
 	def set_account_and_model_from_profile(
 		self, profile: config.Profile, fall_back_default_account: bool = False
 	):
+		"""Configure account and model selection from a profile.
+
+		Args:
+			profile: Profile containing account or model settings
+			fall_back_default_account: Whether to use default account as fallback
+		"""
 		if (
 			not profile.account
 			and not profile.ai_model_info
@@ -207,12 +309,24 @@ class BaseConversation:
 			self.set_model_list(model)
 
 	def on_model_key_down(self, event: wx.KeyEvent):
+		"""Handle key down events for model list control.
+
+		Use Enter key to show model details.
+
+		Args:
+			event: The key event triggering the model key down event
+		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_show_model_details(None)
 		else:
 			event.Skip()
 
-	def on_model_context_menu(self, event: wx.ContextMenuEvent):
+	def on_model_context_menu(self, event: wx.ContextMenuEvent | None):
+		"""Handle context menu events for model list control.
+
+		Args:
+			event: The context menu event triggering the model context menu event
+		"""
 		menu = wx.Menu()
 		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
 		menu.Append(item)
@@ -220,7 +334,12 @@ class BaseConversation:
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
 
-	def on_show_model_details(self, event: wx.CommandEvent):
+	def on_show_model_details(self, event: wx.CommandEvent | None):
+		"""Show model details dialog.
+
+		Args:
+			event: The command event triggering the model details dialog
+		"""
 		from .read_only_message_dialog import ReadOnlyMessageDialog
 
 		model = self.current_model
@@ -236,6 +355,11 @@ class BaseConversation:
 		dlg.Destroy()
 
 	def create_max_tokens_widget(self) -> wx.StaticText:
+		"""Create and configure the max tokens spin control.
+
+		Returns:
+			The label widget for the max tokens control
+		"""
 		self.max_tokens_spin_label = wx.StaticText(
 			self,
 			# Translators: This is a label for max tokens in the main window
@@ -246,6 +370,11 @@ class BaseConversation:
 		)
 
 	def create_temperature_widget(self) -> wx.StaticText:
+		"""Create and configure the temperature spin control.
+
+		Returns:
+			The label widget for the temperature control
+		"""
 		self.temperature_spinner_label = wx.StaticText(
 			self,
 			# Translators: This is a label for temperature in the main window
@@ -267,6 +396,11 @@ class BaseConversation:
 		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
 
 	def create_top_p_widget(self) -> wx.StaticText:
+		"""Create and configure the top P spin control.
+
+		Returns:
+			The label widget for the top P control
+		"""
 		self.top_p_spinner_label = wx.StaticText(
 			self,
 			# Translators: This is a label for top P in the main window
@@ -288,6 +422,7 @@ class BaseConversation:
 		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 
 	def create_stream_widget(self):
+		"""Create and configure the stream mode check box."""
 		self.stream_mode = wx.CheckBox(
 			self,
 			# Translators: This is a label for stream mode in the main window
@@ -300,6 +435,12 @@ class BaseConversation:
 		profile: Optional[config.ConversationProfile],
 		fall_back_default_account: bool = False,
 	):
+		"""Apply all settings from a conversation profile.
+
+		Args:
+			profile: Conversation profile to apply
+			fall_back_default_account (bool): Whether to use default account as fallback
+		"""
 		if fall_back_default_account and not profile:
 			log.debug("no profile, select default account")
 			self.select_default_account()
@@ -317,6 +458,7 @@ class BaseConversation:
 		self.stream_mode.SetValue(profile.stream_mode)
 
 	def adjust_advanced_mode_setting(self):
+		"""Update UI controls visibility based on advanced mode setting."""
 		controls = (
 			self.max_tokens_spin_label,
 			self.max_tokens_spin_ctrl,

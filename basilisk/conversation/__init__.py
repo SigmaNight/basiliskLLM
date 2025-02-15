@@ -1,3 +1,5 @@
+"""Module for managing conversation between users and the bot."""
+
 from .attached_file import (
 	URL_PATTERN,
 	AttachmentFile,

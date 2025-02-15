@@ -1,10 +1,20 @@
+"""Module for the about dialog of the basiliskLLM application.
+
+This module provides functionality to display application information, including
+version, description, website, license, developers, and translators using wx.adv.AboutDialog.
+"""
+
 import sys
 
 import wx.adv
 
-from basilisk.consts import APP_NAME, APP_SOURCE_URL
+from basilisk.consts import (
+	APP_AUTHORS,
+	APP_NAME,
+	APP_SOURCE_URL,
+	APP_TRANSLATORS,
+)
 
-app_version = None
 if getattr(sys, "frozen", False):
 	from BUILD_CONSTANTS import *  # noqa # type: ignore
 
@@ -14,17 +24,16 @@ else:
 
 	app_version = get_version(root="../..", relative_to=__file__)
 
-APP_AUTHORS = ["André-Abush Clause", "Clément BoussironNael Sayegh"]
 
-APP_TRANSLATORS = [
-	"André-Abush Clause (French)",
-	"Clément Boussiron (French)",
-	"Daniil Lepke (Russian)",
-	"Umut Korkmaz (Turkish)",
-]
+def display_about_dialog(parent: wx.Window):
+	"""Display the about dialog of the application.
 
+	This function uses wx.adv.AboutDialogInfo to display application details including
+	version, description, website, license, developers, and translators.
 
-def display_about_dialog(parent):
+	Args:
+		parent: The parent window for the dialog.
+	"""
 	info = wx.adv.AboutDialogInfo()
 	info.SetName(APP_NAME)
 	info.SetVersion(app_version)

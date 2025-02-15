@@ -1,3 +1,10 @@
+"""Logging utilities for Basilisk application.
+
+This module provides utilities for configuring and managing logging across the Basilisk
+application, including file and console logging setup, log level management, and
+uncaught exception handling.
+"""
+
 import logging
 import sys
 from pathlib import Path
@@ -11,7 +18,15 @@ from basilisk.consts import APP_AUTHOR, APP_NAME
 
 
 def get_log_file_path() -> Path:
-	"""Get log file path"""
+	"""Get log file path for Basilisk application.
+
+	The path is determined by:
+	- user_data_path if configured
+	- platformdirs.user_log_path() otherwise
+
+	Returns:
+		The path to the log file depending on the configuration
+	"""
 	log_file_path = Path("basilisk.log")
 	if global_vars.user_data_path:
 		log_file_path = global_vars.user_data_path / log_file_path
@@ -24,7 +39,14 @@ def get_log_file_path() -> Path:
 
 
 def setup_logging(level: str) -> None:
-	"""Setup logging configuration"""
+	"""Setup logging configuration for Basilisk.
+
+	Configures logging to write to a file and optionally to the console as well.
+	Configure the format of the log messages and the logging level.
+
+	Args:
+		level: logging level to set. 'OFF' is converted to 'NOTSET'.
+	"""
 	level = level.upper()
 	if level == "OFF":
 		level = "NOTSET"
@@ -40,8 +62,12 @@ def setup_logging(level: str) -> None:
 
 
 def set_log_level(level: str) -> None:
-	"""Change global log level to new level and update all loggers
-	:param level: new log level
+	"""Change global log level to new level and propagate to all handlers.
+
+	Updates both the root logger and all its handlers to use the new log level.
+
+	Args:
+		level: new log level (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')
 	"""
 	cur_level = logging.getLevelName(logging.root.getEffectiveLevel())
 	if cur_level == level:
@@ -58,7 +84,17 @@ def logging_uncaught_exceptions(
 	exc_value: Exception,
 	exc_traceback: TracebackType,
 ) -> None:
-	"""Log uncaught exceptions"""
+	"""Log uncaught exceptions to the appropriate logger.
+
+	Handles uncaught exceptions by logging them to the logger corresponding to the
+	exception's module. KeyboardInterrupt is treated as a special case and logged
+	at INFO level instead of ERROR.
+
+	Args:
+		exc_type: exception type is an exception class
+		exc_value: exception value is an exception instance
+		exc_traceback: exception traceback is a traceback object
+	"""
 	if isinstance(exc_type, KeyboardInterrupt):
 		logging.info("Keyboard interrupt")
 		return
