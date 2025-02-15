@@ -617,15 +617,16 @@ class MainFrame(wx.Frame):
 		Args:
 			event: The event that triggered the tab closure. Can be None.
 		"""
-		current_tab = self.current_tab
-		if not current_tab:
-			self.notebook.DeletePage(current_tab)
-			self.tabs_panels.pop(current_tab)
-			current_tab_count = self.notebook.GetPageCount()
-			if current_tab_count == 0:
-				self.on_new_default_conversation(None)
-			else:
-				self.notebook.SetSelection(current_tab_count - 1)
+		current_tab_index = self.notebook.GetSelection()
+		if current_tab_index == wx.NOT_FOUND:
+			return
+		self.notebook.DeletePage(current_tab_index)
+		self.tabs_panels.pop(current_tab_index)
+		current_tab_count = self.notebook.GetPageCount()
+		if current_tab_count == 0:
+			self.on_new_default_conversation(None)
+		else:
+			self.notebook.SetSelection(current_tab_count - 1)
 			self.refresh_frame_title()
 
 	@property
