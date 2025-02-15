@@ -202,7 +202,7 @@ class AttachmentFile(BaseModel):
 		Returns:
 			An enum value representing the file's source type, derived from the protocol of the file's location.
 		"""
-		if isinstance(self.location, WindowsUPath):
+		if self.location.protocol in ("", "file"):
 			return AttachmentFileTypes.LOCAL
 		return AttachmentFileTypes(self.location.protocol)
 
