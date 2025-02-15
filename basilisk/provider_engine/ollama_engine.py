@@ -1,3 +1,5 @@
+"""Ollama provider engine implementation."""
+
 import json
 import logging
 from functools import cached_property
@@ -19,6 +21,8 @@ log = logging.getLogger(__name__)
 
 
 class OllamaEngine(BaseEngine):
+	"""Engine implementation for Ollama API integration."""
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
@@ -27,8 +31,10 @@ class OllamaEngine(BaseEngine):
 	@cached_property
 	@measure_time
 	def models(self) -> list[ProviderAIModel]:
-		"""
-		Get models
+		"""Get Ollama models.
+
+		Returns:
+			A list of provider AI models.
 		"""
 		models = []
 		models_list = self.client.list().models
@@ -57,8 +63,10 @@ class OllamaEngine(BaseEngine):
 
 	@cached_property
 	def client(self) -> Client:
-		"""
-		Get client
+		"""Get Ollama client.
+
+		Returns:
+			The Ollama client instance.
 		"""
 		base_url = self.account.custom_base_url or str(
 			self.account.provider.base_url
@@ -73,8 +81,16 @@ class OllamaEngine(BaseEngine):
 		system_message: Message | None,
 		**kwargs,
 	) -> ChatResponse | Iterator[ChatResponse]:
-		"""
-		Completion
+		"""Get completion from Ollama.
+
+		Args:
+			new_block: The new message block.
+			conversation: The conversation instance.
+			system_message: The system message, if any.
+			**kwargs: Additional keyword arguments.
+
+		Returns:
+			The chat response or an iterator of chat responses.
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
 		params = {
@@ -86,12 +102,18 @@ class OllamaEngine(BaseEngine):
 			# "top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
-		# if new_block.max_tokens:
-		# params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
 		return self.client.chat(**params)
 
 	def prepare_message_request(self, message: Message):
+		"""Prepare message request for Ollama.
+
+		Args:
+			message: The message to prepare.
+
+		Returns:
+			The prepared message request.
+		"""
 		super().prepare_message_request(message)
 		images = []
 		if message.attachments:
@@ -120,6 +142,14 @@ class OllamaEngine(BaseEngine):
 	prepare_message_response = prepare_message_request
 
 	def completion_response_with_stream(self, stream):
+		"""Process a streaming completion response.
+
+		Args:
+			stream: The stream of chat completion responses.
+
+		Returns:
+			An iterator of the completion response content.
+		"""
 		for chunk in stream:
 			content = chunk.get("message", {}).get("content")
 			if content:
@@ -128,6 +158,16 @@ class OllamaEngine(BaseEngine):
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
+		"""Process a non-streaming completion response.
+
+		Args:
+			response: The chat completion response.
+			new_block: The message block to update with the response.
+			**kwargs: Additional keyword arguments.
+
+		Returns:
+			The updated message block with the response.
+		"""
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
 			content=response["message"]["content"],
