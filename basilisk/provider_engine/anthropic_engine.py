@@ -221,7 +221,7 @@ class AnthropicEngine(BaseEngine):
 						contents.append(
 							DocumentBlockParam(source=source, type="document")
 						)
-					elif mime_type in ("text/csv", "text/plain"):
+					elif mime_type in ("text/plain"):
 						source["data"] = attachment.read_as_str()
 						source["type"] = "text"
 						contents.append(

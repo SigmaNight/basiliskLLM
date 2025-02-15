@@ -148,16 +148,16 @@ class AttachmentFileTypes(enum.StrEnum):
 		"""Determine the enum value for a given input value.
 
 		This method is a custom implementation for handling enum value mapping when a non-standard value is provided. It maps specific string inputs to predefined ImageFileTypes.
-		The mapping is as follows:
-		- "http", "https", "data" -> ImageFileTypes.IMAGE_URL
-		- "zip" -> ImageFileTypes.IMAGE_LOCAL
-		- Any other value -> ImageFileTypes.UNKNOWN
+			The mapping is as follows:
+			- "http", "https", "data" -> ImageFileTypes.IMAGE_URL
+			- "zip" -> ImageFileTypes.IMAGE_LOCAL
+			- Any other value -> ImageFileTypes.UNKNOWN
 
-		Args:
-			value: The input value to be mapped to an ImageFileTypes enum.
+			Args:
+				value: The input value to be mapped to an ImageFileTypes enum.
 
-		Returns:
-		The corresponding ImageFileTypes enum value for the given input.
+			Returns:
+			The corresponding ImageFileTypes enum value for the given input.
 		"""
 		if isinstance(value, str) and value.lower() in ("data", "https"):
 			return cls.URL
