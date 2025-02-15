@@ -180,6 +180,66 @@ class AttachmentFile(BaseModel):
 	description: str | None = None
 	size: int | None = None
 
+	@field_serializer("location", mode="wrap")
+	@classmethod
+	def change_location(
+		cls,
+		value: PydanticUPath,
+		wrap_handler: SerializerFunctionWrapHandler,
+		info: SerializationInfo,
+	) -> PydanticUPath:
+		"""Serialize the location field with optional context-based mapping.
+
+		This method is a field serializer for the `location` attribute that allows dynamic
+		path translation based on a provided mapping context. If no mapping is available,
+		it returns the original value using the default serialization handler.
+
+		Args:
+			value: The original location path to be serialized.
+			wrap_handler: The default serialization handler.
+			info: Serialization context information.
+
+		Returns:
+			PydanticUPath: The serialized location path, potentially remapped based on context.
+		"""
+		if not info.context:
+			return wrap_handler(value)
+		mapping = info.context.get("attachment_mapping")
+		if not mapping:
+			return wrap_handler(value)
+		return mapping.get(value, wrap_handler(value))
+
+	@field_validator("location", mode="before")
+	@classmethod
+	def validate_location(
+		cls, value: Any, info: ValidationInfo
+	) -> str | PydanticUPath:
+		"""Validates and transforms the location of an image file.
+
+		This method ensures that the location is either a valid string or a UPath instance.
+		If a string is provided without a protocol and a root path is available in the context,
+		it prepends the root path to create an absolute path.
+
+		Args:
+			value: The location value to validate, which can be a string or UPath.
+			info: Validation context containing additional information.
+
+		Returns:
+			A validated and potentially transformed location.
+
+		Raises:
+			ValueError: If the location is not a string or UPath instance.
+		"""
+		if isinstance(value, str):
+			if info.context:
+				root_path = info.context.get("root_path")
+				if root_path and "://" not in value:
+					return root_path / value
+			return value
+		if not isinstance(value, UPath):
+			raise ValueError("Invalid location")
+		return value
+
 	def __init__(self, /, **data: Any) -> None:
 		"""Initialize an AttachmentFile instance with optional data.
 
@@ -193,6 +253,8 @@ class AttachmentFile(BaseModel):
 		if not self.name:
 			self.name = self._get_name()
 		self.size = self._get_size()
+
+	__init__.__pydantic_base_init__ = True
 
 	@property
 	def type(self) -> AttachmentFileTypes:
@@ -357,66 +419,6 @@ class ImageFile(AttachmentFile):
 			description=content_type,
 			dimensions=dimensions,
 		)
-
-	@field_serializer("location", mode="wrap")
-	@classmethod
-	def change_location(
-		cls,
-		value: PydanticUPath,
-		wrap_handler: SerializerFunctionWrapHandler,
-		info: SerializationInfo,
-	) -> PydanticUPath:
-		"""Serialize the location field with optional context-based mapping.
-
-		This method is a field serializer for the `location` attribute that allows dynamic
-		path translation based on a provided mapping context. If no mapping is available,
-		it returns the original value using the default serialization handler.
-
-		Args:
-			value: The original location path to be serialized.
-			wrap_handler: The default serialization handler.
-			info: Serialization context information.
-
-		Returns:
-			PydanticUPath: The serialized location path, potentially remapped based on context.
-		"""
-		if not info.context:
-			return wrap_handler(value)
-		mapping = info.context.get("attachment_mapping")
-		if not mapping:
-			return wrap_handler(value)
-		return mapping.get(value, wrap_handler(value))
-
-	@field_validator("location", mode="before")
-	@classmethod
-	def validate_location(
-		cls, value: Any, info: ValidationInfo
-	) -> str | PydanticUPath:
-		"""Validates and transforms the location of an image file.
-
-		This method ensures that the location is either a valid string or a UPath instance.
-		If a string is provided without a protocol and a root path is available in the context,
-		it prepends the root path to create an absolute path.
-
-		Args:
-			value: The location value to validate, which can be a string or UPath.
-			info: Validation context containing additional information.
-
-		Returns:
-			A validated and potentially transformed location.
-
-		Raises:
-			ValueError: If the location is not a string or UPath instance.
-		"""
-		if isinstance(value, str):
-			if info.context:
-				root_path = info.context.get("root_path")
-				if root_path and "://" not in value:
-					return root_path / value
-			return value
-		if not isinstance(value, UPath):
-			raise ValueError("Invalid location")
-		return value
 
 	def __init__(self, /, **data: Any) -> None:
 		"""Initialize an ImageFile instance with optional data.
