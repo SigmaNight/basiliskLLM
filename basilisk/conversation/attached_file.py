@@ -23,7 +23,6 @@ from pydantic import (
 	field_validator,
 )
 from upath import UPath
-from upath.implementations.local import WindowsUPath
 
 from basilisk.decorators import measure_time
 
