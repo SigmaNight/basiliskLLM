@@ -9,6 +9,7 @@ from ollama import ChatResponse, Client
 
 from basilisk.conversation import (
 	Conversation,
+	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -98,8 +99,6 @@ class OllamaEngine(BaseEngine):
 			"messages": self.get_messages(
 				new_block, conversation, system_message
 			),
-			# "temperature": new_block.temperature,
-			# "top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
 		params.update(kwargs)
@@ -118,21 +117,14 @@ class OllamaEngine(BaseEngine):
 		images = []
 		if message.attachments:
 			for attachment in message.attachments:
-				location = str(attachment.location)
-				# TODO: fix `attachment.type` (currently returns IMAGE_UNKNOWN instead of IMAGE_LOCAL)
-				# best way: `if attachment.type != ImageFileTypes.IMAGE_LOCAL:``
-				if (
-					location.startswith("http")
-					or location.startswith("data:")
-					or location.startswith("memory://")
-				):
+				if attachment.type == ImageFileTypes.IMAGE_URL:
 					log.warning(
 						f"Received unsupported image type: {attachment.type}, {attachment.location}"
 					)
 					raise NotImplementedError(
-						"Only local images are supported for Ollama"
+						"images URL are not supported for Ollama"
 					)
-				images.append(attachment.location)
+				images.append(attachment.encode_image())
 		return {
 			"role": message.role.value,
 			"content": message.content,
