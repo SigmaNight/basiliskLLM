@@ -48,7 +48,7 @@ class Provider:
 	base_url: Optional[str] = field(default=None)
 	organization_mode_available: bool = field(default=False)
 	require_api_key: bool = field(default=True)
-	custom: bool = field(default=True)
+	allow_custom_base_url: bool = field(default=False)
 	env_var_name_api_key: Optional[str] = field(default=None)
 	env_var_name_organization_key: Optional[str] = field(default=None)
 
@@ -114,6 +114,7 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="MISTRAL_API_KEY",
 		engine_cls_path="basilisk.provider_engine.mistralai_engine.MistralAIEngine",
+		allow_custom_base_url=True,
 	),
 	Provider(
 		id="openai",
@@ -125,6 +126,7 @@ providers = [
 		env_var_name_api_key="OPENAI_API_KEY",
 		env_var_name_organization_key="OPENAI_ORG_KEY",
 		engine_cls_path="basilisk.provider_engine.openai_engine.OpenAIEngine",
+		allow_custom_base_url=True,
 	),
 	Provider(
 		id="openrouter",
@@ -135,6 +137,7 @@ providers = [
 		require_api_key=True,
 		env_var_name_api_key="OPENROUTER_API_KEY",
 		engine_cls_path="basilisk.provider_engine.openrouter_engine.OpenRouterEngine",
+		allow_custom_base_url=True,
 	),
 	Provider(
 		id="xai",

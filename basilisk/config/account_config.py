@@ -131,6 +131,7 @@ class Account(BaseModel):
 	organizations: Optional[list[AccountOrganization]] = Field(default=None)
 	active_organization_id: Optional[UUID4] = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
+	custom_base_url: Optional[str] = Field(default=None)
 
 	def __init__(self, **data: Any):
 		"""Initialize an account instance. If an error occurs, log the error and raise an exception."""
@@ -186,6 +187,8 @@ class Account(BaseModel):
 			if not value:
 				raise ValueError("API key not found in keyring")
 			return SecretStr(value)
+		elif not data["provider"].require_api_key and value is None:
+			return
 		else:
 			raise ValueError("Invalid API key storage method")
 

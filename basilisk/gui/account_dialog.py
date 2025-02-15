@@ -1,7 +1,7 @@
 """Account dialog for managing accounts and organizations in the basiliskLLM application."""
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import wx
 from more_itertools import first, locate
@@ -15,6 +15,9 @@ from basilisk.config import (
 	accounts,
 )
 from basilisk.provider import get_provider, providers
+
+if TYPE_CHECKING:
+	from basilisk.provider import Provider
 
 log = logging.getLogger(__name__)
 
@@ -434,7 +437,7 @@ class EditAccountDialog(wx.Dialog):
 		self.init_ui()
 		if account:
 			self.init_data()
-			self.update_ui()
+		self.update_ui()
 		self.Centre()
 		self.Show()
 		self.name.SetFocus()
@@ -459,65 +462,73 @@ class EditAccountDialog(wx.Dialog):
 		self.name = wx.TextCtrl(panel)
 		sizer.Add(self.name, 0, wx.EXPAND)
 
-		label = wx.StaticText(
+		self.provider_label = wx.StaticText(
 			panel,
 			# Translators: A label in account dialog
 			label=_("&Provider:"),
 			style=wx.ALIGN_LEFT,
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
+		sizer.Add(self.provider_label, 0, wx.ALL, 5)
 		provider_choices = [provider.name for provider in providers]
-		self.provider = wx.ComboBox(
+		self.provider_combo = wx.ComboBox(
 			panel, choices=provider_choices, style=wx.CB_READONLY
 		)
-		self.provider.Bind(wx.EVT_COMBOBOX, lambda e: self.update_ui())
-		sizer.Add(self.provider, 0, wx.EXPAND)
+		self.provider_combo.Bind(wx.EVT_COMBOBOX, lambda e: self.update_ui())
+		sizer.Add(self.provider_combo, 0, wx.EXPAND)
 
-		label = wx.StaticText(
+		self.api_key_storage_method_label = wx.StaticText(
 			panel,
 			style=wx.ALIGN_LEFT,
 			# Translators: A label in account dialog
 			label=_("API &key storage method:"),
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
-		self.api_key_storage_method = wx.ComboBox(
+		sizer.Add(self.api_key_storage_method_label, 0, wx.ALL, 5)
+		self.api_key_storage_method_combo = wx.ComboBox(
 			panel,
 			choices=list(key_storage_methods.values()),
 			style=wx.CB_READONLY,
 		)
-		sizer.Add(self.api_key_storage_method, 0, wx.EXPAND)
-		self.api_key_storage_method.Disable()
-		label = wx.StaticText(
+		sizer.Add(self.api_key_storage_method_combo, 0, wx.EXPAND)
+
+		self.api_key_label = wx.StaticText(
 			panel,
 			style=wx.ALIGN_LEFT,
 			# Translators: A label in account dialog
 			label=_("API &key:"),
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
-		self.api_key = wx.TextCtrl(panel)
-		self.api_key.Disable()
-		sizer.Add(self.api_key, 0, wx.EXPAND)
+		sizer.Add(self.api_key_label, 0, wx.ALL, 5)
+		self.api_key_text_ctrl = wx.TextCtrl(panel)
+		sizer.Add(self.api_key_text_ctrl, 0, wx.EXPAND)
 
-		label = wx.StaticText(
+		self.organization_label = wx.StaticText(
 			panel, label=_("&Organization to use:"), style=wx.ALIGN_LEFT
 		)
-		sizer.Add(label, 0, wx.ALL, 5)
-		self.organization = wx.ComboBox(panel, style=wx.CB_READONLY)
-		self.organization.Disable()
-		sizer.Add(self.organization, 0, wx.EXPAND)
+		sizer.Add(self.organization_label, 0, wx.ALL, 5)
+		self.organization_text_ctrl = wx.ComboBox(panel, style=wx.CB_READONLY)
+		sizer.Add(self.organization_text_ctrl, 0, wx.EXPAND)
 
-		bSizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.custom_base_url_label = wx.StaticText(
+			panel,
+			# Translators: A label in account dialog
+			label=_("Custom &base URL:"),
+			style=wx.ALIGN_LEFT,
+		)
+		sizer.Add(self.custom_base_url_label, 0, wx.ALL, 5)
+		self.custom_base_url_text_ctrl = wx.TextCtrl(panel)
+		sizer.Add(self.custom_base_url_text_ctrl, 0, wx.EXPAND)
+
+		buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK)
 		btn.SetDefault()
 		btn.Bind(wx.EVT_BUTTON, self.on_ok)
-		bSizer.Add(btn, 0, wx.ALL, 5)
+		buttons_sizer.Add(btn, 0, wx.ALL, 5)
 
 		btn = wx.Button(panel, wx.ID_CANCEL)
 		btn.Bind(wx.EVT_BUTTON, self.on_cancel)
-		bSizer.Add(btn, 0, wx.ALL, 5)
+		buttons_sizer.Add(btn, 0, wx.ALL, 5)
 
-		sizer.Add(bSizer, 0, wx.ALL, 5)
+		sizer.Add(buttons_sizer, 0, wx.ALL, 5)
 
 	def init_data(self):
 		"""Initialize the data for the dialog.
@@ -526,14 +537,14 @@ class EditAccountDialog(wx.Dialog):
 		and organization settings are set in the dialog.
 		"""
 		if not self.account:
-			self.api_key_storage_method.SetSelection(0)
+			self.api_key_storage_method_combo.SetSelection(0)
 			return
 		self.name.SetValue(self.account.name)
 		index = first(
 			locate(providers, lambda x: x.name == self.account.provider.name),
 			-1,
 		)
-		self.provider.SetSelection(index)
+		self.provider_combo.SetSelection(index)
 		if self.account.api_key and self.account.api_key_storage_method:
 			index = first(
 				locate(
@@ -542,9 +553,11 @@ class EditAccountDialog(wx.Dialog):
 				),
 				-1,
 			)
-			self.api_key_storage_method.SetSelection(index)
-			self.api_key.SetValue(self.account.api_key.get_secret_value())
-		self.organization.Enable(
+			self.api_key_storage_method_combo.SetSelection(index)
+			self.api_key_text_ctrl.SetValue(
+				self.account.api_key.get_secret_value()
+			)
+		self.organization_text_ctrl.Enable(
 			self.account.provider.organization_mode_available
 		)
 		if not self.account.provider.organization_mode_available:
@@ -553,7 +566,7 @@ class EditAccountDialog(wx.Dialog):
 			choices = [_("Personal")] + [
 				organization.name for organization in self.account.organizations
 			]
-			self.organization.SetItems(choices)
+			self.organization_text_ctrl.SetItems(choices)
 		if self.account.active_organization_id:
 			index = (
 				first(
@@ -565,24 +578,61 @@ class EditAccountDialog(wx.Dialog):
 				)
 				+ 1
 			)
-			self.organization.SetSelection(index)
+			self.organization_text_ctrl.SetSelection(index)
+		if self.account.custom_base_url:
+			self.custom_base_url_text_ctrl.SetValue(
+				self.account.custom_base_url
+			)
 
-	def update_ui(self):
-		"""Update the user interface of the dialog.
+	def get_selected_provider(self) -> Optional[Provider]:
+		"""Get the provider object from the selected provider name.
 
-		Enable or disable API key and organization fields based on the selected provider's requirements.
+		Returns:
+			The provider object if a provider is selected, otherwise None.
 		"""
-		provider_index = self.provider.GetSelection()
-		if provider_index == -1:
-			log.debug("No provider selected")
+		provider_index = self.provider_combo.GetSelection()
+		if provider_index == wx.NOT_FOUND:
+			return None
+		provider_name = self.provider_combo.GetValue()
+		return get_provider(name=provider_name)
+
+	def _disable_all_provider_fields(self):
+		"""Disable all provider-dependent fields."""
+		fields_to_disable = (
+			self.api_key_label,
+			self.api_key_text_ctrl,
+			self.api_key_storage_method_label,
+			self.api_key_storage_method_combo,
+			self.organization_label,
+			self.organization_text_ctrl,
+			self.custom_base_url_label,
+			self.custom_base_url_text_ctrl,
+		)
+		for field in fields_to_disable:
+			field.Disable()
+
+	def update_ui(self) -> None:
+		"""Update UI elements based on selected provider settings."""
+		provider = self.get_selected_provider()
+		if not provider:
+			self._disable_all_provider_fields()
 			return
-		provider_name = self.provider.GetValue()
-		provider = get_provider(name=provider_name)
-		if provider.require_api_key:
-			self.api_key.Enable()
-			self.api_key_storage_method.Enable()
-		if self.account:
-			self.organization.Enable(provider.organization_mode_available)
+		self.api_key_label.Enable(provider.require_api_key)
+		self.api_key_text_ctrl.Enable(provider.require_api_key)
+		self.api_key_storage_method_label.Enable(provider.require_api_key)
+		self.api_key_storage_method_combo.Enable(provider.require_api_key)
+		self.organization_label.Enable(provider.organization_mode_available)
+		self.organization_text_ctrl.Enable(provider.organization_mode_available)
+		default_base_url = provider.base_url
+		self.custom_base_url_label.Enable(provider.allow_custom_base_url)
+		self.custom_base_url_text_ctrl.Enable(provider.allow_custom_base_url)
+		if provider.allow_custom_base_url:
+			custom_base_url_label = _("Custom &base URL:")
+			if default_base_url:
+				custom_base_url_label = _(
+					"Custom &base URL (default: {}):"
+				).format(default_base_url)
+			self.custom_base_url_label.SetLabel(custom_base_url_label)
 
 	def on_ok(self, event: wx.Event | None):
 		"""Handle the OK button click event.
@@ -598,28 +648,26 @@ class EditAccountDialog(wx.Dialog):
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			self.name.SetFocus()
 			return
-		provider_index = self.provider.GetSelection()
-		if provider_index == -1:
+		provider = self.get_selected_provider()
+		if not provider:
 			msg = _("Please select a provider")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			self.provider.SetFocus()
+			self.provider_combo.SetFocus()
 			return
-		provider_name = self.provider.GetValue()
-		provider = get_provider(name=provider_name)
 		if provider.require_api_key:
-			if self.api_key_storage_method.GetSelection() == -1:
+			if self.api_key_storage_method_combo.GetSelection() == -1:
 				msg = _("Please select an API key storage method")
 				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-				self.api_key_storage_method.SetFocus()
+				self.api_key_storage_method_combo.SetFocus()
 				return
-			if not self.api_key.GetValue():
+			if not self.api_key_text_ctrl.GetValue():
 				msg = _(
 					"Please enter an API key. It is required for this provider"
 				)
 				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-				self.api_key.SetFocus()
+				self.api_key_text_ctrl.SetFocus()
 				return
-		organization_index = self.organization.GetSelection()
+		organization_index = self.organization_text_ctrl.GetSelection()
 		active_organization = None
 		if organization_index > 0:
 			active_organization = self.account.organizations[
@@ -629,15 +677,19 @@ class EditAccountDialog(wx.Dialog):
 		api_key = None
 		if provider.require_api_key:
 			api_key_storage_method = list(key_storage_methods.keys())[
-				self.api_key_storage_method.GetSelection()
+				self.api_key_storage_method_combo.GetSelection()
 			]
-			api_key = SecretStr(self.api_key.GetValue())
+			api_key = SecretStr(self.api_key_text_ctrl.GetValue())
+		custom_base_url = self.custom_base_url_text_ctrl.GetValue()
+		if not provider.allow_custom_base_url or not custom_base_url.strip():
+			custom_base_url = None
 		if self.account:
 			self.account.name = self.name.GetValue()
 			self.account.provider = provider
 			self.account.api_key_storage_method = api_key_storage_method
 			self.account.api_key = api_key
 			self.account.active_organization_id = active_organization
+			self.account.custom_base_url = custom_base_url
 		else:
 			self.account = Account(
 				name=self.name.GetValue(),
@@ -646,6 +698,7 @@ class EditAccountDialog(wx.Dialog):
 				api_key=api_key,
 				active_organization_id=active_organization,
 				source=AccountSource.CONFIG,
+				custom_base_url=custom_base_url,
 			)
 		self.EndModal(wx.ID_OK)
 
