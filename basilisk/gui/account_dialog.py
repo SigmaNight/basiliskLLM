@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import Optional
 
 import wx
 from more_itertools import first, locate
@@ -30,7 +29,7 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		self,
 		parent: wx.Window,
 		title: str,
-		organization: Optional[AccountOrganization] = None,
+		organization: AccountOrganization | None = None,
 		size: tuple[int, int] = (400, 200),
 	):
 		"""Initialize the dialog for editing account organization settings.
@@ -599,7 +598,7 @@ class EditAccountDialog(wx.Dialog):
 			self.organization_text_ctrl.SetSelection(index)
 
 	@property
-	def provider(self) -> Optional[Provider]:
+	def provider(self) -> Provider | None:
 		"""Get the provider object from the selected provider name.
 
 		Returns:
@@ -682,8 +681,9 @@ class EditAccountDialog(wx.Dialog):
 		self._save_account_data()
 		self.EndModal(wx.ID_OK)
 
-	def _validate_form(self) -> Optional[tuple[str, wx.Window]]:
+	def _validate_form(self) -> tuple[str, wx.Window] | None:
 		"""Validate form data and return a tuple of error message and field to focus on if any.
+
 		Returns None if form data is valid.
 		"""
 		if not self.name.GetValue():
@@ -769,10 +769,10 @@ class EditAccountDialog(wx.Dialog):
 	def _update_existing_account(
 		self,
 		provider: Provider,
-		active_organization: Optional[str],
-		api_key_storage_method: Optional[KeyStorageMethodEnum],
-		api_key: Optional[SecretStr],
-		custom_base_url: Optional[str],
+		active_organization: str | None,
+		api_key_storage_method: KeyStorageMethodEnum | None,
+		api_key: SecretStr | None,
+		custom_base_url: str | None,
 	) -> None:
 		"""Update existing account with form data."""
 		self.account.name = self.name.GetValue()
@@ -785,10 +785,10 @@ class EditAccountDialog(wx.Dialog):
 	def _create_new_account(
 		self,
 		provider: Provider,
-		active_organization: Optional[str],
-		api_key_storage_method: Optional[KeyStorageMethodEnum],
-		api_key: Optional[SecretStr],
-		custom_base_url: Optional[str],
+		active_organization: str | None,
+		api_key_storage_method: KeyStorageMethodEnum | None,
+		api_key: SecretStr | None,
+		custom_base_url: str | None,
 	) -> None:
 		"""Create new account from form data."""
 		self.account = Account(
