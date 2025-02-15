@@ -153,10 +153,10 @@ class AttachmentFileTypes(enum.StrEnum):
 			- "zip" -> ImageFileTypes.IMAGE_LOCAL
 			- Any other value -> ImageFileTypes.UNKNOWN
 
-			Args:
+		Args:
 				value: The input value to be mapped to an ImageFileTypes enum.
 
-			Returns:
+		Returns:
 			The corresponding ImageFileTypes enum value for the given input.
 		"""
 		if isinstance(value, str) and value.lower() in ("data", "https"):
