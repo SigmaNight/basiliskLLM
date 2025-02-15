@@ -145,13 +145,13 @@ class Account(BaseModel):
 	def __init__(self, **data: Any):
 		"""
 		Initialize an account instance with the given configuration data.
-		
+
 		This constructor passes all provided keyword arguments to the superclass initializer. If an error occurs during initialization,
 		the error is logged with detailed information and the exception is re-raised, preventing the creation of an incomplete account instance.
-		
+
 		Parameters:
 		    **data (Any): Arbitrary keyword arguments representing the account configuration.
-		
+
 		Raises:
 		    Exception: Propagates any exception caught during initialization.
 		"""
@@ -183,22 +183,22 @@ class Account(BaseModel):
 	) -> Optional[SecretStr]:
 		"""
 		Validate the API key configuration and return a SecretStr instance if applicable.
-		
+
 		This method checks the provided API key based on the configured key storage method:
 		- If the API key is already a SecretStr, it is returned as-is.
 		- For a plain string API key (when using plain storage), the value must be a string and is wrapped in a SecretStr.
 		- For system storage, the key is retrieved from the system keyring using the account's identifier.
 		- If the provider does not require an API key and the provided value is None, the function returns None.
-		
+
 		Parameters:
 		    value (Optional[Any]): The API key from the configuration file, or an already wrapped SecretStr.
 		    info (ValidationInfo): Validation context containing configuration data, including the API key storage method,
 		                           account identifier, and provider details.
-		
+
 		Returns:
 		    Optional[SecretStr]: The API key as a SecretStr instance if validation succeeds, or None if the provider
 		                         does not require an API key and no key is provided.
-		
+
 		Raises:
 		    ValueError: If the API key is not a string when using plain storage, if the API key is not found in the keyring
 		                when using system storage, or if an invalid API key storage method is encountered.

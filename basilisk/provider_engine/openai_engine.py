@@ -66,12 +66,12 @@ class OpenAIEngine(BaseEngine):
 	def client(self) -> OpenAI:
 		"""
 		Returns a configured OpenAI client instance.
-		
+
 		This method builds the client using the account configuration by:
 		  - Retrieving the API key securely from the account.
 		  - Obtaining the active organization key (if available) from the account.
 		  - Setting the base URL to a custom value if provided; otherwise, defaulting to the provider's base URL.
-		
+
 		Returns:
 		    OpenAI: An instance of the OpenAI client configured with the necessary credentials and endpoint.
 		"""
@@ -92,14 +92,14 @@ class OpenAIEngine(BaseEngine):
 	def models(self) -> list[ProviderAIModel]:
 		"""
 		Retrieve a list of available OpenAI models with detailed configuration settings.
-		
+
 		This method constructs and returns a collection of ProviderAIModel objects that represent the
 		different models supported by the OpenAIEngine. Each model configuration includes parameters such as
 		the model's identifier, description, context window size, maximum output tokens, vision support (if available),
 		and maximum temperature. The list comprises various GPT-4 and GPT-3.5 models (along with their variants),
 		each optimized for different demands and use cases. Refer to https://platform.openai.com/docs/models for
 		more information on the available models.
-		
+
 		Returns:
 			list[ProviderAIModel]: A list of ProviderAIModel instances with their respective configuration properties.
 		"""
