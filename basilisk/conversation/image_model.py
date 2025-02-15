@@ -23,6 +23,7 @@ from pydantic import (
 	field_validator,
 )
 from upath import UPath
+from upath.implementations.local import WindowsUPath
 
 from basilisk.decorators import measure_time
 
@@ -278,6 +279,8 @@ class ImageFile(BaseModel):
 		Raises:
 			ValueError: If the protocol cannot be mapped to a known ImageFileTypes value.
 		"""
+		if isinstance(self.location, WindowsUPath):
+			return ImageFileTypes.IMAGE_LOCAL
 		return ImageFileTypes(self.location.protocol)
 
 	def _get_name(self) -> str:
