@@ -32,13 +32,23 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		organization: AccountOrganization | None = None,
 		size: tuple[int, int] = (400, 200),
 	):
-		"""Initialize the dialog for editing account organization settings.
-
-		Args:
-			parent: The parent window.
-			title: The title of the dialog.
-			organization: The organization to edit. If None, a new organization will be created.
-			size: The size of the dialog.
+		"""
+		Initialize an instance of the Account Organization Editing Dialog.
+		
+		This constructor creates a dialog window for editing account organization settings.
+		If an organization is provided, the dialog is set up to edit the existing organization's data;
+		otherwise, it prepares for the creation of a new organization. It initializes the UI components,
+		populates necessary data, updates the UI elements, centers the dialog on the screen, displays it,
+		and sets the initial focus to the organization name input field.
+		
+		Parameters:
+		    parent (wx.Window): The parent window of the dialog.
+		    title (str): The title to be displayed on the dialog.
+		    organization (AccountOrganization | None): The organization instance to edit. If None, a new organization is created.
+		    size (tuple[int, int]): The size of the dialog window (width, height).
+		
+		Side Effects:
+		    Initializes and displays the dialog, sets focus to the organization name control.
 		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
@@ -421,13 +431,19 @@ class EditAccountDialog(wx.Dialog):
 		size: tuple[int, int] = (400, 400),
 		account: Account | None = None,
 	):
-		"""Initialize the dialog for editing account settings.
-
-		Args:
-			parent: The parent window.
-			title: The title of the dialog.
-			size: The size of the dialog.
-			account: The account to edit. If None, a new account will be created.
+		"""
+		Initialize an instance of EditAccountDialog for creating or editing an account.
+		
+		This constructor sets up the dialog window by initializing the user interface elements,
+		loading account data when an existing account is provided, and updating the UI based on
+		the account's state. The dialog is centered on the screen and the name input field is set
+		to receive focus upon display.
+		
+		Parameters:
+		    parent (wx.Window): The parent window for the dialog.
+		    title (str): The title displayed on the dialog.
+		    size (tuple[int, int], optional): The dimensions (width, height) of the dialog. Defaults to (400, 400).
+		    account (Account | None, optional): The account instance to edit. If None, the dialog prepares for creating a new account.
 		"""
 		super().__init__(parent, title=title, size=size)
 		self.parent = parent
@@ -441,10 +457,19 @@ class EditAccountDialog(wx.Dialog):
 		self.name.SetFocus()
 
 	def init_ui(self):
-		"""Initialize the user interface of the dialog.
-
-		The dialog contains fields for entering the account name, provider,
-		API key storage method, API key, and organization selection.
+		"""
+		Initialize the dialog's user interface with input fields and action buttons.
+		
+		This method sets up the layout and widgets for managing account information. It creates and arranges the following UI components:
+		  - A text control for entering the account name.
+		  - A read-only combo box for selecting the provider, populated with available provider names. The combo box is bound to update the UI when the selection changes.
+		  - A combo box for choosing the API key storage method.
+		  - A text control for entering the API key.
+		  - A read-only combo box for selecting the organization.
+		  - A text control for inputting a custom base URL.
+		  - A horizontal sizer containing OK and Cancel buttons for form submission and cancellation.
+		
+		Uses wxPython controls and sizers for a structured layout.
 		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
@@ -532,10 +557,22 @@ class EditAccountDialog(wx.Dialog):
 		sizer.Add(buttons_sizer, 0, wx.ALL, 5)
 
 	def init_data(self):
-		"""Initialize the data for the dialog.
-
-		If an account is provided, the account's name, provider, API key,
-		and organization settings are set in the dialog.
+		"""
+		Initializes the dialog fields with account-related information.
+		
+		If an account instance is present, the method populates the dialog with the account's name,
+		provider selection (determined by matching the account's provider name against the available providers),
+		API key details (if both API key and API key storage method are provided), organization settings, 
+		and a custom base URL if available. When no account is provided, it sets the API key storage method 
+		combo box to its default option (index 0) and exits.
+		
+		Returns:
+		    None
+		
+		Side Effects:
+		    Updates UI elements such as self.name, self.provider_combo, self.api_key_storage_method_combo, 
+		    and self.custom_base_url_text_ctrl, and invokes helper methods (_set_api_key_data and _init_organization_data)
+		    to further process account-specific data.
 		"""
 		if not self.account:
 			self.api_key_storage_method_combo.SetSelection(0)
@@ -559,7 +596,19 @@ class EditAccountDialog(wx.Dialog):
 			)
 
 	def _set_api_key_data(self) -> None:
-		"""Set API key related fields from account data."""
+		"""
+		Set API key related UI controls using data from the account object.
+		
+		This method locates the index of the account's API key storage method among the available key storage methods and updates the corresponding combo box selection. It also populates the API key text control with the secret API key value retrieved from the account.
+		
+		Assumes:
+		    - `self.account` has attributes `api_key_storage_method` and `api_key`, where `api_key` provides a `get_secret_value` method.
+		    - `key_storage_methods` is a mapping of available API key storage methods.
+		    - The utility functions `first` and `locate` are available for indexing operations.
+		
+		Returns:
+		    None
+		"""
 		index = first(
 			locate(
 				key_storage_methods.keys(),
@@ -571,7 +620,11 @@ class EditAccountDialog(wx.Dialog):
 		self.api_key_text_ctrl.SetValue(self.account.api_key.get_secret_value())
 
 	def _init_organization_data(self) -> None:
-		"""Initialize organization related fields."""
+		"""
+		Initialize and populate the organization text control widget based on account provider settings and organization data.
+		
+		This method enables the organization text control if the provider supports organization mode. If enabled and organizations exist, it sets the control's items to a list beginning with a localized "Personal" option followed by the names of the available organizations. If an active organization ID is present, the corresponding organization (adjusted for the "Personal" offset) is selected.
+		"""
 		self.organization_text_ctrl.Enable(
 			self.account.provider.organization_mode_available
 		)
@@ -599,10 +652,16 @@ class EditAccountDialog(wx.Dialog):
 
 	@property
 	def provider(self) -> Provider | None:
-		"""Get the provider object from the selected provider name.
-
+		"""
+		Retrieves the provider object corresponding to the currently selected provider name from the provider combo box.
+		
+		This method checks the selection state of the provider combo box using wxPython's GetSelection method.
+		If a valid selection is found, it retrieves the provider name via GetValue() and returns the corresponding Provider object
+		using the get_provider function. If no valid selection is present (i.e., the selection index equals wx.NOT_FOUND),
+		the method returns None.
+		
 		Returns:
-			The provider object if a provider is selected, otherwise None.
+		    Provider | None: The Provider object if a valid selection exists; otherwise, None.
 		"""
 		provider_index = self.provider_combo.GetSelection()
 		if provider_index == wx.NOT_FOUND:
@@ -611,7 +670,17 @@ class EditAccountDialog(wx.Dialog):
 		return get_provider(name=provider_name)
 
 	def update_ui(self) -> None:
-		"""Update UI elements based on selected provider."""
+		"""
+		Update the user interface components based on the currently selected provider.
+		
+		If no provider is set, all editable fields are disabled. Otherwise, the function updates:
+		- API key fields depending on whether the provider requires an API key.
+		- Organization fields based on the provider's available organization modes.
+		- Custom base URL fields according to the provider's configuration.
+		
+		Returns:
+		    None
+		"""
 		provider = self.provider
 		if not provider:
 			self._disable_all_fields()
@@ -622,7 +691,19 @@ class EditAccountDialog(wx.Dialog):
 		self._update_base_url_fields(provider)
 
 	def _disable_all_fields(self) -> None:
-		"""Disable all provider-dependent fields."""
+		"""
+		Disable all provider-dependent UI fields.
+		
+		This method iterates through a set of UI elements that are specific to provider configurations and disables
+		each one to prevent user interaction. The disabled fields include:
+		  - API key label and text control
+		  - API key storage method label and combo box
+		  - Organization label and text control
+		  - Custom base URL label and text control
+		
+		Returns:
+		    None
+		"""
 		fields = [
 			self.api_key_label,
 			self.api_key_text_ctrl,
@@ -637,7 +718,19 @@ class EditAccountDialog(wx.Dialog):
 			field.Disable()
 
 	def _update_api_key_fields(self, enable: bool) -> None:
-		"""Update API key related fields state."""
+		"""
+		Toggle the enabled state of API key input fields.
+		
+		This method sets the enabled/disabled state for all widgets related to API key entry,
+		including the API key label, text control, and the controls for the API key storage method.
+		The state is determined by the value of the 'enable' parameter.
+		
+		Parameters:
+		    enable (bool): If True, enables all API key related fields; if False, disables them.
+		
+		Returns:
+		    None
+		"""
 		fields = [
 			self.api_key_label,
 			self.api_key_text_ctrl,
@@ -648,12 +741,34 @@ class EditAccountDialog(wx.Dialog):
 			field.Enable(enable)
 
 	def _update_organization_fields(self, enable: bool) -> None:
-		"""Update organization related fields state."""
+		"""
+		Toggle the enabled state of organization-related UI widgets.
+		
+		This method enables or disables the organization label and associated text control based on
+		the provided boolean flag. Disabling these UI components prevents user interaction when editing
+		organization details is not allowed.
+		
+		Parameters:
+		    enable (bool): If True, the organization label and text control are enabled; if False, they are disabled.
+		
+		Returns:
+		    None
+		"""
 		self.organization_label.Enable(enable)
 		self.organization_text_ctrl.Enable(enable)
 
 	def _update_base_url_fields(self, provider: Provider) -> None:
-		"""Update base URL related fields."""
+		"""
+		Update the custom base URL UI controls based on the provider's settings.
+		
+		This method enables or disables the custom base URL label and text control depending on whether the provider permits a custom base URL. If a default base URL is provided by the provider, the label is updated to display this default value; otherwise, a generic label is set.
+		
+		Parameters:
+		    provider (Provider): An instance containing configuration data, including whether custom base URLs are allowed (allow_custom_base_url) and the default base URL (base_url).
+		    
+		Returns:
+		    None
+		"""
 		self.custom_base_url_label.Enable(provider.allow_custom_base_url)
 		self.custom_base_url_text_ctrl.Enable(provider.allow_custom_base_url)
 		default_base_url = provider.base_url
@@ -665,13 +780,18 @@ class EditAccountDialog(wx.Dialog):
 			self.custom_base_url_label.SetLabel(_("Custom &base URL"))
 
 	def on_ok(self, event: wx.CommandEvent) -> None:
-		"""Handle the OK button click event.
-
-		Validate the account settings and create or update the account.
-		Close the dialog if all validations pass.
-
-		Args:
-			event: The event that triggered the OK button click. If None, the OK button was not clicked.
+		"""
+		Handle the OK button click event.
+		
+		This method validates the account form. If validation fails, it displays an error message using a message box
+		and sets focus to the respective field. If validation passes, the method saves the account data and closes the dialog
+		with a success result.
+		
+		Parameters:
+		    event (wx.CommandEvent): The event that triggered the OK button click.
+		    
+		Returns:
+		    None
 		"""
 		error_message = self._validate_form()
 		if error_message:
@@ -689,9 +809,18 @@ class EditAccountDialog(wx.Dialog):
 		self.EndModal(wx.ID_OK)
 
 	def _validate_form(self) -> tuple[str, wx.Window] | None:
-		"""Validate form data and return a tuple of error message and field to focus on if any.
-
-		Returns None if form data is valid.
+		"""
+		Validate the form data and return an error message with the corresponding UI widget to focus on if a validation check fails.
+		
+		This method performs the following validations:
+		    - Checks that the account name field is not empty.
+		    - Confirms that a provider is selected.
+		    - If the selected provider requires an API key, verifies that an API key storage method is chosen and that an API key is provided.
+		    - If a custom base URL is allowed and provided, ensures it matches the pattern defined by CUSTOM_BASE_URL_PATTERN.
+		
+		Returns:
+		    tuple[str, wx.Window]: A tuple containing a translated error message and the UI widget that should receive focus if a validation error occurs.
+		    None: If all fields pass the validation.
 		"""
 		if not self.name.GetValue():
 			# Translators: An error message in account dialog
@@ -731,7 +860,26 @@ class EditAccountDialog(wx.Dialog):
 		return None
 
 	def _save_account_data(self) -> None:
-		"""Save form data to account object."""
+		"""
+		Save form data from the dialog into an account object.
+		
+		This method gathers user inputs from various UI components and processes them to either update an existing account or create a new one. It performs the following steps:
+		    - Retrieves the current provider from the self.provider property.
+		    - Determines the selected organization from the organization_text_ctrl. If an account with defined organizations exists and a valid selection is made (index > 0), it assigns the corresponding organization id as the active organization.
+		    - If the provider requires an API key:
+		        • Retrieves the API key storage method from the api_key_storage_method_combo.
+		        • Wraps the API key obtained from api_key_text_ctrl with SecretStr.
+		    - Obtains the custom base URL from custom_base_url_text_ctrl and sets it to None if the provider does not allow custom URLs or if the input is blank.
+		    - Based on the existence of self.account, it calls:
+		        • _update_existing_account(...) if the account already exists, or
+		        • _create_new_account(...) to instantiate a new account with the provided data.
+		
+		Returns:
+		    None
+		
+		Side Effects:
+		    Updates or creates account data based on the current form inputs.
+		"""
 		provider = self.provider
 		organization_index = self.organization_text_ctrl.GetSelection()
 		active_organization = None
@@ -781,7 +929,24 @@ class EditAccountDialog(wx.Dialog):
 		api_key: SecretStr | None,
 		custom_base_url: str | None,
 	) -> None:
-		"""Update existing account with form data."""
+		"""
+		Update the existing account with updated form data.
+		
+		This method updates the attributes of the current account instance using the values
+		collected from the form controls. The account's name is retrieved from the form field,
+		and its provider, API key storage method, API key, active organization identifier, and custom base URL
+		are updated based on the provided parameters.
+		
+		Parameters:
+		    provider (Provider): The provider instance to associate with the account.
+		    active_organization (Optional[str]): The identifier for the active organization, or None if not set.
+		    api_key_storage_method (Optional[KeyStorageMethodEnum]): The method used for storing the API key, or None.
+		    api_key (Optional[SecretStr]): The API key wrapped in a SecretStr, or None.
+		    custom_base_url (Optional[str]): The custom base URL for the account, or None if not specified.
+		
+		Returns:
+		    None
+		"""
 		self.account.name = self.name.GetValue()
 		self.account.provider = provider
 		self.account.api_key_storage_method = api_key_storage_method
@@ -797,7 +962,24 @@ class EditAccountDialog(wx.Dialog):
 		api_key: SecretStr | None,
 		custom_base_url: str | None,
 	) -> None:
-		"""Create new account from form data."""
+		"""
+		Create a new account using form data and the provided parameters.
+		
+		This method instantiates an Account object with the account name obtained from the form's 'name' field, and
+		assigns it to the object's 'account' attribute. The account is configured with the specified provider, API key
+		storage method, API key, active organization identifier, and custom base URL. The source of the account is set
+		to AccountSource.CONFIG.
+		
+		Parameters:
+		    provider (Provider): The provider associated with the account.
+		    active_organization (str | None): The identifier of the active organization, if applicable.
+		    api_key_storage_method (KeyStorageMethodEnum | None): The method to store the API key.
+		    api_key (SecretStr | None): The API key for the account.
+		    custom_base_url (str | None): Custom base URL for the account, if provided.
+		
+		Returns:
+		    None
+		"""
 		self.account = Account(
 			name=self.name.GetValue(),
 			provider=provider,
@@ -809,12 +991,13 @@ class EditAccountDialog(wx.Dialog):
 		)
 
 	def on_cancel(self, event: wx.CommandEvent) -> None:
-		"""Handle the Cancel button click event.
-
-		Close the dialog without saving any changes.
-
-		Args:
-			event: The event that triggered the Cancel button click. If None, the Cancel button was not clicked.
+		"""
+		Handle the Cancel button click event.
+		
+		Closes the dialog without saving any changes by ending the modal loop with the cancel identifier.
+		
+		Parameters:
+		    event (wx.CommandEvent): The event object triggered by the Cancel button click.
 		"""
 		self.EndModal(wx.ID_CANCEL)
 
@@ -842,10 +1025,20 @@ class AccountDialog(wx.Dialog):
 		self.Show()
 
 	def init_ui(self):
-		"""Initialize the user interface of the dialog.
-
-		The dialog contains a list of accounts, buttons for adding, editing, removing accounts,
-		managing organizations, and setting the default account.
+		"""
+		Initialize the account dialog user interface.
+		
+		This method creates and configures all UI components for the Account Dialog. It sets up a panel with a vertical box sizer and adds:
+		  - A static text label ("Accounts") describing the section.
+		  - A list control (wx.ListCtrl) to display accounts with four columns: Name, Provider, Active organization, and Source. The list control binds item selection and key down events to update the UI and handle user input.
+		  - An "Add" button for creating new accounts.
+		  - A "Manage organizations..." button for editing organizations related to a selected account (initially disabled).
+		  - An "Edit" button for modifying a selected account (initially disabled).
+		  - A "Remove" button for deleting a selected account (initially disabled).
+		  - A toggle button ("Default account") to set the selected account as the default (initially disabled).
+		  - A close button bound to the on_close event, with its ID set to be triggered by the Escape key.
+		
+		No return value.
 		"""
 		panel = wx.Panel(self)
 		sizer = wx.BoxSizer(wx.VERTICAL)
