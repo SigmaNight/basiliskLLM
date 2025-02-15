@@ -215,6 +215,11 @@ class AttachmentFile(BaseModel):
 		return self.location.name
 
 	def _get_size(self) -> int | None:
+		"""Get the size of the file.
+
+		Returns:
+			The size of the file in bytes, or None if the size cannot be determined
+		"""
 		if self.type == AttachmentFileTypes.URL:
 			return None
 		return self.location.stat().st_size
@@ -275,12 +280,12 @@ class AttachmentFile(BaseModel):
 		Args:
 			location: The location of the file to remove.
 		"""
-		log.debug(f"Removing image at {location}")
+		log.debug(f"Removing file at {location}")
 		try:
 			fs = location.fs
 			fs.rm(location.path)
 		except Exception as e:
-			log.error(f"Error deleting image at {location}: {e}")
+			log.error(f"Error deleting file at {location}: {e}")
 
 	def read_as_str(self) -> str:
 		"""Read the file as a string.
@@ -430,40 +435,6 @@ class ImageFile(AttachmentFile):
 
 	__init__.__pydantic_base_init__ = True
 
-	def _get_name(self) -> str:
-		"""Get the name of the image file.
-
-		Returns:
-			The name of the image file, extracted from the file path.
-		"""
-		return self.location.name
-
-	def _get_size(self) -> int | None:
-		"""Get the size of the image file.
-
-		Returns:
-			The size of the image file in bytes, or None if the size cannot be determined.
-		"""
-		if self.type == AttachmentFileTypes.IMAGE_URL:
-			return None
-		return self.location.stat().st_size
-
-	@property
-	def display_size(self) -> str:
-		"""Get the human-readable size of the image file.
-
-		Returns:
-			The size of the image file in a human-readable format (e.g., "1.23 MB").
-		"""
-		size = self.size
-		if size is None:
-			return _("Unknown")
-		if size < 1024:
-			return f"{size} B"
-		if size < 1024 * 1024:
-			return f"{size / 1024:.2f} KB"
-		return f"{size / 1024 / 1024:.2f} MB"
-
 	def _get_dimensions(self) -> tuple[int, int] | None:
 		if self.type == AttachmentFileTypes.URL:
 			return None
@@ -537,17 +508,6 @@ class ImageFile(AttachmentFile):
 		with self.send_location.open(mode="rb") as image_file:
 			return base64.b64encode(image_file.read()).decode("utf-8")
 
-	def mime_type(self) -> str | None:
-		"""Get the MIME type of the image file.
-
-		Returns:
-			The MIME type of the image file, or None if the type cannot be determined.
-		"""
-		if self.type == AttachmentFileTypes.IMAGE_URL:
-			return None
-		mime_type, _ = mimetypes.guess_type(self.send_location)
-		return mime_type
-
 	@property
 	def url(self) -> str:
 		"""Get the URL of the image file.
@@ -573,20 +533,6 @@ class ImageFile(AttachmentFile):
 		if location.startswith("data:image/"):
 			location = f"{location[:50]}...{location[-10:]}"
 		return location
-
-	@staticmethod
-	def remove_location(location: UPath):
-		"""Remove an image file at the specified location.
-
-		Args:
-			location: The location of the image file to remove.
-		"""
-		log.debug(f"Removing image at {location}")
-		try:
-			fs = location.fs
-			fs.rm(location.path)
-		except Exception as e:
-			log.error(f"Error deleting image at {location}: {e}")
 
 	def __del__(self):
 		"""Delete the image file and its resized version."""
