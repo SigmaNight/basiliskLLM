@@ -121,7 +121,7 @@ zip_include_packages = [
     "h11", "html", "httpcore", "http", "httplib2", "httpx",
     "idna", "importlib", "importlib_metadata", "importlib_resources",
     "jaraco", "jiter", "json", "keyring", "libloader", "logging",
-    "openai", "numpy", "more_itertools",
+    "ollama", "openai", "numpy", "more_itertools",
     "PIL", "platform_utils", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
     "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath",
     "watchdog", "win32api", "win32com", "win32ctypes", "win32timezone",
