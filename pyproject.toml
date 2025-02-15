@@ -53,7 +53,7 @@ watchdog = "^6.0.0"
 wxpython = "^4.2.2"
 
 [tool.poetry.group.dev.dependencies]
-commitizen = "^4.2.0"
+commitizen = "^4.2.1"
 pre-commit = "^4.1.0"
 ruff = "^0.9.5"
 setuptools-scm = "^8.0.4"
