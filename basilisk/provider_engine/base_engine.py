@@ -27,6 +27,7 @@ class BaseEngine(ABC):
 
 	Attributes:
 		capabilities: Set of supported provider capabilities.
+		supported_attachment_formats: Set of MIME types for supported attachments.
 	"""
 
 	capabilities: set[ProviderCapability] = set()

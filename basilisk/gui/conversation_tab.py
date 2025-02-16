@@ -6,7 +6,7 @@ and interaction with AI providers.
 
 Features:
 - Text input/output with markdown support
-- Image attachment handling
+- attachment handling
 - Audio recording and transcription
 - Message navigation and searching
 - Accessible output integration
@@ -78,18 +78,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	This class provides a complete interface for interacting with AI models, including:
 	- Text input and output
-	- Image attachment handling
+	- attachment handling
 	- Audio recording and transcription
 	- Message history navigation
 	- Accessible output integration
 	- Stream mode for real-time responses
 
 	Attributes:
-		ROLE_LABELS (dict): Maps message roles to their display labels
-		title (str): The conversation tab's title
-		conversation (Conversation): The underlying conversation data
-		image_files (list[ImageFile]): Currently attached image files
-		message_segment_manager (MessageSegmentManager): Manages message text segments
+		ROLE_LABELS: Labels for message roles
+		title: The title of the conversation
+		conversation: The conversation object
+		attachment_files: List of attachment files
+		message_segment_manager: Message segment manager
 	"""
 
 	ROLE_LABELS = MessageRoleEnum.get_labels()
@@ -99,7 +99,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Generate a unique storage path for a conversation based on the current timestamp.
 
 		Returns:
-		A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
+			A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
 		"""
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
@@ -196,7 +196,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- System prompt input
 		- Message history display
 		- User prompt input
-		- Image list
+		- Attachment list display
 		- Model selection
 		- Generation parameters
 		- Control buttons
@@ -396,13 +396,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 
 	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
-		"""Display context menu for the images list.
+		"""Display context menu for the attachments list.
 
 		Provides options for:
-		- Removing selected images
-		- Copying image URLs
-		- Pasting images
-		- Adding image files
+		- Removing selected attachment
+		- Copying attachment location
+		- Pasting attachments
+		- Adding files
 		- Adding image URLs
 
 		Args:
@@ -423,16 +423,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Copy image URL") + " (Ctrl+C)"
+				menu, wx.ID_ANY, _("Copy location") + " (Ctrl+C)"
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (file or text)") + " (Ctrl+V)"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_attachments_paste, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
+		item = wx.MenuItem(menu, wx.ID_ANY, _("Add files..."))
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
 
@@ -447,7 +447,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Handle keyboard shortcuts for the attachments list.
 
 		Supports:
-		- Ctrl+C: Copy image URL
+		- Ctrl+C: Copy file location
 		- Ctrl+V: Paste image
 		- Delete: Remove selected image
 
@@ -473,7 +473,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Handles pasting content from the clipboard into the conversation interface.
 
 		Supports multiple clipboard data types:
-		- Files: Adds image files directly to the conversation
+		- Files: Adds files directly to the conversation
 		- Text:
 			- If a valid URL is detected, adds the image URL
 			- Otherwise, pastes text into the prompt input
@@ -521,10 +521,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 				log.info("Unsupported clipboard data")
 
 	def add_attachments_dlg(self, event: wx.CommandEvent = None):
-		"""Open a file dialog to select and add image files to the conversation.
+		"""Open a file dialog to select and add files to the conversation.
 
 		Args:
-			event: Event triggered by the add image files action
+			event: Event triggered by the add files action
 		"""
 		wildcard = parse_supported_attachment_formats(
 			self.current_engine.supported_attachment_formats
@@ -645,25 +645,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.task.start()
 
 	def on_show_attachment_details(self, event: wx.CommandEvent):
-		"""Show details of the selected image attachment.
+		"""Show details of the selected attachment in a read-only dialog.
 
 		Args:
-			event: Event triggered by the show image details
+			event: Event triggered by the show attachment details action
 		"""
 		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
-		attatchment_file = self.attachment_files[selected]
+		attachment_file = self.attachment_files[selected]
 		details = {
-			_("Name"): attatchment_file.name,
-			_("Size"): attatchment_file.display_size,
-			_("Location"): attatchment_file.location,
+			_("Name"): attachment_file.name,
+			_("Size"): attachment_file.display_size,
+			_("Location"): attachment_file.location,
 		}
-		mime_type = attatchment_file.mime_type
+		mime_type = attachment_file.mime_type
 		if mime_type:
 			details[_("MIME type")] = mime_type
 			if mime_type.startswith("image/"):
-				details[_("Dimensions")] = attatchment_file.display_dimensions
+				details[_("Dimensions")] = attachment_file.display_dimensions
 		details_str = "\n".join(
 			_("%s: %s") % (k, v) for k, v in details.items()
 		)
@@ -672,10 +672,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		).ShowModal()
 
 	def on_attachments_remove(self, event: wx.CommandEvent):
-		"""Remove the selected image from the conversation.
+		"""Remove the selected attachment from the conversation.
 
 		Args:
-			event: Event triggered by the remove image action
+			event: Event triggered by the remove attachment action
 		"""
 		selection = self.attachments_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
@@ -692,10 +692,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.prompt.SetFocus()
 
 	def on_copy_attachment_location(self, event: wx.CommandEvent):
-		"""Copy the location of the selected image to the clipboard.
+		"""Copy the location of the selected attachment to the clipboard.
 
 		Args:
-			event: Event triggered by the copy image URL action
+			event: Event triggered by the copy attachment location action
 		"""
 		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
@@ -726,10 +726,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetFocus()
 
 	def refresh_attachments_list(self):
-		"""Update the images list display with current image files.
+		"""Update the attachments list display based on the current attachment files.
 
-		Shows/hides the images list based on whether there are images to display.
-		Updates all image information columns.
+		Shows/hides the attachments list based on the number of attachments.
+		Updates all attachment details in the list.
 		"""
 		self.attachments_list.DeleteAllItems()
 		if not self.attachment_files:
@@ -750,10 +750,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 
 	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
-		"""Add one or more images to the conversation.
+		"""Add one or more attachments to the conversation.
 
 		Args:
-			paths: List of image paths or ImageFile objects to add
+			paths: List of attachment file paths
 		"""
 		log.debug(f"Adding attachments: {paths}")
 		for path in paths:
@@ -1373,7 +1373,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (file or text)") + " (Ctrl+V)"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)
@@ -1422,7 +1422,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_prompt_paste(self, event):
 		"""Handle pasting content from the clipboard into the prompt text control.
 
-		Supports pasting text and images from the clipboard.
+		Supports pasting text and files from the clipboard.
 
 		Args:
 			event: The paste event
@@ -1567,12 +1567,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		This method updates the conversation display by optionally clearing existing content and then
 		re-displaying all messages from the current conversation. It performs the following steps:
-		- Optionally clears the messages list, message segment manager, and image files
-		- Refreshes the images list
+		- Optionally clears the messages list, message segment manager, and attachment files
+		- Refreshes the attachments list display
 		- Iterates through all message blocks in the conversation and displays them
 
 		Args:
-			need_clear: If True, clears existing messages, message segments, and image files before refreshing. Defaults to True.
+			need_clear: If True, clears existing messages, message segments, and attachments. Defaults to True.
 		"""
 		if need_clear:
 			self.messages.Clear()
@@ -1752,8 +1752,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not model:
 			return None
 		if config.conf().images.resize:
-			for image in self.attachment_files:
-				image.resize(
+			for attachment in self.attachment_files:
+				if not attachment.mime_type.startswith("image/"):
+					continue
+				attachment.resize(
 					self.conv_storage_path,
 					config.conf().images.max_width,
 					config.conf().images.max_height,
