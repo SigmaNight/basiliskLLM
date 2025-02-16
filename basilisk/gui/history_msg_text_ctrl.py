@@ -463,7 +463,11 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.handle_accessible_output(self.current_msg_content, force=True)
 
 	def on_show_as_html(self, event: wx.Event | None):
-		"""Show current message as HTML."""
+		"""Show current message as HTML.
+
+		Args:
+			event: The event that triggered the
+		"""
 		from .html_view_window import show_html_view_window
 
 		show_html_view_window(
@@ -507,7 +511,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		text in the buffer.
 
 		Args:
-			new_text (str): The new incoming text to process. If not a string or empty, the buffer is processed immediately.
+			new_text: The new incoming text to process. If not a string or empty, the buffer is processed immediately.
 		"""
 		if not isinstance(new_text, str) or not new_text:
 			if self.speech_stream_buffer:

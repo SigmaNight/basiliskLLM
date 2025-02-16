@@ -1177,7 +1177,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			new_block: The new message block to be displayed
 		"""
 		self.conversation.messages.append(new_block)
-		self.display_new_block(new_block)
+		self.messages.display_new_block(new_block)
 		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.image_files.clear()
