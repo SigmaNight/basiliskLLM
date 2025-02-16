@@ -204,6 +204,8 @@ class AnthropicEngine(BaseEngine):
 		"""
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
+			# TODO: implement "context" and "title" for documents
+			# TODO: add support for custom content document format
 			for attachment in message.attachments:
 				mime_type = attachment.mime_type
 				if attachment.type != AttachmentFileTypes.URL:
