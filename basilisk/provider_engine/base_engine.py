@@ -31,7 +31,7 @@ class BaseEngine(ABC):
 	"""
 
 	capabilities: set[ProviderCapability] = set()
-	supported_attachment_formats: set[str] = {}
+	supported_attachment_formats: set[str] = set()
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
