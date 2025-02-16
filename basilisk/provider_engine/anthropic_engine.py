@@ -275,6 +275,40 @@ class AnthropicEngine(BaseEngine):
 		response = self.client.messages.create(**params)
 		return response
 
+	def _handle_citation(self, citation: dict) -> dict:
+		"""Processes citation data from the API response.
+
+		Args:
+			citation: Citation data from the API response.
+
+		Returns:
+			Processed citation data.
+		"""
+		citation_chunk_data = {
+			"type": citation.type,
+			"cited_text": citation.cited_text,
+			"document_index": citation.document_index,
+			"document_title": citation.document_title,
+		}
+		match citation.type:
+			case "char_location":
+				citation_chunk_data.update(
+					{
+						"start_char_index": citation.start_char_index,
+						"end_char_index": citation.end_char_index,
+					}
+				)
+			case "page_location":
+				citation_chunk_data.update(
+					{
+						"start_page_number": citation.start_page_number,  # inclusive,
+						"end_page_number": citation.end_page_number,  # exclusive
+					}
+				)
+			case _:
+				log.warning(f"Unsupported citation type: {citation.type}")
+		return citation_chunk_data
+
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
 	) -> Iterator[TextBlock | dict]:
@@ -293,33 +327,10 @@ class AnthropicEngine(BaseEngine):
 						case "text_delta":
 							yield event.delta.text
 						case "citations_delta":
-							citation = event.delta.citation
-							citation_chunk_data = {
-								"type": citation.type,
-								"cited_text": citation.cited_text,
-								"document_index": citation.document_index,
-								"document_title": citation.document_title,
-							}
-							match citation.type:
-								case "char_location":
-									citation_chunk_data.update(
-										{
-											"start_char_index": citation.start_char_index,
-											"end_char_index": citation.end_char_index,
-										}
-									)
-								case "page_location":
-									citation_chunk_data.update(
-										{
-											"start_page_number": citation.start_page_number,  # inclusive,
-											"end_page_number": citation.end_page_number,  # exclusive
-										}
-									)
-								case _:
-									log.warning(
-										f"Unsupported citation type: {citation.type}"
-									)
-							yield ("citation", citation_chunk_data)
+							yield (
+								"citation",
+								self._handle_citation(event.delta.citation),
+							)
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
@@ -334,7 +345,16 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Updated message block with response.
 		"""
+		citations = []
+		text = []
+		for content in response.content:
+			if content.citations:
+				for citation in content.citations:
+					citations.append(self._handle_citation(citation))
+			text.append(content.text)
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=response.content[0].text
+			role=MessageRoleEnum.ASSISTANT,
+			content=''.join(text),
+			citations=citations,
 		)
 		return new_block

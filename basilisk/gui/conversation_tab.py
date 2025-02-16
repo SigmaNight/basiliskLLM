@@ -1083,6 +1083,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
+		self.report_number_of_citations()
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
