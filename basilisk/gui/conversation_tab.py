@@ -260,10 +260,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list.Bind(
 			wx.EVT_KEY_DOWN, self.on_attachments_key_down
 		)
-		self.attachments_list.InsertColumn(0, _("Name"))
-		self.attachments_list.InsertColumn(1, _("Size"))
+		self.attachments_list.InsertColumn(
+			0,
+			# Translators: This is a label for attachment name in the main window
+			_("Name"),
+		)
+		self.attachments_list.InsertColumn(
+			1,
+			# Translators: This is a label for attachment size in the main window
+			_("Size"),
+		)
+		self.attachments_list.InsertColumn(
+			2,
+			# Translators: This is a label for attachment location in the main window
+			_("Location"),
+		)
 		self.attachments_list.SetColumnWidth(0, 200)
 		self.attachments_list.SetColumnWidth(1, 100)
+		self.attachments_list.SetColumnWidth(2, 500)
 		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -412,7 +426,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu, wx.ID_ANY, _("Copy image URL") + " (Ctrl+C)"
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_copy_attachment_url, item)
+			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
 		item = wx.MenuItem(
 			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
 		)
@@ -443,7 +457,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
-			self.on_copy_attachment_url(None)
+			self.on_copy_attachment_location(None)
 		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
 			self.on_attachments_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
@@ -639,17 +653,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
-		image_file = self.attachment_files[selected]
+		attatchment_file = self.attachment_files[selected]
 		details = {
-			_("Name"): image_file.name,
-			_("Size"): image_file.display_size,
-			_("Location"): image_file.location,
+			_("Name"): attatchment_file.name,
+			_("Size"): attatchment_file.display_size,
+			_("Location"): attatchment_file.location,
 		}
-		mime_type = image_file.mime_type
+		mime_type = attatchment_file.mime_type
 		if mime_type:
 			details[_("MIME type")] = mime_type
 			if mime_type.startswith("image/"):
-				details[_("Dimensions")] = image_file.display_dimensions
+				details[_("Dimensions")] = attatchment_file.display_dimensions
 		details_str = "\n".join(
 			_("%s: %s") % (k, v) for k, v in details.items()
 		)
@@ -677,8 +691,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			self.prompt.SetFocus()
 
-	def on_copy_attachment_url(self, event: wx.CommandEvent):
-		"""Copy the URL of the selected image to the clipboard.
+	def on_copy_attachment_location(self, event: wx.CommandEvent):
+		"""Copy the location of the selected image to the clipboard.
 
 		Args:
 			event: Event triggered by the copy image URL action
@@ -686,9 +700,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
-		url = self.attachment_files[selected].location
+		location = "\"%s\"" % str(self.attachment_files[selected].location)
 		with wx.TheClipboard as clipboard:
-			clipboard.SetData(wx.TextDataObject(url))
+			clipboard.SetData(wx.TextDataObject(location))
 
 	def refresh_accounts(self):
 		"""Update the account selection combo box with current accounts.
@@ -711,22 +725,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
-	def get_dispay_images(self) -> list[tuple[str, str, str]]:
-		"""Generate a list of image file display information for the images list.
-
-		Returns:
-			A list of image file display information tuples
-		"""
-		return [
-			(
-				img.name,
-				img.display_size,
-				img.display_dimensions,
-				img.display_location,
-			)
-			for img in self.image_files
-		]
-
 	def refresh_attachments_list(self):
 		"""Update the images list display with current image files.
 
@@ -741,14 +739,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
-		self.Layout()
-		for i, image in enumerate(self.attachment_files):
-			self.attachments_list.InsertItem(i, image.name)
-			self.attachments_list.SetItem(i, 1, image.display_size)
+		for i, attachment in enumerate(self.attachment_files):
+			self.attachments_list.InsertItem(i, attachment.name)
+			self.attachments_list.SetItem(i, 1, attachment.display_size)
+			self.attachments_list.SetItem(i, 2, attachment.display_location)
 		self.attachments_list.SetItemState(
 			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
 		self.attachments_list.EnsureVisible(i)
+		self.Layout()
 
 	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
 		"""Add one or more images to the conversation.
@@ -982,6 +981,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			event: The event that triggered the action
 		"""
+		self.report_number_of_citations()
 		citations = self.get_current_citations()
 		if not citations:
 			self._handle_accessible_output(
