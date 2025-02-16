@@ -191,6 +191,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 	def update_last_segment_length(self):
 		"""Update the length of the last message segment to match the current text control position."""
+		if not self.segment_manager.segments:
+			return
 		last_position = self.GetLastPosition()
 		self.segment_manager.absolute_position = last_position
 		last_segment = self.segment_manager.segments[-1]
@@ -417,7 +419,6 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			direction: Search direction
 		"""
 		if self._search_dialog is None:
-			self._search_dialog = SearchDialog(self.GetParent(), self)
 			self._search_dialog = SearchDialog(self.GetParent(), self)
 		self._search_dialog._dir_radio_forward.SetValue(
 			direction == SearchDirection.FORWARD
