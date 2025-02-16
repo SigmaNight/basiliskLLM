@@ -8,16 +8,18 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import TextBlock
+from anthropic.types.document_block_param import DocumentBlockParam
 from anthropic.types.image_block_param import ImageBlockParam, Source
+from anthropic.types.text_block_param import TextBlockParam
 
 from basilisk.conversation import (
+	AttachmentFileTypes,
 	Conversation,
-	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -47,6 +49,16 @@ class AnthropicEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.DOCUMENT,
+		ProviderCapability.CITATION,
+	}
+	supported_attachment_formats: set[str] = {
+		"image/gif",
+		"image/jpeg",
+		"image/png",
+		"image/webp",
+		"application/pdf",
+		"text/plain",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -192,16 +204,40 @@ class AnthropicEngine(BaseEngine):
 		"""
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
+			# TODO: implement "context" and "title" for documents
+			# TODO: add support for custom content document format
 			for attachment in message.attachments:
-				if attachment.type != ImageFileTypes.IMAGE_URL:
+				mime_type = attachment.mime_type
+				if attachment.type != AttachmentFileTypes.URL:
 					source = Source(
-						data=attachment.encode_image(),
+						data=None,
 						media_type=attachment.mime_type,
 						type="base64",
 					)
-					contents.append(
-						ImageBlockParam(source=source, type="image")
-					)
+					if mime_type.startswith("image/"):
+						source["data"] = attachment.encode_image()
+						contents.append(
+							ImageBlockParam(source=source, type="image")
+						)
+					elif mime_type.startswith("application/"):
+						source["data"] = attachment.encode_base64()
+						contents.append(
+							DocumentBlockParam(
+								type="document",
+								source=source,
+								citations={"enabled": True},
+							)
+						)
+					elif mime_type in ("text/plain"):
+						source["data"] = attachment.read_as_str()
+						source["type"] = "text"
+						contents.append(
+							TextBlockParam(
+								type="document",
+								source=source,
+								citations={"enabled": True},
+							)
+						)
 		return {"role": message.role.value, "content": contents}
 
 	prepare_message_request = convert_message
@@ -241,9 +277,43 @@ class AnthropicEngine(BaseEngine):
 		response = self.client.messages.create(**params)
 		return response
 
+	def _handle_citation(self, citation: dict) -> dict:
+		"""Processes citation data from the API response.
+
+		Args:
+			citation: Citation data from the API response.
+
+		Returns:
+			Processed citation data.
+		"""
+		citation_chunk_data = {
+			"type": citation.type,
+			"cited_text": citation.cited_text,
+			"document_index": citation.document_index,
+			"document_title": citation.document_title,
+		}
+		match citation.type:
+			case "char_location":
+				citation_chunk_data.update(
+					{
+						"start_char_index": citation.start_char_index,
+						"end_char_index": citation.end_char_index,
+					}
+				)
+			case "page_location":
+				citation_chunk_data.update(
+					{
+						"start_page_number": citation.start_page_number,  # inclusive,
+						"end_page_number": citation.end_page_number,  # exclusive
+					}
+				)
+			case _:
+				log.warning(f"Unsupported citation type: {citation.type}")
+		return citation_chunk_data
+
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
-	):
+	) -> Iterator[TextBlock | dict]:
 		"""Processes streaming response from Anthropic API.
 
 		Args:
@@ -255,7 +325,14 @@ class AnthropicEngine(BaseEngine):
 		for event in stream:
 			match event.type:
 				case "content_block_delta":
-					yield event.delta.text
+					match event.delta.type:
+						case "text_delta":
+							yield event.delta.text
+						case "citations_delta":
+							yield (
+								"citation",
+								self._handle_citation(event.delta.citation),
+							)
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
@@ -270,7 +347,16 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Updated message block with response.
 		"""
+		citations = []
+		text = []
+		for content in response.content:
+			if content.citations:
+				for citation in content.citations:
+					citations.append(self._handle_citation(citation))
+			text.append(content.text)
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=response.content[0].text
+			role=MessageRoleEnum.ASSISTANT,
+			content=''.join(text),
+			citations=citations,
 		)
 		return new_block

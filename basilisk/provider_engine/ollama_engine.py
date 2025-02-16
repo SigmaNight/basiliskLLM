@@ -8,8 +8,8 @@ from typing import Iterator
 from ollama import ChatResponse, Client
 
 from basilisk.conversation import (
+	AttachmentFileTypes,
 	Conversation,
-	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -27,6 +27,11 @@ class OllamaEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+	}
+	supported_attachment_formats: set[str] = {
+		"image/png",
+		"image/jpeg",
+		"image/webp",
 	}
 
 	@cached_property
@@ -117,7 +122,7 @@ class OllamaEngine(BaseEngine):
 		images = []
 		if message.attachments:
 			for attachment in message.attachments:
-				if attachment.type == ImageFileTypes.IMAGE_URL:
+				if attachment.type == AttachmentFileTypes.URL:
 					log.warning(
 						f"Received unsupported image type: {attachment.type}, {attachment.location}"
 					)

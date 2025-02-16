@@ -11,7 +11,7 @@ import re
 import weakref
 from collections import namedtuple
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import wx
 
@@ -21,12 +21,14 @@ from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.gui.search_dialog import SearchDialog, SearchDirection
 from basilisk.message_segment_manager import (
 	MessageSegment,
 	MessageSegmentManager,
 	MessageSegmentType,
 )
+
+from .read_only_message_dialog import ReadOnlyMessageDialog
+from .search_dialog import SearchDialog, SearchDirection
 
 if TYPE_CHECKING:
 	from .conversation_tab import ConversationTab
@@ -207,6 +209,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Reading the current message
 		- Toggling stream speaking mode
 		- Showing the current message as HTML
+		- Showing the citations for the current message
 		- Copying the current message
 		- Selecting the current message
 		- Going to the previous message
@@ -237,6 +240,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				self.on_show_as_html,
 				[],
 			),
+			MenuItemInfo(_("Show citations"), "(&q)", self.show_citations, []),
 			MenuItemInfo(
 				_("Copy current message"), "(&c)", self.on_copy_message, []
 			),
@@ -351,8 +355,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			if config.conf().conversation.nav_msg_select:
 				self.on_select_current_message()
 			else:
-				current_msg = self.GetRange(*self.current_msg_range)
-				self.handle_accessible_output(current_msg)
+				self.handle_accessible_output(self.current_msg_content)
+				self.report_number_of_citations()
 
 	def go_to_previous_message(self, event=None):
 		"""Navigate to the previous message."""
@@ -372,6 +376,30 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.segment_manager.absolute_position = self.GetInsertionPoint()
 		self.segment_manager.focus_content_block()
 		return (self.segment_manager.start, self.segment_manager.end)
+
+	@property
+	def current_msg_block(self) -> MessageBlock | None:
+		"""Get the current message block.
+
+		Returns:
+			The current message block, or None if not found
+		"""
+		cursor_pos = self.GetInsertionPoint()
+		self.segment_manager.absolute_position = cursor_pos
+		return self.segment_manager.current_segment.message_block()
+
+	@property
+	def current_citations(self) -> list[dict[str, Any]]:
+		"""Get the citations for the current message.
+
+		Returns:
+			The list of citations for the current message
+		"""
+		block = self.current_msg_block
+		if not block:
+			wx.Bell()
+			return []
+		return block.response.citations
 
 	@property
 	def current_msg_content(self) -> str:
@@ -581,8 +609,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			event: The event that triggered the action
 		"""
 		cursor_pos = self.GetInsertionPoint()
-		self.segment_manager.absolute_position = cursor_pos
-		block = self.segment_manager.current_segment.message_block()
+		block = self.current_msg_block
 		if block:
 			self.GetParent().remove_message_block(block)
 			self.SetInsertionPoint(cursor_pos)
@@ -592,6 +619,104 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		else:
 			wx.Bell()
 
+	@staticmethod
+	def _handle_citations(citations: list[dict[str, Any]]) -> str:
+		"""Format a list of citations for display.
+
+		Args:
+			citations: The list of citations to format
+
+		Returns:
+			A formatted string containing the citations
+		"""
+		citations_str = []
+		for i, citation in enumerate(citations):
+			location_text = ""
+			cited_text = citation.get("cited_text")
+			document_index = citation.get("document_index")
+			document_title = citation.get("document_title")
+			match citation.get("type"):
+				case "char_location":
+					start_char_index = citation.get("start_char_index", 0)
+					end_char_index = citation.get("end_char_index", 0)
+					# Translators: This is a citation format for character locations
+					location_text = _("C.{start} .. {end}").format(
+						start=start_char_index, end=end_char_index
+					)
+				case "page_location":
+					start_page_number = citation.get("start_page_number", 0)
+					end_page_number = citation.get("end_page_number", 0)
+					# Translators: This is a citation format for page locations
+					location_text = _("P.{start} .. {end}").format(
+						start=start_page_number, end=end_page_number
+					)
+				case _:
+					# Translators: This is a citation format for unknown locations
+					location_text = _("Unknown location")
+					logger.warning(f"Unknown citation type: {citation}")
+			if document_index is not None:
+				if document_title:
+					location_text = _(
+						"{document_title} / {location_text}"
+					).format(
+						document_title=document_title,
+						location_text=location_text,
+					)
+				else:
+					location_text = _(
+						"Document {document_index} / {location_text}"
+					).format(
+						document_index=document_index,
+						location_text=location_text,
+					)
+			if cited_text:
+				citations_str.append(
+					# Translators: This is a citation format for a cited text
+					_("{location_text}: “{cited_text}”").format(
+						location_text=location_text,
+						cited_text=cited_text.strip(),
+					)
+				)
+		return "\n_--_\n".join(citations_str)
+
+	def report_number_of_citations(self):
+		"""Report the number of citations for the current message."""
+		citations = self.current_citations
+		if not citations:
+			return
+		nb_citations = len(citations)
+		self.GetParent().SetStatusText(
+			# Translators: This is a status message for the number of citations in the current message
+			_("%d citations in the current message") % nb_citations
+		)
+
+	def show_citations(self, event: wx.CommandEvent | None = None):
+		"""Show the citations for the current message.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		self.report_number_of_citations()
+		citations = self.current_citations
+		if not citations:
+			self._handle_accessible_output(
+				# Translators: This message is emitted when there are no citations for the current message.
+				_("No citations for this message"),
+				braille=True,
+			)
+			wx.Bell()
+			return
+		citations_str = self._handle_citations(citations)
+		if not citations_str:
+			wx.Bell()
+			return
+		ReadOnlyMessageDialog(
+			self,
+			# Translators: This is a title for message citations dialog
+			_("Message citations"),
+			citations_str,
+		).ShowModal()
+
 	# goes here because with need all the methods to be defined before we can assign to the dict
 	key_actions = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_stream,
@@ -600,6 +725,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		(wx.MOD_NONE, ord('K')): go_to_next_message,
 		(wx.MOD_NONE, ord('S')): on_select_current_message,
 		(wx.MOD_NONE, ord('H')): on_show_as_html,
+		(wx.MOD_NONE, ord('Q')): show_citations,
 		(wx.MOD_NONE, ord('C')): on_copy_message,
 		(wx.MOD_NONE, ord('B')): move_to_start_of_message,
 		(wx.MOD_NONE, ord('N')): move_to_end_of_message,
@@ -623,6 +749,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- C: Copy current message
 		- B: Move to start of message
 		- N: Move to end of message
+		- Q: Show citations for current message
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)

@@ -369,7 +369,7 @@ class MainFrame(wx.Frame):
 			imagefile: The image file object or path to the captured image.
 		"""
 		log.debug("Screen capture received")
-		self.current_tab.add_images([imagefile])
+		self.current_tab.add_attachments([imagefile])
 		if not self.IsShown():
 			self.Show()
 			self.Restore()
@@ -654,7 +654,7 @@ class MainFrame(wx.Frame):
 		if from_url:
 			current_tab.add_image_url_dlg(event)
 		else:
-			current_tab.add_image_files(event)
+			current_tab.add_attachments_dlg()
 
 	def on_transcribe_audio(
 		self, event: wx.Event | None, from_microphone: bool = False

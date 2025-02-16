@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 from upath import UPath
 
 from basilisk.provider_ai_model import AIModelInfo
 
+from .attached_file import AttachmentFile, ImageFile
 from .conversation_helper import create_bskc_file, open_bskc_file
-from .image_model import ImageFile
 
 
 class MessageRoleEnum(enum.StrEnum):
@@ -46,7 +47,8 @@ class Message(BaseModel):
 
 	role: MessageRoleEnum
 	content: str
-	attachments: list[ImageFile] | None = Field(default=None)
+	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
+	citations: list[dict[str, Any]] | None = Field(default=None)
 
 
 class MessageBlock(BaseModel):
