@@ -481,7 +481,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			force: Whether to force output
 		"""
 		if (
-			(not force and config.conf().conversation.use_accessible_output)
+			(not force and not config.conf().conversation.use_accessible_output)
 			or not isinstance(text, str)
 			or not text.strip()
 		):

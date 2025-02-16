@@ -1178,7 +1178,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.conversation.messages.append(new_block)
 		self.display_new_block(new_block)
-		self.handle_accessible_output(new_block.response.content)
+		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.image_files.clear()
 		self.refresh_images_list()
