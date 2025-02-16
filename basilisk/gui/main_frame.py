@@ -142,15 +142,15 @@ class MainFrame(wx.Frame):
 			wx.EVT_MENU, self.on_close_conversation, close_conversation_item
 		)
 		conversation_menu.AppendSeparator()
-		add_image_files_item = conversation_menu.Append(
+		attach_files_item = conversation_menu.Append(
 			wx.ID_ANY,
-			# Translators: A label for a menu item to add an image from a file
-			_("Add image from f&ile") + "...\tCtrl+I",
+			# Translators: A label for a menu item to attach files to a conversation
+			_("Attach f&iles") + "...\tCtrl+I",
 		)
 		self.Bind(
 			wx.EVT_MENU,
-			lambda e: self.on_add_image(e, False),
-			add_image_files_item,
+			lambda e: self.on_add_attachments(e, False),
+			attach_files_item,
 		)
 		add_image_url = conversation_menu.Append(
 			wx.ID_ANY,
@@ -158,7 +158,9 @@ class MainFrame(wx.Frame):
 			_("Add image from &URL") + "...\tCtrl+U",
 		)
 		self.Bind(
-			wx.EVT_MENU, lambda e: self.on_add_image(e, True), add_image_url
+			wx.EVT_MENU,
+			lambda e: self.on_add_attachments(e, True),
+			add_image_url,
 		)
 		transcribe_audio_microphone_item = conversation_menu.Append(
 			wx.ID_ANY, _("Transcribe audio from microphone") + "...\tCtrl+R"
@@ -638,11 +640,13 @@ class MainFrame(wx.Frame):
 		"""
 		return self.tabs_panels[self.notebook.GetSelection()]
 
-	def on_add_image(self, event: wx.Event | None, from_url: bool = False):
-		"""Add an image to the current conversation tab.
+	def on_add_attachments(
+		self, event: wx.Event | None, from_url: bool = False
+	):
+		"""Add an attachment to the current conversation tab.
 
 		Args:
-			event: The event that triggered the image addition. Can be None.
+			event: The event that triggered the attachment addition. Can be None.
 			from_url: If True, add an image from a URL. If False, add an image from a file. Defaults to False.
 		"""
 		current_tab = self.current_tab
