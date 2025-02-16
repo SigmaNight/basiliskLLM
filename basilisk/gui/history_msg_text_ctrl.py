@@ -227,7 +227,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				_("Speak stream"),
 				"(Shift+Space)",
 				self.on_toggle_speak_stream,
-				self._speak_stream,
+				[self._speak_stream],
 			),
 			MenuItemInfo(
 				_("Show as HTML (from Markdown)"),
@@ -250,7 +250,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				self.go_to_previous_message,
 				[],
 			),
-			(_("Go to next message"), "(&k)", self.go_to_next_message, []),
+			MenuItemInfo(
+				_("Go to next message"), "(&k)", self.go_to_next_message, []
+			),
 			MenuItemInfo(
 				_("Move to start of message"),
 				"(&b)",
