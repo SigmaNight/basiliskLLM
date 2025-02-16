@@ -69,6 +69,7 @@ You can obtain an API key from your chosen AI provider. The app supports the fol
 - [DeepSeek](https://www.deepseek.com/)
 - [Gemini](htps://makersuite.google.com/app/apikey)
 - [Mistral AI](https://mistral.ai/)
+- [Ollama](https://ollama.com/)
 - [OpenAI](https://platform.openai.com/)
 - [OpenRouter](https://openrouter.ai/)
 - [xAI](https://x.ai/)
