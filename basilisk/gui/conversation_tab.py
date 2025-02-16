@@ -1800,17 +1800,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		invalid_found = False
 		attachments_copy = self.attachment_files[:]
 		for attachment in attachments_copy:
-			if attachment.mime_type not in supported_attachment_formats or \
-			   not attachment.location.exists():
+			if (
+				attachment.mime_type not in supported_attachment_formats
+				or not attachment.location.exists()
+			):
 				self.attachment_files.remove(attachment)
 				msg = (
-					_("This attachment format is not supported by the current provider. Source:")
+					_(
+						"This attachment format is not supported by the current provider. Source:"
+					)
 					if attachment.mime_type not in supported_attachment_formats
-					else _("The attachment file does not exist: %s") % attachment.location
+					else _("The attachment file does not exist: %s")
+					% attachment.location
 				)
 				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 				invalid_found = True
 		return not invalid_found
+
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		"""Handle the submission of a new message block for completion.
