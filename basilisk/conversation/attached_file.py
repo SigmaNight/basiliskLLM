@@ -322,8 +322,7 @@ class AttachmentFile(BaseModel):
 		"""
 		if self.type == AttachmentFileTypes.URL:
 			return None
-		mime_type, _ = mimetypes.guess_type(self.send_location)
-		return mime_type
+		return get_mime_type(self.send_location)
 
 	@property
 	def display_location(self) -> str:
