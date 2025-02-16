@@ -739,14 +739,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
-		for i, attachment in enumerate(self.attachment_files):
-			self.attachments_list.InsertItem(i, attachment.name)
-			self.attachments_list.SetItem(i, 1, attachment.display_size)
-			self.attachments_list.SetItem(i, 2, attachment.display_location)
+		for attachment in self.attachment_files:
+			self.attachments_list.Append(attachment.get_dispay_info())
+		last_index = len(self.attachment_files) - 1
 		self.attachments_list.SetItemState(
-			i, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
+			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
-		self.attachments_list.EnsureVisible(i)
+		self.attachments_list.EnsureVisible(last_index)
 		self.Layout()
 
 	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):

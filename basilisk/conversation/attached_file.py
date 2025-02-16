@@ -375,6 +375,14 @@ class AttachmentFile(BaseModel):
 		if self.type == AttachmentFileTypes.MEMORY:
 			self.remove_location(self.location)
 
+	def get_dispay_info(self) -> tuple[str, str, str]:
+		"""Get the name, size and location of the file.
+
+		Returns:
+			A tuple containing the name, size and location of the file.
+		"""
+		return self.name, self.display_size, self.display_location
+
 
 class ImageFile(AttachmentFile):
 	"""Represents an image file in a conversation."""
