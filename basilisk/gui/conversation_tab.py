@@ -1739,6 +1739,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
+	def has_image_attachments(self) -> bool:
+		"""Check if there are image attachments in the current message block.
+
+		Returns:
+			True if there are image attachments, False otherwise
+		"""
+		return any(
+			attachment.mime_type.startswith("image/")
+			for attachment in self.attachment_files
+		)
+
 	def ensure_model_compatibility(self) -> ProviderAIModel | None:
 		"""Check if current model is compatible with requested operations.
 
@@ -1751,7 +1762,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return None
-		if self.attachment_files and not model.vision:
+		if self.has_image_attachments() and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
 			)
