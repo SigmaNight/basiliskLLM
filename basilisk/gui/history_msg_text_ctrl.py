@@ -456,7 +456,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			braille=True,
 		)
 
-	def on_read_current_message(self, event: wx.Event | None):
+	def on_read_current_message(self, event: wx.Event | None = None):
 		"""Read the current message."""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
