@@ -328,7 +328,12 @@ class BaseConversation:
 			event: The context menu event triggering the model context menu event
 		"""
 		menu = wx.Menu()
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + " (Enter)")
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for a context menu item
+			_("Show details") + " (Enter)",
+		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
 		self.model_list.PopupMenu(menu)

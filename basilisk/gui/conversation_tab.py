@@ -412,31 +412,56 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu = wx.Menu()
 
 		if selected != wx.NOT_FOUND:
-			item = wx.MenuItem(menu, wx.ID_ANY, _("Show details") + "	Enter")
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for show details in the context menu
+				_("Show details") + "	Enter",
+			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_attachment_details, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for remove selected image in the context menu
+				_("Remove selected image") + "	Shift+Del",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Copy location") + " (Ctrl+C)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for copy location in the context menu
+				_("Copy location") + "	Ctrl+C",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (file or text)") + " (Ctrl+V)"
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for paste in the context menu
+			_("Paste (file or text)") + "	Ctrl+V",
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_attachments_paste, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Add files..."))
+
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for add files in the context menu
+			_("Add files..."),
+		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
 
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for add image URL in the context menu
+			_("Add image URL...") + "	Ctrl+U",
+		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_url_dlg, item)
 
@@ -540,6 +565,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
 		file_dialog = wx.FileDialog(
 			self,
+			# Translators: This is a label for select files in conversation tab
 			message=_("Select one or more files to attach"),
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
 			wildcard=wildcard,
@@ -912,16 +938,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 				case "char_location":
 					start_char_index = citation.get("start_char_index", 0)
 					end_char_index = citation.get("end_char_index", 0)
+					# Translators: This is a citation format for character locations
 					location_text = _("C.{start} .. {end}").format(
 						start=start_char_index, end=end_char_index
 					)
 				case "page_location":
 					start_page_number = citation.get("start_page_number", 0)
 					end_page_number = citation.get("end_page_number", 0)
+					# Translators: This is a citation format for page locations
 					location_text = _("P.{start} .. {end}").format(
 						start=start_page_number, end=end_page_number
 					)
 				case _:
+					# Translators: This is a citation format for unknown locations
 					location_text = _("Unknown location")
 					log.warning(f"Unknown citation type: {citation}")
 			if document_index is not None:
@@ -941,6 +970,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 					)
 			if cited_text:
 				citations_str.append(
+					# Translators: This is a citation format for a cited text
 					_("{location_text}: “{cited_text}”").format(
 						location_text=location_text,
 						cited_text=cited_text.strip(),
@@ -971,6 +1001,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		nb_citations = len(citations)
 		self.SetStatusText(
+			# Translators: This is a status message for the number of citations in the current message
 			_("%d citations in the current message") % nb_citations
 		)
 
@@ -984,7 +1015,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		citations = self.get_current_citations()
 		if not citations:
 			self._handle_accessible_output(
-				_("No citations for this message"), braille=True
+				# Translators: This message is emitted when there are no citations for the current message.
+				_("No citations for this message"),
+				braille=True,
 			)
 			wx.Bell()
 			return
@@ -992,7 +1025,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not citations_str:
 			wx.Bell()
 			return
-		ReadOnlyMessageDialog(self, _("Citations"), citations_str).ShowModal()
+		ReadOnlyMessageDialog(
+			self,
+			# Translators: This is a title for message citations dialog
+			_("Message citations"),
+			citations_str,
+		).ShowModal()
 
 	def go_to_previous_message(self, event: wx.CommandEvent | None = None):
 		"""Navigate to the previous message in the conversation.
@@ -1221,7 +1259,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Read current message") + " (space)",
+				_("Read current message") + "	Space",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
@@ -1230,7 +1268,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Show citations") + " (Q)",
+				_("Show citations") + "	&Q",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.show_citations, item)
@@ -1239,7 +1277,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Speak stream") + " (Shift+Space)",
+				_("Speak stream") + "	Shift+Space",
 				_("Speak stream"),
 				wx.ITEM_CHECK,
 			)
@@ -1251,7 +1289,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Show as HTML (from Markdown)") + " (&h)",
+				_("Show as HTML (from Markdown)") + "	&H",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
@@ -1260,7 +1298,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Copy current message") + " (&c)",
+				_("Copy current message") + "	&C",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
@@ -1269,7 +1307,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Select current message") + " (&s)",
+				_("Select current message") + "	&S",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_select_message, item)
@@ -1278,7 +1316,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Go to previous message") + " (&j)",
+				_("Go to previous message") + "	&J",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
@@ -1287,7 +1325,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Go to next message") + " (&k)",
+				_("Go to next message") + "	&K",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
@@ -1296,7 +1334,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Move to start of message") + " (&b)",
+				_("Move to start of message") + "	&B",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
@@ -1305,7 +1343,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Move to end of message") + " (&n)",
+				_("Move to end of message") + "	N",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
@@ -1314,7 +1352,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("&Remove message block") + " (Shift+Del)",
+				_("&Remove message block") + "	Shift+Del",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
@@ -1323,7 +1361,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find...") + " (&f)",
+				_("Find...") + "	F",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
@@ -1332,13 +1370,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find Next") + " (F3)",
+				_("Find Next") + "	F3",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
+				menu, wx.ID_ANY, _("Find Previous") + "	Shift+F3"
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
@@ -1363,7 +1401,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		menu = wx.Menu()
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Insert previous prompt") + " (Ctrl+Up)"
+			menu, wx.ID_ANY, _("Insert previous prompt") + "	Ctrl+Up"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.insert_previous_prompt, item)
@@ -1372,7 +1410,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (file or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (file or text)") + "	Ctrl+V"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)

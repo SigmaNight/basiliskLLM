@@ -297,6 +297,7 @@ class AttachmentFile(BaseModel):
 		"""
 		size = self.size
 		if size is None:
+			# Translators: Placeholder for an unknown file size
 			return _("Unknown")
 		if size < 1024:
 			return f"{size} B"
@@ -460,6 +461,7 @@ class ImageFile(AttachmentFile):
 			The dimensions of the image in a human-readable format (e.g., "1920 x 1080").
 		"""
 		if self.dimensions is None:
+			# Translators: Placeholder for unknown image dimensions
 			return _("Unknown")
 		return f"{self.dimensions[0]} x {self.dimensions[1]}"
 
