@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import weakref
+from collections import namedtuple
 from functools import partial
 from typing import TYPE_CHECKING
 
@@ -35,6 +36,10 @@ logger = logging.getLogger(__name__)
 COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
 RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
 RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
+
+MenuItemInfo = namedtuple(
+	"MenuItemInfo", ["label", "shortcut", "handler", "args"]
+)
 
 
 class HistoryMsgTextCtrl(wx.TextCtrl):
@@ -64,12 +69,11 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		)
 
 		self.segment_manager = MessageSegmentManager()
-		self._search_dialog = None
+		self._search_dialog = None  # Lazy initialization in _do_search
 		self._speak_stream = True
 		self.accessible_output = get_accessible_output()
 		self.stream_buffer = ""
 		self.speech_stream_buffer = ""
-		self._speak_stream = True
 		self.init_role_labels()
 		self.init_menu_msg_info()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
@@ -195,6 +199,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 	def init_menu_msg_info(self):
 		"""Initialize the message operations menu items.
 
+		Initializes self.msg_menu_info with menu items for various message operations.
+
 		Provides options for:
 		- Reading the current message
 		- Toggling stream speaking mode
@@ -211,40 +217,63 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Searching for the previous occurrence
 		"""
 		self.msg_menu_info = (
-			(
+			MenuItemInfo(
 				_("Read current message"),
 				"(space)",
 				self.on_read_current_message,
+				[],
 			),
-			(
+			MenuItemInfo(
 				_("Speak stream"),
 				"(Shift+Space)",
 				self.on_toggle_speak_stream,
 				self._speak_stream,
 			),
-			(_("Show as HTML (from Markdown)"), "(&h)", self.on_show_as_html),
-			(_("Copy current message"), "(&c)", self.on_copy_message),
-			(
+			MenuItemInfo(
+				_("Show as HTML (from Markdown)"),
+				"(&h)",
+				self.on_show_as_html,
+				[],
+			),
+			MenuItemInfo(
+				_("Copy current message"), "(&c)", self.on_copy_message, []
+			),
+			MenuItemInfo(
 				_("Select current message"),
 				"(&s)",
 				self.on_select_current_message,
+				[],
 			),
-			(_("Go to previous message"), "(&j)", self.go_to_previous_message),
-			(_("Go to next message"), "(&k)", self.go_to_next_message),
-			(
+			MenuItemInfo(
+				_("Go to previous message"),
+				"(&j)",
+				self.go_to_previous_message,
+				[],
+			),
+			(_("Go to next message"), "(&k)", self.go_to_next_message, []),
+			MenuItemInfo(
 				_("Move to start of message"),
 				"(&b)",
 				self.move_to_start_of_message,
+				[],
 			),
-			(_("Move to end of message"), "(&n)", self.move_to_end_of_message),
-			(
+			MenuItemInfo(
+				_("Move to end of message"),
+				"(&n)",
+				self.move_to_end_of_message,
+				[],
+			),
+			MenuItemInfo(
 				_("Remove message block"),
 				"(Shift+Del)",
 				self.on_remove_message_block,
+				[],
 			),
-			(_("Find..."), "(&f)", self.on_search),
-			(_("Find Next"), "(F3)", self.on_search_next),
-			(_("Find Previous"), "(Shift+F3)", self.on_search_previous),
+			MenuItemInfo(_("Find..."), "(&f)", self.on_search, []),
+			MenuItemInfo(_("Find Next"), "(F3)", self.on_search_next, []),
+			MenuItemInfo(
+				_("Find Previous"), "(Shift+F3)", self.on_search_previous, []
+			),
 		)
 
 	def on_context_menu(self, event: wx.ContextMenuEvent):
@@ -262,26 +291,26 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.PopupMenu(menu)
 		menu.Destroy()
 
-	def _add_message_operations_menu_items(self, menu):
+	def _add_message_operations_menu_items(self, menu: wx.Menu):
 		"""Add message operation items to the context menu.
 
 		Args:
 			menu: The menu to add items to
 		"""
-		for label, shortcut, handler, *args in self.msg_menu_info:
-			is_checkable = bool(args and args[0])
+		for item_info in self.msg_menu_info:
+			is_checkable = bool(item_info.args and item_info.args[0])
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
-				f"{label} {shortcut}",
+				f"{item_info.label} {item_info.shortcut}",
 				kind=wx.ITEM_CHECK if is_checkable else wx.ITEM_NORMAL,
 			)
 			menu.Append(item)
 			if is_checkable:
-				item.Check(self._speak_stream)
-			self.Bind(wx.EVT_MENU, handler, item)
+				item.Check(item_info.args[0])
+			self.Bind(wx.EVT_MENU, item_info.handler, item)
 
-	def _add_standard_menu_items(self, menu):
+	def _add_standard_menu_items(self, menu: wx.Menu):
 		"""Add standard edit menu items.
 
 		Args:
@@ -295,7 +324,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 	# Navigation methods
 	def navigate_message(self, previous: bool):
-		"""Navigate to the previous or next message.
+		"""Navigate to the previous or next message, update the insertion point, and handle accessible output.
 
 		Args:
 			previous: If True, navigate to previous message, else next message
@@ -350,7 +379,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		return self.GetRange(*self.current_msg_range)
 
 	def on_select_current_message(self, event: wx.Event | None = None):
-		"""Select the current message."""
+		"""Select the current message range."""
 		self.SetSelection(*self.current_msg_range)
 
 	def on_copy_message(self, event=None):
@@ -380,12 +409,13 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.handle_accessible_output(_("End of message"))
 
 	def _do_search(self, direction: SearchDirection = SearchDirection.FORWARD):
-		"""Open the search dialog.
+		"""Open the search dialog, initializing it if not already created.
 
 		Args:
 			direction: Search direction
 		"""
-		if not self._search_dialog:
+		if self._search_dialog is None:
+			self._search_dialog = SearchDialog(self.GetParent(), self)
 			self._search_dialog = SearchDialog(self.GetParent(), self)
 		self._search_dialog._dir_radio_forward.SetValue(
 			direction == SearchDirection.FORWARD
@@ -441,7 +471,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 	def handle_accessible_output(
 		self, text: str, braille: bool = False, force: bool = False
 	):
-		"""Handle accessible output for screen readers.
+		"""Handle accessible output for screen readers, including both speech and braille output.
 
 		Args:
 			text: Text to output
@@ -467,7 +497,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			logger.error("Failed to output text to screen reader", exc_info=e)
 
 	def handle_speech_stream_buffer(self, new_text: str = ''):
-		"""Processes incoming speech stream text.
+		"""Processes incoming speech stream text and updates the buffer accordingly.
 
 		If the input `new_text` is not a valid string or is empty, it forces flushing the current buffer to the accessible output handler.
 		If `new_text` contains punctuation or newlines, it processes text up to the last
@@ -508,8 +538,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.speech_stream_buffer += new_text
 
 	def flush_stream_buffer(self):
-		"""Flush the current speech stream buffer to the messages text control and accessible output handler."""
-		pos = self.GetInsertionPoint()
+		"""Flush the current speech stream buffer to the messages text control and accessible output handler.
+
+		This method ensures that the buffered text is appended to the text control and also sent to the accessible output handler for screen readers.
+		"""
 		text = self.stream_buffer
 		if (
 			self._speak_stream
@@ -519,7 +551,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.handle_speech_stream_buffer(new_text=text)
 		self.AppendText(text)
 		self.stream_buffer = ""
-		self.SetInsertionPoint(pos)
+		self.SetInsertionPoint(self.GetLastPosition())
 
 	def append_stream_chunk(self, text: str):
 		"""Append a chunk of text to the speech stream buffer.
