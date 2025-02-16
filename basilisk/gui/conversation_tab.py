@@ -1409,3 +1409,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return False
+
+	def remove_message_block(self, message_block: MessageBlock):
+		"""Remove a message block from the conversation.
+
+		Args:
+			message_block: The message block to remove
+		"""
+		self.conversation.messages.remove(message_block)
+		self.refresh_messages()
