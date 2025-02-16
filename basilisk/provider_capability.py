@@ -8,6 +8,8 @@ class ProviderCapability(enum.StrEnum):
 
 	# The provider supports document processing (excluding images)
 	DOCUMENT = enum.auto()
+	# The provider supports citation processing
+	CITATION = enum.auto()
 	# The provider supports image processing
 	IMAGE = enum.auto()
 	# The provider supports text processing

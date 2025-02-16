@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 from upath import UPath
@@ -47,6 +48,7 @@ class Message(BaseModel):
 	role: MessageRoleEnum
 	content: str
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
+	citations: list[dict[str, Any]] | None = Field(default=None)
 
 
 class MessageBlock(BaseModel):

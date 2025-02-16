@@ -893,6 +893,107 @@ class ConversationTab(wx.Panel, BaseConversation):
 				start, end = self.get_range_for_current_message()
 				current_message = self.messages.GetRange(start, end)
 				self._handle_accessible_output(current_message)
+				self.report_number_of_citations()
+
+	def _handle_citations(self, citations: list[dict[str, Any]]) -> str:
+		"""Format a list of citations for display.
+
+		Args:
+			citations: The list of citations to format
+
+		Returns:
+			A formatted string containing the citations
+		"""
+		citations_str = []
+		for i, citation in enumerate(citations):
+			location_text = ""
+			cited_text = citation.get("cited_text")
+			document_index = citation.get("document_index")
+			document_title = citation.get("document_title")
+			match citation.get("type"):
+				case "char_location":
+					start_char_index = citation.get("start_char_index", 0)
+					end_char_index = citation.get("end_char_index", 0)
+					location_text = _("C.{start} .. {end}").format(
+						start=start_char_index, end=end_char_index
+					)
+				case "page_location":
+					start_page_number = citation.get("start_page_number", 0)
+					end_page_number = citation.get("end_page_number", 0)
+					location_text = _("P.{start} .. {end}").format(
+						start=start_page_number, end=end_page_number
+					)
+				case _:
+					location_text = _("Unknown location")
+					log.warning(f"Unknown citation type: {citation}")
+			if document_index is not None:
+				if document_title:
+					location_text = _(
+						"{document_title} / {location_text}"
+					).format(
+						document_title=document_title,
+						location_text=location_text,
+					)
+				else:
+					location_text = _(
+						"Document {document_index} / {location_text}"
+					).format(
+						document_index=document_index,
+						location_text=location_text,
+					)
+			if cited_text:
+				citations_str.append(
+					_("{location_text}: “{cited_text}”").format(
+						location_text=location_text,
+						cited_text=cited_text.strip(),
+					)
+				)
+		return "\n_--_\n".join(citations_str)
+
+	def get_current_citations(self) -> list[dict[str, Any]]:
+		"""Get the citations for the current message.
+
+		Returns:
+			The list of citations for the current message
+		"""
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		message_block = (
+			self.message_segment_manager.current_segment.message_block()
+		)
+		if not message_block:
+			wx.Bell()
+			return []
+		return message_block.response.citations
+
+	def report_number_of_citations(self):
+		"""Report the number of citations for the current message."""
+		citations = self.get_current_citations()
+		if not citations:
+			return
+		nb_citations = len(citations)
+		self.SetStatusText(
+			_("%d citations in the current message") % nb_citations
+		)
+
+	def show_citations(self, event: wx.CommandEvent | None = None):
+		"""Show the citations for the current message.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		citations = self.get_current_citations()
+		if not citations:
+			self._handle_accessible_output(
+				_("No citations for this message"), braille=True
+			)
+			wx.Bell()
+			return
+		citations_str = self._handle_citations(citations)
+		if not citations_str:
+			wx.Bell()
+			return
+		ReadOnlyMessageDialog(self, _("Citations"), citations_str).ShowModal()
 
 	def go_to_previous_message(self, event: wx.CommandEvent | None = None):
 		"""Navigate to the previous message in the conversation.
@@ -1052,6 +1153,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- C: Copy current message
 		- B: Move to start of message
 		- N: Move to end of message
+		- Q: Show citations for current message
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)
@@ -1069,6 +1171,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_actions = {
 			(wx.MOD_SHIFT, wx.WXK_SPACE): self.on_toggle_speak_stream,
 			(wx.MOD_NONE, wx.WXK_SPACE): self.on_read_current_message,
+			(wx.MOD_NONE, ord('Q')): self.show_citations,
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
 			(wx.MOD_NONE, ord('S')): self.on_select_message,
@@ -1122,6 +1225,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Show citations") + " (Q)",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.show_citations, item)
 
 			item = wx.MenuItem(
 				menu,
@@ -1775,8 +1887,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 				if self._stop_completion or global_vars.app_should_exit:
 					log.debug("Stopping completion")
 					break
-				new_block.response.content += chunk
-				wx.CallAfter(self._handle_completion_with_stream, chunk)
+				if isinstance(chunk, str):
+					new_block.response.content += chunk
+					wx.CallAfter(self._handle_completion_with_stream, chunk)
+				elif isinstance(chunk, tuple):
+					chunk_type, chunk_data = chunk
+					match chunk_type:
+						case "citation":
+							if not new_block.response.citations:
+								new_block.response.citations = []
+							new_block.response.citations.append(chunk_data)
+						case _:
+							log.warning(
+								f"Unknown chunk type in streaming response: {chunk_type}"
+							)
 			wx.CallAfter(self._post_completion_with_stream, new_block)
 		else:
 			new_block = engine.completion_response_without_stream(

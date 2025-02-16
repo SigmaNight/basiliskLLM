@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
@@ -50,6 +50,7 @@ class AnthropicEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 		ProviderCapability.DOCUMENT,
+		ProviderCapability.CITATION,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
@@ -219,13 +220,21 @@ class AnthropicEngine(BaseEngine):
 					elif mime_type.startswith("application/"):
 						source["data"] = attachment.encode_base64()
 						contents.append(
-							DocumentBlockParam(source=source, type="document")
+							DocumentBlockParam(
+								type="document",
+								source=source,
+								citations={"enabled": True},
+							)
 						)
 					elif mime_type in ("text/plain"):
 						source["data"] = attachment.read_as_str()
 						source["type"] = "text"
 						contents.append(
-							TextBlockParam(source=source, type="document")
+							TextBlockParam(
+								type="document",
+								source=source,
+								citations={"enabled": True},
+							)
 						)
 		return {"role": message.role.value, "content": contents}
 
@@ -268,7 +277,7 @@ class AnthropicEngine(BaseEngine):
 
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
-	):
+	) -> Iterator[TextBlock | dict]:
 		"""Processes streaming response from Anthropic API.
 
 		Args:
@@ -280,7 +289,37 @@ class AnthropicEngine(BaseEngine):
 		for event in stream:
 			match event.type:
 				case "content_block_delta":
-					yield event.delta.text
+					match event.delta.type:
+						case "text_delta":
+							yield event.delta.text
+						case "citations_delta":
+							citation = event.delta.citation
+							citation_chunk_data = {
+								"type": citation.type,
+								"cited_text": citation.cited_text,
+								"document_index": citation.document_index,
+								"document_title": citation.document_title,
+							}
+							match citation.type:
+								case "char_location":
+									citation_chunk_data.update(
+										{
+											"start_char_index": citation.start_char_index,
+											"end_char_index": citation.end_char_index,
+										}
+									)
+								case "page_location":
+									citation_chunk_data.update(
+										{
+											"start_page_number": citation.start_page_number,  # inclusive,
+											"end_page_number": citation.end_page_number,  # exclusive
+										}
+									)
+								case _:
+									log.warning(
+										f"Unsupported citation type: {citation.type}"
+									)
+							yield ("citation", citation_chunk_data)
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
