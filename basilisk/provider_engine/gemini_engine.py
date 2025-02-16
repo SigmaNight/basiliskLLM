@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING
 import google.generativeai as genai
 
 from basilisk.conversation import (
+	AttachmentFileTypes,
 	Conversation,
 	ImageFile,
-	ImageFileTypes,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -42,6 +42,13 @@ class GeminiEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+	}
+	supported_attachment_formats: set[str] = {
+		"image/png",
+		"image/jpeg",
+		"image/webp",
+		"image/heic",
+		"image/heif",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -162,7 +169,7 @@ class GeminiEngine(BaseEngine):
 		Raises:
 			NotImplementedError: If image URL is used (not supported).
 		"""
-		if image.type == ImageFileTypes.IMAGE_URL:
+		if image.type == AttachmentFileTypes.URL:
 			raise NotImplementedError("Image URL not supported")
 		with image.send_location.open("rb") as f:
 			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())

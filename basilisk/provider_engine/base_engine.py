@@ -27,9 +27,11 @@ class BaseEngine(ABC):
 
 	Attributes:
 		capabilities: Set of supported provider capabilities.
+		supported_attachment_formats: Set of MIME types for supported attachments.
 	"""
 
 	capabilities: set[ProviderCapability] = set()
+	supported_attachment_formats: set[str] = set()
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.

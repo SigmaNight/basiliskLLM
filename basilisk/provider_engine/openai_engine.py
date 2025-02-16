@@ -53,6 +53,12 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 	}
+	supported_attachment_formats: set[str] = {
+		"image/gif",
+		"image/jpeg",
+		"image/png",
+		"image/webp",
+	}
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the OpenAI engine.

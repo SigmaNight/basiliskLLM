@@ -6,7 +6,7 @@ and interaction with AI providers.
 
 Features:
 - Text input/output with markdown support
-- Image attachment handling
+- attachment handling
 - Audio recording and transcription
 - Message navigation and searching
 - Accessible output integration
@@ -35,12 +35,15 @@ from basilisk.accessible_output import clear_for_speak, get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	URL_PATTERN,
+	AttachmentFile,
 	Conversation,
 	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 	NotImageError,
+	get_mime_type,
+	parse_supported_attachment_formats,
 )
 from basilisk.decorators import ensure_no_task_running
 from basilisk.message_segment_manager import (
@@ -54,6 +57,7 @@ from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .html_view_window import show_html_view_window
+from .read_only_message_dialog import ReadOnlyMessageDialog
 from .search_dialog import SearchDialog, SearchDirection
 
 if TYPE_CHECKING:
@@ -74,18 +78,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	This class provides a complete interface for interacting with AI models, including:
 	- Text input and output
-	- Image attachment handling
+	- attachment handling
 	- Audio recording and transcription
 	- Message history navigation
 	- Accessible output integration
 	- Stream mode for real-time responses
 
 	Attributes:
-		ROLE_LABELS (dict): Maps message roles to their display labels
-		title (str): The conversation tab's title
-		conversation (Conversation): The underlying conversation data
-		image_files (list[ImageFile]): Currently attached image files
-		message_segment_manager (MessageSegmentManager): Manages message text segments
+		ROLE_LABELS: Labels for message roles
+		title: The title of the conversation
+		conversation: The conversation object
+		attachment_files: List of attachment files
+		message_segment_manager: Message segment manager
 	"""
 
 	ROLE_LABELS = MessageRoleEnum.get_labels()
@@ -95,7 +99,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Generate a unique storage path for a conversation based on the current timestamp.
 
 		Returns:
-		A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
+			A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
 		"""
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
@@ -170,7 +174,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.bskc_path = bskc_path
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
-		self.image_files: list[ImageFile] = []
+		self.attachment_files: list[AttachmentFile | ImageFile] = []
 		self.last_time = 0
 		self.message_segment_manager = MessageSegmentManager()
 		self.recording_thread: Optional[RecordingThread] = None
@@ -192,7 +196,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- System prompt input
 		- Message history display
 		- User prompt input
-		- Image list
+		- Attachment list display
 		- Model selection
 		- Generation parameters
 		- Control buttons
@@ -241,26 +245,40 @@ class ConversationTab(wx.Panel, BaseConversation):
 		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
 		self.prompt.SetFocus()
 
-		self.images_list_label = wx.StaticText(
+		self.attachments_list_label = wx.StaticText(
 			self,
 			# Translators: This is a label for models in the main window
-			label=_("&Images:"),
+			label=_("&Attachments:"),
 		)
-		sizer.Add(self.images_list_label, proportion=0, flag=wx.EXPAND)
-		self.images_list = wx.ListCtrl(
+		sizer.Add(self.attachments_list_label, proportion=0, flag=wx.EXPAND)
+		self.attachments_list = wx.ListCtrl(
 			self, size=(800, 100), style=wx.LC_REPORT
 		)
-		self.images_list.Bind(wx.EVT_CONTEXT_MENU, self.on_images_context_menu)
-		self.images_list.Bind(wx.EVT_KEY_DOWN, self.on_images_key_down)
-		self.images_list.InsertColumn(0, _("Name"))
-		self.images_list.InsertColumn(1, _("Size"))
-		self.images_list.InsertColumn(2, _("Dimensions"))
-		self.images_list.InsertColumn(3, _("Path"))
-		self.images_list.SetColumnWidth(0, 200)
-		self.images_list.SetColumnWidth(1, 100)
-		self.images_list.SetColumnWidth(2, 100)
-		self.images_list.SetColumnWidth(3, 200)
-		sizer.Add(self.images_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.attachments_list.Bind(
+			wx.EVT_CONTEXT_MENU, self.on_attachments_context_menu
+		)
+		self.attachments_list.Bind(
+			wx.EVT_KEY_DOWN, self.on_attachments_key_down
+		)
+		self.attachments_list.InsertColumn(
+			0,
+			# Translators: This is a label for attachment name in the main window
+			_("Name"),
+		)
+		self.attachments_list.InsertColumn(
+			1,
+			# Translators: This is a label for attachment size in the main window
+			_("Size"),
+		)
+		self.attachments_list.InsertColumn(
+			2,
+			# Translators: This is a label for attachment location in the main window
+			_("Location"),
+		)
+		self.attachments_list.SetColumnWidth(0, 200)
+		self.attachments_list.SetColumnWidth(1, 100)
+		self.attachments_list.SetColumnWidth(2, 500)
+		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
@@ -324,6 +342,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			profile: Configuration profile to apply
 		"""
+		self.refresh_attachments_list()
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
@@ -376,55 +395,84 @@ class ConversationTab(wx.Panel, BaseConversation):
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
 
-	def on_images_context_menu(self, event: wx.ContextMenuEvent | None):
-		"""Display context menu for the images list.
+	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
+		"""Display context menu for the attachments list.
 
 		Provides options for:
-		- Removing selected images
-		- Copying image URLs
-		- Pasting images
-		- Adding image files
+		- Removing selected attachment
+		- Copying attachment location
+		- Pasting attachments
+		- Adding files
 		- Adding image URLs
 
 		Args:
 			event (wx.ContextMenuEvent): The context menu trigger event
 		"""
-		selected = self.images_list.GetFirstSelected()
+		selected = self.attachments_list.GetFirstSelected()
 		menu = wx.Menu()
 
 		if selected != wx.NOT_FOUND:
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Remove selected image") + " (Shift+Del)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for show details in the context menu
+				_("Show details") + "	Enter",
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_images_remove, item)
+			self.Bind(wx.EVT_MENU, self.on_show_attachment_details, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Copy image URL") + " (Ctrl+C)"
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for remove selected image in the context menu
+				_("Remove selected image") + "	Shift+Del",
 			)
 			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_copy_image_url, item)
+			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for copy location in the context menu
+				_("Copy location") + "	Ctrl+C",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for paste in the context menu
+			_("Paste (file or text)") + "	Ctrl+V",
 		)
 		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_image_paste, item)
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image files..."))
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_image_files, item)
+		self.Bind(wx.EVT_MENU, self.on_attachments_paste, item)
 
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Add image URL..."))
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for add files in the context menu
+			_("Add files..."),
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
+
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for add image URL in the context menu
+			_("Add image URL...") + "	Ctrl+U",
+		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_image_url_dlg, item)
 
-		self.images_list.PopupMenu(menu)
+		self.attachments_list.PopupMenu(menu)
 		menu.Destroy()
 
-	def on_images_key_down(self, event: wx.KeyEvent):
-		"""Handle keyboard shortcuts for the images list.
+	def on_attachments_key_down(self, event: wx.KeyEvent):
+		"""Handle keyboard shortcuts for the attachments list.
 
 		Supports:
-		- Ctrl+C: Copy image URL
+		- Ctrl+C: Copy file location
 		- Ctrl+V: Paste image
 		- Delete: Remove selected image
 
@@ -434,18 +482,23 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_code = event.GetKeyCode()
 		modifiers = event.GetModifiers()
 		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
-			self.on_copy_image_url(None)
+			self.on_copy_attachment_location(None)
 		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
-			self.on_image_paste(None)
+			self.on_attachments_paste(None)
 		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
-			self.on_images_remove(None)
+			self.on_attachments_remove(None)
+		if modifiers == wx.MOD_NONE and key_code in (
+			wx.WXK_RETURN,
+			wx.WXK_NUMPAD_ENTER,
+		):
+			self.on_show_attachment_details(None)
 		event.Skip()
 
-	def on_image_paste(self, event: wx.CommandEvent | None):
+	def on_attachments_paste(self, event: wx.CommandEvent):
 		"""Handles pasting content from the clipboard into the conversation interface.
 
 		Supports multiple clipboard data types:
-		- Files: Adds image files directly to the conversation
+		- Files: Adds files directly to the conversation
 		- Text:
 			- If a valid URL is detected, adds the image URL
 			- Otherwise, pastes text into the prompt input
@@ -460,7 +513,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				file_data = wx.FileDataObject()
 				clipboard.GetData(file_data)
 				paths = file_data.GetFilenames()
-				self.add_images(paths)
+				self.add_attachments(paths)
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
@@ -487,27 +540,39 @@ class ConversationTab(wx.Panel, BaseConversation):
 				)
 				with path.open("wb") as f:
 					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
-				self.add_images([ImageFile(location=path)])
+				self.add_attachments([ImageFile(location=path)])
 
 			else:
 				log.info("Unsupported clipboard data")
 
-	def add_image_files(self, event: wx.CommandEvent | None):
-		"""Open a file dialog to select and add image files to the conversation.
+	def add_attachments_dlg(self, event: wx.CommandEvent = None):
+		"""Open a file dialog to select and add files to the conversation.
 
 		Args:
-			event: Event triggered by the add image files action
+			event: Event triggered by the add files action
 		"""
+		wildcard = parse_supported_attachment_formats(
+			self.current_engine.supported_attachment_formats
+		)
+		if not wildcard:
+			wx.MessageBox(
+				# Translators: This message is displayed when there are no supported attachment formats.
+				_("This provider does not support any attachment formats."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
 		file_dialog = wx.FileDialog(
 			self,
-			message=_("Select one or more image files"),
+			# Translators: This is a label for select files in conversation tab
+			message=_("Select one or more files to attach"),
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=_("Image files")
-			+ " (*.png;*.jpeg;*.jpg;*.gif)|*.png;*.jpeg;*.jpg;*.gif",
+			wildcard=wildcard,
 		)
 		if file_dialog.ShowModal() == wx.ID_OK:
 			paths = file_dialog.GetPaths()
-			self.add_images(paths)
+			self.add_attachments(paths)
 		file_dialog.Destroy()
 
 	def add_image_url_dlg(self, event: wx.CommandEvent | None):
@@ -558,7 +623,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		if force_add == wx.YES:
 			log.info("Forcing image addition")
-			self.add_image_files([ImageFile(location=url)])
+			self.add_attachments([ImageFile(location=url)])
 
 	def add_image_from_url(self, url: str):
 		"""Add an image to the conversation from a URL.
@@ -590,7 +655,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		wx.CallAfter(self.add_images, [image_file])
+		wx.CallAfter(self.add_attachments, [image_file])
 		self.task = None
 
 	@ensure_no_task_running
@@ -605,38 +670,65 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.task.start()
 
-	def on_images_remove(self, event: wx.CommandEvent | None):
-		"""Remove the selected image from the conversation.
+	def on_show_attachment_details(self, event: wx.CommandEvent):
+		"""Show details of the selected attachment in a read-only dialog.
 
 		Args:
-			event: Event triggered by the remove image action
+			event: Event triggered by the show attachment details action
 		"""
-		selection = self.images_list.GetFirstSelected()
+		selected = self.attachments_list.GetFirstSelected()
+		if selected == wx.NOT_FOUND:
+			return
+		attachment_file = self.attachment_files[selected]
+		details = {
+			_("Name"): attachment_file.name,
+			_("Size"): attachment_file.display_size,
+			_("Location"): attachment_file.location,
+		}
+		mime_type = attachment_file.mime_type
+		if mime_type:
+			details[_("MIME type")] = mime_type
+			if mime_type.startswith("image/"):
+				details[_("Dimensions")] = attachment_file.display_dimensions
+		details_str = "\n".join(
+			_("%s: %s") % (k, v) for k, v in details.items()
+		)
+		ReadOnlyMessageDialog(
+			self, _("Attachment details"), details_str
+		).ShowModal()
+
+	def on_attachments_remove(self, event: wx.CommandEvent):
+		"""Remove the selected attachment from the conversation.
+
+		Args:
+			event: Event triggered by the remove attachment action
+		"""
+		selection = self.attachments_list.GetFirstSelected()
 		if selection == wx.NOT_FOUND:
 			return
-		self.image_files.pop(selection)
-		self.refresh_images_list()
-		if selection >= self.images_list.GetItemCount():
+		self.attachment_files.pop(selection)
+		self.refresh_attachments_list()
+		if selection >= self.attachments_list.GetItemCount():
 			selection -= 1
 		if selection >= 0:
-			self.images_list.SetItemState(
+			self.attachments_list.SetItemState(
 				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 			)
 		else:
 			self.prompt.SetFocus()
 
-	def on_copy_image_url(self, event: wx.CommandEvent | None):
-		"""Copy the URL of the selected image to the clipboard.
+	def on_copy_attachment_location(self, event: wx.CommandEvent):
+		"""Copy the location of the selected attachment to the clipboard.
 
 		Args:
-			event: Event triggered by the copy image URL action
+			event: Event triggered by the copy attachment location action
 		"""
-		selected = self.images_list.GetFirstSelected()
+		selected = self.attachments_list.GetFirstSelected()
 		if selected == wx.NOT_FOUND:
 			return
-		url = self.image_files[selected].location
+		location = "\"%s\"" % str(self.attachment_files[selected].location)
 		with wx.TheClipboard as clipboard:
-			clipboard.SetData(wx.TextDataObject(url))
+			clipboard.SetData(wx.TextDataObject(location))
 
 	def refresh_accounts(self):
 		"""Update the account selection combo box with current accounts.
@@ -659,60 +751,62 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
-	def get_dispay_images(self) -> list[tuple[str, str, str]]:
-		"""Generate a list of image file display information for the images list.
+	def refresh_attachments_list(self):
+		"""Update the attachments list display based on the current attachment files.
 
-		Returns:
-			A list of image file display information tuples
+		Shows/hides the attachments list based on the number of attachments.
+		Updates all attachment details in the list.
 		"""
-		return [
-			(
-				img.name,
-				img.display_size,
-				img.display_dimensions,
-				img.display_location,
-			)
-			for img in self.image_files
-		]
-
-	def refresh_images_list(self):
-		"""Update the images list display with current image files.
-
-		Shows/hides the images list based on whether there are images to display.
-		Updates all image information columns.
-		"""
-		self.images_list.DeleteAllItems()
-		if not self.image_files:
-			self.images_list_label.Hide()
-			self.images_list.Hide()
+		self.attachments_list.DeleteAllItems()
+		if not self.attachment_files:
+			self.attachments_list_label.Hide()
+			self.attachments_list.Hide()
 			self.Layout()
 			return
-		self.images_list_label.Show()
-		self.images_list.Show()
-		self.Layout()
-		for img_info in self.get_dispay_images():
-			self.images_list.Append(img_info)
-		last_index = len(self.image_files) - 1
-		self.images_list.SetItemState(
+		self.attachments_list_label.Show()
+		self.attachments_list.Show()
+		for attachment in self.attachment_files:
+			self.attachments_list.Append(attachment.get_dispay_info())
+		last_index = len(self.attachment_files) - 1
+		self.attachments_list.SetItemState(
 			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
-		self.images_list.EnsureVisible(last_index)
+		self.attachments_list.EnsureVisible(last_index)
+		self.Layout()
 
-	def add_images(self, paths: list[str | ImageFile]):
-		"""Add one or more images to the conversation.
+	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
+		"""Add one or more attachments to the conversation.
 
 		Args:
-			paths: List of image paths or ImageFile objects to add
+			paths: List of attachment file paths
 		"""
-		log.debug(f"Adding images: {paths}")
+		log.debug(f"Adding attachments: {paths}")
 		for path in paths:
-			if isinstance(path, ImageFile):
-				self.image_files.append(path)
+			if isinstance(path, (AttachmentFile, ImageFile)):
+				self.attachment_files.append(path)
 			else:
-				file = ImageFile(location=path)
-				self.image_files.append(file)
-		self.refresh_images_list()
-		self.images_list.SetFocus()
+				mime_type = get_mime_type(path)
+				supported_attachment_formats = (
+					self.current_engine.supported_attachment_formats
+				)
+				if mime_type not in supported_attachment_formats:
+					wx.MessageBox(
+						# Translators: This message is displayed when there are no supported attachment formats.
+						_(
+							"This attachment format is not supported by the current provider. Source:"
+						)
+						+ f"\n{path}",
+						_("Error"),
+						wx.OK | wx.ICON_ERROR,
+					)
+					continue
+				if mime_type.startswith("image/"):
+					file = ImageFile(location=path)
+				else:
+					file = AttachmentFile(location=path)
+				self.attachment_files.append(file)
+		self.refresh_attachments_list()
+		self.attachments_list.SetFocus()
 
 	def on_config_change(self):
 		"""Handle configuration changes in the conversation tab.
@@ -823,6 +917,120 @@ class ConversationTab(wx.Panel, BaseConversation):
 				start, end = self.get_range_for_current_message()
 				current_message = self.messages.GetRange(start, end)
 				self._handle_accessible_output(current_message)
+				self.report_number_of_citations()
+
+	def _handle_citations(self, citations: list[dict[str, Any]]) -> str:
+		"""Format a list of citations for display.
+
+		Args:
+			citations: The list of citations to format
+
+		Returns:
+			A formatted string containing the citations
+		"""
+		citations_str = []
+		for i, citation in enumerate(citations):
+			location_text = ""
+			cited_text = citation.get("cited_text")
+			document_index = citation.get("document_index")
+			document_title = citation.get("document_title")
+			match citation.get("type"):
+				case "char_location":
+					start_char_index = citation.get("start_char_index", 0)
+					end_char_index = citation.get("end_char_index", 0)
+					# Translators: This is a citation format for character locations
+					location_text = _("C.{start} .. {end}").format(
+						start=start_char_index, end=end_char_index
+					)
+				case "page_location":
+					start_page_number = citation.get("start_page_number", 0)
+					end_page_number = citation.get("end_page_number", 0)
+					# Translators: This is a citation format for page locations
+					location_text = _("P.{start} .. {end}").format(
+						start=start_page_number, end=end_page_number
+					)
+				case _:
+					# Translators: This is a citation format for unknown locations
+					location_text = _("Unknown location")
+					log.warning(f"Unknown citation type: {citation}")
+			if document_index is not None:
+				if document_title:
+					location_text = _(
+						"{document_title} / {location_text}"
+					).format(
+						document_title=document_title,
+						location_text=location_text,
+					)
+				else:
+					location_text = _(
+						"Document {document_index} / {location_text}"
+					).format(
+						document_index=document_index,
+						location_text=location_text,
+					)
+			if cited_text:
+				citations_str.append(
+					# Translators: This is a citation format for a cited text
+					_("{location_text}: “{cited_text}”").format(
+						location_text=location_text,
+						cited_text=cited_text.strip(),
+					)
+				)
+		return "\n_--_\n".join(citations_str)
+
+	def get_current_citations(self) -> list[dict[str, Any]]:
+		"""Get the citations for the current message.
+
+		Returns:
+			The list of citations for the current message
+		"""
+		cursor_pos = self.messages.GetInsertionPoint()
+		self.message_segment_manager.absolute_position = cursor_pos
+		message_block = (
+			self.message_segment_manager.current_segment.message_block()
+		)
+		if not message_block:
+			wx.Bell()
+			return []
+		return message_block.response.citations
+
+	def report_number_of_citations(self):
+		"""Report the number of citations for the current message."""
+		citations = self.get_current_citations()
+		if not citations:
+			return
+		nb_citations = len(citations)
+		self.SetStatusText(
+			# Translators: This is a status message for the number of citations in the current message
+			_("%d citations in the current message") % nb_citations
+		)
+
+	def show_citations(self, event: wx.CommandEvent | None = None):
+		"""Show the citations for the current message.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		self.report_number_of_citations()
+		citations = self.get_current_citations()
+		if not citations:
+			self._handle_accessible_output(
+				# Translators: This message is emitted when there are no citations for the current message.
+				_("No citations for this message"),
+				braille=True,
+			)
+			wx.Bell()
+			return
+		citations_str = self._handle_citations(citations)
+		if not citations_str:
+			wx.Bell()
+			return
+		ReadOnlyMessageDialog(
+			self,
+			# Translators: This is a title for message citations dialog
+			_("Message citations"),
+			citations_str,
+		).ShowModal()
 
 	def go_to_previous_message(self, event: wx.CommandEvent | None = None):
 		"""Navigate to the previous message in the conversation.
@@ -912,6 +1120,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
+		self.report_number_of_citations()
 		cursor_pos = self.messages.GetInsertionPoint()
 		self.message_segment_manager.absolute_position = cursor_pos
 		self.message_segment_manager.focus_content_block()
@@ -982,6 +1191,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- C: Copy current message
 		- B: Move to start of message
 		- N: Move to end of message
+		- Q: Show citations for current message
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)
@@ -999,6 +1209,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		key_actions = {
 			(wx.MOD_SHIFT, wx.WXK_SPACE): self.on_toggle_speak_stream,
 			(wx.MOD_NONE, wx.WXK_SPACE): self.on_read_current_message,
+			(wx.MOD_NONE, ord('Q')): self.show_citations,
 			(wx.MOD_NONE, ord('J')): self.go_to_previous_message,
 			(wx.MOD_NONE, ord('K')): self.go_to_next_message,
 			(wx.MOD_NONE, ord('S')): self.on_select_message,
@@ -1048,7 +1259,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Read current message") + " (space)",
+				_("Read current message") + "	Space",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_read_current_message, item)
@@ -1057,7 +1268,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Speak stream") + " (Shift+Space)",
+				_("Show citations") + "	&Q",
+			)
+			menu.Append(item)
+			self.Bind(wx.EVT_MENU, self.show_citations, item)
+
+			item = wx.MenuItem(
+				menu,
+				wx.ID_ANY,
+				# Translators: This is a label for the Messages area context menu in the main window
+				_("Speak stream") + "	Shift+Space",
 				_("Speak stream"),
 				wx.ITEM_CHECK,
 			)
@@ -1069,7 +1289,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Show as HTML (from Markdown)") + " (&h)",
+				_("Show as HTML (from Markdown)") + "	&H",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_as_html, item)
@@ -1078,7 +1298,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Copy current message") + " (&c)",
+				_("Copy current message") + "	&C",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_message, item)
@@ -1087,7 +1307,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Select current message") + " (&s)",
+				_("Select current message") + "	&S",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_select_message, item)
@@ -1096,7 +1316,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Go to previous message") + " (&j)",
+				_("Go to previous message") + "	&J",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_previous_message, item)
@@ -1105,7 +1325,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Go to next message") + " (&k)",
+				_("Go to next message") + "	&K",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.go_to_next_message, item)
@@ -1114,7 +1334,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Move to start of message") + " (&b)",
+				_("Move to start of message") + "	&B",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_start_of_message, item)
@@ -1123,7 +1343,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Move to end of message") + " (&n)",
+				_("Move to end of message") + "	N",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.move_to_end_of_message, item)
@@ -1132,7 +1352,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("&Remove message block") + " (Shift+Del)",
+				_("&Remove message block") + "	Shift+Del",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_remove_message_block, item)
@@ -1141,7 +1361,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find...") + " (&f)",
+				_("Find...") + "	F",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages, item)
@@ -1150,13 +1370,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for the Messages area context menu in the main window
-				_("Find Next") + " (F3)",
+				_("Find Next") + "	F3",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_next, item)
 
 			item = wx.MenuItem(
-				menu, wx.ID_ANY, _("Find Previous") + " (Shift+F3)"
+				menu, wx.ID_ANY, _("Find Previous") + "	Shift+F3"
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_search_in_messages_previous, item)
@@ -1181,7 +1401,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		menu = wx.Menu()
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Insert previous prompt") + " (Ctrl+Up)"
+			menu, wx.ID_ANY, _("Insert previous prompt") + "	Ctrl+Up"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.insert_previous_prompt, item)
@@ -1190,7 +1410,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_submit, item)
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (image or text)") + " (Ctrl+V)"
+			menu, wx.ID_ANY, _("Paste (file or text)") + "	Ctrl+V"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)
@@ -1239,12 +1459,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_prompt_paste(self, event):
 		"""Handle pasting content from the clipboard into the prompt text control.
 
-		Supports pasting text and images from the clipboard.
+		Supports pasting text and files from the clipboard.
 
 		Args:
 			event: The paste event
 		"""
-		self.on_image_paste(event)
+		self.on_attachments_paste(event)
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		"""Insert the last user message from the conversation history into the prompt text control.
@@ -1384,18 +1604,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		This method updates the conversation display by optionally clearing existing content and then
 		re-displaying all messages from the current conversation. It performs the following steps:
-		- Optionally clears the messages list, message segment manager, and image files
-		- Refreshes the images list
+		- Optionally clears the messages list, message segment manager, and attachment files
+		- Refreshes the attachments list display
 		- Iterates through all message blocks in the conversation and displays them
 
 		Args:
-			need_clear: If True, clears existing messages, message segments, and image files before refreshing. Defaults to True.
+			need_clear: If True, clears existing messages, message segments, and attachments. Defaults to True.
 		"""
 		if need_clear:
 			self.messages.Clear()
 			self.message_segment_manager.clear()
-			self.image_files.clear()
-		self.refresh_images_list()
+			self.attachment_files.clear()
+		self.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.display_new_block(block)
 
@@ -1519,6 +1739,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
+	def has_image_attachments(self) -> bool:
+		"""Check if there are image attachments in the current message block.
+
+		Returns:
+			True if there are image attachments, False otherwise
+		"""
+		return any(
+			attachment.mime_type.startswith("image/")
+			for attachment in self.attachment_files
+		)
+
 	def ensure_model_compatibility(self) -> ProviderAIModel | None:
 		"""Check if current model is compatible with requested operations.
 
@@ -1531,7 +1762,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return None
-		if self.image_files and not model.vision:
+		if self.has_image_attachments() and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
 			)
@@ -1569,8 +1800,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not model:
 			return None
 		if config.conf().images.resize:
-			for image in self.image_files:
-				image.resize(
+			for attachment in self.attachment_files:
+				if not attachment.mime_type.startswith("image/"):
+					continue
+				attachment.resize(
 					self.conv_storage_path,
 					config.conf().images.max_width,
 					config.conf().images.max_height,
@@ -1580,7 +1813,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			request=Message(
 				role=MessageRoleEnum.USER,
 				content=self.prompt.GetValue(),
-				attachments=self.image_files,
+				attachments=self.attachment_files,
 			),
 			model_id=model.id,
 			provider_id=self.current_account.provider.id,
@@ -1608,6 +1841,30 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
+	def _check_attachments_valid(self) -> bool:
+		supported_attachment_formats = (
+			self.current_engine.supported_attachment_formats
+		)
+		invalid_found = False
+		attachments_copy = self.attachment_files[:]
+		for attachment in attachments_copy:
+			if (
+				attachment.mime_type not in supported_attachment_formats
+				or not attachment.location.exists()
+			):
+				self.attachment_files.remove(attachment)
+				msg = (
+					_(
+						"This attachment format is not supported by the current provider. Source:"
+					)
+					if attachment.mime_type not in supported_attachment_formats
+					else _("The attachment file does not exist: %s")
+					% attachment.location
+				)
+				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
+				invalid_found = True
+		return not invalid_found
+
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		"""Handle the submission of a new message block for completion.
@@ -1617,7 +1874,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self.prompt.GetValue() and not self.image_files:
+		if not self._check_attachments_valid():
+			return
+		if not self.prompt.GetValue() and not self.attachment_files:
 			self.prompt.SetFocus()
 			return
 		completion_kw = self.get_completion_args()
@@ -1674,8 +1933,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 				if self._stop_completion or global_vars.app_should_exit:
 					log.debug("Stopping completion")
 					break
-				new_block.response.content += chunk
-				wx.CallAfter(self._handle_completion_with_stream, chunk)
+				if isinstance(chunk, str):
+					new_block.response.content += chunk
+					wx.CallAfter(self._handle_completion_with_stream, chunk)
+				elif isinstance(chunk, tuple):
+					chunk_type, chunk_data = chunk
+					match chunk_type:
+						case "citation":
+							if not new_block.response.citations:
+								new_block.response.citations = []
+							new_block.response.citations.append(chunk_data)
+						case _:
+							log.warning(
+								f"Unknown chunk type in streaming response: {chunk_type}"
+							)
 			wx.CallAfter(self._post_completion_with_stream, new_block)
 		else:
 			new_block = engine.completion_response_without_stream(
@@ -1693,8 +1964,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
-		self.image_files.clear()
-		self.refresh_images_list()
+		self.attachment_files.clear()
+		self.refresh_attachments_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
 		"""Handle a completion response chunk for streaming.
@@ -1818,8 +2089,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.display_new_block(new_block)
 		self._handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
-		self.image_files.clear()
-		self.refresh_images_list()
+		self.attachment_files.clear()
+		self.refresh_attachments_list()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
 		self._end_task()
