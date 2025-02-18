@@ -577,6 +577,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 		This method ensures that the buffered text is appended to the text control and also sent to the accessible output handler for screen readers.
 		"""
+		pos = self.GetInsertionPoint()
 		text = self.stream_buffer
 		if (
 			self._speak_stream
@@ -585,8 +586,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		):
 			self.handle_speech_stream_buffer(new_text=text)
 		self.AppendText(text)
+		self.SetInsertionPoint(pos)
 		self.stream_buffer = ""
-		self.SetInsertionPoint(self.GetLastPosition())
 
 	def append_stream_chunk(self, text: str):
 		"""Append a chunk of text to the speech stream buffer.
