@@ -61,6 +61,13 @@ pytest-cov = "^6.0.0"
 ruff = "^0.9.7"
 setuptools-scm = "^8.2.0"
 
+[tool.coverage.run]
+branch = true
+source = ["basilisk"]
+omit = ["basilisk/__main__.py", "*/tests/*", "*/res/*"]
+[tool.coverage.report]
+skip_empty = true
+precision = 2
 [tool.ruff]
 src = ["src"]
 respect-gitignore = true
