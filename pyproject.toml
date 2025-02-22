@@ -57,7 +57,7 @@ ollama = "^0.4.7"
 commitizen = "^4.2.1"
 pre-commit = "^4.1.0"
 ruff = "^0.9.7"
-setuptools-scm = "^8.0.4"
+setuptools-scm = "^8.2.0"
 
 [tool.ruff]
 src = ["src"]
