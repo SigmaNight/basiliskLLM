@@ -77,7 +77,6 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.stream_buffer = ""
 		self.speech_stream_buffer = ""
 		self.init_role_labels()
-		self.init_menu_msg_info()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
 		self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
@@ -200,7 +199,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		last_segment = self.segment_manager.segments[-1]
 		last_segment.length += last_position - self.segment_manager.end
 
-	def init_menu_msg_info(self):
+	def menu_msg_info(self) -> list[MenuItemInfo]:
 		"""Initialize the message operations menu items.
 
 		Initializes self.msg_menu_info with menu items for various message operations.
@@ -221,7 +220,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Searching for the next occurrence
 		- Searching for the previous occurrence
 		"""
-		self.msg_menu_info = (
+		return (
 			MenuItemInfo(
 				_("Read current message"),
 				"(space)",
@@ -305,7 +304,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		Args:
 			menu: The menu to add items to
 		"""
-		for item_info in self.msg_menu_info:
+		for item_info in self.menu_msg_info():
 			is_checkable = bool(item_info.args and item_info.args[0])
 			item = wx.MenuItem(
 				menu,
@@ -474,7 +473,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			return self._do_search()
 		self._search_dialog.search_next()
 
-	def on_toggle_speak_stream(self, event: wx.Event | None):
+	def on_toggle_speak_stream(self, event: wx.Event | None = None):
 		"""Toggle stream speaking mode."""
 		if event:
 			return wx.CallLater(500, self.on_toggle_speak_stream)
