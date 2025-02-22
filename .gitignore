@@ -23,6 +23,7 @@ env/
 Thumbs.db
 *.db
 *.sqlite3
+.coverage
 .htmlcov/
 *.tmp
 *.temp
