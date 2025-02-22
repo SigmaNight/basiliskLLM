@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
       - name: run tests
-        run: poetry run python run_tests.py
+        run: poetry run pytest --cov
       - name: compile translations
         run: poetry run python setup.py compile_catalog
       - name: Build executable

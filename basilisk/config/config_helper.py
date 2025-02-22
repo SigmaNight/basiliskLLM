@@ -5,7 +5,6 @@ from pathlib import Path
 
 import yaml
 from platformdirs import user_config_path as get_user_config_path
-from pydantic import Extra
 from pydantic_settings import (
 	BaseSettings,
 	PydanticBaseSettingsSource,
@@ -106,7 +105,7 @@ def get_settings_config_dict(file_path: str) -> SettingsConfigDict:
 	"""
 	return SettingsConfigDict(
 		env_prefix="BASILISK_",
-		extra=Extra.allow,
+		extra="allow",
 		yaml_file=search_existing_path(get_config_file_paths(file_path)),
 		yaml_file_encoding="UTF-8",
 	)

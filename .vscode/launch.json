@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug BasiliskLLM",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "basilisk",
+            "args": ["-m"],
+            "justMyCode": false
+        },
+        {
+            "name": "debug test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": true,
+            "purpose": ["debug-test"]
+        },
+    ],
+}

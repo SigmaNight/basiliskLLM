@@ -12,6 +12,7 @@ env/
 *.env
 .idea/
 .vscode/*
+!.vscode/launch.json
 !.vscode/tasks.json
 !.vscode/extensions.json
 !.vscode/settings.json
@@ -22,6 +23,7 @@ env/
 Thumbs.db
 *.db
 *.sqlite3
+.coverage
 .htmlcov/
 *.tmp
 *.temp
@@ -29,3 +31,4 @@ basilisk_config.yml
 *.pot
 *.mo
 user_data/
+coverage.xml
