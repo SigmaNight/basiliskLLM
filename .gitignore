@@ -31,3 +31,4 @@ basilisk_config.yml
 *.pot
 *.mo
 user_data/
+coverage.xml
