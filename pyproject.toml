@@ -56,7 +56,7 @@ ollama = "^0.4.7"
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.2.1"
 pre-commit = "^4.1.0"
-ruff = "^0.9.6"
+ruff = "^0.9.7"
 setuptools-scm = "^8.0.4"
 
 [tool.ruff]
