@@ -42,7 +42,7 @@ pillow = "^11.1.0"
 psutil = "^7.0.0"
 platformdirs = "^4.3.6"
 pydantic = "2.10.6"
-pydantic-settings = "^2.7.1"
+pydantic-settings = "^2.8.0"
 python = "^3.12"
 pywin32 = { version = "^308", markers = "sys_platform == 'win32'" }
 pyyaml = "^6.0.1"
