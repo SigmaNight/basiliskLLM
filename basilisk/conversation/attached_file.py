@@ -21,6 +21,7 @@ from pydantic import (
 	ValidationInfo,
 	field_serializer,
 	field_validator,
+	model_validator,
 )
 from upath import UPath
 
@@ -259,6 +260,19 @@ class AttachmentFile(BaseModel):
 
 	__init__.__pydantic_base_init__ = True
 
+	@model_validator(mode="after")
+	def validate_location_exist(self) -> AttachmentFile:
+		"""Validate the location of the file.
+
+		Raises:
+			FileNotFoundError: If the file does not exist.
+		"""
+		if self.type == AttachmentFileTypes.URL:
+			return self
+		if not self.location.exists():
+			raise FileNotFoundError(f"File {self.location} does not exist")
+		return self
+
 	@property
 	def type(self) -> AttachmentFileTypes:
 		"""Determine the type of file based on its location protocol.
@@ -366,7 +380,7 @@ class AttachmentFile(BaseModel):
 		Returns:
 			A base64-encoded string representing the file.
 		"""
-		with self.location.open(mode="rb") as file:
+		with self.send_location.open(mode="rb") as file:
 			return base64.b64encode(file.read()).decode("utf-8")
 
 	def __del__(self):
@@ -483,9 +497,9 @@ class ImageFile(AttachmentFile):
 		if AttachmentFileTypes.URL == self.type:
 			return
 		log.debug("Resizing image")
-		resize_location = conv_folder.joinpath(
-			"optimized_images", self.location.name
-		)
+		resize_folder = conv_folder.joinpath("optimized_images")
+		resize_folder.mkdir(parents=True, exist_ok=True)
+		resize_location = resize_folder / self.location.name
 		with self.location.open(mode="rb") as src_file:
 			with resize_location.open(mode="wb") as dst_file:
 				success = resize_image(
@@ -518,8 +532,7 @@ class ImageFile(AttachmentFile):
 			log.warning(
 				f"Large image ({self.display_size}) being encoded to base64"
 			)
-		with self.send_location.open(mode="rb") as image_file:
-			return base64.b64encode(image_file.read()).decode("utf-8")
+		return super().encode_base64()
 
 	@property
 	def url(self) -> str:
@@ -532,8 +545,7 @@ class ImageFile(AttachmentFile):
 			raise ValueError("Invalid image type")
 		if self.type == AttachmentFileTypes.URL:
 			return str(self.location)
-		base64_image = self.encode_image()
-		return f"data:{self.mime_type};base64,{base64_image}"
+		return f"data:{self.mime_type};base64,{self.encode_image()}"
 
 	@property
 	def display_location(self):
