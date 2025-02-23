@@ -8,14 +8,13 @@ import logging
 import mimetypes
 import re
 from io import BufferedReader, BufferedWriter, BytesIO
-from typing import Annotated, Any
+from typing import Any
 
 import httpx
 from PIL import Image
 from pydantic import (
 	BaseModel,
 	Field,
-	PlainValidator,
 	SerializationInfo,
 	SerializerFunctionWrapHandler,
 	ValidationInfo,
@@ -26,10 +25,9 @@ from pydantic import (
 from upath import UPath
 
 from basilisk.decorators import measure_time
+from basilisk.types import PydanticUPath
 
 log = logging.getLogger(__name__)
-
-PydanticUPath = Annotated[UPath, PlainValidator(lambda v: UPath(v))]
 
 URL_PATTERN = re.compile(
 	r'(https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+|data:image/\S+)',
