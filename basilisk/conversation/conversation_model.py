@@ -6,7 +6,7 @@ import enum
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from upath import UPath
 
 from basilisk.provider_ai_model import AIModelInfo
@@ -102,6 +102,22 @@ class MessageBlock(BaseModel):
 		super().__init__(**data)
 
 	__init__.__pydantic_base_init__ = True
+
+	@model_validator(mode="after")
+	def validate_roles(self) -> MessageBlock:
+		"""Validates that the roles of the request and response messages are correct.
+
+		Returns:
+			The validated MessageBlock instance.
+
+		Raises:
+			ValueError: If the roles of the request and response messages are invalid.
+		"""
+		if self.request.role != MessageRoleEnum.USER:
+			raise ValueError("Request message must be from the user.")
+		if self.response and self.response.role != MessageRoleEnum.ASSISTANT:
+			raise ValueError("Response message must be from the assistant.")
+		return self
 
 
 class Conversation(BaseModel):
