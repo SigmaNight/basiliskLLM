@@ -8,9 +8,12 @@ import logging
 from datetime import datetime
 from decimal import Decimal, getcontext
 from functools import cached_property
+from typing import Generator, Union
 
 import httpx
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
+from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.decorators import measure_time
 
 from .base_engine import ProviderAIModel
@@ -34,6 +37,7 @@ class OpenRouterEngine(OpenAIEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.WEB_SEARCH,
 	}
 
 	def summarize_pricing(self, pricing: dict[str, dict[str, str]]) -> str:
@@ -123,3 +127,45 @@ class OpenRouterEngine(OpenAIEngine):
 				f"Failed to get models from {url}. Response: {response.text}"
 			)
 		return models
+
+	def completion(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		**kwargs,
+	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+		"""Generates a chat completion using the OpenAI API.
+
+		Args:
+			new_block: The message block containing generation parameters.
+			conversation: The conversation history context.
+			system_message: Optional system message to guide the AI's behavior.
+			**kwargs: Additional keyword arguments for the API request.
+
+		Returns:
+			Either a complete chat completion response or a generator for streaming
+			chat completion chunks.
+		"""
+		extra_body = kwargs.get("extra_body", {})
+		plugins = []
+		if "web_search_mode" in kwargs:
+			if kwargs["web_search_mode"]:
+				plugins.append(
+					{
+						"id": "web",
+						"max_results": 5,
+						"search_prompt": "Consider these web results when forming your response:",
+					}
+				)
+			kwargs.pop("web_search_mode")
+
+		if plugins:
+			extra_body["plugins"] = plugins
+		return super().completion(
+			new_block,
+			conversation,
+			system_message,
+			extra_body=extra_body,
+			**kwargs,
+		)
