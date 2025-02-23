@@ -118,6 +118,7 @@ def test_create_empty_conversation():
 
 
 def test_add_message_to_conversation():
+	"""Test adding a message to a conversation."""
 	conv = Conversation()
 	model = AIModelInfo(provider_id="anthropic", model_id="test")
 	req_msg = Message(role=MessageRoleEnum.USER, content="Hello")
