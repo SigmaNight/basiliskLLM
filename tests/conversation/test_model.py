@@ -113,7 +113,7 @@ def test_create_empty_conversation():
 	"""Test creating an empty conversation."""
 	conv = Conversation()
 	assert conv.messages == []
-	assert conv.system is None
+	assert conv.systems == {}
 	assert conv.title is None
 
 
