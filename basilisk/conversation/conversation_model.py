@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from upath import UPath
 
 from basilisk.provider_ai_model import AIModelInfo
+from basilisk.types import PydanticOrderedSet
 
 from .attached_file import AttachmentFile, ImageFile
 from .conversation_helper import create_bskc_file, open_bskc_file
@@ -42,13 +43,66 @@ class MessageRoleEnum(enum.StrEnum):
 		}
 
 
-class Message(BaseModel):
-	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
+class BaseMessage(BaseModel):
+	"""Base class for messages in a conversation. This class contains common attributes and methods for all message types."""
 
 	role: MessageRoleEnum
 	content: str
+
+
+class Message(BaseMessage):
+	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
+
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+
+	@field_validator("role", mode="after")
+	@classmethod
+	def validate_role(cls, value: MessageRoleEnum) -> MessageRoleEnum:
+		"""Validates that the role of the message is not 'system'.
+
+		Args:
+			value: The role of the message to validate.
+
+		Returns:
+			The original role value if it is not 'system'.
+
+		Raises:
+			ValueError: If the role is 'system'.
+		"""
+		if value == MessageRoleEnum.SYSTEM:
+			raise ValueError("message cannot be system role.")
+		return value
+
+
+class SystemMessage(BaseMessage):
+	"""Represents a system message in a conversation. The system message is used to provide instructions or context to the assistant."""
+
+	@field_validator("role", mode="after")
+	@classmethod
+	def validate_role(cls, value: MessageRoleEnum) -> MessageRoleEnum:
+		"""Validates that the role of the system message is 'system'.
+
+		Args:
+			value: The role of the message to validate.
+
+		Returns:
+			The original role value if it is 'system'.
+
+		Raises:
+			ValueError: If the role is not 'system'.
+		"""
+		if value != MessageRoleEnum.SYSTEM:
+			raise ValueError("System messages must have role system.")
+		return value
+
+	def __hash__(self):
+		"""Compute a hash for the system message based on its content and role.
+
+		Returns:
+			Hash value for the system message.
+		"""
+		return hash((self.role, self.content))
 
 
 class MessageBlock(BaseModel):
@@ -56,6 +110,7 @@ class MessageBlock(BaseModel):
 
 	request: Message
 	response: Message | None = Field(default=None)
+	system_index: int | None = Field(default=None, ge=0)
 	model: AIModelInfo
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
@@ -123,9 +178,28 @@ class MessageBlock(BaseModel):
 class Conversation(BaseModel):
 	"""Represents a conversation between users and the bot. The conversation may contain messages and a title."""
 
-	system: Message | None = Field(default=None)
+	systems: PydanticOrderedSet[SystemMessage] = Field(
+		default_factory=PydanticOrderedSet
+	)
 	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+
+	@model_validator(mode="after")
+	def validate_system_indexes(self) -> Conversation:
+		"""Validates that all system indexes in the messages are valid.
+
+		Returns:
+			The validated Conversation instance.
+
+		Raises:
+			ValueError: If any system index in the messages is invalid.
+		"""
+		systems_length = len(self.systems)
+		for message in self.messages:
+			index = message.system_index
+			if index is not None and index >= systems_length:
+				raise ValueError("Invalid system index")
+		return self
 
 	@classmethod
 	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
