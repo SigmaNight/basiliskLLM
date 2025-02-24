@@ -201,6 +201,20 @@ class Conversation(BaseModel):
 				raise ValueError("Invalid system index")
 		return self
 
+	def add_block(
+		self, block: MessageBlock, system: SystemMessage | None = None
+	):
+		"""Adds a message block to the conversation.
+
+		Args:
+			block: The message block to be added to the conversation.
+			system: The system message to be added to the conversation.
+		"""
+		if system:
+			index = self.systems.add(system)
+			block.system_index = index
+		self.messages.append(block)
+
 	@classmethod
 	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
 		"""Open a conversation from a file at the specified path.
