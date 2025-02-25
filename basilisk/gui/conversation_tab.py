@@ -253,6 +253,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.create_web_search_widget()
+		sizer.Add(self.web_search_mode, proportion=0, flag=wx.EXPAND)
 		self.create_max_tokens_widget()
 		sizer.Add(self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
@@ -360,6 +362,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.set_model_list(None)
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
+		)
+		self.web_search_mode.Enable(
+			ProviderCapability.WEB_SEARCH
+			in account.provider.engine_cls.capabilities
 		)
 
 	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
@@ -1142,7 +1148,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		new_block = self.get_new_message_block()
 		if not new_block:
 			return None
-		return {
+		completion_args = {}
+		if (
+			ProviderCapability.WEB_SEARCH
+			in self.current_account.provider.engine_cls.capabilities
+		):
+			completion_args["web_search_mode"] = self.web_search_mode.GetValue()
+
+		return completion_args | {
 			"engine": self.current_engine,
 			"system_message": self.get_system_message(),
 			"conversation": self.conversation,
