@@ -6,10 +6,11 @@ import enum
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from upath import UPath
 
 from basilisk.provider_ai_model import AIModelInfo
+from basilisk.types import PydanticOrderedSet
 
 from .attached_file import AttachmentFile, ImageFile
 from .conversation_helper import create_bskc_file, open_bskc_file
@@ -42,13 +43,66 @@ class MessageRoleEnum(enum.StrEnum):
 		}
 
 
-class Message(BaseModel):
-	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
+class BaseMessage(BaseModel):
+	"""Base class for messages in a conversation. This class contains common attributes and methods for all message types."""
 
 	role: MessageRoleEnum
 	content: str
+
+
+class Message(BaseMessage):
+	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
+
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+
+	@field_validator("role", mode="after")
+	@classmethod
+	def validate_role(cls, value: MessageRoleEnum) -> MessageRoleEnum:
+		"""Validates that the role of the message is not 'system'.
+
+		Args:
+			value: The role of the message to validate.
+
+		Returns:
+			The original role value if it is not 'system'.
+
+		Raises:
+			ValueError: If the role is 'system'.
+		"""
+		if value == MessageRoleEnum.SYSTEM:
+			raise ValueError("message cannot be system role.")
+		return value
+
+
+class SystemMessage(BaseMessage):
+	"""Represents a system message in a conversation. The system message is used to provide instructions or context to the assistant."""
+
+	@field_validator("role", mode="after")
+	@classmethod
+	def validate_role(cls, value: MessageRoleEnum) -> MessageRoleEnum:
+		"""Validates that the role of the system message is 'system'.
+
+		Args:
+			value: The role of the message to validate.
+
+		Returns:
+			The original role value if it is 'system'.
+
+		Raises:
+			ValueError: If the role is not 'system'.
+		"""
+		if value != MessageRoleEnum.SYSTEM:
+			raise ValueError("System messages must have role system.")
+		return value
+
+	def __hash__(self):
+		"""Compute a hash for the system message based on its content and role.
+
+		Returns:
+			Hash value for the system message.
+		"""
+		return hash((self.role, self.content))
 
 
 class MessageBlock(BaseModel):
@@ -56,6 +110,7 @@ class MessageBlock(BaseModel):
 
 	request: Message
 	response: Message | None = Field(default=None)
+	system_index: int | None = Field(default=None, ge=0)
 	model: AIModelInfo
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
@@ -103,13 +158,95 @@ class MessageBlock(BaseModel):
 
 	__init__.__pydantic_base_init__ = True
 
+	@model_validator(mode="after")
+	def validate_roles(self) -> MessageBlock:
+		"""Validates that the roles of the request and response messages are correct.
+
+		Returns:
+			The validated MessageBlock instance.
+
+		Raises:
+			ValueError: If the roles of the request and response messages are invalid.
+		"""
+		if self.request.role != MessageRoleEnum.USER:
+			raise ValueError("Request message must be from the user.")
+		if self.response and self.response.role != MessageRoleEnum.ASSISTANT:
+			raise ValueError("Response message must be from the assistant.")
+		return self
+
 
 class Conversation(BaseModel):
 	"""Represents a conversation between users and the bot. The conversation may contain messages and a title."""
 
-	system: Message | None = Field(default=None)
+	systems: PydanticOrderedSet[SystemMessage] = Field(
+		default_factory=PydanticOrderedSet
+	)
 	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+
+	@model_validator(mode="after")
+	def validate_system_indexes(self) -> Conversation:
+		"""Validates that all system indexes in the messages are valid.
+
+		Returns:
+			The validated Conversation instance.
+
+		Raises:
+			ValueError: If any system index in the messages is invalid.
+		"""
+		systems_length = len(self.systems)
+		for message in self.messages:
+			index = message.system_index
+			if index is not None and index >= systems_length:
+				raise ValueError("Invalid system index")
+		return self
+
+	def add_block(
+		self, block: MessageBlock, system: SystemMessage | None = None
+	):
+		"""Adds a message block to the conversation.
+
+		Args:
+			block: The message block to be added to the conversation.
+			system: The system message to be added to the conversation.
+		"""
+		if system:
+			index = self.systems.add(system)
+			block.system_index = index
+		self.messages.append(block)
+
+	def remove_block(self, block: MessageBlock) -> None:
+		"""Removes a message block from the conversation and manages system messages.
+
+		If a system message is not referenced by any block after removal,
+		the system message will also be removed.
+
+		Args:
+			block: The message block to be removed from the conversation.
+
+		Raises:
+			ValueError: If the block is not found in the conversation.
+		"""
+		system_index = block.system_index
+		self.messages.remove(block)
+		if system_index is not None:
+			self._remove_orphaned_system(system_index)
+
+	def _remove_orphaned_system(self, system_index: int) -> None:
+		"""Removes a system message from the conversation if it is not referenced by any block.
+
+		Args:
+			system_index: The index of the system message to remove.
+		"""
+		is_referenced = any(
+			b.system_index == system_index for b in self.messages
+		)
+		if not is_referenced:
+			system_to_remove = self.systems[system_index]
+			self.systems.discard(system_to_remove)
+			for block in self.messages:
+				if block.system_index > system_index:
+					block.system_index -= 1
 
 	@classmethod
 	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
