@@ -97,6 +97,8 @@ def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
 			with new_path.open(mode="wb") as new_file:
 				shutil.copyfileobj(attachment_file, new_file)
 		attachment.location = new_path
+		if not isinstance(attachment, ImageFile):
+			continue
 		if conf().images.resize:
 			attachment.resize(
 				storage_path,
