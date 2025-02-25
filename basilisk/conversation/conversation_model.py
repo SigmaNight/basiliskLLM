@@ -215,6 +215,39 @@ class Conversation(BaseModel):
 			block.system_index = index
 		self.messages.append(block)
 
+	def remove_block(self, block: MessageBlock) -> None:
+		"""Removes a message block from the conversation and manages system messages.
+
+		If a system message is not referenced by any block after removal,
+		the system message will also be removed.
+
+		Args:
+			block: The message block to be removed from the conversation.
+
+		Raises:
+			ValueError: If the block is not found in the conversation.
+		"""
+		system_index = block.system_index
+		self.messages.remove(block)
+		if system_index is not None:
+			self._remove_orphaned_system(system_index)
+
+	def _remove_orphaned_system(self, system_index: int) -> None:
+		"""Removes a system message from the conversation if it is not referenced by any block.
+
+		Args:
+			system_index: The index of the system message to remove.
+		"""
+		is_referenced = any(
+			b.system_index == system_index for b in self.messages
+		)
+		if not is_referenced:
+			system_to_remove = self.systems[system_index]
+			self.systems.discard(system_to_remove)
+			for block in self.messages:
+				if block.system_index > system_index:
+					block.system_index -= 1
+
 	@classmethod
 	def open(cls, file_path: str, base_storage_path: UPath) -> Conversation:
 		"""Open a conversation from a file at the specified path.
