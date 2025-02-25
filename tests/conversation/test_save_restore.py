@@ -5,7 +5,6 @@ import os
 import zipfile
 
 import pytest
-from PIL import Image
 from upath import UPath
 
 from basilisk.conversation import (
@@ -17,338 +16,440 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.provider_ai_model import AIModelInfo
-
-
-def test_save_empty_conversation(tmp_path: str):
-	"""Test saving an empty conversation."""
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-	conversation = Conversation()
-	conversation.save(temp_path)
-	assert os.path.exists(temp_path)
-	assert zipfile.is_zipfile(temp_path)
-	with zipfile.ZipFile(temp_path, "r") as zip_file:
-		assert "conversation.json" in zip_file.namelist()
-		with zip_file.open("conversation.json") as json_file:
-			data = json.load(json_file)
-			assert data == {"messages": [], "systems": [], "title": None}
-
-
-def test_restore_empty_conversation(tmp_path: str):
-	"""Test restoring an empty conversation."""
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-	with zipfile.ZipFile(temp_path, "w") as zip_file:
-		with zip_file.open("conversation.json", "w") as json_file:
-			conv = {"messages": [], "systems": [], "title": None}
-			conv = json.dumps(conv).encode("utf-8")
-			json_file.write(conv)
-	base_storage_path = UPath("memory://test_restore")
-	restored_conversation = Conversation.open(temp_path, base_storage_path)
-
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 0
-	assert len(restored_conversation.systems) == 0
-	assert restored_conversation.title is None
-
-
-def test_save_restore_conversation_with_messages(tmp_path: str):
-	"""Test saving and restoring a conversation with messages."""
-	conversation = Conversation()
-	conversation.title = "Test Conversation"
-
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-
-	request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
-	response1 = Message(
-		role=MessageRoleEnum.ASSISTANT, content="Test response 1"
-	)
-	block1 = MessageBlock(request=request1, response=response1, model=model)
-
-	request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
-	block2 = MessageBlock(request=request2, model=model)
-
-	conversation.add_block(block1)
-	conversation.add_block(block2)
-
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-	conversation.save(temp_path)
-
-	storage_path = UPath("memory://test_restore")
-
-	restored_conversation = Conversation.open(temp_path, storage_path)
-
-	assert isinstance(restored_conversation, Conversation)
-	assert restored_conversation.title == "Test Conversation"
-	assert len(restored_conversation.messages) == 2
-	assert restored_conversation.messages[0].request.content == "Test message 1"
-	assert (
-		restored_conversation.messages[0].response.content == "Test response 1"
-	)
-	assert restored_conversation.messages[0].model.provider_id == "openai"
-	assert restored_conversation.messages[0].model.model_id == "test_model"
-
-	assert restored_conversation.messages[1].request.content == "Test message 2"
-	assert restored_conversation.messages[1].response is None
-	assert restored_conversation.messages[1].model.provider_id == "openai"
-
-
-def test_save_restore_conversation_with_system_messages(tmp_path: str):
-	"""Test saving and restoring a conversation with system messages."""
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-
-	system1 = SystemMessage(
-		role=MessageRoleEnum.SYSTEM, content="System instructions 1"
-	)
-
-	system2 = SystemMessage(
-		role=MessageRoleEnum.SYSTEM, content="System instructions 2"
-	)
-
-	request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
-	block1 = MessageBlock(request=request1, model=model)
-
-	request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
-	block2 = MessageBlock(request=request2, model=model)
-
-	conversation.add_block(block1, system1)
-	conversation.add_block(block2, system2)
-
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-
-	conversation.save(temp_path)
-	storage_path = UPath("memory://test_system_restore")
-	restored_conversation = Conversation.open(temp_path, storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.systems) == 2
-	assert restored_conversation.systems[0].content == "System instructions 1"
-	assert restored_conversation.systems[1].content == "System instructions 2"
-	assert restored_conversation.messages[0].system_index == 0
-	assert restored_conversation.messages[1].system_index == 1
-
-
-def test_save_restore_conversation_with_shared_system_message(tmp_path: str):
-	"""Test saving and restoring a conversation with shared system messages."""
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-	system = SystemMessage(
-		role=MessageRoleEnum.SYSTEM, content="Shared system instructions"
-	)
-	request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
-	block1 = MessageBlock(request=request1, model=model)
-
-	request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
-	block2 = MessageBlock(request=request2, model=model)
-
-	conversation.add_block(block1, system)
-	conversation.add_block(block2, system)
-
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-	conversation.save(temp_path)
-
-	storage_path = UPath("memory://test_shared_system_restore")
-	restored_conversation = Conversation.open(temp_path, storage_path)
-
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.systems) == 1
-	assert (
-		restored_conversation.systems[0].content == "Shared system instructions"
-	)
-	assert restored_conversation.messages[0].system_index == 0
-	assert restored_conversation.messages[1].system_index == 0
-
-
-def test_save_restore_invalid_file(tmp_path: str):
-	"""Test restoring from an invalid file."""
-	temp_path = UPath(f"{tmp_path}{os.sep}invalid_file.bskc")
-	with temp_path.open("wb") as temp_file:
-		temp_file.write(b"This is not a valid zip file")
-
-	storage_path = UPath("memory://test_invalid_restore")
-	with pytest.raises(zipfile.BadZipFile):
-		Conversation.open(temp_path, storage_path)
-
-
-def test_save_restore_with_image_attachment(tmp_path: str):
-	"""Test saving and restoring a conversation with image attachments."""
-	image_path = UPath(tmp_path) / "test_image.png"
-	with image_path.open("wb") as f:
-		img = Image.new('RGB', (100, 50), color='red')
-		img.save(f, format='PNG')
-
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-
-	image_attachment = ImageFile(location=image_path)
-
-	request = Message(
-		role=MessageRoleEnum.USER,
-		content="Test message with image",
-		attachments=[image_attachment],
-	)
-
-	block = MessageBlock(request=request, model=model)
-	conversation.add_block(block)
-
-	bskc_path = tmp_path / "test_conversation.bskc"
-	conversation.save(str(bskc_path))
-
-	storage_path = UPath("memory://test_image_restore")
-	restored_conversation = Conversation.open(str(bskc_path), storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 1
-	restored_attachment = restored_conversation.messages[0].request.attachments[
-		0
-	]
-	assert isinstance(restored_attachment, ImageFile)
-	assert restored_attachment.dimensions == (100, 50)
-	assert restored_attachment.location.exists()
-
-
-def test_save_restore_with_text_attachment(tmp_path: str):
-	"""Test saving and restoring a conversation with text file attachments."""
-	text_path = UPath(tmp_path) / "test_file.txt"
-	with text_path.open("w") as f:
-		f.write("This is a test file content")
-
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-	text_attachment = AttachmentFile(location=text_path)
-	request = Message(
-		role=MessageRoleEnum.USER,
-		content="Test message with text file",
-		attachments=[text_attachment],
-	)
-
-	block = MessageBlock(request=request, model=model)
-
-	conversation.add_block(block)
-	bskc_path = tmp_path / "test_conversation.bskc"
-	conversation.save(str(bskc_path))
-
-	storage_path = UPath("memory://test_text_restore")
-	restored_conversation = Conversation.open(str(bskc_path), storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 1
-	restored_attachment = restored_conversation.messages[0].request.attachments[
-		0
-	]
-	assert isinstance(restored_attachment, AttachmentFile)
-
-	restored_file_path = restored_attachment.location
-	assert restored_file_path.exists()
-
-	with restored_file_path.open("r") as f:
-		content = f.read()
-		assert content == "This is a test file content"
-
-
-def test_save_restore_with_url_attachment(tmp_path: str):
-	"""Test saving and restoring a conversation with URL attachments."""
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-	url = "https://example.com/image.jpg"
-	image = ImageFile(location=UPath(url))
-	request = Message(
-		role=MessageRoleEnum.USER,
-		content="Test message with URL image",
-		attachments=[image],
-	)
-	block = MessageBlock(request=request, model=model)
-	conversation.add_block(block)
-	bskc_path = tmp_path / "test_conversation.bskc"
-	conversation.save(str(bskc_path))
-
-	storage_path = UPath("memory://test_url_restore")
-	restored_conversation = Conversation.open(str(bskc_path), storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 1
-	restored_attachment = restored_conversation.messages[0].request.attachments[
-		0
-	]
-	assert isinstance(restored_attachment, ImageFile)
-	assert str(restored_attachment.location) == url
-
-
-def test_save_restore_with_multiple_attachments(tmp_path: str):
-	"""Test saving and restoring a conversation with multiple attachments."""
-	text_path = UPath(tmp_path) / "test_file.txt"
-	with text_path.open("w") as f:
-		f.write("This is a test file content")
-
-	image_path = UPath(tmp_path) / "test_image.png"
-	with image_path.open("wb") as f:
-		img = Image.new('RGB', (100, 50), color='red')
-		img.save(f, format='PNG')
-
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-
-	text_attachment = AttachmentFile(location=text_path)
-	image_attachment = ImageFile(location=image_path)
-	url_image = ImageFile(location=UPath("https://example.com/image.jpg"))
-
-	request = Message(
-		role=MessageRoleEnum.USER,
-		content="Test message with multiple attachments",
-		attachments=[text_attachment, image_attachment, url_image],
-	)
-	block = MessageBlock(request=request, model=model)
-	conversation.add_block(block)
-
-	bskc_path = tmp_path / "test_conversation.bskc"
-	conversation.save(str(bskc_path))
-
-	storage_path = UPath("memory://test_multiple_restore")
-	restored_conversation = Conversation.open(str(bskc_path), storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 1
-	restored_attachments = restored_conversation.messages[0].request.attachments
-	assert len(restored_attachments) == 3
-	assert isinstance(restored_attachments[0], AttachmentFile)
-	assert isinstance(restored_attachments[1], ImageFile)
-	assert isinstance(restored_attachments[2], ImageFile)
-	assert restored_attachments[0].location.exists()
-	assert restored_attachments[1].location.exists()
-	assert (
-		str(restored_attachments[2].location) == "https://example.com/image.jpg"
-	)
-
-
-def test_save_conversation_with_citations(tmp_path: str):
-	"""Test saving and restoring a conversation with citations."""
-	conversation = Conversation()
-	model = AIModelInfo(provider_id="openai", model_id="test_model")
-	citations = [
-		{"text": "Citation 1", "source": "Source 1", "page": 42},
-		{
-			"text": "Citation 2",
-			"source": "Source 2",
-			"url": "https://example.com",
-		},
-	]
-
-	request = Message(role=MessageRoleEnum.USER, content="Test message")
-	response = Message(
-		role=MessageRoleEnum.ASSISTANT,
-		content="Test response with citations",
-		citations=citations,
-	)
-	block = MessageBlock(request=request, response=response, model=model)
-
-	conversation.add_block(block)
-	temp_path = f"{tmp_path}{os.sep}test_conversation.bskc"
-	conversation.save(temp_path)
-
-	storage_path = UPath("memory://test_citation_restore")
-	restored_conversation = Conversation.open(temp_path, storage_path)
-	assert isinstance(restored_conversation, Conversation)
-	assert len(restored_conversation.messages) == 1
-	restored_citations = restored_conversation.messages[0].response.citations
-	assert len(restored_citations) == 2
-	assert restored_citations[0]["text"] == "Citation 1"
-	assert restored_citations[0]["source"] == "Source 1"
-	assert restored_citations[0]["page"] == 42
-	assert restored_citations[1]["text"] == "Citation 2"
-	assert restored_citations[1]["source"] == "Source 2"
-	assert restored_citations[1]["url"] == "https://example.com"
+
+
+class TestBasicSaveRestore:
+	"""Tests for basic conversation save and restore functionality."""
+
+	@pytest.fixture
+	def bskc_path(self, tmp_path, request):
+		"""Return a test conversation file path."""
+		return f"{tmp_path}{os.sep}{request.node.name}.bskc"
+
+	@pytest.fixture
+	def storage_path(self, request):
+		"""Return a test storage path."""
+		return UPath("memory://{request.node.name}")
+
+	def test_save_empty_conversation(self, empty_conversation, bskc_path):
+		"""Test saving an empty conversation."""
+		empty_conversation.save(bskc_path)
+
+		assert os.path.exists(bskc_path)
+		assert zipfile.is_zipfile(bskc_path)
+
+		with zipfile.ZipFile(bskc_path, "r") as zip_file:
+			assert "conversation.json" in zip_file.namelist()
+			with zip_file.open("conversation.json") as json_file:
+				data = json.load(json_file)
+				assert data == {"messages": [], "systems": [], "title": None}
+
+	def test_restore_empty_conversation(self, bskc_path, storage_path):
+		"""Test restoring an empty conversation."""
+		# Create a test conversation file
+		with zipfile.ZipFile(bskc_path, "w") as zip_file:
+			with zip_file.open("conversation.json", "w") as json_file:
+				conv_data = {"messages": [], "systems": [], "title": None}
+				conv_json = json.dumps(conv_data).encode("utf-8")
+				json_file.write(conv_json)
+
+		restored_conversation = Conversation.open(bskc_path, storage_path)
+
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 0
+		assert len(restored_conversation.systems) == 0
+		assert restored_conversation.title is None
+
+	def test_save_restore_conversation_with_messages(
+		self, empty_conversation, ai_model, bskc_path, storage_path
+	):
+		"""Test saving and restoring a conversation with messages."""
+		# Setup conversation with messages
+		empty_conversation.title = "Test Conversation"
+
+		request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
+		response1 = Message(
+			role=MessageRoleEnum.ASSISTANT, content="Test response 1"
+		)
+		block1 = MessageBlock(
+			request=request1, response=response1, model=ai_model
+		)
+
+		request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
+		block2 = MessageBlock(request=request2, model=ai_model)
+
+		empty_conversation.add_block(block1)
+		empty_conversation.add_block(block2)
+
+		# Save conversation
+		empty_conversation.save(bskc_path)
+
+		# Restore conversation
+		restored_conversation = Conversation.open(bskc_path, storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert restored_conversation.title == "Test Conversation"
+		assert len(restored_conversation.messages) == 2
+
+		# Check first message
+		assert (
+			restored_conversation.messages[0].request.content
+			== "Test message 1"
+		)
+		assert (
+			restored_conversation.messages[0].response.content
+			== "Test response 1"
+		)
+		assert restored_conversation.messages[0].model.provider_id == "openai"
+		assert restored_conversation.messages[0].model.model_id == "test_model"
+
+		# Check second message
+		assert (
+			restored_conversation.messages[1].request.content
+			== "Test message 2"
+		)
+		assert restored_conversation.messages[1].response is None
+		assert restored_conversation.messages[1].model.provider_id == "openai"
+
+	def test_save_restore_invalid_file(self, tmp_path, storage_path):
+		"""Test restoring from an invalid file."""
+		# Create an invalid file
+		temp_path = UPath(f"{tmp_path}{os.sep}invalid_file.bskc")
+		with temp_path.open("wb") as temp_file:
+			temp_file.write(b"This is not a valid zip file")
+
+		with pytest.raises(zipfile.BadZipFile):
+			Conversation.open(temp_path, storage_path)
+
+
+class TestSystemMessageSaveRestore:
+	"""Tests for saving and restoring conversations with system messages."""
+
+	@pytest.fixture
+	def bskc_path(self, tmp_path):
+		"""Return a test conversation file path."""
+		return f"{tmp_path}{os.sep}test_conversation.bskc"
+
+	@pytest.fixture
+	def storage_path(self):
+		"""Return a test storage path."""
+		return UPath("memory://test_system_restore")
+
+	def test_save_restore_with_system_messages(
+		self, empty_conversation, ai_model, bskc_path, storage_path
+	):
+		"""Test saving and restoring a conversation with system messages."""
+		# Create system messages
+		system1 = SystemMessage(
+			role=MessageRoleEnum.SYSTEM, content="System instructions 1"
+		)
+		system2 = SystemMessage(
+			role=MessageRoleEnum.SYSTEM, content="System instructions 2"
+		)
+
+		# Create message blocks
+		request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
+		block1 = MessageBlock(request=request1, model=ai_model)
+
+		request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
+		block2 = MessageBlock(request=request2, model=ai_model)
+
+		# Add blocks with system messages
+		empty_conversation.add_block(block1, system1)
+		empty_conversation.add_block(block2, system2)
+
+		# Save and restore conversation
+		empty_conversation.save(bskc_path)
+		restored_conversation = Conversation.open(bskc_path, storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.systems) == 2
+		assert (
+			restored_conversation.systems[0].content == "System instructions 1"
+		)
+		assert (
+			restored_conversation.systems[1].content == "System instructions 2"
+		)
+		assert restored_conversation.messages[0].system_index == 0
+		assert restored_conversation.messages[1].system_index == 1
+
+	def test_save_restore_with_shared_system_message(
+		self, empty_conversation, ai_model, bskc_path, storage_path
+	):
+		"""Test saving and restoring a conversation with shared system messages."""
+		# Create shared system message
+		system = SystemMessage(
+			role=MessageRoleEnum.SYSTEM, content="Shared system instructions"
+		)
+
+		# Create message blocks
+		request1 = Message(role=MessageRoleEnum.USER, content="Test message 1")
+		block1 = MessageBlock(request=request1, model=ai_model)
+
+		request2 = Message(role=MessageRoleEnum.USER, content="Test message 2")
+		block2 = MessageBlock(request=request2, model=ai_model)
+
+		# Add blocks with the same system message
+		empty_conversation.add_block(block1, system)
+		empty_conversation.add_block(block2, system)
+
+		# Save and restore conversation
+		empty_conversation.save(bskc_path)
+		restored_conversation = Conversation.open(bskc_path, storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.systems) == 1
+		assert (
+			restored_conversation.systems[0].content
+			== "Shared system instructions"
+		)
+		assert restored_conversation.messages[0].system_index == 0
+		assert restored_conversation.messages[1].system_index == 0
+
+
+class TestAttachmentSaveRestore:
+	"""Tests for saving and restoring conversations with attachments."""
+
+	@pytest.fixture
+	def bskc_path(self, tmp_path):
+		"""Return a test conversation file path."""
+		return f"{tmp_path}{os.sep}test_conversation.bskc"
+
+	@pytest.fixture
+	def text_content(self):
+		"""Return test text content."""
+		return "This is a test file content"
+
+	@pytest.fixture
+	def text_path(self, tmp_path, text_content):
+		"""Create and return a text file path."""
+		path = UPath(tmp_path) / "test_file.txt"
+		with path.open("w") as f:
+			f.write(text_content)
+		return path
+
+	@pytest.fixture
+	def text_attachment(self, text_path):
+		"""Return a text file attachment."""
+		return AttachmentFile(location=text_path)
+
+	@pytest.fixture
+	def url_image(self):
+		"""Return a URL image attachment."""
+		url = "https://example.com/image.jpg"
+		return ImageFile(location=UPath(url))
+
+	def test_save_restore_with_image_attachment(
+		self, empty_conversation, ai_model, image_file, bskc_path
+	):
+		"""Test saving and restoring a conversation with image attachments."""
+		# Create image attachment
+		image_attachment = ImageFile(location=image_file)
+
+		# Create message with image attachment
+		request = Message(
+			role=MessageRoleEnum.USER,
+			content="Test message with image",
+			attachments=[image_attachment],
+		)
+
+		# Add message to conversation
+		block = MessageBlock(request=request, model=ai_model)
+		empty_conversation.add_block(block)
+
+		# Save conversation
+		empty_conversation.save(str(bskc_path))
+
+		# Restore conversation
+		storage_path = UPath("memory://test_image_restore")
+		restored_conversation = Conversation.open(str(bskc_path), storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 1
+
+		# Verify restored attachment
+		restored_attachment = restored_conversation.messages[
+			0
+		].request.attachments[0]
+		assert isinstance(restored_attachment, ImageFile)
+		assert restored_attachment.dimensions == (100, 50)
+		assert restored_attachment.location.exists()
+
+	def test_save_restore_with_text_attachment(
+		self,
+		empty_conversation,
+		ai_model,
+		text_attachment,
+		text_content,
+		bskc_path,
+	):
+		"""Test saving and restoring a conversation with text file attachments."""
+		# Create message with text attachment
+		request = Message(
+			role=MessageRoleEnum.USER,
+			content="Test message with text file",
+			attachments=[text_attachment],
+		)
+
+		# Add message to conversation
+		block = MessageBlock(request=request, model=ai_model)
+		empty_conversation.add_block(block)
+
+		# Save conversation
+		empty_conversation.save(str(bskc_path))
+
+		# Restore conversation
+		storage_path = UPath("memory://test_text_restore")
+		restored_conversation = Conversation.open(str(bskc_path), storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 1
+
+		# Verify restored attachment
+		restored_attachment = restored_conversation.messages[
+			0
+		].request.attachments[0]
+		assert isinstance(restored_attachment, AttachmentFile)
+
+		# Verify file exists and content
+		restored_file_path = restored_attachment.location
+		assert restored_file_path.exists()
+		with restored_file_path.open("r") as f:
+			content = f.read()
+			assert content == text_content
+
+	def test_save_restore_with_url_attachment(
+		self, empty_conversation, ai_model, url_image, bskc_path
+	):
+		"""Test saving and restoring a conversation with URL attachments."""
+		# Create message with URL attachment
+		request = Message(
+			role=MessageRoleEnum.USER,
+			content="Test message with URL image",
+			attachments=[url_image],
+		)
+
+		# Add message to conversation
+		block = MessageBlock(request=request, model=ai_model)
+		empty_conversation.add_block(block)
+
+		# Save conversation
+		empty_conversation.save(str(bskc_path))
+
+		# Restore conversation
+		storage_path = UPath("memory://test_url_restore")
+		restored_conversation = Conversation.open(str(bskc_path), storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 1
+
+		# Verify restored attachment
+		restored_attachment = restored_conversation.messages[
+			0
+		].request.attachments[0]
+		assert isinstance(restored_attachment, ImageFile)
+		assert (
+			str(restored_attachment.location) == "https://example.com/image.jpg"
+		)
+
+	def test_save_restore_with_multiple_attachments(
+		self,
+		empty_conversation,
+		ai_model,
+		text_attachment,
+		image_attachment,
+		url_image,
+		bskc_path,
+	):
+		"""Test saving and restoring a conversation with multiple attachments."""
+		# Create message with multiple attachments
+		request = Message(
+			role=MessageRoleEnum.USER,
+			content="Test message with multiple attachments",
+			attachments=[text_attachment, image_attachment, url_image],
+		)
+
+		# Add message to conversation
+		block = MessageBlock(request=request, model=ai_model)
+		empty_conversation.add_block(block)
+
+		# Save conversation
+		empty_conversation.save(str(bskc_path))
+
+		# Restore conversation
+		storage_path = UPath("memory://test_multiple_restore")
+		restored_conversation = Conversation.open(str(bskc_path), storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 1
+
+		# Verify restored attachments
+		restored_attachments = restored_conversation.messages[
+			0
+		].request.attachments
+		assert len(restored_attachments) == 3
+		assert isinstance(restored_attachments[0], AttachmentFile)
+		assert isinstance(restored_attachments[1], ImageFile)
+		assert isinstance(restored_attachments[2], ImageFile)
+		assert restored_attachments[0].location.exists()
+		assert restored_attachments[1].location.exists()
+		assert (
+			str(restored_attachments[2].location)
+			== "https://example.com/image.jpg"
+		)
+
+	def test_save_conversation_with_citations(
+		self, empty_conversation, ai_model, bskc_path
+	):
+		"""Test saving and restoring a conversation with citations."""
+		# Create citations
+		citations = [
+			{"text": "Citation 1", "source": "Source 1", "page": 42},
+			{
+				"text": "Citation 2",
+				"source": "Source 2",
+				"url": "https://example.com",
+			},
+		]
+
+		# Create message with citations
+		request = Message(role=MessageRoleEnum.USER, content="Test message")
+		response = Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content="Test response with citations",
+			citations=citations,
+		)
+
+		# Add message to conversation
+		block = MessageBlock(request=request, response=response, model=ai_model)
+		empty_conversation.add_block(block)
+
+		# Save conversation
+		empty_conversation.save(bskc_path)
+
+		# Restore conversation
+		storage_path = UPath("memory://test_citation_restore")
+		restored_conversation = Conversation.open(bskc_path, storage_path)
+
+		# Verify restored conversation
+		assert isinstance(restored_conversation, Conversation)
+		assert len(restored_conversation.messages) == 1
+
+		# Verify restored citations
+		restored_citations = restored_conversation.messages[
+			0
+		].response.citations
+		assert len(restored_citations) == 2
+		assert restored_citations[0]["text"] == "Citation 1"
+		assert restored_citations[0]["source"] == "Source 1"
+		assert restored_citations[0]["page"] == 42
+		assert restored_citations[1]["text"] == "Citation 2"
+		assert restored_citations[1]["source"] == "Source 2"
+		assert restored_citations[1]["url"] == "https://example.com"
