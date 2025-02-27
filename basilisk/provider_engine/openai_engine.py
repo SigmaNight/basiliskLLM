@@ -304,7 +304,7 @@ class OpenAIEngine(BaseEngine):
 				text=message.content, type="text"
 			)
 		]
-		if message.attachments:
+		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
 				image = ImageURL(url=attachment.url, detail="auto")
 				content.append(

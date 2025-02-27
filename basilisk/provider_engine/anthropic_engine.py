@@ -23,6 +23,7 @@ from basilisk.conversation import (
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
+	SystemMessage,
 )
 
 if TYPE_CHECKING:
@@ -247,7 +248,7 @@ class AnthropicEngine(BaseEngine):
 		self,
 		new_block: MessageBlock,
 		conversation: Conversation,
-		system_message: Message | None,
+		system_message: SystemMessage | None,
 		**kwargs,
 	) -> Message | Stream[MessageStreamEvent]:
 		"""Sends a completion request to the Anthropic API.
