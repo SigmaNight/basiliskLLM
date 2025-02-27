@@ -40,6 +40,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 	NotImageError,
+	SystemMessage,
 	get_mime_type,
 	parse_supported_attachment_formats,
 )
@@ -1085,7 +1086,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return None
 		return model
 
-	def get_system_message(self) -> Message | None:
+	def get_system_message(self) -> SystemMessage | None:
 		"""Get the system message from the system prompt input.
 
 		Returns:
@@ -1094,7 +1095,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		system_prompt = self.system_prompt_txt.GetValue()
 		if not system_prompt:
 			return None
-		return Message(role=MessageRoleEnum.SYSTEM, content=system_prompt)
+		return SystemMessage(content=system_prompt)
 
 	def get_new_message_block(self) -> MessageBlock | None:
 		"""Constructs a new message block for the conversation based on current UI settings.
@@ -1231,11 +1232,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 			wx.CallAfter(self._end_task, False)
 			return
 		new_block = kwargs["new_block"]
+		system_message = kwargs.get("system_message")
 		if kwargs.get("stream", False):
 			new_block.response = Message(
 				role=MessageRoleEnum.ASSISTANT, content=""
 			)
-			wx.CallAfter(self._pre_handle_completion_with_stream, new_block)
+			wx.CallAfter(
+				self._pre_handle_completion_with_stream,
+				new_block,
+				system_message,
+			)
 			for chunk in self.current_engine.completion_response_with_stream(
 				response
 			):
@@ -1261,15 +1267,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 			new_block = engine.completion_response_without_stream(
 				response=response, **kwargs
 			)
-			wx.CallAfter(self._post_completion_without_stream, new_block)
+			wx.CallAfter(
+				self._post_completion_without_stream, new_block, system_message
+			)
 
-	def _pre_handle_completion_with_stream(self, new_block: MessageBlock):
+	def _pre_handle_completion_with_stream(
+		self, new_block: MessageBlock, system_message: Message | None
+	):
 		"""Prepare for handling a completion response with streaming.
 
 		Args:
 			new_block: The new message block to be displayed
+			system_message: The system message to be used
 		"""
-		self.conversation.messages.append(new_block)
+		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt.Clear()
@@ -1306,14 +1317,17 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.messages.SetFocus()
 		self._end_task()
 
-	def _post_completion_without_stream(self, new_block: MessageBlock):
+	def _post_completion_without_stream(
+		self, new_block: MessageBlock, system_message: Message | None
+	):
 		"""Finalize the completion process for a non-streaming response.
 
 		Args:
 			new_block: The new message block to be displayed
+			system_message: The system message to be used
 		"""
-		self.conversation.messages.append(new_block)
-		self.messages.display_new_block(new_block)
+		self.conversation.add_block(new_block)
+		self.messages.display_new_block(new_block, system_message)
 		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.attachment_files.clear()
@@ -1416,5 +1430,5 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			message_block: The message block to remove
 		"""
-		self.conversation.messages.remove(message_block)
+		self.conversation.remove_message_block(message_block)
 		self.refresh_messages()
