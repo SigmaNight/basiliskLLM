@@ -78,6 +78,8 @@ class Message(BaseMessage):
 class SystemMessage(BaseMessage):
 	"""Represents a system message in a conversation. The system message is used to provide instructions or context to the assistant."""
 
+	role: MessageRoleEnum = Field(default=MessageRoleEnum.SYSTEM)
+
 	@field_validator("role", mode="after")
 	@classmethod
 	def validate_role(cls, value: MessageRoleEnum) -> MessageRoleEnum:
