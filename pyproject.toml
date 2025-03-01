@@ -27,7 +27,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 accessible-output3 = {git = "https://github.com/SigmaNight/accessible_output3.git"}
-anthropic = "^0.46.0"
+anthropic = "^0.49.0"
 babel = "^2.17.0"
 cx-freeze = "^7.2.10"
 fsspec = "^2025.2.0"
