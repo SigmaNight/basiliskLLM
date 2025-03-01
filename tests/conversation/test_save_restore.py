@@ -7,6 +7,7 @@ import zipfile
 import pytest
 from upath import UPath
 
+from basilisk.consts import BSKC_VERSION
 from basilisk.conversation import (
 	AttachmentFile,
 	Conversation,
@@ -42,7 +43,12 @@ class TestBasicSaveRestore:
 			assert "conversation.json" in zip_file.namelist()
 			with zip_file.open("conversation.json") as json_file:
 				data = json.load(json_file)
-				assert data == {"messages": [], "systems": [], "title": None}
+				assert data == {
+					"messages": [],
+					"systems": [],
+					"title": None,
+					"version": BSKC_VERSION,
+				}
 
 	def test_restore_empty_conversation(self, bskc_path, storage_path):
 		"""Test restoring an empty conversation."""

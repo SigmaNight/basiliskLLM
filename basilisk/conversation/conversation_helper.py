@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 import shutil
 import zipfile
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fsspec.implementations.zip import ZipFileSystem
+from pydantic import ValidationInfo
 from upath import UPath
 
 from basilisk.config import conf
@@ -190,3 +191,47 @@ def open_bskc_file(
 			)
 		attachments_path = base_storage_path / "attachments"
 		return read_conv_main_file(model_cls, conv_main_math, attachments_path)
+
+
+def migrate_from_bskc_v0_to_v1(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v0 to v1 format.
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+	Returns:
+		The migrated value in v1 format
+	"""
+	value["version"] = 1
+	return value
+
+
+def migrate_from_bskc_v1_to_v2(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v1 to v2 format.
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+
+	Returns:
+		The migrated value in v2 format
+	"""
+	system = value.pop("system", None)
+	if not system:
+		value["systems"] = []
+		return value
+	value["systems"] = [system]
+	messages = value.get("messages", [])
+	if len(messages) == 0:
+		return value
+	last_message = messages[-1]
+	last_message["system_index"] = 0
+	return value
+
+
+# Migration steps for different versions of the Basilisk Conversation file format
+migration_steps = [migrate_from_bskc_v0_to_v1, migrate_from_bskc_v1_to_v2]
