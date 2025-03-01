@@ -324,7 +324,7 @@ class AttachmentFile(BaseModel):
 		Returns:
 			The location of the file to send, which is the original location for URL files.
 		"""
-		return self.location
+		return getattr(self, "resize_location", self.location)
 
 	@property
 	def mime_type(self) -> str | None:
@@ -369,7 +369,7 @@ class AttachmentFile(BaseModel):
 		Returns:
 			The contents of the file as a string.
 		"""
-		with self.location.open(mode="r") as file:
+		with self.send_location.open(mode="r") as file:
 			return file.read()
 
 	def encode_base64(self) -> str:
@@ -388,7 +388,7 @@ class AttachmentFile(BaseModel):
 		if self.type == AttachmentFileTypes.MEMORY:
 			self.remove_location(self.location)
 
-	def get_dispay_info(self) -> tuple[str, str, str]:
+	def get_display_info(self) -> tuple[str, str, str]:
 		"""Get the name, size and location of the file.
 
 		Returns:
@@ -509,15 +509,6 @@ class ImageFile(AttachmentFile):
 					format=self.location.suffix[1:],
 				)
 				self.resize_location = resize_location if success else None
-
-	@property
-	def send_location(self) -> UPath:
-		"""Get the location of the image to send.
-
-		Returns:
-			The location of the image to send, which is either the original location or the resized location if available.
-		"""
-		return self.resize_location or self.location
 
 	@measure_time
 	def encode_image(self) -> str:

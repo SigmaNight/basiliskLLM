@@ -229,6 +229,8 @@ def migrate_from_bskc_v1_to_v2(
 	if len(messages) == 0:
 		return value
 	last_message = messages[-1]
+	if not isinstance(last_message, dict):
+		return value
 	last_message["system_index"] = 0
 	return value
 

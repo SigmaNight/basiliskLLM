@@ -734,7 +734,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
 		for attachment in self.attachment_files:
-			self.attachments_list.Append(attachment.get_dispay_info())
+			self.attachments_list.Append(attachment.get_display_info())
 		last_index = len(self.attachment_files) - 1
 		self.attachments_list.SetItemState(
 			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
@@ -1326,8 +1326,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			new_block: The new message block to be displayed
 			system_message: The system message to be used
 		"""
-		self.conversation.add_block(new_block)
-		self.messages.display_new_block(new_block, system_message)
+		self.conversation.add_block(new_block, system_message)
+		self.messages.display_new_block(new_block)
 		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt.Clear()
 		self.attachment_files.clear()
@@ -1430,5 +1430,5 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			message_block: The message block to remove
 		"""
-		self.conversation.remove_message_block(message_block)
+		self.conversation.remove_block(message_block)
 		self.refresh_messages()

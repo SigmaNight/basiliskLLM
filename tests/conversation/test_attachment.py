@@ -84,7 +84,7 @@ class TestAttachmentFileProperties:
 	def test_attachment_get_display_info(self, text_file):
 		"""Test getting display info tuple."""
 		attachment = AttachmentFile(location=text_file)
-		name, size, location = attachment.get_dispay_info()
+		name, size, location = attachment.get_display_info()
 
 		assert name == "test.txt"
 		assert size == "12 B"
