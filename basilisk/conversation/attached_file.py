@@ -324,7 +324,7 @@ class AttachmentFile(BaseModel):
 		Returns:
 			The location of the file to send, which is the original location for URL files.
 		"""
-		return getattr(self, "resize_location", self.location)
+		return getattr(self, "resize_location", None) or self.location
 
 	@property
 	def mime_type(self) -> str | None:
