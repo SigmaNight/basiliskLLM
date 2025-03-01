@@ -81,13 +81,15 @@ def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
 		)
 
 
-def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
-	"""Restore image attachments to a specified storage path and optionally resize them.
+def restore_attachments(
+	attachments: list[AttachmentFile | ImageFile], storage_path: UPath
+):
+	"""Restore attachments to a specified storage path and optionally resize images.
 
-	This function restores image attachments by copying them from their original locations to a new storage path. It also resizes the images based on the configuration settings.
+	This function restores attachments by copying them from their original locations to a new storage path. It also resizes the images based on the configuration settings.
 
 	Args:
-		attachments: A list of image file attachments to restore.
+		attachments: A list of file attachments to restore.
 		storage_path: The destination path where attachments will be saved.
 	"""
 	for attachment in attachments:

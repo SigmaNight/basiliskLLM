@@ -1278,7 +1278,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		Args:
 			new_block: The new message block to be displayed
-			system_message: The system message to be used
+			system_message: An optional system message to be used
 		"""
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
