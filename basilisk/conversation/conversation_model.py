@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 from upath import UPath
 
+from basilisk.consts import BSKC_VERSION
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.types import PydanticOrderedSet
 
@@ -180,11 +181,12 @@ class MessageBlock(BaseModel):
 class Conversation(BaseModel):
 	"""Represents a conversation between users and the bot. The conversation may contain messages and a title."""
 
+	messages: list[MessageBlock] = Field(default_factory=list)
 	systems: PydanticOrderedSet[SystemMessage] = Field(
 		default_factory=PydanticOrderedSet
 	)
-	messages: list[MessageBlock] = Field(default_factory=list)
 	title: str | None = Field(default=None)
+	version: int = Field(default=BSKC_VERSION, ge=0, le=BSKC_VERSION)
 
 	@model_validator(mode="after")
 	def validate_system_indexes(self) -> Conversation:

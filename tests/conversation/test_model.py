@@ -3,7 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
+from basilisk.consts import BSKC_VERSION
 from basilisk.conversation import (
+	Conversation,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -103,6 +105,21 @@ class TestConversationBasics:
 		assert empty_conversation.messages == []
 		assert empty_conversation.systems == {}
 		assert empty_conversation.title is None
+		assert empty_conversation.version == BSKC_VERSION
+
+	def test_invalid_min_conversation_version(self, empty_conversation):
+		"""Test invalid minimum conversation version."""
+		empty_conversation.version = -1
+		json = empty_conversation.model_dump_json()
+		with pytest.raises(ValidationError):
+			Conversation.model_validate_json(json)
+
+	def test_invalid_max_conversation_version(self, empty_conversation):
+		"""Test invalid maximum conversation version."""
+		empty_conversation.version = BSKC_VERSION + 1
+		json = empty_conversation.model_dump_json()
+		with pytest.raises(ValidationError):
+			Conversation.model_validate_json(json)
 
 	def test_add_block_without_system(self, empty_conversation, message_block):
 		"""Test adding a message block to a conversation without a system message."""
