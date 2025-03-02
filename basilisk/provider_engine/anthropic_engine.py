@@ -91,6 +91,25 @@ class AnthropicEngine(BaseEngine):
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
+				id="claude-3-7-sonnet-latest_reasoning",
+				name="Claude 3.7 Sonnet (thinking)",
+				# Translators: This is a model description
+				description=_("Our most intelligent model"),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
+				id="claude-3-7-sonnet-latest",
+				name="Claude 3.7 Sonnet",
+				# Translators: This is a model description
+				description=_("Our most intelligent model"),
+				context_window=200000,
+				max_output_tokens=8192,
+				vision=True,
+			),
+			ProviderAIModel(
 				id="claude-3-5-sonnet-latest",
 				name="Claude 3.5 Sonnet",
 				# Translators: This is a model description
@@ -202,6 +221,7 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Message in Anthropic API format with role and content.
 		"""
+		print(type(Source))
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
 			# TODO: implement "context" and "title" for documents
@@ -273,6 +293,13 @@ class AnthropicEngine(BaseEngine):
 		}
 		if system_message:
 			params["system"] = system_message.content
+		if model.reasoning:
+			params.pop("top_p", None)
+			params["model"] = model.id.replace("_reasoning", "")
+			params["thinking"] = {
+				"type": "enabled",
+				"budget_tokens": kwargs.get("budget_tokens", 16000),
+			}
 		params.update(kwargs)
 		response = self.client.messages.create(**params)
 		return response
@@ -311,28 +338,62 @@ class AnthropicEngine(BaseEngine):
 				log.warning(f"Unsupported citation type: {citation.type}")
 		return citation_chunk_data
 
+	def _handle_thinking(
+		self, started: bool, event: MessageStreamEvent
+	) -> tuple[str, bool]:
+		if not started:
+			started = True
+			conten = "```think\n" + event.delta.thinking
+			return conten, started
+		else:
+			return event.delta.thinking, started
+
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
 	) -> Iterator[TextBlock | dict]:
 		"""Processes streaming response from Anthropic API.
 
 		Args:
-			stream: Stream of message events from the API.
+				stream: Stream of message events from the API.
 
 		Yields:
-			Text content from each event.
+			Text content from each event or thinking content.
 		"""
+		thinking_content_started = False
+		current_block_type = None
 		for event in stream:
 			match event.type:
+				case "content_block_start":
+					current_block_type = event.content_block.type
+				case "content_block_stop":
+					if (
+						thinking_content_started
+						and current_block_type == "thinking"
+					):
+						thinking_content_started = False
+						yield "\n```\n\n"
 				case "content_block_delta":
 					match event.delta.type:
 						case "text_delta":
 							yield event.delta.text
+						case "thinking_delta":
+							text, thinking_content_started = (
+								self._handle_thinking(
+									thinking_content_started, event
+								)
+							)
+							yield text
 						case "citations_delta":
 							yield (
 								"citation",
 								self._handle_citation(event.delta.citation),
 							)
+				case "message_stop":
+					if thinking_content_started:
+						yield "\n```\n"
+					break
+
+	# ruff: noqa: C901
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
@@ -349,14 +410,22 @@ class AnthropicEngine(BaseEngine):
 		"""
 		citations = []
 		text = []
+		thinking_content = None
+		if hasattr(response, "thinking") and response.thinking:
+			thinking_content = response.thinking
 		for content in response.content:
 			if content.citations:
 				for citation in content.citations:
 					citations.append(self._handle_citation(citation))
 			text.append(content.text)
+		final_content = ''.join(text)
+		if thinking_content:
+			final_content = (
+				f"```think\n{thinking_content}\n```\n\n{final_content}"
+			)
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=''.join(text),
+			content=final_content,
 			citations=citations,
 		)
 		return new_block

@@ -100,6 +100,17 @@ class OpenAIEngine(BaseEngine):
 		# See <https://platform.openai.com/docs/models>
 		return [
 			ProviderAIModel(
+				id="gpt-4.5-preview",
+				# Translators: This is a model description
+				description=_(
+					"Largest GPT model, good for creative tasks and agentic planning"
+				),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
 				id="gpt-4o",
 				# Translators: This is a model description
 				description=_(

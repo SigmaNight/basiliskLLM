@@ -63,6 +63,7 @@ class DeepSeekAIEngine(OpenAIEngine):
 				max_temperature=2.0,
 				default_temperature=1.0,
 				max_output_tokens=8000,
+				reasoning=True,
 			),
 		]
 		return models
