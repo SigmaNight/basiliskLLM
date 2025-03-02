@@ -221,7 +221,6 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Message in Anthropic API format with role and content.
 		"""
-		print(type(Source))
 		contents = [TextBlock(text=message.content, type="text")]
 		if message.attachments:
 			# TODO: implement "context" and "title" for documents
@@ -341,10 +340,19 @@ class AnthropicEngine(BaseEngine):
 	def _handle_thinking(
 		self, started: bool, event: MessageStreamEvent
 	) -> tuple[str, bool]:
+		"""Handles the 'thinking' content in the API response.
+
+		Args:
+			started: Flag indicating if thinking content has started.
+			event: Event data from the API response.
+
+		Returns:
+			Tuple containing the thinking content and updated started flag.
+		"""
 		if not started:
 			started = True
-			conten = "```think\n" + event.delta.thinking
-			return conten, started
+			content = f"```think\n {event.delta.thinking}"
+			return content, started
 		else:
 			return event.delta.thinking, started
 
