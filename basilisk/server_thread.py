@@ -124,7 +124,9 @@ class ServerThread(threading.Thread):
 			url = data.split(':', 1)[1].strip()
 			if '\n' in url:
 				url, name = url.split('\n', 1)
-				wx.CallAfter(self.frame.current_tab.add_attachment_url_thread, url)
+				wx.CallAfter(
+					self.frame.current_tab.add_attachment_url_thread, url
+				)
 		else:
 			log.error(f"no action for data: {data}")
 
