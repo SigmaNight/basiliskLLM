@@ -357,13 +357,56 @@ class AnthropicEngine(BaseEngine):
 		else:
 			return event.delta.thinking, started
 
+	def _handle_content_block_stop(
+		self, thinking_content_started: bool, current_block_type: str
+	) -> tuple[str | None, bool]:
+		"""Handles content block stop events from the stream.
+
+		Args:
+			thinking_content_started: Flag indicating if thinking content has started.
+			current_block_type: Type of the current content block.
+
+		Returns:
+			Tuple containing optional yield content and updated thinking_started flag.
+		"""
+		if thinking_content_started and current_block_type == "thinking":
+			return "\n```\n\n", False
+		return None, thinking_content_started
+
+	def _handle_content_block_delta(
+		self, event: MessageStreamEvent, thinking_content_started: bool
+	) -> tuple[str | tuple[str, dict] | None, bool]:
+		"""Handles content block delta events from the stream.
+
+		Args:
+			event: The stream event to process.
+			thinking_content_started: Flag indicating if thinking content has started.
+
+		Returns:
+			Tuple containing yield content and updated thinking_started flag.
+		"""
+		match event.delta.type:
+			case "text_delta":
+				return event.delta.text, thinking_content_started
+			case "thinking_delta":
+				text, updated_started = self._handle_thinking(
+					thinking_content_started, event
+				)
+				return text, updated_started
+			case "citations_delta":
+				return (
+					("citation", self._handle_citation(event.delta.citation)),
+					thinking_content_started,
+				)
+		return None, thinking_content_started
+
 	def completion_response_with_stream(
 		self, stream: Stream[MessageStreamEvent]
 	) -> Iterator[TextBlock | dict]:
 		"""Processes streaming response from Anthropic API.
 
 		Args:
-				stream: Stream of message events from the API.
+			stream: Stream of message events from the API.
 
 		Yields:
 			Text content from each event or thinking content.
@@ -375,34 +418,25 @@ class AnthropicEngine(BaseEngine):
 				case "content_block_start":
 					current_block_type = event.content_block.type
 				case "content_block_stop":
-					if (
-						thinking_content_started
-						and current_block_type == "thinking"
-					):
-						thinking_content_started = False
-						yield "\n```\n\n"
+					content, thinking_content_started = (
+						self._handle_content_block_stop(
+							thinking_content_started, current_block_type
+						)
+					)
+					if content:
+						yield content
 				case "content_block_delta":
-					match event.delta.type:
-						case "text_delta":
-							yield event.delta.text
-						case "thinking_delta":
-							text, thinking_content_started = (
-								self._handle_thinking(
-									thinking_content_started, event
-								)
-							)
-							yield text
-						case "citations_delta":
-							yield (
-								"citation",
-								self._handle_citation(event.delta.citation),
-							)
+					content, thinking_content_started = (
+						self._handle_content_block_delta(
+							event, thinking_content_started
+						)
+					)
+					if content:
+						yield content
 				case "message_stop":
 					if thinking_content_started:
 						yield "\n```\n"
 					break
-
-	# ruff: noqa: C901
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
