@@ -29,10 +29,7 @@ from basilisk.types import PydanticUPath
 
 log = logging.getLogger(__name__)
 
-URL_PATTERN = re.compile(
-	r'(https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+|data:image/\S+)',
-	re.IGNORECASE,
-)
+URL_PATTERN = re.compile(r'https?://[^\s<>"]+|data:\S+', re.IGNORECASE)
 
 
 def get_image_dimensions(reader: BufferedReader) -> tuple[int, int]:
