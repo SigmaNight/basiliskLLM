@@ -451,7 +451,7 @@ class AttachmentFile(BaseModel):
 		if self.type == AttachmentFileTypes.URL:
 			return str(self.location)
 		base64_data = self.encode_base64()
-		return f"data:{self._get_mime_type};base64,{base64_data}"
+		return f"data:{self.mime_type};base64,{base64_data}"
 
 	def exists(self):
 		"""Check if the file exists.

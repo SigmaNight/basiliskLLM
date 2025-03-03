@@ -4,6 +4,7 @@ from .attached_file import (
 	URL_PATTERN,
 	AttachmentFile,
 	AttachmentFileTypes,
+	build_from_url,
 	ImageFile,
 	NotImageError,
 	get_mime_type,
@@ -21,6 +22,7 @@ from .conversation_model import (
 __all__ = [
 	"AttachmentFile",
 	"AttachmentFileTypes",
+	"build_from_url",
 	"Conversation",
 	"get_mime_type",
 	"ImageFile",
