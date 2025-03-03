@@ -359,6 +359,15 @@ class BaseConversation:
 		dlg.ShowModal()
 		dlg.Destroy()
 
+	def create_web_search_widget(self):
+		"""Create and configure the web search mode check box."""
+		self.web_search_mode = wx.CheckBox(
+			self,
+			# Translators: This is a label for web search mode in the main window
+			label=_("&Web search mode"),
+		)
+		self.web_search_mode.SetValue(False)
+
 	def create_max_tokens_widget(self) -> wx.StaticText:
 		"""Create and configure the max tokens spin control.
 

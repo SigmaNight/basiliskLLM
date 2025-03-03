@@ -18,3 +18,5 @@ class ProviderCapability(enum.StrEnum):
 	STT = enum.auto()
 	# The provider supports text-to-speech conversion
 	TTS = enum.auto()
+	# The provider supports web search capabilities
+	WEB_SEARCH = enum.auto()
