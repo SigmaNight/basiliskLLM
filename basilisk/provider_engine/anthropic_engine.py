@@ -228,10 +228,7 @@ class AnthropicEngine(BaseEngine):
 		elif attachment.type != AttachmentFileTypes.UNKNOWN:
 			source = {"media_type": attachment.mime_type}
 			match attachment.mime_type.split("/")[0]:
-				case "image":
-					source["type"] = ("base64",)
-					source["data"] = attachment.encode_image()
-				case "application":
+				case "image" | "application":
 					source["type"] = "base64"
 					source["data"] = attachment.encode_base64()
 				case "text":
