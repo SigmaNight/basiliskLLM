@@ -34,7 +34,6 @@ from basilisk.conversation import (
 	PROMPT_TITLE,
 	URL_PATTERN,
 	AttachmentFile,
-	AttachmentFileTypes,
 	Conversation,
 	ImageFile,
 	Message,
@@ -1132,14 +1131,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		invalid_found = False
 		attachments_copy = self.attachment_files[:]
 		for attachment in attachments_copy:
-			if (
-				attachment.type != AttachmentFileTypes.URL
-				and attachment.mime_type not in supported_attachment_formats
-			):
+			if attachment.mime_type not in supported_attachment_formats:
 				msg = (
 					_(
-						"This attachment format is not supported by the current provider. Source:"
+						"This attachment format is not supported by the current provider. Source: %s"
 					)
+					% attachment.location
 					if attachment.mime_type not in supported_attachment_formats
 					else _("The attachment file does not exist: %s")
 					% attachment.location
