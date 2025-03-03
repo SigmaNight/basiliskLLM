@@ -1135,7 +1135,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			if (
 				attachment.type != AttachmentFileTypes.URL
 				and attachment.mime_type not in supported_attachment_formats
-			) or not attachment.exists():
+			):
 				msg = (
 					_(
 						"This attachment format is not supported by the current provider. Source:"

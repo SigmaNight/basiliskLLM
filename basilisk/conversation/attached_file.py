@@ -452,17 +452,6 @@ class AttachmentFile(BaseModel):
 		base64_data = self.encode_base64()
 		return f"data:{self.mime_type};base64,{base64_data}"
 
-	def exists(self):
-		"""Check if the file exists.
-
-		Returns:
-			True if the file exists, False otherwise.
-		"""
-		if self.type == AttachmentFileTypes.URL:
-			query = httpx.head(self.url, follow_redirects=True)
-			return query.status_code == 200
-		return self.location.exists()
-
 
 class ImageFile(AttachmentFile):
 	"""Represents an image file in a conversation."""
