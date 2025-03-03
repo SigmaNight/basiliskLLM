@@ -13,6 +13,7 @@ from basilisk.conversation import (
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
+	SystemMessage,
 )
 from basilisk.decorators import measure_time
 
@@ -84,7 +85,7 @@ class OllamaEngine(BaseEngine):
 		self,
 		new_block: MessageBlock,
 		conversation: Conversation,
-		system_message: Message | None,
+		system_message: SystemMessage | None,
 		**kwargs,
 	) -> ChatResponse | Iterator[ChatResponse]:
 		"""Get completion from Ollama.
@@ -120,7 +121,7 @@ class OllamaEngine(BaseEngine):
 		"""
 		super().prepare_message_request(message)
 		images = []
-		if message.attachments:
+		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
 				if attachment.type == AttachmentFileTypes.URL:
 					log.warning(

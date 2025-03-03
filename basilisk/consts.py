@@ -46,6 +46,9 @@ FOCUS_FILE = os.path.join(TMP_DIR, "focus_file")
 # Path to open a conversation using file watcher
 OPEN_BSKC_FILE = os.path.join(TMP_DIR, "open_bskc_file")
 
+# current version number of the bskc file format
+BSKC_VERSION = 2
+
 
 class HotkeyAction(IntEnum):
 	"""Enumeration of hotkey actions."""

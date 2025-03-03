@@ -15,6 +15,7 @@ from .conversation_model import (
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
+	SystemMessage,
 )
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
 	"NotImageError",
 	"parse_supported_attachment_formats",
 	"PROMPT_TITLE",
+	"SystemMessage",
 	"URL_PATTERN",
 ]

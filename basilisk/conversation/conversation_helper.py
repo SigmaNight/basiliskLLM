@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 import shutil
 import zipfile
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fsspec.implementations.zip import ZipFileSystem
+from pydantic import ValidationInfo
 from upath import UPath
 
 from basilisk.config import conf
@@ -80,13 +81,15 @@ def create_conv_main_file(conversation: Conversation, fs: ZipFileSystem):
 		)
 
 
-def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
-	"""Restore image attachments to a specified storage path and optionally resize them.
+def restore_attachments(
+	attachments: list[AttachmentFile | ImageFile], storage_path: UPath
+):
+	"""Restore attachments to a specified storage path and optionally resize images.
 
-	This function restores image attachments by copying them from their original locations to a new storage path. It also resizes the images based on the configuration settings.
+	This function restores attachments by copying them from their original locations to a new storage path. It also resizes the images based on the configuration settings.
 
 	Args:
-		attachments: A list of image file attachments to restore.
+		attachments: A list of file attachments to restore.
 		storage_path: The destination path where attachments will be saved.
 	"""
 	for attachment in attachments:
@@ -97,6 +100,8 @@ def restore_attachments(attachments: list[ImageFile], storage_path: UPath):
 			with new_path.open(mode="wb") as new_file:
 				shutil.copyfileobj(attachment_file, new_file)
 		attachment.location = new_path
+		if not isinstance(attachment, ImageFile):
+			continue
 		if conf().images.resize:
 			attachment.resize(
 				storage_path,
@@ -188,3 +193,49 @@ def open_bskc_file(
 			)
 		attachments_path = base_storage_path / "attachments"
 		return read_conv_main_file(model_cls, conv_main_math, attachments_path)
+
+
+def migrate_from_bskc_v0_to_v1(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v0 to v1 format.
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+	Returns:
+		The migrated value in v1 format
+	"""
+	value["version"] = 1
+	return value
+
+
+def migrate_from_bskc_v1_to_v2(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v1 to v2 format.
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+
+	Returns:
+		The migrated value in v2 format
+	"""
+	system = value.pop("system", None)
+	if not system:
+		value["systems"] = []
+		return value
+	value["systems"] = [system]
+	messages = value.get("messages", [])
+	if len(messages) == 0:
+		return value
+	last_message = messages[-1]
+	if not isinstance(last_message, dict):
+		return value
+	last_message["system_index"] = 0
+	return value
+
+
+# Migration steps for different versions of the Basilisk Conversation file format
+migration_steps = [migrate_from_bskc_v0_to_v1, migrate_from_bskc_v1_to_v2]

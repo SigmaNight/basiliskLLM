@@ -1702,6 +1702,20 @@ datalib = ["numpy (>=1)", "pandas (>=1.2.3)", "pandas-stubs (>=1.1.0.11)"]
 realtime = ["websockets (>=13,<15)"]
 
 [[package]]
+name = "ordered-set"
+version = "4.1.0"
+description = "An OrderedSet is a custom MutableSet that remembers its order, so that every"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "ordered-set-4.1.0.tar.gz", hash = "sha256:694a8e44c87657c59292ede72891eb91d34131f6531463aab3009191c77364a8"},
+    {file = "ordered_set-4.1.0-py3-none-any.whl", hash = "sha256:046e1132c71fcf3330438a539928932caf51ddbc582496833e23de611de14562"},
+]
+
+[package.extras]
+dev = ["black", "mypy", "pytest"]
+
+[[package]]
 name = "packaging"
 version = "24.2"
 description = "Core utilities for Python packages"
@@ -2200,6 +2214,24 @@ pytest = ">=4.6"
 
 [package.extras]
 testing = ["fields", "hunter", "process-tests", "pytest-xdist", "virtualenv"]
+
+[[package]]
+name = "pytest-httpx"
+version = "0.35.0"
+description = "Send responses to httpx."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pytest_httpx-0.35.0-py3-none-any.whl", hash = "sha256:ee11a00ffcea94a5cbff47af2114d34c5b231c326902458deed73f9c459fd744"},
+    {file = "pytest_httpx-0.35.0.tar.gz", hash = "sha256:d619ad5d2e67734abfbb224c3d9025d64795d4b8711116b1a13f72a251ae511f"},
+]
+
+[package.dependencies]
+httpx = "==0.28.*"
+pytest = "==8.*"
+
+[package.extras]
+testing = ["pytest-asyncio (==0.24.*)", "pytest-cov (==6.*)"]
 
 [[package]]
 name = "python-dotenv"
@@ -2724,4 +2756,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "353809912e8877c10dbe15f2446394710eb4f6b5de08b35230c0b2c2bf6b5092"
+content-hash = "89aa75b34382c54b294ef1e5136b15c7704301f0e7e10efde82942f01a41e5f9"
