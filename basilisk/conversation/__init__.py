@@ -4,9 +4,9 @@ from .attached_file import (
 	URL_PATTERN,
 	AttachmentFile,
 	AttachmentFileTypes,
-	build_from_url,
 	ImageFile,
 	NotImageError,
+	build_from_url,
 	get_mime_type,
 	parse_supported_attachment_formats,
 )

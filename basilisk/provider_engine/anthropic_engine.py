@@ -13,13 +13,12 @@ from typing import TYPE_CHECKING, Iterator
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
 from anthropic.types import TextBlock
-from anthropic.types.document_block_param import DocumentBlockParam
-from anthropic.types.image_block_param import ImageBlockParam, Source
-from anthropic.types.text_block_param import TextBlockParam
 
 from basilisk.conversation import (
+	AttachmentFile,
 	AttachmentFileTypes,
 	Conversation,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -213,6 +212,61 @@ class AnthropicEngine(BaseEngine):
 			),
 		]
 
+	def get_attachment_source(
+		self, attachment: AttachmentFile | ImageFile
+	) -> dict:
+		"""Get the source for the attachment.
+
+		Args:
+			attachment: Attachment to process.
+
+		Returns:
+			Attachment source data.
+		"""
+		if attachment.type == AttachmentFileTypes.URL:
+			return {"type": "url", "url": attachment.url}
+		elif attachment.type != AttachmentFileTypes.UNKNOWN:
+			source = {"media_type": attachment.mime_type}
+			match attachment.mime_type.split("/")[0]:
+				case "image":
+					source["type"] = ("base64",)
+					source["data"] = attachment.encode_image()
+				case "application":
+					source["type"] = "base64"
+					source["data"] = attachment.encode_base64()
+				case "text":
+					source["type"] = "text"
+					source["data"] = attachment.read_as_plain_text()
+				case _:
+					raise ValueError(
+						f"Unsupported attachment type: {attachment.type}"
+					)
+			return source
+
+	def get_attachment_extras(
+		self, attachment: AttachmentFile | ImageFile
+	) -> dict:
+		"""Get the extras for the attachment.
+
+		Args:
+			attachment: Attachment to process.
+
+		Returns:
+			Attachment extra data.
+		"""
+		extras = {}
+		match attachment.mime_type.split('/')[0]:
+			case "image":
+				extras["type"] = "image"
+			case "application" | "text":
+				extras["type"] = "document"
+				extras["citations"] = {"enabled": True}
+			case _:
+				raise ValueError(
+					f"Unsupported attachment type: {attachment.type}"
+				)
+		return extras
+
 	def convert_message(self, message: Message) -> dict:
 		"""Converts internal message format to Anthropic API format.
 
@@ -227,37 +281,13 @@ class AnthropicEngine(BaseEngine):
 			# TODO: implement "context" and "title" for documents
 			# TODO: add support for custom content document format
 			for attachment in message.attachments:
-				mime_type = attachment.mime_type
-				if attachment.type != AttachmentFileTypes.URL:
-					source = Source(
-						data=None,
-						media_type=attachment.mime_type,
-						type="base64",
+				source = self.get_attachment_source(attachment)
+				extras = self.get_attachment_extras(attachment)
+				if not source or not extras:
+					raise ValueError(
+						f"Unsupported attachment type: {attachment.type}"
 					)
-					if mime_type.startswith("image/"):
-						source["data"] = attachment.encode_image()
-						contents.append(
-							ImageBlockParam(source=source, type="image")
-						)
-					elif mime_type.startswith("application/"):
-						source["data"] = attachment.encode_base64()
-						contents.append(
-							DocumentBlockParam(
-								type="document",
-								source=source,
-								citations={"enabled": True},
-							)
-						)
-					elif mime_type in ("text/plain"):
-						source["data"] = attachment.read_as_str()
-						source["type"] = "text"
-						contents.append(
-							TextBlockParam(
-								type="document",
-								source=source,
-								citations={"enabled": True},
-							)
-						)
+				contents.append({"source": source} | extras)
 		return {"role": message.role.value, "content": contents}
 
 	prepare_message_request = convert_message

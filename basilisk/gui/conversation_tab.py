@@ -35,14 +35,13 @@ from basilisk.conversation import (
 	URL_PATTERN,
 	AttachmentFile,
 	AttachmentFileTypes,
-	build_from_url,
 	Conversation,
 	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	NotImageError,
 	SystemMessage,
+	build_from_url,
 	get_mime_type,
 	parse_supported_attachment_formats,
 )
@@ -394,8 +393,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			item = wx.MenuItem(
 				menu,
 				wx.ID_ANY,
-				# Translators: This is a label for remove selected image in the context menu
-				_("Remove selected image") + "	Shift+Del",
+				# Translators: This is a label for remove selected attachment in the context menu
+				_("Remove selected attachment") + "	Shift+Del",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
@@ -429,8 +428,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		item = wx.MenuItem(
 			menu,
 			wx.ID_ANY,
-			# Translators: This is a label for add image URL in the context menu
-			_("Add image URL...") + "	Ctrl+U",
+			# Translators: This is a label for add attachment URL in the context menu
+			_("Add attachment URL...") + "	Ctrl+U",
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_attachment_url_dlg, item)
@@ -443,8 +442,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		Supports:
 		- Ctrl+C: Copy file location
-		- Ctrl+V: Paste image
-		- Delete: Remove selected image
+		- Ctrl+V: Paste attachments
+		- Delete: Remove selected attachment
 
 		Args:
 			event: The keyboard event
@@ -470,7 +469,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Supports multiple clipboard data types:
 		- Files: Adds files directly to the conversation
 		- Text:
-			- If a valid URL is detected, adds the image URL
+			- If a valid URL is detected, adds the attachmentURL
 			- Otherwise, pastes text into the prompt input
 		- Bitmap images: Saves the image to a temporary file and adds it to the conversation
 
@@ -490,7 +489,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				clipboard.GetData(text_data)
 				text = text_data.GetText()
 				if re.fullmatch(URL_PATTERN, text):
-					log.info("Pasting URL from clipboard, adding image")
+					log.info("Pasting URL from clipboard, adding attachment")
 					self.add_attachment_url_thread(text)
 				else:
 					log.info("Pasting text from clipboard")
@@ -546,16 +545,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 		file_dialog.Destroy()
 
 	def add_attachment_url_dlg(self, event: wx.CommandEvent | None):
-		"""Open a dialog to input an image URL and add it to the conversation.
+		"""Open a dialog to input an attachment URL and add it to the conversation.
 
 		Args:
-			event: Event triggered by the add image URL action
+			event: Event triggered by the add attachment URL action
 		"""
 		url_dialog = wx.TextEntryDialog(
 			self,
-			# Translators: This is a label for image URL in conversation tab
-			message=_("Enter the URL of the image:"),
-			caption=_("Add image URL"),
+			# Translators: This is a label for enter URL in add attachment dialog
+			message=_("Enter the URL of the file to attach:"),
+			caption=_("Add attachment from URL"),
 		)
 		if url_dialog.ShowModal() != wx.ID_OK:
 			return
@@ -571,10 +570,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		url_dialog.Destroy()
 
 	def add_attachment_from_url(self, url: str):
-		"""Add an image to the conversation from a URL.
+		"""Add an attachment to the conversation from a URL.
 
 		Args:
-			url: The URL of the image to add
+			url: The URL of the file to attach
 		"""
 		attachment_file = None
 		try:
@@ -582,7 +581,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except HTTPError as err:
 			wx.CallAfter(
 				wx.MessageBox,
-				# Translators: This message is displayed when the image URL returns an HTTP error.
+				# Translators: This message is displayed when the HTTP error occurs while adding a file from a URL.
 				_("HTTP error %s.") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
@@ -593,7 +592,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			wx.CallAfter(
 				wx.MessageBox,
 				# Translators: This message is displayed when an error occurs while adding a file from a URL.
-				_(f"Error adding image from URL: {err}"),
+				_("Error adding attachment from URL: %s") % err,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
@@ -603,10 +602,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	@ensure_no_task_running
 	def add_attachment_url_thread(self, url: str):
-		"""Start a thread to add an image to the conversation from a URL.
+		"""Start a thread to add an attachment to the conversation from a URL.
 
 		Args:
-			url: The URL of the image to add
+			url: The URL of the file to attach
 		"""
 		self.task = threading.Thread(
 			target=self.add_attachment_from_url, args=(url,)
@@ -1134,14 +1133,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachments_copy = self.attachment_files[:]
 		for attachment in attachments_copy:
 			if (
-				(attachment.type != AttachmentFileTypes.URL and attachment._get_mime_type not in supported_attachment_formats)
-				or not attachment.exists()
-			):
+				attachment.type != AttachmentFileTypes.URL
+				and attachment.mime_type not in supported_attachment_formats
+			) or not attachment.exists():
 				msg = (
 					_(
 						"This attachment format is not supported by the current provider. Source:"
 					)
-					if attachment._get_mime_type not in supported_attachment_formats
+					if attachment.mime_type not in supported_attachment_formats
 					else _("The attachment file does not exist: %s")
 					% attachment.location
 				)
