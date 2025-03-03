@@ -20,6 +20,7 @@ class ProviderAIModel:
 		max_output_tokens: The maximum number of output tokens for the AI model.
 		max_temperature: The maximum temperature for the AI model.
 		default_temperature: The default temperature for the AI model.
+		reasoning: Whether the AI model supports reasoning.
 		vision: Whether the AI model supports vision.
 		extra_info: Additional information for the AI model.
 	"""
@@ -32,6 +33,7 @@ class ProviderAIModel:
 	max_temperature: float = field(default=1.0)
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
+	reasoning: bool = field(default=False)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
