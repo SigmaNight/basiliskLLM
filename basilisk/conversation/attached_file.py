@@ -130,6 +130,50 @@ def get_mime_type(path: str) -> str | None:
 	return mimetypes.guess_type(path)[0]
 
 
+@measure_time
+def build_from_url(url: str) -> AttachmentFile:
+	"""Fetch a file from a given URL and create an AttachmentFile instance.
+
+	This class method retrieves a file from the specified URL and constructs an AttachmentFile with metadata about the file.
+
+	Args:
+		url: The URL of the file to retrieve.
+
+	Returns:
+		An instance of AttachmentFile with details about the retrieved file.
+
+	Raises:
+		httpx.HTTPError: If there is an error during the HTTP request.
+
+	Example:
+		file = build_from_url("https://example.com/file.pdf")
+		image = build_from_url("https://example.com/image.jpg")
+	"""
+	r = httpx.get(url, follow_redirects=True)
+	r.raise_for_status()
+	size = r.headers.get("Content-Length")
+	if size and size.isdigit():
+		size = int(size)
+	mime_type = r.headers.get("content-type", None)
+	if not mime_type:
+		raise NotImageError("No MIME type found")
+	if mime_type.startswith("image/"):
+		dimensions = get_image_dimensions(BytesIO(r.content))
+		return ImageFile(
+			location=url,
+			type=AttachmentFileTypes.URL,
+			size=size,
+			mime_type=mime_type,
+			dimensions=dimensions,
+		)
+	return AttachmentFile(
+		location=url,
+		type=AttachmentFileTypes.URL,
+		size=size,
+		mime_type=mime_type,
+	)
+
+
 class AttachmentFileTypes(enum.StrEnum):
 	"""Enumeration of file types based on their source location."""
 
@@ -181,6 +225,7 @@ class AttachmentFile(BaseModel):
 	name: str | None = None
 	description: str | None = None
 	size: int | None = None
+	mime_type: str | None = None
 
 	@field_serializer("location", mode="wrap")
 	@classmethod
@@ -242,19 +287,19 @@ class AttachmentFile(BaseModel):
 			raise ValueError("Invalid location")
 		return value
 
-	def __init__(self, /, **data: Any) -> None:
+	def __init__(self, /, **kwargs: Any) -> None:
 		"""Initialize an AttachmentFile instance with optional data.
 
 		If no name is provided, automatically generates a name using the internal _get_name() method.
 		If no size is set, retrieves the file size using _get_size() method.
 
 		Args:
-			data: Keyword arguments for initializing the AttachmentFile instance. Can include optional attributes like name and size.
+			kwargs: Keyword arguments for initializing the AttachmentFile instance. Can include optional attributes like name, size, and description.
 		"""
-		super().__init__(**data)
-		if not self.name:
-			self.name = self._get_name()
-		self.size = self._get_size()
+		super().__init__(**kwargs)
+		self.name = self.name or self._get_name()
+		self.mime_type = kwargs.get("mime_type") or self._get_mime_type()
+		self.size = kwargs.get("size") or self._get_size()
 
 	__init__.__pydantic_base_init__ = True
 
@@ -327,7 +372,7 @@ class AttachmentFile(BaseModel):
 		return getattr(self, "resize_location", None) or self.location
 
 	@property
-	def mime_type(self) -> str | None:
+	def _get_mime_type(self) -> str | None:
 		"""Get the MIME type of the file.
 
 		Returns:
@@ -363,11 +408,11 @@ class AttachmentFile(BaseModel):
 		except Exception as e:
 			log.error(f"Error deleting file at {location}: {e}")
 
-	def read_as_str(self) -> str:
-		"""Read the file as a string.
+	def read_as_plain_text(self) -> str:
+		"""Read the file as a plain text string.
 
 		Returns:
-			The contents of the file as a string.
+			The contents of the file as a plain text string.
 		"""
 		with self.send_location.open(mode="r") as file:
 			return file.read()
@@ -396,6 +441,29 @@ class AttachmentFile(BaseModel):
 		"""
 		return self.name, self.display_size, self.display_location
 
+	@property
+	def url(self) -> str:
+		"""Get the URL of the file.
+
+		Returns:
+			The URL of the file, or the base64-encoded data if the file is in memory.
+		"""
+		if self.type == AttachmentFileTypes.URL:
+			return str(self.location)
+		base64_data = self.encode_base64()
+		return f"data:{self._get_mime_type};base64,{base64_data}"
+
+	def exists(self):
+		"""Check if the file exists.
+
+		Returns:
+			True if the file exists, False otherwise.
+		"""
+		if self.type == AttachmentFileTypes.URL:
+			query = httpx.head(self.url, follow_redirects=True)
+			return query.status_code == 200
+		return self.location.exists()
+
 
 class ImageFile(AttachmentFile):
 	"""Represents an image file in a conversation."""
@@ -403,47 +471,7 @@ class ImageFile(AttachmentFile):
 	dimensions: tuple[int, int] | None = None
 	resize_location: PydanticUPath | None = Field(default=None, exclude=True)
 
-	@classmethod
-	@measure_time
-	def build_from_url(cls, url: str) -> ImageFile:
-		"""Fetch an image from a given URL and create an ImageFile instance.
-
-		This class method retrieves an image from the specified URL, validates that it is an image,
-		and constructs an ImageFile with metadata about the image.
-
-		Args:
-			url: The URL of the image to retrieve.
-
-		Returns:
-			An instance of ImageFile with details about the retrieved image.
-
-		Raises:
-			httpx.HTTPError: If there is an error during the HTTP request.
-			NotImageError: If the URL does not point to an image (content type is not image/*).
-
-		Example:
-			image = ImageFile.build_from_url("https://example.com/image.jpg")
-		"""
-		r = httpx.get(url, follow_redirects=True)
-		r.raise_for_status()
-		content_type = r.headers.get("content-type", "")
-		if not content_type.startswith("image/"):
-			e = NotImageError("URL does not point to an image")
-			e.content_type = content_type
-			raise e
-		size = r.headers.get("Content-Length")
-		if size and size.isdigit():
-			size = int(size)
-		dimensions = get_image_dimensions(BytesIO(r.content))
-		return cls(
-			location=url,
-			type=AttachmentFileTypes.URL,
-			size=size,
-			description=content_type,
-			dimensions=dimensions,
-		)
-
-	def __init__(self, /, **data: Any) -> None:
+	def __init__(self, /, **kwargs: Any) -> None:
 		"""Initialize an ImageFile instance with optional data.
 
 		If no name is provided, automatically generates a name using the internal _get_name() method.
@@ -451,11 +479,10 @@ class ImageFile(AttachmentFile):
 		If no dimensions are specified, determines image dimensions using _get_dimensions() method.
 
 		Args:
-			data: Keyword arguments for initializing the ImageFile instance. Can include optional attributes like name, size, and dimensions.
+			kwargs: Keyword arguments for initializing the ImageFile instance. Can include optional attributes like name, size, and dimensions.
 		"""
-		super().__init__(**data)
-		if not self.dimensions:
-			self.dimensions = self._get_dimensions()
+		super().__init__(**kwargs)
+		self.dimensions = self.dimensions or self._get_dimensions()
 
 	__init__.__pydantic_base_init__ = True
 
@@ -511,7 +538,7 @@ class ImageFile(AttachmentFile):
 				self.resize_location = resize_location if success else None
 
 	@measure_time
-	def encode_image(self) -> str:
+	def encode_base64(self) -> str:
 		"""Encode the image file as a base64 string.
 
 		Returns:
@@ -522,19 +549,6 @@ class ImageFile(AttachmentFile):
 				f"Large image ({self.display_size}) being encoded to base64"
 			)
 		return super().encode_base64()
-
-	@property
-	def url(self) -> str:
-		"""Get the URL of the image file.
-
-		Returns:
-			The URL of the image file, or the base64-encoded image data if the image is in memory.
-		"""
-		if not isinstance(self.type, AttachmentFileTypes):
-			raise ValueError("Invalid image type")
-		if self.type == AttachmentFileTypes.URL:
-			return str(self.location)
-		return f"data:{self.mime_type};base64,{self.encode_image()}"
 
 	@property
 	def display_location(self):
