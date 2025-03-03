@@ -371,7 +371,6 @@ class AttachmentFile(BaseModel):
 		"""
 		return getattr(self, "resize_location", None) or self.location
 
-	@property
 	def _get_mime_type(self) -> str | None:
 		"""Get the MIME type of the file.
 

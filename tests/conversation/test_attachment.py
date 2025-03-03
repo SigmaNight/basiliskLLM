@@ -11,6 +11,7 @@ from basilisk.conversation import (
 	AttachmentFile,
 	AttachmentFileTypes,
 	ImageFile,
+	build_from_url,
 	parse_supported_attachment_formats,
 )
 
@@ -79,7 +80,7 @@ class TestAttachmentFileProperties:
 	def test_attachment_read_as_str(self, text_file):
 		"""Test reading attachment file as string."""
 		attachment = AttachmentFile(location=text_file)
-		assert attachment.read_as_str() == "test content"
+		assert attachment.read_as_plain_text() == "test content"
 
 	def test_attachment_get_display_info(self, text_file):
 		"""Test getting display info tuple."""
@@ -262,7 +263,7 @@ class TestURLAndFormatting:
 			},
 		)
 
-		image = ImageFile.build_from_url(test_url)
+		image = build_from_url(test_url)
 		assert image.type == AttachmentFileTypes.URL
 		assert str(image.location) == test_url
 
