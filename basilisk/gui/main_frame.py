@@ -656,7 +656,7 @@ class MainFrame(wx.Frame):
 			)
 			return
 		if from_url:
-			current_tab.add_image_url_dlg(event)
+			current_tab.add_attachment_url_dlg(event)
 		else:
 			current_tab.add_attachments_dlg()
 
