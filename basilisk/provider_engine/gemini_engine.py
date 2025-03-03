@@ -77,64 +77,24 @@ class GeminiEngine(BaseEngine):
 			List of supported provider models with their configurations.
 		"""
 		# See <https://ai.google.dev/gemini-api/docs/models/gemini?hl=en>
-
-		return [
-			ProviderAIModel(
-				id="gemini-2.0-flash-exp",
-				# Translators: This is a model description
-				description=_(
-					"Next generation features, speed, and multimodal generation for a diverse variety of tasks"
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-flash-latest",
-				# Translators: This is a model description
-				description=_(
-					'Fast and versatile multimodal model for scaling across diverse tasks'
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-pro-latest",
-				# Translators: This is a model description
-				description=_(
-					"Mid-size multimodal model that supports up to 1 million tokens"
-				),
-				context_window=2097152,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-flash",
-				# Translators: This is a model description
-				description=_(
-					"Fast and versatile multimodal model for scaling across diverse tasks"
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-pro",
-				# Translators: This is a model description
-				description=_(
-					"Mid-size multimodal model that supports up to 1 million tokens"
-				),
-				context_window=2097152,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-		]
+		models = []
+		for model in genai.list_models():
+			if "generateContent" in model.supported_generation_methods:
+				models.append(
+					ProviderAIModel(
+						id=model.name,
+						name=model.display_name,
+						description=model.description,
+						context_window=(
+							model.output_token_limit + model.input_token_limit
+						),
+						max_output_tokens=model.output_token_limit,
+						vision=True,
+						reasoning="thinking" in model.name,
+						default_temperature=model.temperature,
+					)
+				)
+		return models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.
