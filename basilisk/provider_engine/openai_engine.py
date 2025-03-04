@@ -1,6 +1,6 @@
 """Module for OpenAI API integration.
 
-This module provides the OpenAIEngine class for interacting with the OpenAI API,
+			This module provides the OpenAIEngine class for interacting with the OpenAI API,
 implementing capabilities for text, image, and audio generation/processing.
 """
 
