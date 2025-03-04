@@ -7,6 +7,7 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
+import re
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -94,6 +95,22 @@ class GeminiEngine(BaseEngine):
 						default_temperature=model.temperature,
 					)
 				)
+			gemini_xy_models = [
+				m
+				for m in models
+				if re.match(r"Gemini \d+\.\d+", m.display_name)
+			]
+			other_models = [
+				m
+				for m in models
+				if not re.match(r"Gemini \d+\.\d+", m.display_name)
+			]
+			gemini_xy_models.sort(
+				key=lambda x: -float(
+					re.match(r"Gemini (\d+\.\d+)", x.display_name).group(1)
+				)
+			)
+			models = gemini_xy_models + other_models
 		return models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
