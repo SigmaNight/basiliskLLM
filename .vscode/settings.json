@@ -1,8 +1,38 @@
 {
-    "python.testing.pytestEnabled": true,
-    "autoDocstring.docstringFormat": "google-notypes",
-    "autoDocstring.quoteStyle": "\"\"\"",
-    "ruff.enable": true,
-    "ruff.importStrategy": "fromEnvironment",
-    "ruff.organizeImports": true
+	"files.readonlyInclude": {
+		"**/.venv/Lib/site-packages/**": true,
+		"**/.venv/src/**": true,
+		"**/poetry.lock": true,
+	},
+	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true,
+	"[python]": {
+		"editor.defaultFormatter": "charliermarsh.ruff",
+		"editor.formatOnSave": true,
+		"editor.codeActionsOnSave": {
+			"source.organizeImports.ruff": "always",
+			"source.fixAll.ruff": "always",
+		},
+	},
+	"python.testing.pytestEnabled": true,
+	"python.analysis.diagnosticMode": "workspace",
+	"python.analysis.enablePytestSupport": true,
+	"python.analysis.languageServerMode": "full",
+	"autoDocstring.docstringFormat": "google-notypes",
+	"autoDocstring.quoteStyle": "\"\"\"",
+	"ruff.enable": true,
+	"ruff.importStrategy": "fromEnvironment",
+	"ruff.organizeImports": true,
+	"github.copilot.chat.codeGeneration.useInstructionFiles": true,
+	"github.copilot.chat.commitMessageGeneration.instructions": [
+		{"text": "Use conventional commit message format."},
+	],
+	"github.copilot.chat.testGeneration.instructions": [
+		{
+			"text": "The test use pytest framework.",
+		},
+		{
+			"text": "Always try uniting related tests in a suite."
+		},
+	],
 }
