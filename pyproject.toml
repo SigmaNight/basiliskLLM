@@ -35,6 +35,7 @@ dependencies = [
     "universal-pathlib (>=0.2.6,<0.3.0)",
     "watchdog (>=6.0.0,<6.1.0)",
     "wxpython (>=4.2.2,<4.3.0)",
+    "mistralai (>=1.5.1,<2.0.0)",
 ]
 [project.urls]
 homepage = "https://github.com/SigmaNight/basiliskLLM"
