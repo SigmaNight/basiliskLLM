@@ -1366,8 +1366,8 @@ version = "0.16.4"
 description = "Library to instrument executable formats"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "dev"]
-markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
+groups = ["main"]
+markers = "sys_platform == \"win32\""
 files = [
     {file = "lief-0.16.4-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:1c6c9a3da02ee9b5fa9e6ee53ab128f89d54680d365c0e9dd34d1e1f5318032b"},
     {file = "lief-0.16.4-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:9ad6ceb1d89153f55b33659e46ba02642368126e8428ce825389b5bea4126388"},
@@ -2330,15 +2330,15 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pytest"
-version = "8.3.4"
+version = "8.3.5"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev"]
 markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
 files = [
-    {file = "pytest-8.3.4-py3-none-any.whl", hash = "sha256:50e16d954148559c9a74109af1eaf0c945ba2d8f30f0a3d3335edde19788b6f6"},
-    {file = "pytest-8.3.4.tar.gz", hash = "sha256:965370d062bce11e73868e0335abac31b4d3de0e82f4007408d242b4f8610761"},
+    {file = "pytest-8.3.5-py3-none-any.whl", hash = "sha256:c69214aa47deac29fad6c2a4f590b9c4a9fdb16a403176fe154b79c0b4d4d820"},
+    {file = "pytest-8.3.5.tar.gz", hash = "sha256:f4efe70cc14e511565ac476b57c279e12a855b11f48f212af1080ef2263d3845"},
 ]
 
 [package.dependencies]
@@ -2967,4 +2967,4 @@ six = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "7751c0c57aaaff10c9373afe84ac027b85b9f69ad72ef9b12d927053e4b56b64"
+content-hash = "ba554c2db02d3224f4b0f8d993c70beba03218f5ace3b9b56c53bb23bb0941a1"
