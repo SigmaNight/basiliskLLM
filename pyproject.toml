@@ -51,7 +51,7 @@ packages = ["basilisk"]
 
 [tool.poetry]
 package-mode = false
-
+requires-poetry = ">=2.0"
 
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.4.1"
