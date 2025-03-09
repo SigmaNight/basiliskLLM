@@ -658,11 +658,13 @@ class EditAccountDialog(wx.Dialog):
 		self.custom_base_url_text_ctrl.Enable(provider.allow_custom_base_url)
 		default_base_url = provider.base_url
 		if default_base_url:
+			# Translators: A label in account dialog
 			self.custom_base_url_label.SetLabel(
 				_("Custom &base URL (default: {})").format(default_base_url)
 			)
 		else:
-			self.custom_base_url_label.SetLabel(_("Custom &base URL"))
+			# Translators: A label in account dialog
+			self.custom_base_url_label.SetLabel(_("Custom &base URL:"))
 
 	def on_ok(self, event: wx.CommandEvent) -> None:
 		"""Handle the OK button click event.

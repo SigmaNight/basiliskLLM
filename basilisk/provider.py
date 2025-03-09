@@ -108,7 +108,7 @@ providers = [
 	Provider(
 		id="mistralai",
 		name="MistralAI",
-		base_url="https://api.mistral.ai/v1",
+		base_url=None,
 		api_type=ProviderAPIType.OPENAI,
 		organization_mode_available=False,
 		require_api_key=True,

@@ -12,6 +12,8 @@ class ProviderCapability(enum.StrEnum):
 	CITATION = enum.auto()
 	# The provider supports image processing
 	IMAGE = enum.auto()
+	# The provider supports OCR (Optical Character Recognition)
+	OCR = enum.auto()
 	# The provider supports text processing
 	TEXT = enum.auto()
 	# The provider supports speech-to-text conversion
