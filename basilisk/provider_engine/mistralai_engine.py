@@ -83,7 +83,7 @@ class MistralAIEngine(BaseEngine):
 		"""
 		super().models
 		log.debug("Getting MistralAI models")
-		# See <https://platform.MistralAI.com/docs/models>
+		# See <https://docs.mistral.ai/getting-started/models/models_overview/>
 		return [
 			ProviderAIModel(
 				id="ministral-3b-latest",
