@@ -32,7 +32,7 @@ class MistralAIEngine(BaseEngine):
 	"""Engine implementation for MistralAI API integration.
 
 	Provides functionality for interacting with MistralAI's models, supporting text,
-	image capabilities.
+	image and document capabilities.
 
 	Attributes:
 		capabilities: Set of supported capabilities including text, image, STT, and TTS.
@@ -40,6 +40,7 @@ class MistralAIEngine(BaseEngine):
 
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.OCR,
 		ProviderCapability.TEXT,
 	}
@@ -48,6 +49,7 @@ class MistralAIEngine(BaseEngine):
 		"image/jpeg",
 		"image/png",
 		"image/webp",
+		"application/pdf",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -197,9 +199,15 @@ class MistralAIEngine(BaseEngine):
 		content = [{"type": "text", "text": message.content}]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				content.append(
-					{"type": "image_url", "image_url": attachment.url}
-				)
+				mime_type = attachment.mime_type
+				if mime_type.startswith("image/"):
+					content.append(
+						{"type": "image_url", "image_url": attachment.url}
+					)
+				else:
+					content.append(
+						{"type": "document_url", "document_url": attachment.url}
+					)
 		return {"role": message.role.value, "content": content}
 
 	def prepare_message_response(self, response: Message) -> dict[str, Any]:
