@@ -20,6 +20,7 @@ import logging
 import re
 import threading
 import time
+from multiprocessing import Process, Queue, Value
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
@@ -45,12 +46,14 @@ from basilisk.conversation import (
 	parse_supported_attachment_formats,
 )
 from basilisk.decorators import ensure_no_task_running
+from basilisk.process_helper import run_task
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
+from .progress_bar_dialog import ProgressBarDialog
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
 if TYPE_CHECKING:
@@ -61,6 +64,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
+
+CHECK_TASK_DELAY = 100  # ms
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -164,6 +169,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.last_time = 0
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
+		self.process: Optional[Process] = None
 		self._stop_completion = False
 		self.init_ui()
 		self.init_data(profile)
@@ -251,6 +257,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list.SetColumnWidth(1, 100)
 		self.attachments_list.SetColumnWidth(2, 500)
 		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.create_ocr_widget()
+		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
@@ -363,6 +371,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.set_model_list(None)
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
+		)
+		self.ocr_button.Enable(
+			ProviderCapability.OCR in account.provider.engine_cls.capabilities
 		)
 		self.web_search_mode.Enable(
 			ProviderCapability.WEB_SEARCH
@@ -1157,6 +1168,212 @@ class ConversationTab(wx.Panel, BaseConversation):
 				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 				invalid_found = True
 		return not invalid_found
+
+	def create_ocr_widget(self):
+		"""Create the OCR widget for the conversation tab."""
+		"""Create and configure the OCR button"""
+		self.ocr_button = wx.Button(
+			self,
+			# Translators: This is a label for perform OCR button in the conversation tab
+			label=_("Perform OCR"),
+		)
+		self.ocr_button.Bind(wx.EVT_BUTTON, self.on_ocr)
+
+	def check_task_progress(
+		self, dialog: ProgressBarDialog, result_queue: Queue, cancel_flag
+	):
+		"""Check the progress of the OCR task.
+
+		Args:
+			dialog: The progress dialog
+			result_queue: The queue to store the task result
+			cancel_flag: The flag to indicate if the task should be cancelled
+		"""
+
+		def handle_message_type(message_type, data):
+			try:
+				match message_type:
+					case "message":
+						if isinstance(data, str) and data:
+							dialog.update_message(data)
+					case "progress":
+						if isinstance(data, int):
+							dialog.update_progress_bar(data)
+					case "result" | "error":
+						if not dialog:
+							# Dialog might have been destroyed already
+							return
+
+						dialog.Destroy()
+						self.ocr_button.Enable()
+
+						# Handle the result
+						if message_type == "result":
+							if isinstance(data, list) and data:
+								msg = (
+									_(
+										"OCR completed successfully. Text extracted to:"
+									)
+									+ "\n"
+									+ "\n".join(data)
+								)
+								wx.MessageBox(
+									msg,
+									_("Result"),
+									wx.OK | wx.ICON_INFORMATION,
+								)
+							elif isinstance(data, str) and data:
+								wx.MessageBox(
+									data,
+									_("Result"),
+									wx.OK | wx.ICON_INFORMATION,
+								)
+							else:
+								log.warning(f"{data}")
+								wx.MessageBox(
+									_(
+										"OCR completed, but no text was extracted."
+									),
+									_("Result"),
+									wx.OK | wx.ICON_INFORMATION,
+								)
+						else:  # error case
+							wx.MessageBox(
+								str(data), _("Error"), wx.OK | wx.ICON_ERROR
+							)
+					case _:
+						log.warning(
+							f"Unknown message type in result queue: {message_type}"
+						)
+			except Exception as e:
+				log.error(f"Error handling message: {str(e)}", exc_info=True)
+
+		# Process all pending messages in the queue
+		try:
+			while not result_queue.empty():
+				message_type, data = result_queue.get(block=False)
+				handle_message_type(message_type, data)
+		except Exception as e:
+			log.error(
+				f"Error processing queue messages: {str(e)}", exc_info=True
+			)
+
+		# Check if process is still running
+		if (
+			not self.process
+			or not self.process.is_alive()
+			or dialog.cancel_flag.value
+		):
+			# Clean up resources
+			if (
+				self.process
+				and dialog.cancel_flag.value
+				and self.process.is_alive()
+			):
+				log.debug("Terminating OCR process due to user cancellation")
+				try:
+					self.process.terminate()
+					self.process.join(
+						timeout=1.0
+					)  # Wait for process to terminate
+					if self.process.is_alive():
+						log.warning("Process did not terminate, killing it")
+						self.process.kill()
+				except Exception as e:
+					log.error(
+						f"Error terminating process: {str(e)}", exc_info=True
+					)
+
+			try:
+				if dialog and dialog.IsShown():
+					dialog.Destroy()
+			except Exception as e:
+				log.error(f"Error destroying dialog: {str(e)}", exc_info=True)
+
+			self.ocr_button.Enable()
+			self.process = None
+		else:
+			# Continue checking progress
+			wx.CallLater(
+				CHECK_TASK_DELAY,
+				self.check_task_progress,
+				dialog,
+				result_queue,
+				cancel_flag,
+			)
+
+	def on_ocr(self, event: wx.CommandEvent):
+		"""Handle the OCR button click event.
+
+		Args:
+			event: The button click event
+		"""
+		engine: BaseEngine = self.current_engine
+		if ProviderCapability.OCR not in engine.capabilities:
+			wx.MessageBox(
+				# Translators: This message is displayed when the current provider does not support OCR.
+				_("The selected provider does not support OCR."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+
+		if not self.attachment_files:
+			wx.MessageBox(
+				# Translators: This message is displayed when there are no attachments to perform OCR on.
+				_("No attachments to perform OCR on."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		if not self._check_attachments_valid():
+			return
+		client = engine.client
+		if not client:
+			wx.MessageBox(
+				# Translators: This message is displayed when the current provider does not have a client.
+				_("The selected provider does not have a client."),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
+		self.ocr_button.Disable()
+
+		cancel_flag = Value('i', 0)
+		result_queue = Queue()
+
+		progress_bar_dialog = ProgressBarDialog(
+			self,
+			title=_("Performing OCR..."),
+			message=_("Performing OCR on attachments..."),
+			cancel_flag=cancel_flag,
+		)
+		progress_bar_dialog.Show()
+
+		kwargs = {
+			"api_key": self.current_account.api_key.get_secret_value(),
+			"base_url": self.current_account.custom_base_url
+			or self.current_account.provider.base_url,
+			"attachments": self.attachment_files,
+		}
+
+		self.process = Process(
+			target=run_task,
+			args=(engine.handle_ocr, result_queue, cancel_flag),
+			kwargs=kwargs,
+		)
+
+		self.process.daemon = True  # Ensure process terminates when parent does
+		self.process.start()
+		log.debug(f"OCR process started: {self.process.pid}")
+
+		wx.CallLater(
+			CHECK_TASK_DELAY,
+			self.check_task_progress,
+			progress_bar_dialog,
+			result_queue,
+			cancel_flag,
+		)
 
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
