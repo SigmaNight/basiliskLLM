@@ -418,7 +418,10 @@ class OpenAIEngine(BaseEngine):
 			),
 			"stream": new_block.stream,
 		}
-		if model_id != "gpt-4o-search-preview":
+		if model_id not in [
+			"gpt-4o-search-preview",
+			"gpt-4o-mini-search-preview",
+		]:
 			params.update(
 				{"temperature": new_block.temperature, "top_p": new_block.top_p}
 			)
