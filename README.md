@@ -136,25 +136,33 @@ You have four update modes available:
 
 Requirements: Python 3.12
 
-The project requires poetry. To install it visit the [Poetry installation guide](https://python-poetry.org/docs/#installing-with-pipx).
+The project requires uv. To install it visit the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 For short reference:
 
 ```shell
 pip3.12 install pipx
 pipx ensurepath
-pipx install poetry
+pipx install uv
 ```
 
-In the root of what may soon become your favorite project, install dependencies with poetry. It will create a special virtual environment for the project.
+In the root of what may soon become your favorite project, install dependencies with uv. It will create a special virtual environment for the project.
 
 ```shell
-poetry install
+uv sync
 ```
 
 Activate the virtual environment (because magic needs a little nudge):
 
-```shell
-poetry shell
+for Windows:
+
+```powershell
+.venv\Scripts\activate
+```
+
+for macOS/Linux:
+
+```bash
+source .venv/bin/activate
 ```
 
 Ready to watch the code baby crawl, maybe even walk? Fire up the project:
@@ -168,7 +176,7 @@ python -m basilisk
 You can build a standalone executable with the following command:
 
 ```shell
-poetry run python -m cx_Freeze build_exe
+uv run -m cx_Freeze build_exe
 ```
 
 This will create a `dist` directory with the standalone executable. You can run the executable by double-clicking on it.
