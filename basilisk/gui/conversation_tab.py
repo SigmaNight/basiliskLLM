@@ -719,10 +719,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not self.attachment_files:
 			self.attachments_list_label.Hide()
 			self.attachments_list.Hide()
+			self.ocr_button.Hide()
 			self.Layout()
 			return
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
+		self.ocr_button.Show()
 		for attachment in self.attachment_files:
 			self.attachments_list.Append(attachment.get_display_info())
 		last_index = len(self.attachment_files) - 1
