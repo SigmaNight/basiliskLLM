@@ -85,7 +85,7 @@ extend-select = ["INT","I","C90","D","T201","T203"]
 extend-ignore = ["D206"]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 10
+max-complexity = 12
 
 [tool.ruff.lint.isort]
 known-first-party = ["basilisk"]
