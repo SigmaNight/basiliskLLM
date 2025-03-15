@@ -8,7 +8,7 @@ ci:
     autoupdate_schedule: weekly
     skip:
       - "ruff"
-      - "poetry-lock"
+      - "uv-lock"
 default_language_version:
   python: python3.12
 default_stages:
@@ -31,12 +31,11 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: check-ast
--   repo: https://github.com/python-poetry/poetry
-    rev: "2.1.1"
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.6.6
     hooks:
-      - id: poetry-check
-      - id: poetry-lock
-        files: "^(pyproject.toml|poetry.lock)$"
+      - id: uv-lock
+        files: "^(pyproject.toml|uv.lock)$"
         always_run: false
 -   repo: https://github.com/commitizen-tools/commitizen
     rev: v4.4.1
@@ -51,7 +50,7 @@ repos:
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.9.9"
+    rev: "v0.9.10"
     hooks:
       - id: ruff-format
       - id: ruff
