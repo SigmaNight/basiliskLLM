@@ -124,6 +124,26 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
+				id="gpt-4o-search-preview",
+				name="GPT-4o Search Preview",
+				# Translators: This is a model description
+				description=_("GPT model for web search in Chat Completions"),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4o-mini-search-preview",
+				name="GPT-4o mini Search Preview",
+				# Translators: This is a model description
+				description=_("Fast, affordable small model for web search"),
+				context_window=128000,
+				max_output_tokens=16384,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
 				id="chatgpt-4o-latest",
 				name="ChatGPT 4o",
 				# Translators: This is a model description
@@ -390,15 +410,21 @@ class OpenAIEngine(BaseEngine):
 			chat completion chunks.
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
+		model_id = new_block.model.model_id
 		params = {
-			"model": new_block.model.model_id,
+			"model": model_id,
 			"messages": self.get_messages(
 				new_block, conversation, system_message
 			),
-			"temperature": new_block.temperature,
-			"top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
+		if model_id not in [
+			"gpt-4o-search-preview",
+			"gpt-4o-mini-search-preview",
+		]:
+			params.update(
+				{"temperature": new_block.temperature, "top_p": new_block.top_p}
+			)
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
