@@ -1179,6 +1179,149 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.ocr_button.Bind(wx.EVT_BUTTON, self.on_ocr)
 
+	def _handle_ocr_message(
+		self, message_type: str, data: Any, dialog: ProgressBarDialog
+	) -> None:
+		"""Handle a message from the OCR result queue.
+
+		Args:
+			message_type: The type of message received
+			data: The message data
+			dialog: The progress dialog
+		"""
+		try:
+			if message_type == "message":
+				self._handle_ocr_info_message(data, dialog)
+			elif message_type == "progress":
+				self._handle_ocr_progress_message(data, dialog)
+			elif message_type in ("result", "error"):
+				self._handle_ocr_completion_message(message_type, data, dialog)
+			else:
+				log.warning(
+					f"Unknown message type in result queue: {message_type}"
+				)
+		except Exception as e:
+			log.error(f"Error handling message: {str(e)}", exc_info=True)
+
+	def _handle_ocr_info_message(
+		self, data: Any, dialog: ProgressBarDialog
+	) -> None:
+		"""Handle an information message from the OCR process.
+
+		Args:
+			data: The message data
+			dialog: The progress dialog
+		"""
+		if isinstance(data, str) and data:
+			dialog.update_message(data)
+
+	def _handle_ocr_progress_message(
+		self, data: Any, dialog: ProgressBarDialog
+	) -> None:
+		"""Handle a progress update message from the OCR process.
+
+		Args:
+			data: The progress value
+			dialog: The progress dialog
+		"""
+		if isinstance(data, int):
+			dialog.update_progress_bar(data)
+
+	def _handle_ocr_completion_message(
+		self, message_type: str, data: Any, dialog: ProgressBarDialog
+	) -> None:
+		"""Handle a completion (result or error) message from the OCR process.
+
+		Args:
+			message_type: The type of message ("result" or "error")
+			data: The message data
+			dialog: The progress dialog
+		"""
+		if not dialog:
+			# Dialog might have been destroyed already
+			return
+
+		dialog.Destroy()
+		self.ocr_button.Enable()
+
+		# Handle based on message type
+		if message_type == "result":
+			self._display_ocr_result(data)
+		else:  # error case
+			wx.MessageBox(str(data), _("Error"), wx.OK | wx.ICON_ERROR)
+
+	def _display_ocr_result(self, data: Any) -> None:
+		"""Display the result of OCR processing.
+
+		Args:
+			data: The OCR result data
+		"""
+		if isinstance(data, list) and data:
+			msg = (
+				_("OCR completed successfully. Text extracted to:")
+				+ "\n"
+				+ "\n".join(data)
+			)
+			wx.MessageBox(msg, _("Result"), wx.OK | wx.ICON_INFORMATION)
+		elif isinstance(data, str) and data:
+			wx.MessageBox(data, _("Result"), wx.OK | wx.ICON_INFORMATION)
+		else:
+			log.warning(f"{data}")
+			wx.MessageBox(
+				_("OCR completed, but no text was extracted."),
+				_("Result"),
+				wx.OK | wx.ICON_INFORMATION,
+			)
+
+	def _process_ocr_queue(
+		self, result_queue: Queue, dialog: ProgressBarDialog
+	) -> None:
+		"""Process all pending messages in the OCR result queue.
+
+		Args:
+			result_queue: The queue containing OCR process results
+			dialog: The progress dialog to update
+		"""
+		try:
+			while not result_queue.empty():
+				message_type, data = result_queue.get(block=False)
+				self._handle_ocr_message(message_type, data, dialog)
+		except Exception as e:
+			log.error(
+				f"Error processing queue messages: {str(e)}", exc_info=True
+			)
+
+	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
+		"""Clean up OCR process resources when task completes or is canceled.
+
+		Args:
+			dialog: The progress dialog to manage
+		"""
+		# Clean up resources
+		if (
+			self.process
+			and dialog.cancel_flag.value
+			and self.process.is_alive()
+		):
+			log.debug("Terminating OCR process due to user cancellation")
+			try:
+				self.process.terminate()
+				self.process.join(timeout=1.0)  # Wait for process to terminate
+				if self.process.is_alive():
+					log.warning("Process did not terminate, killing it")
+					self.process.kill()
+			except Exception as e:
+				log.error(f"Error terminating process: {str(e)}", exc_info=True)
+
+		try:
+			if dialog and dialog.IsShown():
+				dialog.Destroy()
+		except Exception as e:
+			log.error(f"Error destroying dialog: {str(e)}", exc_info=True)
+
+		self.ocr_button.Enable()
+		self.process = None
+
 	def check_task_progress(
 		self, dialog: ProgressBarDialog, result_queue: Queue, cancel_flag
 	):
@@ -1189,74 +1332,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			result_queue: The queue to store the task result
 			cancel_flag: The flag to indicate if the task should be cancelled
 		"""
-
-		def handle_message_type(message_type, data):
-			try:
-				match message_type:
-					case "message":
-						if isinstance(data, str) and data:
-							dialog.update_message(data)
-					case "progress":
-						if isinstance(data, int):
-							dialog.update_progress_bar(data)
-					case "result" | "error":
-						if not dialog:
-							# Dialog might have been destroyed already
-							return
-
-						dialog.Destroy()
-						self.ocr_button.Enable()
-
-						# Handle the result
-						if message_type == "result":
-							if isinstance(data, list) and data:
-								msg = (
-									_(
-										"OCR completed successfully. Text extracted to:"
-									)
-									+ "\n"
-									+ "\n".join(data)
-								)
-								wx.MessageBox(
-									msg,
-									_("Result"),
-									wx.OK | wx.ICON_INFORMATION,
-								)
-							elif isinstance(data, str) and data:
-								wx.MessageBox(
-									data,
-									_("Result"),
-									wx.OK | wx.ICON_INFORMATION,
-								)
-							else:
-								log.warning(f"{data}")
-								wx.MessageBox(
-									_(
-										"OCR completed, but no text was extracted."
-									),
-									_("Result"),
-									wx.OK | wx.ICON_INFORMATION,
-								)
-						else:  # error case
-							wx.MessageBox(
-								str(data), _("Error"), wx.OK | wx.ICON_ERROR
-							)
-					case _:
-						log.warning(
-							f"Unknown message type in result queue: {message_type}"
-						)
-			except Exception as e:
-				log.error(f"Error handling message: {str(e)}", exc_info=True)
-
 		# Process all pending messages in the queue
-		try:
-			while not result_queue.empty():
-				message_type, data = result_queue.get(block=False)
-				handle_message_type(message_type, data)
-		except Exception as e:
-			log.error(
-				f"Error processing queue messages: {str(e)}", exc_info=True
-			)
+		self._process_ocr_queue(result_queue, dialog)
 
 		# Check if process is still running
 		if (
@@ -1264,34 +1341,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			or not self.process.is_alive()
 			or dialog.cancel_flag.value
 		):
-			# Clean up resources
-			if (
-				self.process
-				and dialog.cancel_flag.value
-				and self.process.is_alive()
-			):
-				log.debug("Terminating OCR process due to user cancellation")
-				try:
-					self.process.terminate()
-					self.process.join(
-						timeout=1.0
-					)  # Wait for process to terminate
-					if self.process.is_alive():
-						log.warning("Process did not terminate, killing it")
-						self.process.kill()
-				except Exception as e:
-					log.error(
-						f"Error terminating process: {str(e)}", exc_info=True
-					)
-
-			try:
-				if dialog and dialog.IsShown():
-					dialog.Destroy()
-			except Exception as e:
-				log.error(f"Error destroying dialog: {str(e)}", exc_info=True)
-
-			self.ocr_button.Enable()
-			self.process = None
+			self._cleanup_ocr_process(dialog)
 		else:
 			# Continue checking progress
 			wx.CallLater(

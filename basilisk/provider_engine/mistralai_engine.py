@@ -374,6 +374,173 @@ class MistralAIEngine(BaseEngine):
 		return True
 
 	@staticmethod
+	def _update_ocr_progress(message, progress=None, result_queue=None):
+		"""Updates OCR processing progress.
+
+		Args:
+			message: Progress message to log
+			progress: Optional numeric progress value
+			result_queue: Queue to send progress messages
+		"""
+		import sys
+
+		sys.stdout.write(f"Progress: {message}\n")
+		if result_queue:
+			try:
+				if message:
+					result_queue.put(("message", message))
+				if progress is not None:
+					result_queue.put(("progress", progress))
+			except Exception as e:
+				sys.stderr.write(f"Error sending progress update: {str(e)}\n")
+
+	@staticmethod
+	def _process_url_attachment(client, attachment, result_queue=None) -> str:
+		"""Process a URL-based attachment for OCR.
+
+		Args:
+			client: Mistral client instance
+			attachment: The attachment to process
+			result_queue: Queue for progress updates
+
+		Returns:
+			Path to the output file if successful, empty string otherwise
+		"""
+		from pathlib import Path
+
+		path = Path(user_documents_dir()) / "basilisk_ocr"
+		path.mkdir(exist_ok=True, parents=True)
+		output_file = (
+			path / f"{datetime.now().isoformat().replace(':', '-')}.md"
+		)
+
+		MistralAIEngine._update_ocr_progress(
+			f"Processing OCR for URL: {attachment.location}",
+			result_queue=result_queue,
+		)
+
+		result = MistralAIEngine._ocr_result(
+			MistralAIEngine._ocr_process(
+				client=client,
+				document={
+					"type": "document_url",
+					"document_url": attachment.url,
+				},
+				include_image_base64=True,
+			),
+			file_path=str(output_file),
+		)
+
+		return str(output_file) if result else ""
+
+	@staticmethod
+	def _process_file_attachment(client, attachment, result_queue=None) -> str:
+		"""Process a file-based attachment for OCR.
+
+		Args:
+			client: Mistral client instance
+			attachment: The attachment to process
+			result_queue: Queue for progress updates
+
+		Returns:
+			Path to the output file if successful, empty string otherwise
+		"""
+		import os
+		import sys
+		from pathlib import Path
+
+		output_file = Path(attachment.location).with_suffix(".md")
+		MistralAIEngine._update_ocr_progress(
+			f"Processing OCR for file: {attachment.name}",
+			result_queue=result_queue,
+		)
+
+		# Check if the file exists and is readable
+		if not os.path.exists(attachment.location):
+			MistralAIEngine._update_ocr_progress(
+				f"Warning: File not found: {attachment.location}",
+				result_queue=result_queue,
+			)
+			return ""
+
+		# Upload the file for OCR processing
+		with open(attachment.location, "rb") as f:
+			signed_url = MistralAIEngine._ocr_upload(
+				client=client, file={"file_name": attachment.name, "content": f}
+			)
+			sys.stdout.write(f"Signed URL: {signed_url}\n")
+
+		# Process the uploaded file
+		result = MistralAIEngine._ocr_result(
+			MistralAIEngine._ocr_process(
+				client=client,
+				document={"type": "document_url", "document_url": signed_url},
+				include_image_base64=True,
+			),
+			file_path=str(output_file),
+		)
+
+		return str(output_file) if result else ""
+
+	@staticmethod
+	def _process_single_attachment(
+		client, attachment, index, total, result_queue=None
+	) -> str:
+		"""Process a single attachment for OCR.
+
+		Args:
+			client: Mistral client instance
+			attachment: The attachment to process
+			index: Current attachment index
+			total: Total number of attachments
+			result_queue: Queue for progress updates
+
+		Returns:
+			Path to the output file if successful, empty string otherwise
+		"""
+		import traceback
+
+		MistralAIEngine._update_ocr_progress(
+			f"Processing attachment {index + 1}/{total}: {attachment.name}",
+			progress=int(100 * index / total),
+			result_queue=result_queue,
+		)
+
+		try:
+			if attachment.type == AttachmentFileTypes.URL:
+				output_file = MistralAIEngine._process_url_attachment(
+					client, attachment, result_queue
+				)
+			else:
+				output_file = MistralAIEngine._process_file_attachment(
+					client, attachment, result_queue
+				)
+
+			if output_file:
+				MistralAIEngine._update_ocr_progress(
+					f"OCR completed for {attachment.name}. Saved to {output_file}",
+					result_queue=result_queue,
+				)
+				return output_file
+			else:
+				MistralAIEngine._update_ocr_progress(
+					f"OCR failed for {attachment.name}. No text extracted.",
+					result_queue=result_queue,
+				)
+				return ""
+
+		except Exception as e:
+			error_trace = traceback.format_exc()
+			MistralAIEngine._update_ocr_progress(
+				f"Error processing attachment {attachment.name}: {str(e)}",
+				result_queue=result_queue,
+			)
+			import sys
+
+			sys.stderr.write(f"OCR error: {str(e)}\n{error_trace}\n")
+			return ""
+
+	@staticmethod
 	def handle_ocr(
 		api_key: str,
 		base_url: str,
@@ -393,148 +560,44 @@ class MistralAIEngine(BaseEngine):
 		Returns:
 			List of file paths containing the extracted text.
 		"""
-		# Import required modules inside the function for better multiprocessing compatibility
-		import os
 		import sys
-		from pathlib import Path
+		import traceback
 
 		from mistralai import Mistral
 
-		# Helper to safely update progress through queue
-		def update_progress(message, progress=None):
-			sys.stdout.write(f"Progress: {message}\n")
-			if result_queue:
-				try:
-					if message:
-						result_queue.put(("message", message))
-					if progress is not None:
-						result_queue.put(("progress", progress))
-				except Exception as e:
-					sys.stderr.write(
-						f"Error sending progress update: {str(e)}\n"
-					)
-
-		# Check if process should be canceled
-		def should_cancel():
-			return cancel_flag and cancel_flag.value
-
 		try:
 			# Create a new client in the subprocess
-			update_progress("Initializing OCR processor...")
+			MistralAIEngine._update_ocr_progress(
+				"Initializing OCR processor...", result_queue=result_queue
+			)
 			client = Mistral(api_key=api_key, server_url=base_url)
 
-			output_files = []
 			if not attachments:
 				return "error", "No attachments for OCR processing"
 
 			total_attachments = len(attachments)
+			output_files = []
 
 			for i, attachment in enumerate(attachments):
 				# Check for cancellation
-				if should_cancel():
+				if cancel_flag and cancel_flag.value:
 					return "result", output_files
 
-				update_progress(
-					f"Processing attachment {i + 1}/{total_attachments}: {attachment.name}"
+				output_file = MistralAIEngine._process_single_attachment(
+					client, attachment, i, total_attachments, result_queue
 				)
-				update_progress(None, int(100 * i / total_attachments))
-
-				try:
-					output_file = ""
-					if attachment.type == AttachmentFileTypes.URL:
-						path = Path(user_documents_dir()) / "basilisk_ocr"
-						path.mkdir(exist_ok=True, parents=True)
-						output_file = (
-							path
-							/ f"{datetime.now().isoformat().replace(':', '-')}.md"
-						)
-
-						update_progress(
-							f"Processing OCR for URL: {attachment.location}"
-						)
-
-						# Process URL-based attachment
-						result = MistralAIEngine._ocr_result(
-							MistralAIEngine._ocr_process(
-								client=client,
-								document={
-									"type": "document_url",
-									"document_url": attachment.url,
-								},
-								include_image_base64=True,
-							),
-							file_path=str(output_file),
-						)
-					else:
-						# For file-based attachments
-						output_file = Path(attachment.location).with_suffix(
-							".md"
-						)
-						update_progress(
-							f"Processing OCR for file: {attachment.name}"
-						)
-
-						# Check if the file exists and is readable
-						if not os.path.exists(attachment.location):
-							update_progress(
-								f"Warning: File not found: {attachment.location}"
-							)
-							continue
-
-						# Upload the file for OCR processing
-						with open(attachment.location, "rb") as f:
-							signed_url = MistralAIEngine._ocr_upload(
-								client=client,
-								file={
-									"file_name": attachment.name,
-									"content": f,
-								},
-							)
-							sys.stdout.write(f"Signed URL: {signed_url}\n")
-
-						# Process the uploaded file
-						result = MistralAIEngine._ocr_result(
-							MistralAIEngine._ocr_process(
-								client=client,
-								document={
-									"type": "document_url",
-									"document_url": signed_url,
-								},
-								include_image_base64=True,
-							),
-							file_path=str(output_file),
-						)
-
-					# Record successful result
-					if result:
-						output_files.append(str(output_file))
-						update_progress(
-							f"OCR completed for {attachment.name}. Saved to {output_file}"
-						)
-					else:
-						update_progress(
-							f"OCR failed for {attachment.name}. No text extracted."
-						)
-
-				except Exception as e:
-					import traceback
-
-					error_trace = traceback.format_exc()
-					update_progress(
-						f"Error processing attachment {attachment.name}: {str(e)}"
-					)
-					sys.stderr.write(f"OCR error: {str(e)}\n{error_trace}\n")
+				if output_file:
+					output_files.append(output_file)
 
 			# Final update
-			update_progress(
+			MistralAIEngine._update_ocr_progress(
 				f"OCR completed for {len(output_files)} of {total_attachments} attachments",
-				100,
+				progress=100,
+				result_queue=result_queue,
 			)
 			return output_files
 
 		except Exception as e:
-			import traceback
-
 			error_trace = traceback.format_exc()
 			sys.stderr.write(f"OCR process error: {str(e)}\n{error_trace}\n")
 			return "error", f"OCR process error: {str(e)}"
