@@ -1172,8 +1172,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return not invalid_found
 
 	def create_ocr_widget(self):
-		"""Create the OCR widget for the conversation tab."""
-		"""Create and configure the OCR button"""
+		"""Create and configure the OCR button widget."""
 		self.ocr_button = wx.Button(
 			self,
 			# Translators: This is a label for perform OCR button in the conversation tab
