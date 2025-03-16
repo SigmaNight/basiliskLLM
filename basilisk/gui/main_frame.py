@@ -364,14 +364,14 @@ class MainFrame(wx.Frame):
 		)
 		thread.start()
 
-	def post_screen_capture(self, imagefile: ImageFile | str):
+	def post_screen_capture(self, image_file: ImageFile | str):
 		"""Handle a screen capture event by adding the image to the current conversation tab.
 
 		Args:
-			imagefile: The image file object or path to the captured image.
+			image_file: The image file object or path to the captured image.
 		"""
 		log.debug("Screen capture received")
-		self.current_tab.add_attachments([imagefile])
+		self.current_tab.prompt_panel.add_attachments([image_file])
 		if not self.IsShown():
 			self.Show()
 			self.Restore()
@@ -656,9 +656,9 @@ class MainFrame(wx.Frame):
 			)
 			return
 		if from_url:
-			current_tab.add_attachment_url_dlg(event)
+			current_tab.prompt_panel.add_attachment_url_dlg(event)
 		else:
-			current_tab.add_attachments_dlg()
+			current_tab.prompt_panel.add_attachments_dlg()
 
 	def on_transcribe_audio(
 		self, event: wx.Event | None, from_microphone: bool = False
