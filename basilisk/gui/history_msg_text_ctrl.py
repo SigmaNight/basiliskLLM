@@ -27,6 +27,7 @@ from basilisk.message_segment_manager import (
 	MessageSegmentType,
 )
 
+from .edit_block_dialog import EditBlockDialog
 from .read_only_message_dialog import ReadOnlyMessageDialog
 from .search_dialog import SearchDialog, SearchDirection
 
@@ -215,6 +216,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Going to the next message
 		- Moving to the start of the current message
 		- Moving to the end of the current message
+			- Editing the current message block
 		- Removing the current message block
 		- Searching in the messages
 		- Searching for the next occurrence
@@ -269,6 +271,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				"(&n)",
 				self.move_to_end_of_message,
 				[],
+			),
+			MenuItemInfo(
+				_("Edit message block"), "(&e)", self.on_edit_message_block, []
 			),
 			MenuItemInfo(
 				_("Remove message block"),
@@ -580,7 +585,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		text = self.stream_buffer
 		if (
 			self._speak_stream
-			and (self.HasFocus() or self.GetParent().prompt.HasFocus())
+			and (self.HasFocus() or self.GetParent().prompt_panel.HasFocus())
 			and self.GetTopLevelParent().IsShown()
 		):
 			self.handle_speech_stream_buffer(new_text=text)
@@ -618,6 +623,30 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			)
 		else:
 			wx.Bell()
+
+	def on_edit_message_block(self, event: wx.CommandEvent | None = None):
+		"""Edit the current message block.
+
+		Opens a dialog to edit the message block at the current cursor position.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		block = self.current_msg_block
+		if not block:
+			wx.Bell()
+			return
+		block_index = self.GetParent().get_conversation_block_index(block)
+		if block_index is None:
+			wx.Bell()
+			return
+		dlg = EditBlockDialog(self.GetParent(), block_index)
+		if dlg.ShowModal() == wx.ID_OK:
+			self.GetParent().refresh_messages()
+			self.handle_accessible_output(
+				_("Message block updated"), braille=True
+			)
+		dlg.Destroy()
 
 	@staticmethod
 	def _handle_citations(citations: list[dict[str, Any]]) -> str:
@@ -729,6 +758,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		(wx.MOD_NONE, ord('C')): on_copy_message,
 		(wx.MOD_NONE, ord('B')): move_to_start_of_message,
 		(wx.MOD_NONE, ord('N')): move_to_end_of_message,
+		(wx.MOD_NONE, ord('E')): on_edit_message_block,
 		(wx.MOD_SHIFT, wx.WXK_DELETE): on_remove_message_block,
 		(wx.MOD_NONE, wx.WXK_F3): on_search_next,
 		(wx.MOD_NONE, ord('F')): on_search,
@@ -750,6 +780,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- B: Move to start of message
 		- N: Move to end of message
 		- Q: Show citations for current message
+		- E: Edit current message block
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)
