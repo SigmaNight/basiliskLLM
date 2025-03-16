@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +21,7 @@ from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
 )
+from basilisk.logger import setup_logging
 
 if TYPE_CHECKING:
 	from multiprocessing import Queue
@@ -91,7 +91,7 @@ def _ocr_result(ocr_response: OCRResponse, file_path: str) -> bool:
 	return True
 
 
-def _update_ocr_progress(message, progress=None, result_queue=None):
+def _update_ocr_progress(message: str, progress: int = None, result_queue=None):
 	"""Updates OCR processing progress.
 
 	Args:
@@ -99,15 +99,17 @@ def _update_ocr_progress(message, progress=None, result_queue=None):
 		progress: Optional numeric progress value
 		result_queue: Queue to send progress messages
 	"""
-	sys.stdout.write(f"Progress: {message}\n")
 	if result_queue:
 		try:
 			if message:
+				log.debug(message)
 				result_queue.put(("message", message))
 			if progress is not None:
 				result_queue.put(("progress", progress))
 		except Exception as e:
-			sys.stderr.write(f"Error sending progress update: {str(e)}\n")
+			log.error(f"Error updating OCR progress: {str(e)}")
+	else:
+		log.info(message)
 
 
 def _process_url_attachment(client, attachment, result_queue=None) -> str:
@@ -171,7 +173,7 @@ def _process_file_attachment(client, attachment, result_queue=None) -> str:
 		signed_url = _ocr_upload(
 			client=client, file={"file_name": attachment.name, "content": f}
 		)
-		sys.stdout.write(f"Signed URL: {signed_url}\n")
+		log.debug(f"Signed URL: {signed_url}\n")
 
 	# Process the uploaded file
 	result = _ocr_result(
@@ -236,7 +238,9 @@ def _process_single_attachment(
 			f"Error processing attachment {attachment.name}: {str(e)}",
 			result_queue=result_queue,
 		)
-		sys.stderr.write(f"OCR error: {str(e)}\n{error_trace}\n")
+		log.error(
+			f"Error processing attachment {attachment.name}: {str(e)}\n{error_trace}"
+		)
 		return ""
 
 
@@ -246,6 +250,7 @@ def handle_ocr(
 	attachments: list[AttachmentFile],
 	cancel_flag=None,
 	result_queue: Queue = None,
+	log_level=logging.INFO,
 ) -> tuple[str, Any]:
 	"""Extracts text from images using OCR.
 
@@ -260,6 +265,7 @@ def handle_ocr(
 		List of file paths containing the extracted text.
 	"""
 	try:
+		setup_logging(log_level)
 		# Create a new client in the subprocess
 		_update_ocr_progress(
 			"Initializing OCR processor...", result_queue=result_queue
@@ -293,5 +299,5 @@ def handle_ocr(
 
 	except Exception as e:
 		error_trace = traceback.format_exc()
-		sys.stderr.write(f"OCR process error: {str(e)}\n{error_trace}\n")
+		log.error(f"OCR process error: {str(e)}\n{error_trace}")
 		return "error", f"OCR process error: {str(e)}"

@@ -25,8 +25,6 @@ from basilisk.conversation.attached_file import AttachmentFile
 from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
-	from multiprocessing import Queue
-
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -305,11 +303,7 @@ class MistralAIEngine(BaseEngine):
 
 	@staticmethod
 	def handle_ocr(
-		api_key: str,
-		base_url: str,
-		attachments: list[AttachmentFile],
-		cancel_flag=None,
-		result_queue: Queue = None,
+		api_key: str, base_url: str, attachments: list[AttachmentFile], **kwargs
 	) -> tuple[str, Any]:
 		"""Extracts text from images using OCR.
 
@@ -323,6 +317,4 @@ class MistralAIEngine(BaseEngine):
 		Returns:
 			List of file paths containing the extracted text.
 		"""
-		return handle_ocr(
-			api_key, base_url, attachments, cancel_flag, result_queue
-		)
+		return handle_ocr(api_key, base_url, attachments, **kwargs)
