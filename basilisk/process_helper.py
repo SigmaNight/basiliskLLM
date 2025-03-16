@@ -21,8 +21,11 @@ def run_task(
 		**kwargs: The task keyword arguments
 	"""
 	try:
+		kwargs["result_queue"] = result_queue
+		kwargs["cancel_flag"] = cancel_flag
 		result = task(*args, **kwargs)
-		result_queue.put(("result", result))
+		if not cancel_flag.value:
+			result_queue.put(("result", result))
 	except Exception as e:
 		import traceback
 
