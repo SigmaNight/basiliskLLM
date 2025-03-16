@@ -260,6 +260,7 @@ def handle_ocr(
 		attachments: List of attachments to extract text from
 		cancel_flag: Flag to cancel the operation
 		result_queue: Queue to send progress messages
+		log_level: Logging level for the OCR process
 
 	Returns:
 		List of file paths containing the extracted text.

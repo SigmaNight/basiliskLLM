@@ -311,8 +311,7 @@ class MistralAIEngine(BaseEngine):
 			api_key: The API key for the MistralAI account
 			base_url: The base URL for the MistralAI API
 			attachments: List of attachments to extract text from
-			cancel_flag: Flag to cancel the operation
-			result_queue: Queue to send progress messages
+			**kwargs: Additional keyword arguments
 
 		Returns:
 			List of file paths containing the extracted text.
