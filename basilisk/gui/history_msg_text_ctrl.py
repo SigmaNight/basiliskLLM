@@ -585,7 +585,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		text = self.stream_buffer
 		if (
 			self._speak_stream
-			and (self.HasFocus() or self.GetParent().prompt_panel.HasFocus())
+			and (
+				self.HasFocus()
+				or self.GetParent().prompt_panel.prompt.HasFocus()
+			)
 			and self.GetTopLevelParent().IsShown()
 		):
 			self.handle_speech_stream_buffer(new_text=text)
