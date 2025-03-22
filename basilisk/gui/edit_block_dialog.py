@@ -280,7 +280,8 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			event: The button event
 		"""
 		model = self.current_model
-		if not model:
+		account = self.current_account
+		if not account and not model:
 			wx.MessageBox(
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
@@ -311,7 +312,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.block.system_index = None
 
 		# Update model and parameters
-		self.block.model.provider_id = model.provider_id
+		self.block.model.provider_id = account.provider.id
 		self.block.model.model_id = model.id
 		self.block.temperature = self.temperature_spinner.GetValue()
 		self.block.max_tokens = self.max_tokens_spin_ctrl.GetValue()
