@@ -35,22 +35,98 @@ MODIFIER_MAP: Dict[int, str] = {
 	win32con.MOD_SHIFT: _("Shift"),
 }
 
-KEY_MAP: Dict[int, str] = {win32con.VK_SNAPSHOT: "PrintScreen"}
+WXK_TO_VK_CODE_MAP: Dict[int, int] = {
+	wx.WXK_ESCAPE: win32con.VK_ESCAPE,
+	wx.WXK_F1: win32con.VK_F1,
+	wx.WXK_F2: win32con.VK_F2,
+	wx.WXK_F3: win32con.VK_F3,
+	wx.WXK_F4: win32con.VK_F4,
+	wx.WXK_F5: win32con.VK_F5,
+	wx.WXK_F6: win32con.VK_F6,
+	wx.WXK_F7: win32con.VK_F7,
+	wx.WXK_F8: win32con.VK_F8,
+	wx.WXK_F9: win32con.VK_F9,
+	wx.WXK_F10: win32con.VK_F10,
+	wx.WXK_F11: win32con.VK_F11,
+	wx.WXK_F12: win32con.VK_F12,
+	wx.WXK_F13: win32con.VK_F13,
+	wx.WXK_F14: win32con.VK_F14,
+	wx.WXK_F15: win32con.VK_F15,
+	wx.WXK_F16: win32con.VK_F16,
+	wx.WXK_F17: win32con.VK_F17,
+	wx.WXK_F18: win32con.VK_F18,
+	wx.WXK_F19: win32con.VK_F19,
+	wx.WXK_F20: win32con.VK_F20,
+	wx.WXK_F21: win32con.VK_F21,
+	wx.WXK_F22: win32con.VK_F22,
+	wx.WXK_F23: win32con.VK_F23,
+	wx.WXK_F24: win32con.VK_F24,
+	wx.WXK_SPACE: win32con.VK_SPACE,
+	wx.WXK_PAGEUP: win32con.VK_PRIOR,
+	wx.WXK_PAGEDOWN: win32con.VK_NEXT,
+	wx.WXK_HOME: win32con.VK_HOME,
+	wx.WXK_END: win32con.VK_END,
+	wx.WXK_LEFT: win32con.VK_LEFT,
+	wx.WXK_RIGHT: win32con.VK_RIGHT,
+	wx.WXK_UP: win32con.VK_UP,
+	wx.WXK_DOWN: win32con.VK_DOWN,
+	wx.WXK_INSERT: win32con.VK_INSERT,
+	wx.WXK_DELETE: win32con.VK_DELETE,
+	wx.WXK_MULTIPLY: win32con.VK_MULTIPLY,
+	wx.WXK_ADD: win32con.VK_ADD,
+	wx.WXK_SEPARATOR: win32con.VK_SEPARATOR,
+	wx.WXK_SUBTRACT: win32con.VK_SUBTRACT,
+	wx.WXK_DECIMAL: win32con.VK_DECIMAL,
+	wx.WXK_DIVIDE: win32con.VK_DIVIDE,
+	wx.WXK_NUMPAD0: win32con.VK_NUMPAD0,
+	wx.WXK_NUMPAD1: win32con.VK_NUMPAD1,
+	wx.WXK_NUMPAD2: win32con.VK_NUMPAD2,
+	wx.WXK_NUMPAD3: win32con.VK_NUMPAD3,
+	wx.WXK_NUMPAD4: win32con.VK_NUMPAD4,
+	wx.WXK_NUMPAD5: win32con.VK_NUMPAD5,
+	wx.WXK_NUMPAD6: win32con.VK_NUMPAD6,
+	wx.WXK_NUMPAD7: win32con.VK_NUMPAD7,
+	wx.WXK_NUMPAD8: win32con.VK_NUMPAD8,
+	wx.WXK_NUMPAD9: win32con.VK_NUMPAD9,
+	wx.WXK_NUMLOCK: win32con.VK_NUMLOCK,
+	wx.WXK_SCROLL: win32con.VK_SCROLL,
+	wx.WXK_BROWSER_BACK: win32con.VK_BROWSER_BACK,
+	wx.WXK_BROWSER_FORWARD: win32con.VK_BROWSER_FORWARD,
+	wx.WXK_VOLUME_MUTE: win32con.VK_VOLUME_MUTE,
+	wx.WXK_VOLUME_UP: win32con.VK_VOLUME_UP,
+	wx.WXK_VOLUME_DOWN: win32con.VK_VOLUME_DOWN,
+	wx.WXK_MEDIA_PREV_TRACK: win32con.VK_MEDIA_PREV_TRACK,
+	wx.WXK_MEDIA_NEXT_TRACK: win32con.VK_MEDIA_NEXT_TRACK,
+	wx.WXK_MEDIA_PLAY_PAUSE: win32con.VK_MEDIA_PLAY_PAUSE,
+	wx.WXK_BACK: win32con.VK_BACK,
+	wx.WXK_TAB: win32con.VK_TAB,
+	wx.WXK_RETURN: win32con.VK_RETURN,
+	wx.WXK_SHIFT: win32con.VK_SHIFT,
+	wx.WXK_CONTROL: win32con.VK_CONTROL,
+	wx.WXK_MENU: win32con.VK_MENU,
+	wx.WXK_PAUSE: win32con.VK_PAUSE,
+	wx.WXK_CAPITAL: win32con.VK_CAPITAL,
+}
+
+DISPLAY_NAME_KEY_MAP: Dict[int, str] = {win32con.VK_SNAPSHOT: "PrintScreen"}
 
 
-def get_key_name_from_win32con(key_code: int) -> Optional[str]:
+def get_vk_code_display_name(key_code: int) -> Optional[str]:
 	"""Retrieve the key name from win32con module.
 
 	Args:
-		key_code: The virtual key code to look up.
+		key_code: The virtual key code.
 
 	Returns:
-		The name of the key if found, otherwise None.
+		A string representation of the key name.
 	"""
+	if ord('0') <= key_code <= ord('9') or ord('A') <= key_code <= ord('Z'):
+		return chr(key_code)
+	if key_code in DISPLAY_NAME_KEY_MAP:
+		return DISPLAY_NAME_KEY_MAP[key_code]
 	for attr_name in dir(win32con):
 		if attr_name.startswith("VK_"):
 			if getattr(win32con, attr_name) == key_code:
-				log.debug(f"Found key code: {attr_name}")
 				return attr_name[3:]
 	log.debug(f"Key code not found: {key_code}")
 	return None
@@ -60,15 +136,27 @@ def shortcut_to_string(shortcut: Tuple[int, int]) -> str:
 	"""Converts a shortcut tuple to a human-readable string.
 
 	Args:
-		shortcut: A tuple containing modifier keys and the raw key code.
+		shortcut: A tuple containing the modifiers and the virtual key code.
 
 	Returns:
 		A string representation of the shortcut.
 	"""
-	modifiers, raw_key_code = shortcut
+	""""""
+	modifiers, vk_code = shortcut
 	mod_parts = [name for mod, name in MODIFIER_MAP.items() if modifiers & mod]
-	key_name = get_key_name_from_win32con(raw_key_code) or chr(raw_key_code)
+	key_name = get_vk_code_display_name(vk_code)
 	return '+'.join(mod_parts + [key_name])
+
+
+def get_vk_code(wx_key_code: int) -> Optional[int]:
+	"""Converts a WX key code to a VK code."""
+	if wx_key_code in WXK_TO_VK_CODE_MAP:
+		return WXK_TO_VK_CODE_MAP[wx_key_code]
+	elif ord('0') <= wx_key_code <= ord('9') or ord('A') <= wx_key_code <= ord(
+		'Z'
+	):
+		return wx_key_code
+	return None
 
 
 class GlobalShortcutsDialog(wx.Dialog):
@@ -104,6 +192,7 @@ class GlobalShortcutsDialog(wx.Dialog):
 			),
 		}
 		self._init_ui()
+		self._update_ui()
 
 	def _init_ui(self) -> None:
 		panel = wx.Panel(self)
@@ -122,13 +211,14 @@ class GlobalShortcutsDialog(wx.Dialog):
 			_("Shortcut"),
 			width=140,
 		)
-		self.populate_shortcut_list()
+		self.action_list.Bind(wx.EVT_KEY_DOWN, self.on_action_list)
 
 		assign_btn = wx.Button(panel, label="Assign")
 		assign_btn.Bind(wx.EVT_BUTTON, self.on_set_shortcut)
 
 		close_button = wx.Button(panel, wx.ID_CLOSE)
 		close_button.Bind(wx.EVT_BUTTON, self.on_close)
+		self.SetEscapeId(wx.ID_CLOSE)
 
 		main_sizer.Add(
 			self.action_list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5
@@ -146,6 +236,20 @@ class GlobalShortcutsDialog(wx.Dialog):
 		):
 			self.action_list.InsertItem(idx, action)
 			self.action_list.SetItem(idx, 1, shortcut_to_string(shortcut))
+
+	def _update_ui(self) -> None:
+		self.populate_shortcut_list()
+
+	def on_action_list(self, event: wx.KeyEvent) -> None:
+		"""Handle key events in the action list.
+
+		Args:
+			event: The key event object.
+		"""
+		if event.GetKeyCode() == wx.WXK_RETURN:
+			self.on_set_shortcut(event)
+		else:
+			event.Skip()
 
 	def on_set_shortcut(self, event: wx.Event) -> None:
 		"""Handle the event when the user clicks the 'Assign' button.
@@ -167,7 +271,7 @@ class GlobalShortcutsDialog(wx.Dialog):
 		action = self.action_list.GetItemText(selected_index)
 		dlg = ShortcutCaptureDialog(self)
 		if dlg.ShowModal() == wx.ID_OK:
-			new_shortcut = dlg.get_shortcut()
+			new_shortcut = dlg.shortcut
 			if new_shortcut:
 				self.current_shortcuts[action] = new_shortcut
 				wx.MessageBox(
@@ -181,6 +285,8 @@ class GlobalShortcutsDialog(wx.Dialog):
 					wx.OK | wx.ICON_INFORMATION,
 				)
 				self.populate_shortcut_list()
+				self.action_list.Select(selected_index, on=True)
+				self.action_list.Focus(selected_index)
 
 	def on_close(self, event: wx.Event) -> None:
 		"""Handle the event when the user clicks the 'Close' button.
@@ -206,7 +312,7 @@ class ShortcutCaptureDialog(wx.Dialog):
 			title=_("Press the Shortcut"),
 			size=(250, 100),
 		)
-		self.shortcut: Optional[Tuple[int, int]] = None
+		self._shortcut: Optional[Tuple[int, int]] = None
 		self._init_ui()
 
 	def _init_ui(self) -> None:
@@ -222,12 +328,12 @@ class ShortcutCaptureDialog(wx.Dialog):
 		panel.Bind(wx.EVT_KEY_UP, self.on_key_up)
 
 	def on_key_up(self, event: wx.KeyEvent) -> None:
-		"""Handle the key up event to capture the shortcut.
+		"""Handle the key up event.
 
 		Args:
 			event: The key event object.
 		"""
-		raw_key_code = event.GetRawKeyCode()
+		key_code = event.GetKeyCode()
 
 		mods = 0
 		if win32api.GetAsyncKeyState(
@@ -240,10 +346,10 @@ class ShortcutCaptureDialog(wx.Dialog):
 			mods |= win32con.MOD_CONTROL
 		if win32api.GetAsyncKeyState(win32con.VK_SHIFT):
 			mods |= win32con.MOD_SHIFT
-
-		log.debug(f"Key down: {mods=}, key_code={raw_key_code=}")
-		if raw_key_code and mods:
-			self.shortcut = (mods, raw_key_code)
+		vk_code = get_vk_code(key_code)
+		log.debug(f"Key down: {mods=}, {key_code=}")
+		if mods and vk_code:
+			self._shortcut = (mods, vk_code)
 			self.EndModal(wx.ID_OK)
 		else:
 			log.debug("Invalid shortcut key combination.")
@@ -257,6 +363,7 @@ class ShortcutCaptureDialog(wx.Dialog):
 				wx.OK | wx.ICON_WARNING,
 			)
 
-	def get_shortcut(self) -> Optional[Tuple[int, int]]:
-		"""Get the captured shortcut."""
-		return self.shortcut
+	@property
+	def shortcut(self) -> Optional[Tuple[int, int]]:
+		"""Get the captured shortcut key combination."""
+		return self._shortcut
