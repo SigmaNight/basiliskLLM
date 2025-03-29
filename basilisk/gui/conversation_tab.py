@@ -17,13 +17,11 @@ from __future__ import annotations
 
 import datetime
 import logging
-import re
 import threading
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
-from httpx import HTTPError
 from more_itertools import first, locate
 from upath import UPath
 
@@ -32,7 +30,6 @@ from basilisk import global_vars
 from basilisk.accessible_output import get_accessible_output
 from basilisk.conversation import (
 	PROMPT_TITLE,
-	URL_PATTERN,
 	AttachmentFile,
 	Conversation,
 	ImageFile,
@@ -40,9 +37,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 	SystemMessage,
-	build_from_url,
-	get_mime_type,
-	parse_supported_attachment_formats,
 )
 from basilisk.decorators import ensure_no_task_running
 from basilisk.provider_ai_model import ProviderAIModel
@@ -51,7 +45,7 @@ from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
-from .read_only_message_dialog import ReadOnlyMessageDialog
+from .prompt_attachments_panel import PromptAttachmentsPanel
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -182,93 +176,144 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- Generation parameters
 		- Control buttons
 		"""
-		sizer = wx.BoxSizer(wx.VERTICAL)
-		label = self.create_account_widget()
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
-
+		main_sizer = wx.BoxSizer(wx.VERTICAL)
+		conversation_group = wx.StaticBoxSizer(
+			wx.StaticBox(self, label=_("Conversation")), wx.VERTICAL
+		)
 		label = self.create_system_prompt_widget()
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.system_prompt_txt, proportion=1, flag=wx.EXPAND)
-
+		conversation_group.Add(
+			label,
+			proportion=0,
+			flag=wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,
+			border=5,
+		)
+		conversation_group.Add(
+			self.system_prompt_txt,
+			proportion=1,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
+		)
+		main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 5)
 		label = wx.StaticText(
 			self,
 			# Translators: This is a label for user prompt in the main window
 			label=_("&Messages:"),
 		)
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.messages = HistoryMsgTextCtrl(self, size=(800, 400))
-		sizer.Add(self.messages, proportion=1, flag=wx.EXPAND)
-
-		label = wx.StaticText(
-			self,
-			# Translators: This is a label for user prompt in the main window
-			label=_("&Prompt:"),
+		conversation_group.Add(
+			label, proportion=0, flag=wx.EXPAND | wx.ALL, border=5
 		)
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		self.prompt = wx.TextCtrl(
-			self,
-			size=(800, 100),
-			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
+		self.messages = HistoryMsgTextCtrl(self)
+		conversation_group.Add(
+			self.messages,
+			proportion=1,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
 		)
-		self.prompt.Bind(wx.EVT_KEY_DOWN, self.on_prompt_key_down)
-		self.prompt.Bind(wx.EVT_CONTEXT_MENU, self.on_prompt_context_menu)
-		self.prompt.Bind(wx.EVT_TEXT_PASTE, self.on_prompt_paste)
-		sizer.Add(self.prompt, proportion=1, flag=wx.EXPAND)
-		self.prompt.SetFocus()
-
-		self.attachments_list_label = wx.StaticText(
-			self,
-			# Translators: This is a label for models in the main window
-			label=_("&Attachments:"),
+		self.prompt_panel = PromptAttachmentsPanel(
+			self, self.conv_storage_path, self.on_submit
 		)
-		sizer.Add(self.attachments_list_label, proportion=0, flag=wx.EXPAND)
-		self.attachments_list = wx.ListCtrl(
-			self, size=(800, 100), style=wx.LC_REPORT
+		self.prompt_panel.SetMinSize((-1, 200))
+		conversation_group.Add(
+			self.prompt_panel, proportion=0, flag=wx.EXPAND | wx.ALL, border=5
 		)
-		self.attachments_list.Bind(
-			wx.EVT_CONTEXT_MENU, self.on_attachments_context_menu
+		self.prompt_panel.set_prompt_focus()
+		main_sizer.Add(
+			conversation_group,
+			proportion=3,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=10,
 		)
-		self.attachments_list.Bind(
-			wx.EVT_KEY_DOWN, self.on_attachments_key_down
+		params_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		model_group = wx.StaticBoxSizer(
+			wx.StaticBox(self, label=_("Model Selection")), wx.VERTICAL
 		)
-		self.attachments_list.InsertColumn(
-			0,
-			# Translators: This is a label for attachment name in the main window
-			_("Name"),
+		label = self.create_account_widget()
+		model_group.Add(label, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
+		model_group.Add(
+			self.account_combo,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
 		)
-		self.attachments_list.InsertColumn(
-			1,
-			# Translators: This is a label for attachment size in the main window
-			_("Size"),
-		)
-		self.attachments_list.InsertColumn(
-			2,
-			# Translators: This is a label for attachment location in the main window
-			_("Location"),
-		)
-		self.attachments_list.SetColumnWidth(0, 200)
-		self.attachments_list.SetColumnWidth(1, 100)
-		self.attachments_list.SetColumnWidth(2, 500)
-		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
 		label = self.create_model_widget()
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		model_group.Add(label, proportion=0, flag=wx.EXPAND | wx.ALL, border=5)
+		model_group.Add(
+			self.model_list,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
+		)
 		self.create_web_search_widget()
-		sizer.Add(self.web_search_mode, proportion=0, flag=wx.EXPAND)
-		self.create_max_tokens_widget()
-		sizer.Add(self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
-		self.create_temperature_widget()
-		sizer.Add(self.temperature_spinner_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
-		self.create_top_p_widget()
-		sizer.Add(self.top_p_spinner_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
+		model_group.Add(
+			self.web_search_mode,
+			proportion=0,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
 		self.create_stream_widget()
-		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
+		model_group.Add(
+			self.stream_mode, proportion=0, flag=wx.EXPAND | wx.ALL, border=5
+		)
+		params_sizer.Add(
+			model_group, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=5
+		)
+		self.advanced_box = wx.StaticBox(
+			self, label=_("Advanced generation options")
+		)
+		advanced_group = wx.StaticBoxSizer(self.advanced_box, wx.VERTICAL)
 
-		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.create_max_tokens_widget()
+		advanced_group.Add(
+			self.max_tokens_spin_label,
+			proportion=0,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
+		advanced_group.Add(
+			self.max_tokens_spin_ctrl,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
+		)
+		self.create_temperature_widget()
+		advanced_group.Add(
+			self.temperature_spinner_label,
+			proportion=0,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
+		advanced_group.Add(
+			self.temperature_spinner,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
+		)
+		self.create_top_p_widget()
+		advanced_group.Add(
+			self.top_p_spinner_label,
+			proportion=0,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
+		advanced_group.Add(
+			self.top_p_spinner,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=5,
+		)
+		params_sizer.Add(
+			advanced_group, proportion=1, flag=wx.EXPAND | wx.LEFT, border=5
+		)
+		main_sizer.Add(
+			params_sizer,
+			proportion=1,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM,
+			border=10,
+		)
+		main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.ALL, 5)
+		btn_group = wx.StaticBoxSizer(
+			wx.StaticBox(self, label=_("Actions")), wx.HORIZONTAL
+		)
 
 		self.submit_btn = wx.Button(
 			self,
@@ -277,7 +322,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		self.submit_btn.Bind(wx.EVT_BUTTON, self.on_submit)
 		self.submit_btn.SetDefault()
-		btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
+		btn_group.Add(
+			self.submit_btn, proportion=1, flag=wx.EXPAND | wx.ALL, border=5
+		)
 
 		self.stop_completion_btn = wx.Button(
 			self,
@@ -285,7 +332,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			label=_("Stop completio&n"),
 		)
 		self.stop_completion_btn.Bind(wx.EVT_BUTTON, self.on_stop_completion)
-		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
+		btn_group.Add(
+			self.stop_completion_btn,
+			proportion=1,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
 		self.stop_completion_btn.Hide()
 
 		self.toggle_record_btn = wx.Button(
@@ -293,7 +345,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			# Translators: This is a label for record button in the main window
 			label=_("Record") + " (Ctrl+R)",
 		)
-		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
+		btn_group.Add(
+			self.toggle_record_btn,
+			proportion=1,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
 		self.toggle_record_btn.Bind(wx.EVT_BUTTON, self.toggle_recording)
 
 		self.apply_profile_btn = wx.Button(
@@ -302,13 +359,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 			label=_("Apply profile") + " (Ctrl+P)",
 		)
 		self.apply_profile_btn.Bind(wx.EVT_BUTTON, self.on_choose_profile)
-		btn_sizer.Add(self.apply_profile_btn, proportion=0, flag=wx.EXPAND)
+		btn_group.Add(
+			self.apply_profile_btn,
+			proportion=1,
+			flag=wx.EXPAND | wx.ALL,
+			border=5,
+		)
 
-		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
+		main_sizer.Add(
+			btn_group, proportion=0, flag=wx.EXPAND | wx.ALL, border=10
+		)
 
-		self.SetSizerAndFit(sizer)
+		self.SetSizerAndFit(main_sizer)
 
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
+
+	def adjust_advanced_mode_setting(self):
+		"""Adjust the advanced mode settings based on the current configuration."""
+		contlols = [self.advanced_box]
+		super().adjust_advanced_mode_setting(contlols)
 
 	def init_data(self, profile: Optional[config.ConversationProfile]):
 		"""Initialize the conversation data with an optional profile.
@@ -316,7 +385,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			profile: Configuration profile to apply
 		"""
-		self.refresh_attachments_list()
+		self.prompt_panel.refresh_attachments_list()
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
@@ -368,314 +437,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			ProviderCapability.WEB_SEARCH
 			in account.provider.engine_cls.capabilities
 		)
-
-	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
-		"""Display context menu for the attachments list.
-
-		Provides options for:
-		- Removing selected attachment
-		- Copying attachment location
-		- Pasting attachments
-		- Adding files
-		- Adding image URLs
-
-		Args:
-			event (wx.ContextMenuEvent): The context menu trigger event
-		"""
-		selected = self.attachments_list.GetFirstSelected()
-		menu = wx.Menu()
-
-		if selected != wx.NOT_FOUND:
-			item = wx.MenuItem(
-				menu,
-				wx.ID_ANY,
-				# Translators: This is a label for show details in the context menu
-				_("Show details") + "	Enter",
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_show_attachment_details, item)
-
-			item = wx.MenuItem(
-				menu,
-				wx.ID_ANY,
-				# Translators: This is a label for remove selected attachment in the context menu
-				_("Remove selected attachment") + "	Shift+Del",
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
-
-			item = wx.MenuItem(
-				menu,
-				wx.ID_ANY,
-				# Translators: This is a label for copy location in the context menu
-				_("Copy location") + "	Ctrl+C",
-			)
-			menu.Append(item)
-			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
-		item = wx.MenuItem(
-			menu,
-			wx.ID_ANY,
-			# Translators: This is a label for paste in the context menu
-			_("Paste (file or text)") + "	Ctrl+V",
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_attachments_paste, item)
-
-		item = wx.MenuItem(
-			menu,
-			wx.ID_ANY,
-			# Translators: This is a label for add files in the context menu
-			_("Add files..."),
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_attachments_dlg, item)
-
-		item = wx.MenuItem(
-			menu,
-			wx.ID_ANY,
-			# Translators: This is a label for add attachment URL in the context menu
-			_("Add attachment URL...") + "	Ctrl+U",
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.add_attachment_url_dlg, item)
-
-		self.attachments_list.PopupMenu(menu)
-		menu.Destroy()
-
-	def on_attachments_key_down(self, event: wx.KeyEvent):
-		"""Handle keyboard shortcuts for the attachments list.
-
-		Supports:
-		- Ctrl+C: Copy file location
-		- Ctrl+V: Paste attachments
-		- Delete: Remove selected attachment
-
-		Args:
-			event: The keyboard event
-		"""
-		key_code = event.GetKeyCode()
-		modifiers = event.GetModifiers()
-		if modifiers == wx.MOD_CONTROL and key_code == ord("C"):
-			self.on_copy_attachment_location(None)
-		if modifiers == wx.MOD_CONTROL and key_code == ord("V"):
-			self.on_attachments_paste(None)
-		if modifiers == wx.MOD_NONE and key_code == wx.WXK_DELETE:
-			self.on_attachments_remove(None)
-		if modifiers == wx.MOD_NONE and key_code in (
-			wx.WXK_RETURN,
-			wx.WXK_NUMPAD_ENTER,
-		):
-			self.on_show_attachment_details(None)
-		event.Skip()
-
-	def on_attachments_paste(self, event: wx.CommandEvent):
-		"""Handles pasting content from the clipboard into the conversation interface.
-
-		Supports multiple clipboard data types:
-		- Files: Adds files directly to the conversation
-		- Text:
-			- If a valid URL is detected, adds the attachmentURL
-			- Otherwise, pastes text into the prompt input
-		- Bitmap images: Saves the image to a temporary file and adds it to the conversation
-
-		Args:
-		event: The clipboard paste event
-		"""
-		with wx.TheClipboard as clipboard:
-			if clipboard.IsSupported(wx.DataFormat(wx.DF_FILENAME)):
-				log.debug("Pasting files from clipboard")
-				file_data = wx.FileDataObject()
-				clipboard.GetData(file_data)
-				paths = file_data.GetFilenames()
-				self.add_attachments(paths)
-			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
-				log.debug("Pasting text from clipboard")
-				text_data = wx.TextDataObject()
-				clipboard.GetData(text_data)
-				text = text_data.GetText()
-				if re.fullmatch(URL_PATTERN, text):
-					log.info("Pasting URL from clipboard, adding attachment")
-					self.add_attachment_url_thread(text)
-				else:
-					log.info("Pasting text from clipboard")
-					self.prompt.WriteText(text)
-					self.prompt.SetFocus()
-			elif clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
-				log.debug("Pasting bitmap from clipboard")
-				bitmap_data = wx.BitmapDataObject()
-				success = clipboard.GetData(bitmap_data)
-				if not success:
-					log.error("Failed to get bitmap data from clipboard")
-					return
-				img = bitmap_data.GetBitmap().ConvertToImage()
-				path = (
-					self.conv_storage_path
-					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
-				)
-				with path.open("wb") as f:
-					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
-				self.add_attachments([ImageFile(location=path)])
-
-			else:
-				log.info("Unsupported clipboard data")
-
-	def add_attachments_dlg(self, event: wx.CommandEvent = None):
-		"""Open a file dialog to select and add files to the conversation.
-
-		Args:
-			event: Event triggered by the add files action
-		"""
-		wildcard = parse_supported_attachment_formats(
-			self.current_engine.supported_attachment_formats
-		)
-		if not wildcard:
-			wx.MessageBox(
-				# Translators: This message is displayed when there are no supported attachment formats.
-				_("This provider does not support any attachment formats."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
-		file_dialog = wx.FileDialog(
-			self,
-			# Translators: This is a label for select files in conversation tab
-			message=_("Select one or more files to attach"),
-			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=wildcard,
-		)
-		if file_dialog.ShowModal() == wx.ID_OK:
-			paths = file_dialog.GetPaths()
-			self.add_attachments(paths)
-		file_dialog.Destroy()
-
-	def add_attachment_url_dlg(self, event: wx.CommandEvent | None):
-		"""Open a dialog to input an attachment URL and add it to the conversation.
-
-		Args:
-			event: Event triggered by the add attachment URL action
-		"""
-		url_dialog = wx.TextEntryDialog(
-			self,
-			# Translators: This is a label for enter URL in add attachment dialog
-			message=_("Enter the URL of the file to attach:"),
-			caption=_("Add attachment from URL"),
-		)
-		if url_dialog.ShowModal() != wx.ID_OK:
-			return
-		url = url_dialog.GetValue()
-		if not url:
-			return
-		if not re.fullmatch(URL_PATTERN, url):
-			wx.MessageBox(
-				_("Invalid URL, bad format."), _("Error"), wx.OK | wx.ICON_ERROR
-			)
-			return
-		self.add_attachment_url_thread(url)
-		url_dialog.Destroy()
-
-	def add_attachment_from_url(self, url: str):
-		"""Add an attachment to the conversation from a URL.
-
-		Args:
-			url: The URL of the file to attach
-		"""
-		attachment_file = None
-		try:
-			attachment_file = build_from_url(url)
-		except HTTPError as err:
-			wx.CallAfter(
-				wx.MessageBox,
-				# Translators: This message is displayed when the HTTP error occurs while adding a file from a URL.
-				_("HTTP error %s.") % err,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		except BaseException as err:
-			log.error(err, exc_info=True)
-			wx.CallAfter(
-				wx.MessageBox,
-				# Translators: This message is displayed when an error occurs while adding a file from a URL.
-				_("Error adding attachment from URL: %s") % err,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		wx.CallAfter(self.add_attachments, [attachment_file])
-		self.task = None
-
-	@ensure_no_task_running
-	def add_attachment_url_thread(self, url: str):
-		"""Start a thread to add an attachment to the conversation from a URL.
-
-		Args:
-			url: The URL of the file to attach
-		"""
-		self.task = threading.Thread(
-			target=self.add_attachment_from_url, args=(url,)
-		)
-		self.task.start()
-
-	def on_show_attachment_details(self, event: wx.CommandEvent):
-		"""Show details of the selected attachment in a read-only dialog.
-
-		Args:
-			event: Event triggered by the show attachment details action
-		"""
-		selected = self.attachments_list.GetFirstSelected()
-		if selected == wx.NOT_FOUND:
-			return
-		attachment_file = self.attachment_files[selected]
-		details = {
-			_("Name"): attachment_file.name,
-			_("Size"): attachment_file.display_size,
-			_("Location"): attachment_file.location,
-		}
-		mime_type = attachment_file.mime_type
-		if mime_type:
-			details[_("MIME type")] = mime_type
-			if mime_type.startswith("image/"):
-				details[_("Dimensions")] = attachment_file.display_dimensions
-		details_str = "\n".join(
-			_("%s: %s") % (k, v) for k, v in details.items()
-		)
-		ReadOnlyMessageDialog(
-			self, _("Attachment details"), details_str
-		).ShowModal()
-
-	def on_attachments_remove(self, event: wx.CommandEvent):
-		"""Remove the selected attachment from the conversation.
-
-		Args:
-			event: Event triggered by the remove attachment action
-		"""
-		selection = self.attachments_list.GetFirstSelected()
-		if selection == wx.NOT_FOUND:
-			return
-		self.attachment_files.pop(selection)
-		self.refresh_attachments_list()
-		if selection >= self.attachments_list.GetItemCount():
-			selection -= 1
-		if selection >= 0:
-			self.attachments_list.SetItemState(
-				selection, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
-			)
-		else:
-			self.prompt.SetFocus()
-
-	def on_copy_attachment_location(self, event: wx.CommandEvent):
-		"""Copy the location of the selected attachment to the clipboard.
-
-		Args:
-			event: Event triggered by the copy attachment location action
-		"""
-		selected = self.attachments_list.GetFirstSelected()
-		if selected == wx.NOT_FOUND:
-			return
-		location = "\"%s\"" % str(self.attachment_files[selected].location)
-		with wx.TheClipboard as clipboard:
-			clipboard.SetData(wx.TextDataObject(location))
+		self.prompt_panel.set_engine(self.current_engine)
 
 	def refresh_accounts(self):
 		"""Update the account selection combo box with current accounts.
@@ -698,62 +460,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
 
-	def refresh_attachments_list(self):
-		"""Update the attachments list display based on the current attachment files.
-
-		Shows/hides the attachments list based on the number of attachments.
-		Updates all attachment details in the list.
-		"""
-		self.attachments_list.DeleteAllItems()
-		if not self.attachment_files:
-			self.attachments_list_label.Hide()
-			self.attachments_list.Hide()
-			self.Layout()
-			return
-		self.attachments_list_label.Show()
-		self.attachments_list.Show()
-		for attachment in self.attachment_files:
-			self.attachments_list.Append(attachment.get_display_info())
-		last_index = len(self.attachment_files) - 1
-		self.attachments_list.SetItemState(
-			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
-		)
-		self.attachments_list.EnsureVisible(last_index)
 		self.Layout()
-
-	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
-		"""Add one or more attachments to the conversation.
-
-		Args:
-			paths: List of attachment file paths
-		"""
-		log.debug(f"Adding attachments: {paths}")
-		for path in paths:
-			if isinstance(path, (AttachmentFile, ImageFile)):
-				self.attachment_files.append(path)
-			else:
-				mime_type = get_mime_type(path)
-				supported_attachment_formats = (
-					self.current_engine.supported_attachment_formats
-				)
-				if mime_type not in supported_attachment_formats:
-					wx.MessageBox(
-						# Translators: This message is displayed when there are no supported attachment formats.
-						_(
-							"This attachment format is not supported by the current provider. Source:"
-						)
-						+ f"\n{path}",
-						_("Error"),
-						wx.OK | wx.ICON_ERROR,
-					)
-					continue
-				if mime_type.startswith("image/"):
-					file = ImageFile(location=path)
-				else:
-					file = AttachmentFile(location=path)
-				self.attachment_files.append(file)
-		self.refresh_attachments_list()
-		self.attachments_list.SetFocus()
 
 	def on_config_change(self):
 		"""Handle configuration changes in the conversation tab.
@@ -782,86 +489,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
-	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
-		"""Display context menu for the prompt text control.
-
-		Provides options for:
-		- Inserting the previous prompt
-		- Submitting the current prompt
-		- Pasting content from the clipboard
-		- Copying content from the prompt
-		- Cutting content from the prompt
-		- Selecting all content in the prompt
-
-		Args:
-			event: The context menu trigger event
-		"""
-		menu = wx.Menu()
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Insert previous prompt") + "	Ctrl+Up"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.insert_previous_prompt, item)
-
-		item = wx.MenuItem(menu, wx.ID_ANY, _("Submit") + " (Ctrl+Enter)")
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_submit, item)
-		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (file or text)") + "	Ctrl+V"
-		)
-		menu.Append(item)
-		self.Bind(wx.EVT_MENU, self.on_prompt_paste, item)
-
-		self.add_standard_context_menu_items(menu, include_paste=False)
-		self.prompt.PopupMenu(menu)
 		menu.Destroy()
-
-	def on_prompt_key_down(self, event: wx.KeyEvent):
-		"""Handle keyboard shortcuts for the prompt text control.
-
-		Supports:
-		- Ctrl+Up: Insert previous prompt
-		- Ctrl+Enter: Submit the current prompt
-		- Ctrl+V: Paste content from the clipboard
-		- Ctrl+C: Copy content from the prompt
-		- Ctrl+X: Cut content from the prompt
-		- Ctrl+A: Select all content in the prompt
-
-		Args:
-			event: The keyboard event
-		"""
-		modifiers = event.GetModifiers()
-		key_code = event.GetKeyCode()
-		match (modifiers, key_code):
-			case (wx.MOD_NONE, wx.WXK_RETURN) | (
-				wx.MOD_NONE,
-				wx.WXK_NUMPAD_ENTER,
-			):
-				if config.conf().conversation.shift_enter_mode:
-					self.on_submit(event)
-					event.StopPropagation()
-				else:
-					event.Skip()
-			case (wx.MOD_CONTROL, wx.WXK_UP):
-				if not self.prompt.GetValue():
-					self.insert_previous_prompt()
-			case (wx.MOD_CONTROL, wx.WXK_RETURN) | (
-				wx.MOD_CONTROL,
-				wx.WXK_NUMPAD_ENTER,
-			):
-				self.on_submit(event)
-			case _:
-				event.Skip()
-
-	def on_prompt_paste(self, event):
-		"""Handle pasting content from the clipboard into the prompt text control.
-
-		Supports pasting text and files from the clipboard.
-
-		Args:
-			event: The paste event
-		"""
-		self.on_attachments_paste(event)
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		"""Insert the last user message from the conversation history into the prompt text control.
@@ -875,7 +503,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request.content
-			self.prompt.SetValue(last_user_message)
+			self.prompt_panel.prompt_text = last_user_message
 
 	def extract_text_from_message(self, content: str) -> str:
 		"""Extracts the text content from a message.
@@ -903,8 +531,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if need_clear:
 			self.messages.Clear()
-			self.attachment_files.clear()
-		self.refresh_attachments_list()
+			self.prompt_panel.clear()
+		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
 
@@ -977,11 +605,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		stop_sound()
 		self.SetStatusText(_("Ready"))
-		self.prompt.AppendText(transcription.text)
-		if self.prompt.HasFocus() and self.GetTopLevelParent().IsShown():
+		self.prompt_panel.prompt.AppendText(transcription.text)
+		if (
+			self.prompt_panel.prompt.HasFocus()
+			and self.GetTopLevelParent().IsShown()
+		):
 			self._handle_accessible_output(transcription.text)
-		self.prompt.SetInsertionPointEnd()
-		self.prompt.SetFocus()
+		self.prompt_panel.SetInsertionPointEnd()
+		self.prompt_panel.set_prompt_focus()
 
 	def on_transcription_error(self, error):
 		"""Handle an error during audio transcription.
@@ -1028,17 +659,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	def has_image_attachments(self) -> bool:
-		"""Check if there are image attachments in the current message block.
-
-		Returns:
-			True if there are image attachments, False otherwise
-		"""
-		return any(
-			attachment.mime_type.startswith("image/")
-			for attachment in self.attachment_files
-		)
-
 	def ensure_model_compatibility(self) -> ProviderAIModel | None:
 		"""Check if current model is compatible with requested operations.
 
@@ -1051,7 +671,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return None
-		if self.has_image_attachments() and not model.vision:
+		if self.prompt_panel.has_image_attachments() and not model.vision:
 			vision_models = ", ".join(
 				[m.name or m.id for m in self.current_engine.models if m.vision]
 			)
@@ -1088,21 +708,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		model = self.ensure_model_compatibility()
 		if not model:
 			return None
-		if config.conf().images.resize:
-			for attachment in self.attachment_files:
-				if not attachment.mime_type.startswith("image/"):
-					continue
-				attachment.resize(
-					self.conv_storage_path,
-					config.conf().images.max_width,
-					config.conf().images.max_height,
-					config.conf().images.quality,
-				)
+		self.prompt_panel.resize_all_attachments()
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
-				content=self.prompt.GetValue(),
-				attachments=self.attachment_files,
+				content=self.prompt_panel.prompt_text,
+				attachments=self.prompt_panel.attachment_files,
 			),
 			model_id=model.id,
 			provider_id=self.current_account.provider.id,
@@ -1137,27 +748,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
-	def _check_attachments_valid(self) -> bool:
-		supported_attachment_formats = (
-			self.current_engine.supported_attachment_formats
-		)
-		invalid_found = False
-		attachments_copy = self.attachment_files[:]
-		for attachment in attachments_copy:
-			if attachment.mime_type not in supported_attachment_formats:
-				msg = (
-					_(
-						"This attachment format is not supported by the current provider. Source: %s"
-					)
-					% attachment.location
-					if attachment.mime_type not in supported_attachment_formats
-					else _("The attachment file does not exist: %s")
-					% attachment.location
-				)
-				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-				invalid_found = True
-		return not invalid_found
-
 	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		"""Handle the submission of a new message block for completion.
@@ -1167,11 +757,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self._check_attachments_valid():
-			self.attachments_list.SetFocus()
+		if not self.prompt_panel.check_attachments_valid():
+			self.prompt_panel.set_attachments_focus()
 			return
-		if not self.prompt.GetValue() and not self.attachment_files:
-			self.prompt.SetFocus()
+		if (
+			not self.prompt_panel.prompt_text
+			and not self.prompt_panel.attachments_list
+		):
+			self.prompt_panel.set_prompt_focus()
 			return
 		completion_kw = self.get_completion_args()
 		if not completion_kw:
@@ -1267,9 +860,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
-		self.prompt.Clear()
-		self.attachment_files.clear()
-		self.refresh_attachments_list()
+		self.prompt_panel.clear()
+		self.prompt_panel.refresh_attachments_list()
 
 	def _handle_completion_with_stream(self, chunk: str):
 		"""Handle a completion response chunk for streaming.
@@ -1313,9 +905,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
 		self.messages.handle_accessible_output(new_block.response.content)
-		self.prompt.Clear()
-		self.attachment_files.clear()
-		self.refresh_attachments_list()
+		self.prompt_panel.clear()
+		self.prompt_panel.refresh_attachments_list()
 		if config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
 		self._end_task()
@@ -1416,3 +1007,16 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.conversation.remove_block(message_block)
 		self.refresh_messages()
+
+	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
+		"""Get the index of a message block in the conversation.
+
+		Args:
+			block: The message block to find
+
+		Returns:
+			The index of the message block in the conversation, or None if not found
+		"""
+		if block not in self.conversation.messages:
+			return None
+		return self.conversation.messages.index(block)
