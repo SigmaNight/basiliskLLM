@@ -32,7 +32,7 @@ repos:
       - id: check-yaml
       - id: check-ast
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.6.9
+    rev: 0.6.11
     hooks:
       - id: uv-lock
         files: "^(pyproject.toml|uv.lock)$"
