@@ -86,7 +86,11 @@ class BaseEngine(ABC):
 		Returns:
 			The prepared message in provider-specific format.
 		"""
-		pass
+		for attachment in message.attachments:
+			if attachment.mime_type not in self.supported_attachment_formats:
+				raise ValueError(
+					f"Unsupported attachment format: {attachment.mime_type}"
+				)
 
 	@abstractmethod
 	def prepare_message_response(self, response: Any) -> Message:
