@@ -172,9 +172,7 @@ class BaseConversation:
 			label=_("S&ystem prompt:"),
 		)
 		self.system_prompt_txt = wx.TextCtrl(
-			self,
-			size=(800, 100),
-			style=wx.TE_MULTILINE | wx.TE_WORDWRAP | wx.HSCROLL,
+			self, style=wx.TE_MULTILINE | wx.TE_WORDWRAP
 		)
 		return label
 
@@ -185,19 +183,15 @@ class BaseConversation:
 			wx.StaticText: The label widget for the model list
 		"""
 		label = wx.StaticText(self, label=_("M&odels:"))
-		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
+		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT, size=(-1, 60))
 		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(0, _("Name"))
+		self.model_list.AppendColumn(_("Name"))
 		# Translators: This label appears in the main window's list of models to indicate whether the model supports images
-		self.model_list.InsertColumn(1, _("Vision"))
+		self.model_list.AppendColumn(_("Vision"))
 		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(2, _("Context window"))
+		self.model_list.AppendColumn(_("Context window"))
 		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(3, _("Max tokens"))
-		self.model_list.SetColumnWidth(0, 200)
-		self.model_list.SetColumnWidth(1, 100)
-		self.model_list.SetColumnWidth(2, 100)
-		self.model_list.SetColumnWidth(3, 100)
+		self.model_list.AppendColumn(_("Max tokens"))
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
@@ -471,16 +465,22 @@ class BaseConversation:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
 
-	def adjust_advanced_mode_setting(self):
+	def adjust_advanced_mode_setting(
+		self, controls: list[wx.Window] | None = None
+	):
 		"""Update UI controls visibility based on advanced mode setting."""
-		controls = (
-			self.max_tokens_spin_label,
-			self.max_tokens_spin_ctrl,
-			self.temperature_spinner_label,
-			self.temperature_spinner,
-			self.top_p_spinner_label,
-			self.top_p_spinner,
-			self.stream_mode,
+		if controls is None:
+			controls = []
+		controls.extend(
+			[
+				self.max_tokens_spin_label,
+				self.max_tokens_spin_ctrl,
+				self.temperature_spinner_label,
+				self.temperature_spinner,
+				self.top_p_spinner_label,
+				self.top_p_spinner,
+				self.stream_mode,
+			]
 		)
 		advanced_mode = config.conf().general.advanced_mode
 		for control in controls:
