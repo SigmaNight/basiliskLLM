@@ -14,7 +14,6 @@ dependencies = [
     "babel (>=2.17.0)",
     "cx-freeze (>=7.2.10)",
     "fsspec (>=2025.2.0)",
-    "google-generativeai (>=0.8.4)",
     "google-genai (>=1.11.0,<2.0.0)",
     "httpx (>=0.28.1)",
     "keyring (>=25.6.0)",
@@ -125,9 +124,9 @@ excludes = [
     "wint32gui", "win32ui", "win32uiold", "winreg",
 ]
 include_files = ["basilisk/res"]
-includes = ["numpy", "httplib2.socks", "win32timezone"]
+includes = ["numpy", "win32timezone"]
 include_msvcr = true
-packages = ["numpy", "google.generativeai", "basilisk.provider_engine", "keyring", "fsspec.implementations", "upath.implementations"]
+packages = ["numpy", "basilisk.provider_engine", "keyring", "fsspec.implementations", "upath.implementations"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",
@@ -138,6 +137,6 @@ zip_include_packages = [
     "more_itertools", "numpy", "ollama", "ordered_set", "openai",
     "PIL", "platform_utils", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
     "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath", "typing_inspection",
-    "watchdog", "win32api", "win32com", "win32ctypes", "win32timezone",
+    "watchdog", "websockets", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "yaml", "zipfile", "zipp", "zoneinfo",
     "basilisk"]
