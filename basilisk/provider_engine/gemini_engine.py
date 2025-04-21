@@ -54,7 +54,7 @@ class GeminiEngine(BaseEngine):
 		"image/heif",
 	}
 
-	@property
+	@cached_property
 	def client(self) -> genai.Client:
 		"""Property to return the client object for the provider.
 
