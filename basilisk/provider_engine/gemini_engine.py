@@ -16,7 +16,9 @@ from google.genai.types import (
 	Content,
 	GenerateContentConfig,
 	GenerateContentResponse,
+	GoogleSearch,
 	Part,
+	Tool,
 )
 
 from basilisk.conversation import (
@@ -27,6 +29,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -48,7 +51,9 @@ class GeminiEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.WEB_SEARCH,
 	}
+
 	supported_attachment_formats: set[str] = {
 		"image/png",
 		"image/jpeg",
@@ -67,6 +72,7 @@ class GeminiEngine(BaseEngine):
 		return genai.Client(api_key=self.account.api_key.get_secret_value())
 
 	@cached_property
+	@measure_time
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
@@ -182,6 +188,10 @@ class GeminiEngine(BaseEngine):
 			The generated content response from the Gemini model
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
+		web_search = kwargs.pop("web_search_mode", False)
+		tools = None
+		if web_search:
+			tools = [Tool(google_search=GoogleSearch())]
 		config = GenerateContentConfig(
 			system_instruction=system_message.content
 			if system_message
@@ -191,7 +201,9 @@ class GeminiEngine(BaseEngine):
 			else None,
 			temperature=new_block.temperature,
 			top_p=new_block.top_p,
+			tools=tools,
 		)
+
 		generate_kwargs = {
 			"model": new_block.model.model_id,
 			"config": config,
