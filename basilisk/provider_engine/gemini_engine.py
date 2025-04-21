@@ -7,6 +7,7 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
+import re
 from functools import cached_property
 from typing import Iterator
 
@@ -30,6 +31,8 @@ from basilisk.conversation import (
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 logger = logging.getLogger(__name__)
+
+re_gemini_model = re.compile(r"Gemini (\d+\.\d+)")
 
 
 class GeminiEngine(BaseEngine):
@@ -87,7 +90,16 @@ class GeminiEngine(BaseEngine):
 					reasoning="thinking" in model.name,
 				)
 			)
-		return models
+		gemini_xy_models = [
+			m for m in models if re_gemini_model.match(m.display_name)
+		]
+		gemini_xy_models.sort(
+			key=lambda x: -float(re_gemini_model.match(x.display_name).group(1))
+		)
+		other_models = [
+			m for m in models if not re_gemini_model.match(m.display_name)
+		]
+		return gemini_xy_models + other_models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.
