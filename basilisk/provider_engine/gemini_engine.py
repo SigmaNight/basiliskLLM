@@ -22,9 +22,9 @@ from google.genai.types import (
 )
 
 from basilisk.conversation import (
+	AttachmentFile,
 	AttachmentFileTypes,
 	Conversation,
-	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -49,17 +49,34 @@ class GeminiEngine(BaseEngine):
 	"""
 
 	capabilities: set[ProviderCapability] = {
+		ProviderCapability.AUDIO,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 		ProviderCapability.WEB_SEARCH,
+		ProviderCapability.VIDEO,
 	}
 
 	supported_attachment_formats: set[str] = {
+		"application/pdf",
+		"application/javascript",
 		"image/png",
 		"image/jpeg",
 		"image/webp",
 		"image/heic",
 		"image/heif",
+		"text/css",
+		"text/csv",
+		"text/html",
+		"text/plain",
+		"text/xml",
+		"text/x-python",
+		"video/avi",
+		"video/mp4",
+		"video/mpeg",
+		"video/quicktime",
+		"video/webm",
+		"video/3gpp",
 	}
 
 	@cached_property
@@ -128,24 +145,26 @@ class GeminiEngine(BaseEngine):
 				"System role must be set on the model instance"
 			)
 
-	def convert_image(self, image: ImageFile) -> Part:
-		"""Converts internal image representation to Gemini API format.
+	def convert_attachment(self, attachment: AttachmentFile) -> Part:
+		"""Converts internal attachment representation to Gemini API format.
 
 		Args:
-			image: Internal image file object.
+			attachment: Internal attachment object.
 
 		Returns:
-			Gemini API compatible image part.
+			Gemini API compatible content part.
 
 		Raises:
 			NotImplementedError: If image URL is used (not supported).
 		"""
-		if image.type == AttachmentFileTypes.URL:
-			raise NotImplementedError(
-				"Image URL is not supported by Gemini API"
+		if attachment.type == AttachmentFileTypes.URL:
+			return Part.from_uri(
+				file_uri=attachment.url, mime_type=attachment.mime_type
 			)
-		with image.send_location.open("rb") as f:
-			return Part.from_bytes(mime_type=image.mime_type, data=f.read())
+		with attachment.send_location.open("rb") as f:
+			return Part.from_bytes(
+				mime_type=attachment.mime_type, data=f.read()
+			)
 
 	def convert_message_content(self, message: Message) -> Content:
 		"""Converts internal message to Gemini API content format.
@@ -160,7 +179,7 @@ class GeminiEngine(BaseEngine):
 		parts = [Part(text=message.content)]
 		if message.attachments:
 			for attachment in message.attachments:
-				parts.append(self.convert_image(attachment))
+				parts.append(self.convert_attachment(attachment))
 		return Content(role=role, parts=parts)
 
 	# Implement abstract methods from BaseEngine with the same method for request and response
