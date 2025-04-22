@@ -60,6 +60,12 @@ class GeminiEngine(BaseEngine):
 	supported_attachment_formats: set[str] = {
 		"application/pdf",
 		"application/javascript",
+		"audio/wav",
+		"audio/mpeg",
+		"audio/aac",
+		"audio/ogg",
+		"audio/x-aiff",
+		"audio/x-flac",
 		"image/png",
 		"image/jpeg",
 		"image/webp",
