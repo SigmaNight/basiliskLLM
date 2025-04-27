@@ -1179,8 +1179,8 @@ version = "0.16.5"
 description = "Library to instrument executable formats"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "dev"]
-markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
+groups = ["main"]
+markers = "sys_platform == \"win32\""
 files = [
     {file = "lief-0.16.5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:decfaf4cc2623546458c5ed255cc4450ff65eb46fb2f26fa69b83a434ead0f9d"},
     {file = "lief-0.16.5-cp310-cp310-macosx_11_0_x86_64.whl", hash = "sha256:277c0b288582d9804b4f4535100738116506634583f6c44950674061c7c44dce"},
@@ -2400,15 +2400,15 @@ jeepney = ">=0.6"
 
 [[package]]
 name = "setuptools"
-version = "78.1.0"
+version = "79.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
 files = [
-    {file = "setuptools-78.1.0-py3-none-any.whl", hash = "sha256:3e386e96793c8702ae83d17b853fb93d3e09ef82ec62722e61da5cd22376dcd8"},
-    {file = "setuptools-78.1.0.tar.gz", hash = "sha256:18fd474d4a82a5f83dac888df697af65afa82dec7323d09c3e37d1f14288da54"},
+    {file = "setuptools-79.0.0-py3-none-any.whl", hash = "sha256:b9ab3a104bedb292323f53797b00864e10e434a3ab3906813a7169e4745b912a"},
+    {file = "setuptools-79.0.0.tar.gz", hash = "sha256:9828422e7541213b0aacb6e10bbf9dd8febeaa45a48570e09b6d100e063fc9f9"},
 ]
 
 [package.extras]
