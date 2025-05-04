@@ -152,7 +152,7 @@ class GeminiEngine(BaseEngine):
 			)
 
 	def convert_attachment(self, attachment: AttachmentFile) -> Part:
-		"""Converts internal attachment representation to Gemini API format.
+		"""Converts internal attachment representation to Gemini 'part'.
 
 		Args:
 			attachment: Internal attachment object.
@@ -161,8 +161,10 @@ class GeminiEngine(BaseEngine):
 			Gemini API compatible content part.
 
 		Raises:
-			NotImplementedError: If image URL is used (not supported).
+			ValueError: If the attachment type is not supported.
 		"""
+		if not attachment.mime_type:
+			raise ValueError("Attachment mime type is not set")
 		if attachment.type == AttachmentFileTypes.URL:
 			return Part.from_uri(
 				file_uri=attachment.url, mime_type=attachment.mime_type
