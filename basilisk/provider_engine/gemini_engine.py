@@ -16,17 +16,20 @@ from google.genai.types import (
 	Content,
 	GenerateContentConfig,
 	GenerateContentResponse,
+	GoogleSearch,
 	Part,
+	Tool,
 )
 
 from basilisk.conversation import (
+	AttachmentFile,
 	AttachmentFileTypes,
 	Conversation,
-	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
@@ -46,15 +49,40 @@ class GeminiEngine(BaseEngine):
 	"""
 
 	capabilities: set[ProviderCapability] = {
+		ProviderCapability.AUDIO,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.WEB_SEARCH,
+		ProviderCapability.VIDEO,
 	}
+
 	supported_attachment_formats: set[str] = {
+		"application/pdf",
+		"application/javascript",
+		"audio/wav",
+		"audio/mpeg",
+		"audio/aac",
+		"audio/ogg",
+		"audio/x-aiff",
+		"audio/x-flac",
 		"image/png",
 		"image/jpeg",
 		"image/webp",
 		"image/heic",
 		"image/heif",
+		"text/css",
+		"text/csv",
+		"text/html",
+		"text/plain",
+		"text/xml",
+		"text/x-python",
+		"video/avi",
+		"video/mp4",
+		"video/mpeg",
+		"video/quicktime",
+		"video/webm",
+		"video/3gpp",
 	}
 
 	@cached_property
@@ -67,6 +95,7 @@ class GeminiEngine(BaseEngine):
 		return genai.Client(api_key=self.account.api_key.get_secret_value())
 
 	@cached_property
+	@measure_time
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
@@ -122,24 +151,28 @@ class GeminiEngine(BaseEngine):
 				"System role must be set on the model instance"
 			)
 
-	def convert_image(self, image: ImageFile) -> Part:
-		"""Converts internal image representation to Gemini API format.
+	def convert_attachment(self, attachment: AttachmentFile) -> Part:
+		"""Converts internal attachment representation to Gemini 'part'.
 
 		Args:
-			image: Internal image file object.
+			attachment: Internal attachment object.
 
 		Returns:
-			Gemini API compatible image part.
+			Gemini API compatible content part.
 
 		Raises:
-			NotImplementedError: If image URL is used (not supported).
+			ValueError: If the attachment type is not supported.
 		"""
-		if image.type == AttachmentFileTypes.URL:
-			raise NotImplementedError(
-				"Image URL is not supported by Gemini API"
+		if not attachment.mime_type:
+			raise ValueError("Attachment mime type is not set")
+		if attachment.type == AttachmentFileTypes.URL:
+			return Part.from_uri(
+				file_uri=attachment.url, mime_type=attachment.mime_type
 			)
-		with image.send_location.open("rb") as f:
-			return Part.from_bytes(mime_type=image.mime_type, data=f.read())
+		with attachment.send_location.open("rb") as f:
+			return Part.from_bytes(
+				mime_type=attachment.mime_type, data=f.read()
+			)
 
 	def convert_message_content(self, message: Message) -> Content:
 		"""Converts internal message to Gemini API content format.
@@ -154,7 +187,7 @@ class GeminiEngine(BaseEngine):
 		parts = [Part(text=message.content)]
 		if message.attachments:
 			for attachment in message.attachments:
-				parts.append(self.convert_image(attachment))
+				parts.append(self.convert_attachment(attachment))
 		return Content(role=role, parts=parts)
 
 	# Implement abstract methods from BaseEngine with the same method for request and response
@@ -182,6 +215,10 @@ class GeminiEngine(BaseEngine):
 			The generated content response from the Gemini model
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
+		web_search = kwargs.pop("web_search_mode", False)
+		tools = None
+		if web_search:
+			tools = [Tool(google_search=GoogleSearch())]
 		config = GenerateContentConfig(
 			system_instruction=system_message.content
 			if system_message
@@ -191,7 +228,9 @@ class GeminiEngine(BaseEngine):
 			else None,
 			temperature=new_block.temperature,
 			top_p=new_block.top_p,
+			tools=tools,
 		)
+
 		generate_kwargs = {
 			"model": new_block.model.model_id,
 			"config": config,
