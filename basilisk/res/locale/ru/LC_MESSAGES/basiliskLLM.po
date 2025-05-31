@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-21 20:25+0000\n"
-"PO-Revision-Date: 2025-04-26 13:26\n"
+"POT-Creation-Date: 2025-05-24 13:54+0000\n"
+"PO-Revision-Date: 2025-05-31 13:30\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -80,17 +80,17 @@ msgstr "Максимальное число выходных токенов:"
 #: basilisk/screen_capture_thread.py:109
 #, python-format
 msgid "Full screen capture (%s)"
-msgstr ""
+msgstr "Снимок всего экрана (%s)"
 
 #: basilisk/screen_capture_thread.py:130
 #, python-format
 msgid "Partial screen capture (%s)"
-msgstr ""
+msgstr "Снимок области экрана (%s)"
 
 #: basilisk/screen_capture_thread.py:157
 #, python-format
 msgid "Window screen capture (%s)"
-msgstr ""
+msgstr "Снимок окна (%s)"
 
 #: basilisk/gui/about_dialog.py:40
 msgid "Where LLMs Unite"
@@ -217,7 +217,7 @@ msgstr "&Использовать организацию:"
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:514
 msgid "Custom &base URL:"
-msgstr ""
+msgstr "&Пользовательский URL:"
 
 #: basilisk/gui/account_dialog.py:582
 msgid "Personal"
@@ -226,11 +226,11 @@ msgstr "Персональный"
 #: basilisk/gui/account_dialog.py:662
 #, python-brace-format
 msgid "Custom &base URL (default: {})"
-msgstr ""
+msgstr "Пользовательский &URL (по умолчанию: {})"
 
 #: basilisk/gui/account_dialog.py:665
 msgid "Custom &base URL"
-msgstr ""
+msgstr "&Пользовательский URL"
 
 #. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:703
@@ -247,7 +247,7 @@ msgstr "Пожалуйста, введите ключ API. Он необходи
 
 #: basilisk/gui/account_dialog.py:728
 msgid "Please enter a valid custom base URL"
-msgstr ""
+msgstr "Пожалуйста, введите корректный пользовательский базовый URL"
 
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:857
@@ -346,7 +346,7 @@ msgstr "Сведения о модели"
 #. Translators: This is a label for web search mode in the main window
 #: basilisk/gui/base_conversation.py:367
 msgid "&Web search mode"
-msgstr ""
+msgstr "Режим &веб-поиска"
 
 #. Translators: This is a label for max tokens in the main window
 #: basilisk/gui/base_conversation.py:380
@@ -476,7 +476,7 @@ msgstr "&Подсказка:"
 #. Translators: This is a label for models in the main window
 #: basilisk/gui/conversation_tab.py:223
 msgid "&Attachments:"
-msgstr ""
+msgstr "&Вложения:"
 
 #. Translators: This is a label for attachment size in the main window
 #: basilisk/gui/conversation_tab.py:243 basilisk/gui/conversation_tab.py:632
@@ -486,7 +486,7 @@ msgstr "Размер файла"
 #. Translators: This is a label for attachment location in the main window
 #: basilisk/gui/conversation_tab.py:248 basilisk/gui/conversation_tab.py:633
 msgid "Location"
-msgstr ""
+msgstr "Путь"
 
 #. Translators: This is a label for submit button in the main window
 #: basilisk/gui/conversation_tab.py:276 basilisk/gui/conversation_tab.py:806
@@ -512,22 +512,22 @@ msgstr "Применить профиль"
 #. menu
 #: basilisk/gui/conversation_tab.py:402
 msgid "Remove selected attachment"
-msgstr ""
+msgstr "Удалить выбранное вложение"
 
 #. Translators: This is a label for copy location in the context menu
 #: basilisk/gui/conversation_tab.py:411
 msgid "Copy location"
-msgstr ""
+msgstr "Копировать путь"
 
 #. Translators: This is a label for paste in the context menu
 #: basilisk/gui/conversation_tab.py:419 basilisk/gui/conversation_tab.py:810
 msgid "Paste (file or text)"
-msgstr ""
+msgstr "Вставить (файл или текст)"
 
 #. Translators: This is a label for add files in the context menu
 #: basilisk/gui/conversation_tab.py:428
 msgid "Add files..."
-msgstr ""
+msgstr "Добавить файлы..."
 
 #. Translators: This is a label for add attachment URL in the context menu
 #: basilisk/gui/conversation_tab.py:437
@@ -538,25 +538,25 @@ msgstr ""
 #. attachment formats.
 #: basilisk/gui/conversation_tab.py:534
 msgid "This provider does not support any attachment formats."
-msgstr ""
+msgstr "Этот поставщик не поддерживает никакие форматы вложений."
 
 #: basilisk/gui/conversation_tab.py:539
 msgid "All supported formats"
-msgstr ""
+msgstr "Все поддерживаемые форматы"
 
 #. Translators: This is a label for select files in conversation tab
 #: basilisk/gui/conversation_tab.py:543
 msgid "Select one or more files to attach"
-msgstr ""
+msgstr "Выберите один или несколько файлов для прикрепления"
 
 #. Translators: This is a label for enter URL in add attachment dialog
 #: basilisk/gui/conversation_tab.py:561
 msgid "Enter the URL of the file to attach:"
-msgstr ""
+msgstr "Введите URL-адрес прикрепляемого файла:"
 
 #: basilisk/gui/conversation_tab.py:562
 msgid "Add attachment from URL"
-msgstr ""
+msgstr "Добавить вложение по URL"
 
 #: basilisk/gui/conversation_tab.py:571
 msgid "Invalid URL, bad format."
@@ -574,11 +574,11 @@ msgstr "Ошибка HTTP %s."
 #: basilisk/gui/conversation_tab.py:600
 #, python-format
 msgid "Error adding attachment from URL: %s"
-msgstr ""
+msgstr "Ошибка при добавлении вложения по URL: %s"
 
 #: basilisk/gui/conversation_tab.py:637
 msgid "MIME type"
-msgstr ""
+msgstr "MIME-тип"
 
 #: basilisk/gui/conversation_tab.py:639
 msgid "Dimensions"
@@ -587,15 +587,15 @@ msgstr "Размеры"
 #: basilisk/gui/conversation_tab.py:641
 #, python-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s: %s"
 
 #: basilisk/gui/conversation_tab.py:644
 msgid "Attachment details"
-msgstr ""
+msgstr "Сведения о вложении"
 
 #: basilisk/gui/conversation_tab.py:743
 msgid "This attachment format is not supported by the current provider. Source:"
-msgstr ""
+msgstr "Этот формат вложения не поддерживается текущим поставщиком. Источник:"
 
 #: basilisk/gui/conversation_tab.py:801
 msgid "Insert previous prompt"
@@ -651,12 +651,12 @@ msgstr "Выбранная модель не поддерживает работ
 #: basilisk/gui/conversation_tab.py:1150
 #, python-format
 msgid "This attachment format is not supported by the current provider. Source: %s"
-msgstr ""
+msgstr "Этот формат вложения не поддерживается текущим поставщиком. Источник: %s"
 
 #: basilisk/gui/conversation_tab.py:1154
 #, python-format
 msgid "The attachment file does not exist: %s"
-msgstr ""
+msgstr "Файл вложения не существует: %s"
 
 #: basilisk/gui/conversation_tab.py:1212
 msgid "An error occurred during completion: "
@@ -668,7 +668,7 @@ msgstr "Произошла ошибка при создании заголовк
 
 #: basilisk/gui/conversation_tab.py:1405
 msgid "An error occurred while saving the conversation: "
-msgstr ""
+msgstr "При сохранении разговора произошла ошибка: "
 
 #: basilisk/gui/history_msg_text_ctrl.py:225
 msgid "Read current message"
@@ -684,7 +684,7 @@ msgstr "Показать как HTML (из Markdown)"
 
 #: basilisk/gui/history_msg_text_ctrl.py:242
 msgid "Show citations"
-msgstr ""
+msgstr "Показать цитаты"
 
 #: basilisk/gui/history_msg_text_ctrl.py:244
 msgid "Copy current message"
@@ -712,7 +712,7 @@ msgstr "Перейти в конец сообщения"
 
 #: basilisk/gui/history_msg_text_ctrl.py:274
 msgid "Remove message block"
-msgstr ""
+msgstr "Удалить блок сообщений"
 
 #: basilisk/gui/history_msg_text_ctrl.py:279
 msgid "Find..."
@@ -759,18 +759,18 @@ msgstr "Блок сообщений удалён"
 #: basilisk/gui/history_msg_text_ctrl.py:643
 #, python-brace-format
 msgid "C.{start} .. {end}"
-msgstr ""
+msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
 #: basilisk/gui/history_msg_text_ctrl.py:650
 #, python-brace-format
 msgid "P.{start} .. {end}"
-msgstr ""
+msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
 #: basilisk/gui/history_msg_text_ctrl.py:655
 msgid "Unknown location"
-msgstr ""
+msgstr "Неизвестное расположение"
 
 #: basilisk/gui/history_msg_text_ctrl.py:660
 #, python-brace-format
@@ -1291,52 +1291,39 @@ msgstr "Ошибка проверки обновлений: %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:97
-#: basilisk/provider_engine/anthropic_engine.py:107
-msgid "Our most intelligent model"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:117
-msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
-msgstr "Указывает на самый последний снимок Claude 3.5 Sonnet"
-
-#: basilisk/provider_engine/anthropic_engine.py:128
-msgid "Point to the most recent snapshot of Claude 3.5 Haiku"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:138
-msgid "Our fastest model. Intelligence at blazing speeds"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:148
-msgid "Most intelligent model. Highest level of intelligence and capability"
+#: basilisk/provider_engine/anthropic_engine.py:106
+msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:157
-msgid "Most intelligent model, previous version"
-msgstr "Самая интеллектуальная модель, предыдущая версия"
+#: basilisk/provider_engine/anthropic_engine.py:116
+#: basilisk/provider_engine/anthropic_engine.py:125
+msgid "Our most capable model"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:136
+#: basilisk/provider_engine/anthropic_engine.py:147
+msgid "High-performance model with early extended thinking"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:166
-msgid "Powerful model for highly complex tasks"
-msgstr "Мощная модель для решения особо сложных задач"
+#: basilisk/provider_engine/anthropic_engine.py:158
+msgid "Our previous intelligent model"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:175
-msgid "Balance of intelligence and speed"
-msgstr "Баланс интеллекта и скорости"
+#: basilisk/provider_engine/anthropic_engine.py:167
+msgid "Our fastest model"
+msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:185
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:176
+msgid "Powerful model for complex tasks"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:186
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Самая быстрая и компактная модель с почти мгновенным откликом"
-
-#: basilisk/provider_engine/anthropic_engine.py:196
-msgid "Updated version of Claude 2 with improved accuracy"
-msgstr "Обновлённая версия Claude 2 с улучшенной точностью"
-
-#: basilisk/provider_engine/anthropic_engine.py:207
-msgid "Predecessor to Claude 3, offering strong all-round performance"
-msgstr "Предшественница Claude 3, обладающая высокой универсальной производительностью"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:42
@@ -1479,3 +1466,4 @@ msgstr "Более мощная, чем любая модель GPT-3.5, спо�
 #: basilisk/provider_engine/openai_engine.py:374
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной контекста"
+
