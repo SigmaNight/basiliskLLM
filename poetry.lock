@@ -394,15 +394,15 @@ markers = {main = "(platform_machine == \"x86_64\" or platform_machine == \"i686
 
 [[package]]
 name = "commitizen"
-version = "4.7.1"
+version = "4.8.2"
 description = "Python commitizen client tool"
 optional = false
 python-versions = "<4.0,>=3.9"
 groups = ["dev"]
 markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
 files = [
-    {file = "commitizen-4.7.1-py3-none-any.whl", hash = "sha256:80b08328b9741483d2de01cd76d015e9f6dba62c0ae450d4f8606ee3cbf9aa0e"},
-    {file = "commitizen-4.7.1.tar.gz", hash = "sha256:7eba472ef582b1bf2480164901ed542173e83f4f885968e7bed0b8cd0f6dfb07"},
+    {file = "commitizen-4.8.2-py3-none-any.whl", hash = "sha256:86cae0bd8e1da889389d828b30a5acb79b62f9290f9274b127ee9d8c189eb16c"},
+    {file = "commitizen-4.8.2.tar.gz", hash = "sha256:4fc73126c7300f715f11b85242550677722c57767b579100e869ccd45143e2c5"},
 ]
 
 [package.dependencies]
@@ -2840,4 +2840,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.13"
-content-hash = "dbe8a9d755d68c5a03572128ee7c4d0107a5d4c74a0fb14ab24674acade52ce6"
+content-hash = "2dd47d344c45527e45e355925448e68e9ea8f437619ad282f8cbe97ac6196956"
