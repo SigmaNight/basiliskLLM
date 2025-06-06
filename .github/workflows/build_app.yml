@@ -10,7 +10,7 @@ jobs:
       matrix:
         arch:
           - x64
-          #- x86
+          - x86
 
     steps:
       - name: checkout repository
