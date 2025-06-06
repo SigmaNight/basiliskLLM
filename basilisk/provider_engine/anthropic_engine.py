@@ -91,12 +91,40 @@ class AnthropicEngine(BaseEngine):
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
-				id="claude-3-7-sonnet-latest_reasoning",
-				name="Claude 3.7 Sonnet (thinking)",
+				id="claude-sonnet-4-0",
+				name="Claude Sonnet 4",
 				# Translators: This is a model description
-				description=_("Our most intelligent model"),
+				description=_("High-performance model"),
 				context_window=200000,
 				max_output_tokens=64000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-sonnet-4-0_reasoning",
+				name="Claude Sonnet 4 (thinking)",
+				# Translators: This is a model description
+				description=_("High-performance model"),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-0",
+				name="Claude Opus 4",
+				# Translators: This is a model description
+				description=_("Our most capable model"),
+				context_window=200000,
+				max_output_tokens=32000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-0_reasoning",
+				name="Claude Opus 4 (thinking)",
+				# Translators: This is a model description
+				description=_("Our most capable model"),
+				context_window=200000,
+				max_output_tokens=32000,
 				vision=True,
 				reasoning=True,
 			),
@@ -104,18 +132,30 @@ class AnthropicEngine(BaseEngine):
 				id="claude-3-7-sonnet-latest",
 				name="Claude 3.7 Sonnet",
 				# Translators: This is a model description
-				description=_("Our most intelligent model"),
+				description=_(
+					"High-performance model with early extended thinking"
+				),
 				context_window=200000,
 				max_output_tokens=8192,
 				vision=True,
 			),
 			ProviderAIModel(
+				id="claude-3-7-sonnet-latest_reasoning",
+				name="Claude 3.7 Sonnet (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"High-performance model with early extended thinking"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
 				id="claude-3-5-sonnet-latest",
 				name="Claude 3.5 Sonnet",
 				# Translators: This is a model description
-				description=_(
-					"Point to the most recent snapshot of Claude 3.5 Sonnet"
-				),
+				description=_("Our previous intelligent model"),
 				context_window=200000,
 				max_output_tokens=8192,
 				vision=True,
@@ -124,55 +164,16 @@ class AnthropicEngine(BaseEngine):
 				id="claude-3-5-haiku-latest",
 				name="Claude 3.5 Haiku",
 				# Translators: This is a model description
-				description=_(
-					"Point to the most recent snapshot of Claude 3.5 Haiku"
-				),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-haiku-20241022",
-				# Translators: This is a model description
-				description=_(
-					"Our fastest model. Intelligence at blazing speeds"
-				),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=False,
-			),
-			ProviderAIModel(
-				id="claude-3-5-sonnet-20241022",
-				# Translators: This is a model description
-				description=_(
-					"Most intelligent model. Highest level of intelligence and capability"
-				),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-sonnet-20240620",
-				# Translators: This is a model description
-				description=_("Most intelligent model, previous version"),
+				description=_("Our fastest model"),
 				context_window=200000,
 				max_output_tokens=8192,
 				vision=True,
 			),
 			ProviderAIModel(
 				id="claude-3-opus-20240229",
-				name="Claude 3 Opus",
+				name="Claude Opus 3",
 				# Translators: This is a model description
-				description=_("Powerful model for highly complex tasks"),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-sonnet-20240229",
-				name="Claude 3 Sonnet",
-				# Translators: This is a model description
-				description=_("Balance of intelligence and speed"),
+				description=_("Powerful model for complex tasks"),
 				context_window=200000,
 				max_output_tokens=4096,
 				vision=True,
@@ -187,28 +188,6 @@ class AnthropicEngine(BaseEngine):
 				context_window=200000,
 				max_output_tokens=4096,
 				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-2.1",
-				name="Claude 2.1",
-				# Translators: This is a model description
-				description=_(
-					"Updated version of Claude 2 with improved accuracy"
-				),
-				context_window=200000,
-				max_output_tokens=4096,
-				vision=False,
-			),
-			ProviderAIModel(
-				id="claude-2.0",
-				name="Claude 2",
-				# Translators: This is a model description
-				description=_(
-					"Predecessor to Claude 3, offering strong all-round performance"
-				),
-				context_window=100000,
-				max_output_tokens=4096,
-				vision=False,
 			),
 		]
 

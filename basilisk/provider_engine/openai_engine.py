@@ -100,15 +100,54 @@ class OpenAIEngine(BaseEngine):
 		# See <https://platform.openai.com/docs/models>
 		return [
 			ProviderAIModel(
-				id="gpt-4.5-preview",
-				name="GPT 4.5",
+				id="gpt-4.1",
+				name="GPT-4.1",
 				# Translators: This is a model description
-				description=_(
-					"Largest GPT model, good for creative tasks and agentic planning"
-				),
-				context_window=128000,
-				max_output_tokens=16384,
+				description=_("Flagship GPT model for complex tasks"),
+				context_window=1047576,
+				max_output_tokens=32768,
 				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4.1-mini",
+				name="GPT-4.1 mini",
+				# Translators: This is a model description
+				description=_("Balanced for intelligence, speed, and cost"),
+				context_window=1047576,
+				max_output_tokens=32768,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-4.1-nano",
+				name="GPT-4.1 nano",
+				# Translators: This is a model description
+				description=_("Fastest, most cost-effective GPT-4.1 model"),
+				context_window=1047576,
+				max_output_tokens=32768,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="o4-mini",
+				name="o4-mini",
+				# Translators: This is a model description
+				description=_("Faster, more affordable reasoning model"),
+				context_window=200000,
+				max_output_tokens=100000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="o3",
+				name="o3",
+				# Translators: This is a model description
+				description=_("Our most powerful reasoning model"),
+				context_window=200000,
+				max_output_tokens=100000,
+				vision=True,
+				reasoning=True,
 				max_temperature=2.0,
 			),
 			ProviderAIModel(

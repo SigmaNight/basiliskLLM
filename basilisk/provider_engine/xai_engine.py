@@ -39,7 +39,7 @@ class XAIEngine(OpenAIEngine):
 		# See <https://console.x.ai/team/default/models>
 		models = [
 			ProviderAIModel(
-				id="grok-2-latest",
+				id="grok-2-1212",
 				# Translators: This is a model description
 				description="",
 				context_window=131072,
@@ -47,7 +47,7 @@ class XAIEngine(OpenAIEngine):
 				default_temperature=1.0,
 			),
 			ProviderAIModel(
-				id="grok-2-vision-latest",
+				id="grok-2-vision-1212",
 				# Translators: This is a model description
 				description="",
 				context_window=32768,
@@ -56,7 +56,7 @@ class XAIEngine(OpenAIEngine):
 				vision=True,
 			),
 			ProviderAIModel(
-				id="grok-beta",
+				id="grok-3",
 				# Translators: This is a model description
 				description="",
 				context_window=131072,
@@ -64,13 +64,28 @@ class XAIEngine(OpenAIEngine):
 				default_temperature=1.0,
 			),
 			ProviderAIModel(
-				id="grok-vision-beta",
+				id="grok-3-mini",
 				# Translators: This is a model description
 				description="",
-				context_window=8192,
+				context_window=131072,
 				max_temperature=2.0,
 				default_temperature=1.0,
-				vision=True,
+			),
+			ProviderAIModel(
+				id="grok-3-fast",
+				# Translators: This is a model description
+				description="",
+				context_window=131072,
+				max_temperature=2.0,
+				default_temperature=1.0,
+			),
+			ProviderAIModel(
+				id="grok-3-mini-fast",
+				# Translators: This is a model description
+				description="",
+				context_window=131072,
+				max_temperature=2.0,
+				default_temperature=1.0,
 			),
 		]
 		return models
