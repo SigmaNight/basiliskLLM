@@ -7,26 +7,35 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
+import re
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import Iterator
 
-import google.generativeai as genai
+from google import genai
+from google.genai.types import (
+	Content,
+	GenerateContentConfig,
+	GenerateContentResponse,
+	GoogleSearch,
+	Part,
+	Tool,
+)
 
 from basilisk.conversation import (
+	AttachmentFile,
 	AttachmentFileTypes,
 	Conversation,
-	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
-if TYPE_CHECKING:
-	from basilisk.config import Account
-
 logger = logging.getLogger(__name__)
+
+re_gemini_model = re.compile(r"Gemini (\d+\.\d+)")
 
 
 class GeminiEngine(BaseEngine):
@@ -40,101 +49,86 @@ class GeminiEngine(BaseEngine):
 	"""
 
 	capabilities: set[ProviderCapability] = {
+		ProviderCapability.AUDIO,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.WEB_SEARCH,
+		ProviderCapability.VIDEO,
 	}
+
 	supported_attachment_formats: set[str] = {
+		"application/pdf",
+		"application/javascript",
+		"audio/wav",
+		"audio/mpeg",
+		"audio/aac",
+		"audio/ogg",
+		"audio/x-aiff",
+		"audio/x-flac",
 		"image/png",
 		"image/jpeg",
 		"image/webp",
 		"image/heic",
 		"image/heif",
+		"text/css",
+		"text/csv",
+		"text/html",
+		"text/plain",
+		"text/xml",
+		"text/x-python",
+		"video/avi",
+		"video/mp4",
+		"video/mpeg",
+		"video/quicktime",
+		"video/webm",
+		"video/3gpp",
 	}
 
-	def __init__(self, account: Account) -> None:
-		"""Initializes the engine with the given account.
-
-		Args:
-			account: The provider account configuration.
-		"""
-		super().__init__(account)
-		genai.configure(api_key=self.account.api_key.get_secret_value())
-
-	@property
-	def client(self) -> None:
+	@cached_property
+	def client(self) -> genai.Client:
 		"""Property to return the client object for the provider.
 
-		Raises:
-			NotImplementedError: Getting client is not supported for Gemini.
+		Returns:
+			Client object for the provider, initialized with the API key.
 		"""
-		raise NotImplementedError("Getting client not supported for Gemini")
+		return genai.Client(api_key=self.account.api_key.get_secret_value())
 
 	@cached_property
+	@measure_time
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
 		Returns:
 			List of supported provider models with their configurations.
 		"""
-		# See <https://ai.google.dev/gemini-api/docs/models/gemini?hl=en>
-
-		return [
-			ProviderAIModel(
-				id="gemini-2.0-flash-exp",
-				# Translators: This is a model description
-				description=_(
-					"Next generation features, speed, and multimodal generation for a diverse variety of tasks"
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-flash-latest",
-				# Translators: This is a model description
-				description=_(
-					'Fast and versatile multimodal model for scaling across diverse tasks'
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-pro-latest",
-				# Translators: This is a model description
-				description=_(
-					"Mid-size multimodal model that supports up to 1 million tokens"
-				),
-				context_window=2097152,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-flash",
-				# Translators: This is a model description
-				description=_(
-					"Fast and versatile multimodal model for scaling across diverse tasks"
-				),
-				context_window=1048576,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="gemini-1.5-pro",
-				# Translators: This is a model description
-				description=_(
-					"Mid-size multimodal model that supports up to 1 million tokens"
-				),
-				context_window=2097152,
-				max_output_tokens=8192,
-				vision=True,
-				default_temperature=1.0,
-			),
+		models = []
+		for model in self.client.models.list():
+			if "generateContent" not in model.supported_actions:
+				continue
+			models.append(
+				ProviderAIModel(
+					id=model.name,
+					name=model.display_name,
+					description=model.description,
+					context_window=(
+						model.output_token_limit + model.input_token_limit
+					),
+					max_output_tokens=model.output_token_limit,
+					vision=True,
+					reasoning="thinking" in model.name,
+				)
+			)
+		gemini_xy_models = [
+			m for m in models if re_gemini_model.match(m.display_name)
 		]
+		gemini_xy_models.sort(
+			key=lambda x: -float(re_gemini_model.match(x.display_name).group(1))
+		)
+		other_models = [
+			m for m in models if not re_gemini_model.match(m.display_name)
+		]
+		return gemini_xy_models + other_models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.
@@ -157,25 +151,30 @@ class GeminiEngine(BaseEngine):
 				"System role must be set on the model instance"
 			)
 
-	def convert_image(self, image: ImageFile) -> genai.protos.Part:
-		"""Converts internal image representation to Gemini API format.
+	def convert_attachment(self, attachment: AttachmentFile) -> Part:
+		"""Converts internal attachment representation to Gemini 'part'.
 
 		Args:
-			image: Internal image file object.
+			attachment: Internal attachment object.
 
 		Returns:
-			Gemini API compatible image part.
+			Gemini API compatible content part.
 
 		Raises:
-			NotImplementedError: If image URL is used (not supported).
+			ValueError: If the attachment type is not supported.
 		"""
-		if image.type == AttachmentFileTypes.URL:
-			raise NotImplementedError("Image URL not supported")
-		with image.send_location.open("rb") as f:
-			blob = genai.protos.Blob(mime_type=image.mime_type, data=f.read())
-		return genai.protos.Part(inline_data=blob)
+		if not attachment.mime_type:
+			raise ValueError("Attachment mime type is not set")
+		if attachment.type == AttachmentFileTypes.URL:
+			return Part.from_uri(
+				file_uri=attachment.url, mime_type=attachment.mime_type
+			)
+		with attachment.send_location.open("rb") as f:
+			return Part.from_bytes(
+				mime_type=attachment.mime_type, data=f.read()
+			)
 
-	def convert_message_content(self, message: Message) -> genai.protos.Content:
+	def convert_message_content(self, message: Message) -> Content:
 		"""Converts internal message to Gemini API content format.
 
 		Args:
@@ -185,11 +184,11 @@ class GeminiEngine(BaseEngine):
 			Gemini API compatible content object.
 		"""
 		role = self.convert_role(message.role)
-		parts = [genai.protos.Part(text=message.content)]
+		parts = [Part(text=message.content)]
 		if message.attachments:
 			for attachment in message.attachments:
-				parts.append(self.convert_image(attachment))
-		return genai.protos.Content(role=role, parts=parts)
+				parts.append(self.convert_attachment(attachment))
+		return Content(role=role, parts=parts)
 
 	# Implement abstract methods from BaseEngine with the same method for request and response
 	prepare_message_request = convert_message_content
@@ -201,7 +200,7 @@ class GeminiEngine(BaseEngine):
 		conversation: Conversation,
 		system_message: Message | None,
 		**kwargs,
-	) -> genai.types.GenerateContentResponse:
+	) -> GenerateContentResponse | Iterator[GenerateContentResponse]:
 		"""Generates a completion response using the Gemini AI model with specified configuration.
 
 		Processes a message block and conversation to generate AI-generated content through the Gemini API. Configures the generative model with optional system instructions, generation parameters, and streaming preferences.
@@ -216,29 +215,35 @@ class GeminiEngine(BaseEngine):
 			The generated content response from the Gemini model
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
-		model = genai.GenerativeModel(
-			model_name=new_block.model.model_id,
+		web_search = kwargs.pop("web_search_mode", False)
+		tools = None
+		if web_search:
+			tools = [Tool(google_search=GoogleSearch())]
+		config = GenerateContentConfig(
 			system_instruction=system_message.content
 			if system_message
 			else None,
-		)
-
-		generation_config = genai.GenerationConfig(
 			max_output_tokens=new_block.max_tokens
 			if new_block.max_tokens
 			else None,
 			temperature=new_block.temperature,
 			top_p=new_block.top_p,
+			tools=tools,
 		)
-		return model.generate_content(
-			contents=self.get_messages(new_block, conversation, None),
-			generation_config=generation_config,
-			stream=new_block.stream,
-		)
+
+		generate_kwargs = {
+			"model": new_block.model.model_id,
+			"config": config,
+			"contents": self.get_messages(new_block, conversation, None),
+		}
+		if new_block.stream:
+			return self.client.models.generate_content_stream(**generate_kwargs)
+		else:
+			return self.client.models.generate_content(**generate_kwargs)
 
 	def completion_response_without_stream(
 		self,
-		response: genai.types.GenerateContentResponse,
+		response: GenerateContentResponse,
 		new_block: MessageBlock,
 		**kwargs,
 	) -> MessageBlock:
@@ -258,8 +263,8 @@ class GeminiEngine(BaseEngine):
 		return new_block
 
 	def completion_response_with_stream(
-		self, stream: genai.types.GenerateContentResponse, **kwargs
-	) -> genai.types.GenerateContentResponse:
+		self, stream: Iterator[GenerateContentResponse], **kwargs
+	) -> Iterator[str]:
 		"""Handle completion response with stream.
 
 		Args:

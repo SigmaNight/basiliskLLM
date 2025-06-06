@@ -20,12 +20,23 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
-      - name: setup UV
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install poetry
+        uses: abatilo/actions-poetry@v4
+      - name: cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ./.venv
+          key: ${{ runner.os }}_x64_poetry_${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}_x64_poetry_
+
       - name: Install dependencies
-        run: uv sync
+        run: poetry install --no-interaction --no-root
       - name: build POT file
-        run: uv run setup.py extract_messages
+        run: poetry run python setup.py extract_messages
       - name: upload POT file
         uses: actions/upload-artifact@v4
         with:

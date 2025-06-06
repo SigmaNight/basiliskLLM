@@ -38,7 +38,7 @@ class PydanticOrderedSet(OrderedSet):
 			cls, sequence_t_schema
 		)
 		python_schema = core_schema.union_schema(
-			(instance_schema, non_instance_schema)
+			[instance_schema, non_instance_schema]
 		)
 		return core_schema.json_or_python_schema(
 			json_schema=non_instance_schema,

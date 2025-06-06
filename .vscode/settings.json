@@ -2,7 +2,7 @@
 	"files.readonlyInclude": {
 		"**/.venv/Lib/site-packages/**": true,
 		"**/.venv/src/**": true,
-		"**/uv.lock": true,
+		"**/poetry.lock": true,
 	},
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,

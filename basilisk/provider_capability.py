@@ -6,6 +6,8 @@ import enum
 class ProviderCapability(enum.StrEnum):
 	"""Defines the different capabilities that a provider can support."""
 
+	# The provider support audio processing
+	AUDIO = enum.auto()
 	# The provider supports document processing (excluding images)
 	DOCUMENT = enum.auto()
 	# The provider supports citation processing
@@ -20,5 +22,7 @@ class ProviderCapability(enum.StrEnum):
 	STT = enum.auto()
 	# The provider supports text-to-speech conversion
 	TTS = enum.auto()
+	# The provider supports video processing
+	VIDEO = enum.auto()
 	# The provider supports web search capabilities
 	WEB_SEARCH = enum.auto()
