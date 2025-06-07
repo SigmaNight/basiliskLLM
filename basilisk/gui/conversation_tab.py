@@ -36,7 +36,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.decorators import ensure_no_task_running
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
@@ -683,7 +682,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.completion_handler.stop_completion()
 
-	@ensure_no_task_running
 	def generate_conversation_title(self):
 		"""Generate a title for the conversation tab by using the AI model to analyze the conversation content.
 
@@ -692,6 +690,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			A generated conversation title if successful, or None if title generation fails.
 		"""
+		if self.completion_handler.is_running():
+			wx.MessageBox(
+				_(
+					"A completion is already in progress. Please wait until it finishes."
+				),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return
 		if not self.conversation.messages:
 			return
 		model = self.current_model
