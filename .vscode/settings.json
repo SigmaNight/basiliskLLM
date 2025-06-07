@@ -18,6 +18,9 @@
 	"python.analysis.diagnosticMode": "workspace",
 	"python.analysis.enablePytestSupport": true,
 	"python.analysis.languageServerMode": "full",
+	"python.analysis.exclude": [
+		"dist",
+	],
 	"autoDocstring.docstringFormat": "google-notypes",
 	"autoDocstring.quoteStyle": "\"\"\"",
 	"ruff.enable": true,
