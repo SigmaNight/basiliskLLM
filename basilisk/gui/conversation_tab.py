@@ -17,8 +17,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import threading
-import time
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
@@ -26,8 +24,8 @@ from more_itertools import first, locate
 from upath import UPath
 
 import basilisk.config as config
-from basilisk import global_vars
 from basilisk.accessible_output import get_accessible_output
+from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	AttachmentFile,
@@ -48,7 +46,6 @@ from .history_msg_text_ctrl import HistoryMsgTextCtrl
 from .prompt_attachments_panel import PromptAttachmentsPanel
 
 if TYPE_CHECKING:
-	from basilisk.provider_engine.base_engine import BaseEngine
 	from basilisk.recording_thread import RecordingThread
 
 	from .main_frame import MainFrame
@@ -155,10 +152,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.attachment_files: list[AttachmentFile | ImageFile] = []
-		self.last_time = 0
 		self.recording_thread: Optional[RecordingThread] = None
-		self.task = None
-		self._stop_completion = False
+
+		# Initialize completion handler
+		self.completion_handler = CompletionHandler(
+			on_completion_start=self._on_completion_start,
+			on_completion_end=self._on_completion_end,
+			on_stream_chunk=self._on_stream_chunk,
+			on_completion_result=self._on_completion_result,
+			on_stream_start=self._on_stream_start,
+			on_stream_finish=self._on_stream_finish,
+			on_non_stream_finish=self._on_non_stream_finish,
+		)
+
 		self.init_ui()
 		self.init_data(profile)
 		self.adjust_advanced_mode_setting()
@@ -626,7 +632,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
-	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		"""Handle the submission of a new message block for completion.
 
@@ -644,18 +649,31 @@ class ConversationTab(wx.Panel, BaseConversation):
 		):
 			self.prompt_panel.set_prompt_focus()
 			return
-		completion_kw = self.get_completion_args()
-		if not completion_kw:
+
+		# Get new message block and check compatibility
+		new_block = self.get_new_message_block()
+		if not new_block:
 			return
-		self.submit_btn.Disable()
-		self.stop_completion_btn.Show()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
-		self.task = threading.Thread(
-			target=self._handle_completion, kwargs=completion_kw
+
+		# Prepare completion arguments for web search if available
+		completion_kwargs = {}
+		if (
+			ProviderCapability.WEB_SEARCH
+			in self.current_account.provider.engine_cls.capabilities
+		):
+			completion_kwargs["web_search_mode"] = (
+				self.web_search_mode.GetValue()
+			)
+
+		# Start completion using the handler
+		self.completion_handler.start_completion(
+			engine=self.current_engine,
+			system_message=self.get_system_message(),
+			conversation=self.conversation,
+			new_block=new_block,
+			stream=new_block.stream,
+			**completion_kwargs,
 		)
-		self.task.start()
-		log.debug(f"Task {self.task.ident} started")
 
 	def on_stop_completion(self, event: wx.CommandEvent):
 		"""Handle the stopping of the current completion task.
@@ -663,147 +681,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			event: The event that triggered the stop action
 		"""
-		self._stop_completion = True
-
-	def _handle_completion(self, engine: BaseEngine, **kwargs: dict[str, Any]):
-		"""Handle the completion of a new message block.
-
-		Args:
-			engine: The engine to use for completion
-			kwargs: The keyword arguments for the completion request
-		"""
-		try:
-			play_sound("progress", loop=True)
-			response = engine.completion(**kwargs)
-		except Exception as e:
-			log.error("Error during completion", exc_info=True)
-
-			wx.CallAfter(
-				wx.MessageBox,
-				_("An error occurred during completion: ") + str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			wx.CallAfter(self._end_task, False)
-			return
-		new_block = kwargs["new_block"]
-		system_message = kwargs.get("system_message")
-		if kwargs.get("stream", False):
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT, content=""
-			)
-			wx.CallAfter(
-				self._pre_handle_completion_with_stream,
-				new_block,
-				system_message,
-			)
-			for chunk in self.current_engine.completion_response_with_stream(
-				response
-			):
-				if self._stop_completion or global_vars.app_should_exit:
-					log.debug("Stopping completion")
-					break
-				if isinstance(chunk, str):
-					new_block.response.content += chunk
-					wx.CallAfter(self._handle_completion_with_stream, chunk)
-				elif isinstance(chunk, tuple):
-					chunk_type, chunk_data = chunk
-					match chunk_type:
-						case "citation":
-							if not new_block.response.citations:
-								new_block.response.citations = []
-							new_block.response.citations.append(chunk_data)
-						case _:
-							log.warning(
-								f"Unknown chunk type in streaming response: {chunk_type}"
-							)
-			wx.CallAfter(self._post_completion_with_stream, new_block)
-		else:
-			new_block = engine.completion_response_without_stream(
-				response=response, **kwargs
-			)
-			wx.CallAfter(
-				self._post_completion_without_stream, new_block, system_message
-			)
-
-	def _pre_handle_completion_with_stream(
-		self, new_block: MessageBlock, system_message: Message | None
-	):
-		"""Prepare for handling a completion response with streaming.
-
-		Args:
-			new_block: The new message block to be displayed
-			system_message: An optional system message to be used
-		"""
-		self.conversation.add_block(new_block, system_message)
-		self.messages.display_new_block(new_block)
-		self.messages.SetInsertionPointEnd()
-		self.prompt_panel.clear()
-		self.prompt_panel.refresh_attachments_list()
-
-	def _handle_completion_with_stream(self, chunk: str):
-		"""Handle a completion response chunk for streaming.
-
-		Args:
-			chunk: The completion response chunk to be displayed
-		"""
-		self.messages.append_stream_chunk(chunk)
-		new_time = time.time()
-		if new_time - self.last_time > 4:
-			play_sound("chat_response_pending")
-			self.last_time = new_time
-
-	def _handle_accessible_output(
-		self, text: str, braille: bool = False, force: bool = False
-	):
-		self.messages.handle_accessible_output(text, braille, force)
-
-	def _post_completion_with_stream(self, new_block: MessageBlock):
-		"""Finalize the completion process for a streaming response.
-
-		Args:
-			new_block: The new message block to be displayed
-		"""
-		self.messages.flush_stream_buffer()
-		self.messages.handle_speech_stream_buffer()
-		self.messages.update_last_segment_length()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
-		self._end_task()
-
-	def _post_completion_without_stream(
-		self, new_block: MessageBlock, system_message: Message | None
-	):
-		"""Finalize the completion process for a non-streaming response.
-
-		Args:
-			new_block: The new message block to be displayed
-			system_message: The system message to be used
-		"""
-		self.conversation.add_block(new_block, system_message)
-		self.messages.display_new_block(new_block)
-		self.messages.handle_accessible_output(new_block.response.content)
-		self.prompt_panel.clear()
-		self.prompt_panel.refresh_attachments_list()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
-		self._end_task()
-
-	def _end_task(self, success: bool = True):
-		"""End the current completion task.
-
-		Args:
-			success: Whether the task completed successfully
-		"""
-		self.task.join()
-		log.debug(f"Task {self.task.ident} ended")
-		self.task = None
-		stop_sound()
-		if success:
-			play_sound("chat_response_received")
-		self.stop_completion_btn.Hide()
-		self.submit_btn.Enable()
-		self._stop_completion = False
+		self.completion_handler.stop_completion()
 
 	@ensure_no_task_running
 	def generate_conversation_title(self):
@@ -898,3 +776,83 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if block not in self.conversation.messages:
 			return None
 		return self.conversation.messages.index(block)
+
+	def _on_completion_start(self):
+		"""Called when completion starts."""
+		self.submit_btn.Disable()
+		self.stop_completion_btn.Show()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
+
+	def _on_completion_end(self, success: bool):
+		"""Called when completion ends.
+
+		Args:
+			success: Whether the completion was successful
+		"""
+		self.stop_completion_btn.Hide()
+		self.submit_btn.Enable()
+		if success:
+			play_sound("chat_response_received")
+
+	def _on_stream_chunk(self, chunk: str):
+		"""Called for each streaming chunk.
+
+		Args:
+			chunk: The streaming chunk content
+		"""
+		self.messages.append_stream_chunk(chunk)
+
+	def _on_completion_result(self, result: str):
+		"""Called with the completion result for non-streaming mode.
+
+		Args:
+			result: The generated response content
+		"""
+		# This is only called for non-streaming completions
+		# Streaming completions are handled via _on_stream_finish
+		pass
+
+	def _on_stream_start(
+		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+	):
+		"""Called when streaming starts.
+
+		Args:
+			new_block: The message block being completed
+			system_message: Optional system message
+		"""
+		self.conversation.add_block(new_block, system_message)
+		self.messages.display_new_block(new_block)
+		self.messages.SetInsertionPointEnd()
+		self.prompt_panel.clear()
+		self.prompt_panel.refresh_attachments_list()
+
+	def _on_stream_finish(self, new_block: MessageBlock):
+		"""Called when streaming finishes.
+
+		Args:
+			new_block: The completed message block
+		"""
+		self.messages.flush_stream_buffer()
+		self.messages.handle_speech_stream_buffer()
+		self.messages.update_last_segment_length()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
+
+	def _on_non_stream_finish(
+		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+	):
+		"""Called when non-streaming completion finishes.
+
+		Args:
+			new_block: The completed message block
+			system_message: Optional system message
+		"""
+		self.conversation.add_block(new_block, system_message)
+		self.messages.display_new_block(new_block)
+		self.messages.handle_accessible_output(new_block.response.content)
+		self.prompt_panel.clear()
+		self.prompt_panel.refresh_attachments_list()
+		if config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()

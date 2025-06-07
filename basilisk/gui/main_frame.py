@@ -432,13 +432,7 @@ class MainFrame(wx.Frame):
 		global_vars.app_should_exit = True
 		# ensure all conversation tasks are stopped
 		for tab in self.tabs_panels:
-			if tab.task:
-				task_id = tab.task.ident
-				log.debug(
-					f"Waiting for conversation task {task_id} to finish..."
-				)
-				tab.task.join()
-				log.debug("... is dead")
+			tab.completion_handler.stop_completion()
 		if sys.platform == "win32":
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
