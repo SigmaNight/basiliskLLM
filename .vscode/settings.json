@@ -19,7 +19,8 @@
 	"python.analysis.enablePytestSupport": true,
 	"python.analysis.languageServerMode": "full",
 	"python.analysis.exclude": [
-		"dist",
+		"dist/**",
+		".venv//**",
 	],
 	"autoDocstring.docstringFormat": "google-notypes",
 	"autoDocstring.quoteStyle": "\"\"\"",
