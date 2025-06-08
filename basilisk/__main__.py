@@ -7,6 +7,7 @@ If the application is already running, the module sends signals to the running i
 """
 
 import argparse
+import multiprocessing
 import os
 import sys
 
@@ -48,32 +49,30 @@ def parse_args():
 		--log_level, -L (str | None): Sets the logging level. Valid levels are DEBUG, INFO, WARNING, ERROR, CRITICAL. Defaults to None.
 		--no-env-account, -N (bool): Disables loading accounts from environment variables. Defaults to False.
 		--minimize, -m (bool): Starts the application in a minimized window state. Defaults to False.
-		-n (bool): Shows a message window if another application instance is already running. Defaults to False.
-		bskc_file (str | None): Path to a Basilisk conversation file to open. Defaults to None.
+		--show_already_running_msg, -n (bool): Shows a message if the application is already running. Defaults to False.
 
 	Returns:
-		argparse.Namespace: Parsed command-line arguments with their respective values.
-
-	Example:
-		python -m basilisk --language en --log_level DEBUG --minimize conversation.bskc
+		argparse.Namespace: Parsed command-line arguments with their values.
 	"""
-	parser = argparse.ArgumentParser(
-		prog=APP_NAME,
-		description="Runs the application with customized configurations.",
-	)
+	parser = argparse.ArgumentParser(description=f"Run {APP_NAME}")
 	parser.add_argument(
-		"--language", "-l", help="Set the application language", default=None
+		"--language",
+		"-l",
+		type=str,
+		default=None,
+		help="Set the application language",
 	)
 	parser.add_argument(
 		"--log_level",
 		"-L",
-		help="Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+		type=str,
 		default=None,
+		help="Set the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 	)
 	parser.add_argument(
 		"--no-env-account",
 		"-N",
-		help="Disable loading accounts from environment variables",
+		help="Do not load accounts from environment variables",
 		action="store_true",
 	)
 	parser.add_argument(
@@ -98,6 +97,9 @@ def parse_args():
 
 
 if __name__ == '__main__':
+	# Enable multiprocessing support for frozen executables
+	multiprocessing.freeze_support()
+
 	os.makedirs(TMP_DIR, exist_ok=True)
 	global_vars.args = parse_args()
 	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
