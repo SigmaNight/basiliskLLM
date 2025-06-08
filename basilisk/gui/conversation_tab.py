@@ -20,6 +20,7 @@ import logging
 import re
 import threading
 import time
+from multiprocessing import Process
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
@@ -51,6 +52,7 @@ from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
+from .ocr_handler import OCRHandler
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
 if TYPE_CHECKING:
@@ -61,6 +63,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 accessible_output = get_accessible_output()
+
+CHECK_TASK_DELAY = 100  # ms
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -164,7 +168,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.last_time = 0
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
+		self.process: Optional[Process] = None
 		self._stop_completion = False
+		self.ocr_handler = OCRHandler(self)
 		self.init_ui()
 		self.init_data(profile)
 		self.adjust_advanced_mode_setting()
@@ -251,6 +257,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachments_list.SetColumnWidth(1, 100)
 		self.attachments_list.SetColumnWidth(2, 500)
 		sizer.Add(self.attachments_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+
+		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
+		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
+
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
@@ -363,6 +373,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.set_model_list(None)
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
+		)
+		self.ocr_button.Enable(
+			ProviderCapability.OCR in account.provider.engine_cls.capabilities
 		)
 		self.web_search_mode.Enable(
 			ProviderCapability.WEB_SEARCH
@@ -708,10 +721,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not self.attachment_files:
 			self.attachments_list_label.Hide()
 			self.attachments_list.Hide()
+			self.ocr_button.Hide()
 			self.Layout()
 			return
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
+		self.ocr_button.Show()
 		for attachment in self.attachment_files:
 			self.attachments_list.Append(attachment.get_display_info())
 		last_index = len(self.attachment_files) - 1
@@ -1137,7 +1152,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
-	def _check_attachments_valid(self) -> bool:
+	def check_attachments_valid(self) -> bool:
+		"""Check if all attachments are valid and supported by the current provider.
+
+		Returns:
+			True if all attachments are valid, False otherwise
+		"""
 		supported_attachment_formats = (
 			self.current_engine.supported_attachment_formats
 		)
@@ -1158,7 +1178,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 				invalid_found = True
 		return not invalid_found
 
-	@ensure_no_task_running
 	def on_submit(self, event: wx.CommandEvent):
 		"""Handle the submission of a new message block for completion.
 
@@ -1167,7 +1186,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self._check_attachments_valid():
+		if not self.check_attachments_valid():
 			self.attachments_list.SetFocus()
 			return
 		if not self.prompt.GetValue() and not self.attachment_files:
