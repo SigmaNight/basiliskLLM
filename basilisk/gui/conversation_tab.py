@@ -158,7 +158,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
 			on_stream_chunk=self._on_stream_chunk,
-			on_completion_result=self._on_completion_result,
 			on_stream_start=self._on_stream_start,
 			on_stream_finish=self._on_stream_finish,
 			on_non_stream_finish=self._on_non_stream_finish,
@@ -799,8 +798,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
-		if success:
-			play_sound("chat_response_received")
+		if success and config.conf().conversation.focus_history_after_send:
+			self.messages.SetFocus()
 
 	def _on_stream_chunk(self, chunk: str):
 		"""Called for each streaming chunk.
@@ -809,16 +808,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 			chunk: The streaming chunk content
 		"""
 		self.messages.append_stream_chunk(chunk)
-
-	def _on_completion_result(self, result: str):
-		"""Called with the completion result for non-streaming mode.
-
-		Args:
-			result: The generated response content
-		"""
-		# This is only called for non-streaming completions
-		# Streaming completions are handled via _on_stream_finish
-		pass
 
 	def _on_stream_start(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
@@ -844,8 +833,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.flush_stream_buffer()
 		self.messages.handle_speech_stream_buffer()
 		self.messages.update_last_segment_length()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
 
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
@@ -861,5 +848,3 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt_panel.clear()
 		self.prompt_panel.refresh_attachments_list()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()

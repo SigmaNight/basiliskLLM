@@ -43,7 +43,6 @@ class CompletionHandler:
 		on_completion_start: Optional[Callable[[], None]] = None,
 		on_completion_end: Optional[Callable[[bool], None]] = None,
 		on_stream_chunk: Optional[Callable[[str], None]] = None,
-		on_completion_result: Optional[Callable[[str], None]] = None,
 		on_error: Optional[Callable[[str], None]] = None,
 		on_stream_start: Optional[
 			Callable[[MessageBlock, Optional[SystemMessage]], None]
@@ -69,7 +68,6 @@ class CompletionHandler:
 		self.on_completion_start = on_completion_start
 		self.on_completion_end = on_completion_end
 		self.on_stream_chunk = on_stream_chunk
-		self.on_completion_result = on_completion_result
 		self.on_error = on_error
 		self.on_stream_start = on_stream_start
 		self.on_stream_finish = on_stream_finish
@@ -124,6 +122,7 @@ class CompletionHandler:
 		if self.is_running():
 			logger.debug(f"Stopping completion task {self.task.ident}")
 			self.task.join(timeout=1)
+			wx.CallAfter(self.on_completion_end, False)
 
 	def is_running(self) -> bool:
 		"""Check if a completion is currently running."""
@@ -144,12 +143,22 @@ class CompletionHandler:
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
+		handle_func = (
+			self._handle_streaming_completion
+			if kwargs.get("stream", False)
+			else self._handle_non_streaming_completion
+		)
 		kwargs["engine"] = engine
 		kwargs["response"] = response
-		if kwargs.get("stream", False):
-			self._handle_streaming_completion(**kwargs)
-		else:
-			self._handle_non_streaming_completion(**kwargs)
+		try:
+			success = handle_func(**kwargs)
+		except Exception as e:
+			logger.error("Error handling completion response", exc_info=True)
+			wx.CallAfter(self._handle_error, str(e))
+			return
+
+		if success:
+			wx.CallAfter(self._completion_finished_success)
 
 	def _handle_streaming_completion(
 		self,
@@ -158,7 +167,7 @@ class CompletionHandler:
 		new_block: MessageBlock,
 		system_message: Optional[SystemMessage],
 		**kwargs: dict[str, Any],
-	):
+	) -> bool:
 		"""Handle streaming completion response.
 
 		Args:
@@ -167,6 +176,9 @@ class CompletionHandler:
 			new_block: The message block being completed
 			system_message: Optional system message
 			kwargs: Additional completion arguments
+
+		Returns:
+			True if streaming was handled successfully, False if stopped
 		"""
 		new_block.response = Message(role=MessageRoleEnum.ASSISTANT, content="")
 
@@ -177,7 +189,7 @@ class CompletionHandler:
 		for chunk in engine.completion_response_with_stream(response):
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
-				break
+				return False
 
 			if isinstance(chunk, str):
 				new_block.response.content += chunk
@@ -196,10 +208,7 @@ class CompletionHandler:
 		# Notify that streaming has finished
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
-
-		wx.CallAfter(
-			self._completion_finished, new_block.response.content, True
-		)
+		return True
 
 	def _handle_non_streaming_completion(
 		self,
@@ -208,7 +217,7 @@ class CompletionHandler:
 		new_block: MessageBlock,
 		system_message: Optional[SystemMessage],
 		**kwargs: dict[str, Any],
-	):
+	) -> bool:
 		"""Handle non-streaming completion response.
 
 		Args:
@@ -217,6 +226,9 @@ class CompletionHandler:
 			new_block: The message block being completed
 			system_message: Optional system message
 			kwargs: Additional completion arguments
+
+		Returns:
+			True if non-streaming completion was handled successfully, False if stopped
 		"""
 		completed_block = engine.completion_response_without_stream(
 			response=response, new_block=new_block, **kwargs
@@ -228,9 +240,7 @@ class CompletionHandler:
 				self.on_non_stream_finish, completed_block, system_message
 			)
 
-		wx.CallAfter(
-			self._completion_finished, completed_block.response.content, False
-		)
+		return True
 
 	def _handle_stream_chunk(self, chunk: str):
 		"""Handle a streaming chunk on the main thread.
@@ -247,23 +257,12 @@ class CompletionHandler:
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
-	def _completion_finished(self, result: str, was_streaming: bool):
-		"""Handle completion finish on the main thread.
-
-		Args:
-			result: The completion result content
-			was_streaming: Whether this was a streaming completion
-		"""
+	def _completion_finished_success(self):
+		"""Handle completion finish in success on the main thread."""
 		stop_sound()
-		if not was_streaming:
-			play_sound("chat_response_received")
-
-		if self.on_completion_result:
-			self.on_completion_result(result)
-
+		play_sound("chat_response_received")
 		if self.on_completion_end:
 			self.on_completion_end(True)
-
 		self.task = None
 
 	def _handle_error(self, error_message: str):
