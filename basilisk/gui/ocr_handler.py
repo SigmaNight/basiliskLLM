@@ -190,7 +190,7 @@ class OCRHandler:
 				self._handle_ocr_message(message_type, data, dialog)
 		except Exception as e:
 			log.error(
-				f"Error processing queue messages: {str(e)}", exc_info=True
+				"Error processing queue messages: %s", str(e), exc_info=True
 			)
 
 	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
