@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-21 20:25+0000\n"
-"PO-Revision-Date: 2025-04-26 13:26\n"
+"POT-Creation-Date: 2025-06-07 11:25+0000\n"
+"PO-Revision-Date: 2025-06-07 13:29\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -80,17 +80,17 @@ msgstr "Tokens de sortie maximum :"
 #: basilisk/screen_capture_thread.py:109
 #, python-format
 msgid "Full screen capture (%s)"
-msgstr ""
+msgstr "Capture d'écran complète (%s)"
 
 #: basilisk/screen_capture_thread.py:130
 #, python-format
 msgid "Partial screen capture (%s)"
-msgstr ""
+msgstr "Capture d'écran partielle (%s)"
 
 #: basilisk/screen_capture_thread.py:157
 #, python-format
 msgid "Window screen capture (%s)"
-msgstr ""
+msgstr "Capture de la fenêtre (%s)"
 
 #: basilisk/gui/about_dialog.py:40
 msgid "Where LLMs Unite"
@@ -98,7 +98,7 @@ msgstr "Où les LLMs s’unissent"
 
 #: basilisk/gui/about_dialog.py:42
 msgid "GPLV2"
-msgstr ""
+msgstr "GPLV2"
 
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:65 basilisk/gui/account_dialog.py:456
@@ -149,7 +149,7 @@ msgstr "Clé"
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:230 basilisk/gui/account_dialog.py:876
 msgid "Source"
-msgstr ""
+msgstr "Source"
 
 #. translators: Button label to add a new conversation profile
 #: basilisk/gui/account_dialog.py:236 basilisk/gui/account_dialog.py:882
@@ -192,7 +192,7 @@ msgstr "Êtes-vous sûr de vouloir supprimer l’organisation {} ?"
 
 #: basilisk/gui/account_dialog.py:376 basilisk/gui/account_dialog.py:1115
 msgid "Confirmation"
-msgstr ""
+msgstr "Confirmation"
 
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:466
@@ -217,7 +217,7 @@ msgstr "&Organisation à utilisé :"
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:514
 msgid "Custom &base URL:"
-msgstr ""
+msgstr "URL de &base personalisée :"
 
 #: basilisk/gui/account_dialog.py:582
 msgid "Personal"
@@ -226,11 +226,11 @@ msgstr "Personnelle"
 #: basilisk/gui/account_dialog.py:662
 #, python-brace-format
 msgid "Custom &base URL (default: {})"
-msgstr ""
+msgstr "URL de &base personalisée (default: {})"
 
 #: basilisk/gui/account_dialog.py:665
 msgid "Custom &base URL"
-msgstr ""
+msgstr "URL de &base personalisée"
 
 #. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:703
@@ -247,7 +247,7 @@ msgstr "Veuillez entrer une clé API. Cela est requis par le fournisseur"
 
 #: basilisk/gui/account_dialog.py:728
 msgid "Please enter a valid custom base URL"
-msgstr ""
+msgstr "Entrer une URL de base personalisée valide"
 
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:857
@@ -320,7 +320,7 @@ msgstr "M&odèles :"
 #. indicate whether the model supports images
 #: basilisk/gui/base_conversation.py:192
 msgid "Vision"
-msgstr ""
+msgstr "Vision"
 
 #. Translators: This label appears in the main window's list of models
 #: basilisk/gui/base_conversation.py:194
@@ -346,7 +346,7 @@ msgstr "Détails du modèle"
 #. Translators: This is a label for web search mode in the main window
 #: basilisk/gui/base_conversation.py:367
 msgid "&Web search mode"
-msgstr ""
+msgstr "Recherche &Web"
 
 #. Translators: This is a label for max tokens in the main window
 #: basilisk/gui/base_conversation.py:380
@@ -476,7 +476,7 @@ msgstr "&Prompt :"
 #. Translators: This is a label for models in the main window
 #: basilisk/gui/conversation_tab.py:223
 msgid "&Attachments:"
-msgstr ""
+msgstr "Pièces jointes :"
 
 #. Translators: This is a label for attachment size in the main window
 #: basilisk/gui/conversation_tab.py:243 basilisk/gui/conversation_tab.py:632
@@ -486,7 +486,7 @@ msgstr "Taille"
 #. Translators: This is a label for attachment location in the main window
 #: basilisk/gui/conversation_tab.py:248 basilisk/gui/conversation_tab.py:633
 msgid "Location"
-msgstr ""
+msgstr "Emplacement"
 
 #. Translators: This is a label for submit button in the main window
 #: basilisk/gui/conversation_tab.py:276 basilisk/gui/conversation_tab.py:806
@@ -512,33 +512,33 @@ msgstr "Appliquer le profil"
 #. menu
 #: basilisk/gui/conversation_tab.py:402
 msgid "Remove selected attachment"
-msgstr ""
+msgstr "Supprimer la pièce jointe sélectionnée"
 
 #. Translators: This is a label for copy location in the context menu
 #: basilisk/gui/conversation_tab.py:411
 msgid "Copy location"
-msgstr ""
+msgstr "Copier l'emplacement"
 
 #. Translators: This is a label for paste in the context menu
 #: basilisk/gui/conversation_tab.py:419 basilisk/gui/conversation_tab.py:810
 msgid "Paste (file or text)"
-msgstr ""
+msgstr "Coller (fichier ou texte)"
 
 #. Translators: This is a label for add files in the context menu
 #: basilisk/gui/conversation_tab.py:428
 msgid "Add files..."
-msgstr ""
+msgstr "Ajouter des fichiers..."
 
 #. Translators: This is a label for add attachment URL in the context menu
 #: basilisk/gui/conversation_tab.py:437
 msgid "Add attachment URL..."
-msgstr ""
+msgstr "Ajouter une pièce jointe depuis une URL..."
 
 #. Translators: This message is displayed when there are no supported
 #. attachment formats.
 #: basilisk/gui/conversation_tab.py:534
 msgid "This provider does not support any attachment formats."
-msgstr ""
+msgstr "Ce fournisseur ne supporte aucun format de pièce jointe."
 
 #: basilisk/gui/conversation_tab.py:539
 msgid "All supported formats"
@@ -547,16 +547,16 @@ msgstr ""
 #. Translators: This is a label for select files in conversation tab
 #: basilisk/gui/conversation_tab.py:543
 msgid "Select one or more files to attach"
-msgstr ""
+msgstr "Sélectionner un ou plusieurs fichiers à joindre"
 
 #. Translators: This is a label for enter URL in add attachment dialog
 #: basilisk/gui/conversation_tab.py:561
 msgid "Enter the URL of the file to attach:"
-msgstr ""
+msgstr "Entrer l'URL de la pièce jointe :"
 
 #: basilisk/gui/conversation_tab.py:562
 msgid "Add attachment from URL"
-msgstr ""
+msgstr "Ajouter une pièce jointe depuis une URL"
 
 #: basilisk/gui/conversation_tab.py:571
 msgid "Invalid URL, bad format."
@@ -574,28 +574,28 @@ msgstr "erreur HTTP %s."
 #: basilisk/gui/conversation_tab.py:600
 #, python-format
 msgid "Error adding attachment from URL: %s"
-msgstr ""
+msgstr "Erreur lors de l'ajout d'une pièce jointe depuis une URL: %s"
 
 #: basilisk/gui/conversation_tab.py:637
 msgid "MIME type"
-msgstr ""
+msgstr "MIME type"
 
 #: basilisk/gui/conversation_tab.py:639
 msgid "Dimensions"
-msgstr ""
+msgstr "Dimensions"
 
 #: basilisk/gui/conversation_tab.py:641
 #, python-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s : %s"
 
 #: basilisk/gui/conversation_tab.py:644
 msgid "Attachment details"
-msgstr ""
+msgstr "Détailles de la pièce jointe"
 
 #: basilisk/gui/conversation_tab.py:743
 msgid "This attachment format is not supported by the current provider. Source:"
-msgstr ""
+msgstr "Le format de la pièce jointe n'est pas supporté par le fournisseur sélectionné. Source :"
 
 #: basilisk/gui/conversation_tab.py:801
 msgid "Insert previous prompt"
@@ -651,12 +651,12 @@ msgstr "Le modèle sélectionné ne supporte pas la description d’image. Veuil
 #: basilisk/gui/conversation_tab.py:1150
 #, python-format
 msgid "This attachment format is not supported by the current provider. Source: %s"
-msgstr ""
+msgstr "This attachment format is not supported by the current provider. Source : %s"
 
 #: basilisk/gui/conversation_tab.py:1154
 #, python-format
 msgid "The attachment file does not exist: %s"
-msgstr ""
+msgstr "Le fichier de la pièce jointe n'existe pas : %s"
 
 #: basilisk/gui/conversation_tab.py:1212
 msgid "An error occurred during completion: "
@@ -668,7 +668,7 @@ msgstr "Une erreur s’est produite durant la génération :"
 
 #: basilisk/gui/conversation_tab.py:1405
 msgid "An error occurred while saving the conversation: "
-msgstr ""
+msgstr "Une erreur s'est produite lors de la sauvegarde de la conversation : "
 
 #: basilisk/gui/history_msg_text_ctrl.py:225
 msgid "Read current message"
@@ -684,7 +684,7 @@ msgstr "Afficher en HTML (depuis Markdown)"
 
 #: basilisk/gui/history_msg_text_ctrl.py:242
 msgid "Show citations"
-msgstr ""
+msgstr "Montrer les citations"
 
 #: basilisk/gui/history_msg_text_ctrl.py:244
 msgid "Copy current message"
@@ -712,7 +712,7 @@ msgstr "Aller à la fin du message"
 
 #: basilisk/gui/history_msg_text_ctrl.py:274
 msgid "Remove message block"
-msgstr ""
+msgstr "Supprimer le bloque de message"
 
 #: basilisk/gui/history_msg_text_ctrl.py:279
 msgid "Find..."
@@ -759,47 +759,47 @@ msgstr "Bloque de message suprimé"
 #: basilisk/gui/history_msg_text_ctrl.py:643
 #, python-brace-format
 msgid "C.{start} .. {end}"
-msgstr ""
+msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
 #: basilisk/gui/history_msg_text_ctrl.py:650
 #, python-brace-format
 msgid "P.{start} .. {end}"
-msgstr ""
+msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
 #: basilisk/gui/history_msg_text_ctrl.py:655
 msgid "Unknown location"
-msgstr ""
+msgstr "Localisation inconnue"
 
 #: basilisk/gui/history_msg_text_ctrl.py:660
 #, python-brace-format
 msgid "{document_title} / {location_text}"
-msgstr ""
+msgstr "{document_title} / {location_text}"
 
 #: basilisk/gui/history_msg_text_ctrl.py:667
 #, python-brace-format
 msgid "Document {document_index} / {location_text}"
-msgstr ""
+msgstr "Document {document_index} / {location_text}"
 
 #. Translators: This is a citation format for a cited text
 #: basilisk/gui/history_msg_text_ctrl.py:675
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
-msgstr ""
+msgstr "{location_text}: “ {cited_text} ”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
 #: basilisk/gui/history_msg_text_ctrl.py:690
 #, python-format
 msgid "%d citations in the current message"
-msgstr ""
+msgstr "%d citations dans le message sélectionné"
 
 #. Translators: This message is emitted when there are no citations for the
 #. current message.
 #: basilisk/gui/history_msg_text_ctrl.py:704
 msgid "No citations for this message"
-msgstr ""
+msgstr "Aucune citation pour le message sélectionné"
 
 #. Translators: This is a title for message citations dialog
 #: basilisk/gui/history_msg_text_ctrl.py:716
@@ -848,7 +848,7 @@ msgstr "Fermer la conversation"
 #. Translators: A label for a menu item to attach files to a conversation
 #: basilisk/gui/main_frame.py:148
 msgid "Attach f&iles"
-msgstr ""
+msgstr "Joinde des f&ichiers"
 
 #. Translators: A label for a menu item to add an image from a URL
 #: basilisk/gui/main_frame.py:158
@@ -890,7 +890,7 @@ msgstr "Voir le &journal"
 
 #: basilisk/gui/main_frame.py:228
 msgid "&Conversation"
-msgstr ""
+msgstr "&Conversation"
 
 #: basilisk/gui/main_frame.py:229
 msgid "Too&ls"
@@ -924,7 +924,7 @@ msgstr "Profil « %s » non trouvé"
 #: basilisk/gui/main_frame.py:587
 #, python-format
 msgid "Conversation %d"
-msgstr ""
+msgstr "Conversation %d"
 
 #: basilisk/gui/main_frame.py:711
 msgid "Manage accounts"
@@ -986,13 +986,13 @@ msgstr "Aucun compte configuré"
 
 #: basilisk/gui/main_frame.py:1073 basilisk/gui/main_frame.py:1124
 msgid "Basilisk conversation files"
-msgstr ""
+msgstr "Fichier de conversation basilisk"
 
 #. Translators: An error message when a conversation file cannot be opened
 #: basilisk/gui/main_frame.py:1102
 #, python-format
 msgid "Failed to open conversation file: '%s', error: %s"
-msgstr ""
+msgstr "Échec d'overture fu fichier de conversation : '%s', erreur : %s"
 
 #. Translators: A label for a text field where the user can enter a name for a
 #. conversation.
@@ -1044,7 +1044,7 @@ msgstr "Mode avancé"
 
 #: basilisk/gui/preferences_dialog.py:138
 msgid "Conversation"
-msgstr ""
+msgstr "Conversation"
 
 #. Translators: A label in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:146
@@ -1076,7 +1076,7 @@ msgstr ""
 
 #: basilisk/gui/preferences_dialog.py:205
 msgid "Images"
-msgstr ""
+msgstr "Images"
 
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:211
@@ -1141,7 +1141,7 @@ msgstr "Recherche :"
 #. Translators: Search dialog label
 #: basilisk/gui/search_dialog.py:106
 msgid "Direction"
-msgstr ""
+msgstr "Direction"
 
 #. Translators: Search dialog label
 #: basilisk/gui/search_dialog.py:113
@@ -1156,7 +1156,7 @@ msgstr "A&vant"
 #. Translators: Search dialog label
 #: basilisk/gui/search_dialog.py:130
 msgid "Mode"
-msgstr ""
+msgstr "Mode"
 
 #. Translators: Search dialog label
 #: basilisk/gui/search_dialog.py:137
@@ -1291,52 +1291,39 @@ msgstr "Erreur durant la recherche des mises à jour : %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:97
-#: basilisk/provider_engine/anthropic_engine.py:107
-msgid "Our most intelligent model"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:117
-msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
-msgstr "Point vers la version la plus récente de Claude 3.5 Sonnet"
-
-#: basilisk/provider_engine/anthropic_engine.py:128
-msgid "Point to the most recent snapshot of Claude 3.5 Haiku"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:138
-msgid "Our fastest model. Intelligence at blazing speeds"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:148
-msgid "Most intelligent model. Highest level of intelligence and capability"
+#: basilisk/provider_engine/anthropic_engine.py:106
+msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:157
-msgid "Most intelligent model, previous version"
-msgstr "Modèle le plus intelligent, version précédente"
+#: basilisk/provider_engine/anthropic_engine.py:116
+#: basilisk/provider_engine/anthropic_engine.py:125
+msgid "Our most capable model"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:136
+#: basilisk/provider_engine/anthropic_engine.py:147
+msgid "High-performance model with early extended thinking"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:166
-msgid "Powerful model for highly complex tasks"
-msgstr "Un modèle puissant pour des tâches très complexes"
+#: basilisk/provider_engine/anthropic_engine.py:158
+msgid "Our previous intelligent model"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:175
-msgid "Balance of intelligence and speed"
-msgstr "Équilibre entre intelligence et rapidité"
+#: basilisk/provider_engine/anthropic_engine.py:167
+msgid "Our fastest model"
+msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:185
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:176
+msgid "Powerful model for complex tasks"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:186
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Modèle le plus rapide et le plus compact pour une réactivité quasi instantanée"
-
-#: basilisk/provider_engine/anthropic_engine.py:196
-msgid "Updated version of Claude 2 with improved accuracy"
-msgstr "Version actualisée de Claude 2 avec une précision améliorée"
-
-#: basilisk/provider_engine/anthropic_engine.py:207
-msgid "Predecessor to Claude 3, offering strong all-round performance"
-msgstr "Prédécesseur de Claude 3, offrant de solides performances globales"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:42

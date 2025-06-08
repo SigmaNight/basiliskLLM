@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-21 20:25+0000\n"
-"PO-Revision-Date: 2025-04-26 13:26\n"
+"POT-Creation-Date: 2025-06-07 11:25+0000\n"
+"PO-Revision-Date: 2025-06-07 13:29\n"
 "Last-Translator: \n"
 "Language-Team: Turkish\n"
 "MIME-Version: 1.0\n"
@@ -1291,52 +1291,39 @@ msgstr "Güncellemeler denetlenirken hata oluştu: %s"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:97
-#: basilisk/provider_engine/anthropic_engine.py:107
-msgid "Our most intelligent model"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:117
-msgid "Point to the most recent snapshot of Claude 3.5 Sonnet"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:128
-msgid "Point to the most recent snapshot of Claude 3.5 Haiku"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:138
-msgid "Our fastest model. Intelligence at blazing speeds"
-msgstr ""
-
-#: basilisk/provider_engine/anthropic_engine.py:148
-msgid "Most intelligent model. Highest level of intelligence and capability"
+#: basilisk/provider_engine/anthropic_engine.py:106
+msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:157
-msgid "Most intelligent model, previous version"
+#: basilisk/provider_engine/anthropic_engine.py:116
+#: basilisk/provider_engine/anthropic_engine.py:125
+msgid "Our most capable model"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:136
+#: basilisk/provider_engine/anthropic_engine.py:147
+msgid "High-performance model with early extended thinking"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:166
-msgid "Powerful model for highly complex tasks"
-msgstr "Son derece karmaşık görevler için güçlü model"
+#: basilisk/provider_engine/anthropic_engine.py:158
+msgid "Our previous intelligent model"
+msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:175
-msgid "Balance of intelligence and speed"
-msgstr "Zeka ve hız dengesi"
+#: basilisk/provider_engine/anthropic_engine.py:167
+msgid "Our fastest model"
+msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:185
+#. Translators: This is a model description
+#: basilisk/provider_engine/anthropic_engine.py:176
+msgid "Powerful model for complex tasks"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:186
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Anında tepki süresi için en hızlı ve en kompakt model"
-
-#: basilisk/provider_engine/anthropic_engine.py:196
-msgid "Updated version of Claude 2 with improved accuracy"
-msgstr "Claude 2'nin geliştirilmiş doğrulukla güncellenmiş sürümü"
-
-#: basilisk/provider_engine/anthropic_engine.py:207
-msgid "Predecessor to Claude 3, offering strong all-round performance"
-msgstr "Claude 3'ün öncüsü, çok yönlü güçlü performans sunuyor"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:42
