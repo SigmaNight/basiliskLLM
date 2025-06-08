@@ -31,6 +31,7 @@ from basilisk.decorators import ensure_no_task_running
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
 if TYPE_CHECKING:
+	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
@@ -706,3 +707,30 @@ class PromptAttachmentsPanel(wx.Panel):
 				config.conf().images.max_height,
 				config.conf().images.quality,
 			)
+
+	def ensure_model_compatibility(
+		self, current_model: ProviderAIModel | None
+	) -> ProviderAIModel | None:
+		"""Check if current model is compatible with requested operations.
+
+		Returns:
+			The current model if compatible, None otherwise
+		"""
+		if not current_model:
+			wx.MessageBox(
+				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
+			)
+			return None
+		if self.has_image_attachments() and not current_model.vision:
+			vision_models = ", ".join(
+				[m.name or m.id for m in self.current_engine.models if m.vision]
+			)
+			wx.MessageBox(
+				_(
+					"The selected model does not support images. Please select a vision model instead ({})."
+				).format(vision_models),
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+			)
+			return None
+		return current_model

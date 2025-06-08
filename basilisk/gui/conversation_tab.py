@@ -35,7 +35,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -539,32 +538,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 		self.submit_btn.Enable()
 
-	def ensure_model_compatibility(self) -> ProviderAIModel | None:
-		"""Check if current model is compatible with requested operations.
-
-		Returns:
-			The current model if compatible, None otherwise
-		"""
-		model = self.current_model
-		if not model:
-			wx.MessageBox(
-				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
-			return None
-		if self.prompt_panel.has_image_attachments() and not model.vision:
-			vision_models = ", ".join(
-				[m.name or m.id for m in self.current_engine.models if m.vision]
-			)
-			wx.MessageBox(
-				_(
-					"The selected model does not support images. Please select a vision model instead ({})."
-				).format(vision_models),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return None
-		return model
-
 	def get_system_message(self) -> SystemMessage | None:
 		"""Get the system message from the system prompt input.
 
@@ -585,7 +558,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			A configured message block containing user prompt, images, model details, and generation parameters.
 		If no compatible model is available or no user input is provided, returns None.
 		"""
-		model = self.ensure_model_compatibility()
+		model = self.prompt_panel.ensure_model_compatibility(self.current_model)
 		if not model:
 			return None
 		self.prompt_panel.resize_all_attachments()
