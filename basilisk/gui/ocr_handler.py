@@ -166,7 +166,7 @@ class OCRHandler:
 		elif isinstance(data, str) and data:
 			wx.MessageBox(data, _("Result"), wx.OK | wx.ICON_INFORMATION)
 		else:
-			log.warning(f"{data}")
+			log.warning(f"Unexpected OCR result data type or empty result: {type(data).__name__} - {data}")
 			wx.MessageBox(
 				_("OCR completed, but no text was extracted."),
 				_("Result"),

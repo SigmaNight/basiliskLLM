@@ -1152,7 +1152,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			"stream": new_block.stream,
 		}
 
-	def _check_attachments_valid(self) -> bool:
+	def check_attachments_valid(self) -> bool:
 		"""Check if all attachments are valid and supported by the current provider.
 
 		Returns:
@@ -1186,7 +1186,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self._check_attachments_valid():
+		if not self.check_attachments_valid():
 			self.attachments_list.SetFocus()
 			return
 		if not self.prompt.GetValue() and not self.attachment_files:
