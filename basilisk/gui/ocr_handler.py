@@ -61,7 +61,7 @@ class OCRHandler:
 		self.ocr_button = wx.Button(
 			parent,
 			# Translators: This is a label for perform OCR button in the conversation tab
-			label=_("Perform OCR"),
+			label=_("Perform OCR on Attachments"),
 		)
 		self.ocr_button.Bind(wx.EVT_BUTTON, self.on_ocr)
 		return self.ocr_button
@@ -154,8 +154,15 @@ class OCRHandler:
 				_("OCR completed successfully. Text extracted to:")
 				+ "\n"
 				+ "\n".join(data)
+				+ "\n\n"
+				+ _("Do you want to open the files?")
 			)
-			wx.MessageBox(msg, _("Result"), wx.OK | wx.ICON_INFORMATION)
+			if (
+				wx.MessageBox(msg, _("Result"), wx.YES_NO | wx.ICON_INFORMATION)
+				== wx.YES
+			):
+				for file_path in data:
+					wx.LaunchDefaultApplication(file_path)
 		elif isinstance(data, str) and data:
 			wx.MessageBox(data, _("Result"), wx.OK | wx.ICON_INFORMATION)
 		else:
