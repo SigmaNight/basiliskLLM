@@ -279,7 +279,7 @@ class OCRHandler:
 			)
 			return
 
-		if not self.parent._check_attachments_valid():
+		if not self.parent.check_attachments_valid():
 			return
 
 		client = engine.client
