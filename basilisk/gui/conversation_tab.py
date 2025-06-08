@@ -20,7 +20,6 @@ import logging
 import re
 import threading
 import time
-from multiprocessing import Process
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
@@ -168,7 +167,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.last_time = 0
 		self.recording_thread: Optional[RecordingThread] = None
 		self.task = None
-		self.process: Optional[Process] = None
+		self.process: Optional[Any] = None  # multiprocessing.Process
 		self._stop_completion = False
 		self.ocr_handler = OCRHandler(self)
 		self.init_ui()

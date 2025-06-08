@@ -124,9 +124,9 @@ excludes = [
     "wint32gui", "win32ui", "win32uiold", "winreg",
 ]
 include_files = ["basilisk/res"]
-includes = ["numpy", "win32timezone"]
+includes = ["numpy", "win32timezone", "multiprocessing", "multiprocessing.spawn", "multiprocessing.util"]
 include_msvcr = true
-packages = ["numpy", "basilisk.provider_engine", "keyring", "fsspec.implementations", "upath.implementations"]
+packages = ["numpy", "basilisk.provider_engine", "basilisk.multiprocessing_worker", "keyring", "fsspec.implementations", "upath.implementations", "multiprocessing"]
 zip_include_packages = [
     "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "concurrent", "collections", "colorama", "ctypes", "curses",

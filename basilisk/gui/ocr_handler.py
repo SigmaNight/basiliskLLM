@@ -8,7 +8,7 @@ and managing OCR task progress.
 from __future__ import annotations
 
 import logging
-from multiprocessing import Process, Queue, Value
+from multiprocessing import Queue, Value
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
@@ -46,7 +46,7 @@ class OCRHandler:
 		"""
 		self.conf = config.conf()
 		self.parent = parent
-		self.process: Optional[Process] = None
+		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_button: Optional[wx.Button] = None
 
 	def create_ocr_widget(self, parent: wx.Window) -> wx.Button:
@@ -312,8 +312,6 @@ class OCRHandler:
 			global_vars.args.log_level or self.conf.general.log_level.name
 		)
 		kwargs = {
-			"result_queue": result_queue,
-			"cancel_flag": cancel_flag,
 			"api_key": current_account.api_key.get_secret_value(),
 			"base_url": current_account.custom_base_url
 			or current_account.provider.base_url,
@@ -321,12 +319,10 @@ class OCRHandler:
 			"log_level": log_level,
 		}
 
-		self.process = Process(
-			target=run_task, args=(engine.handle_ocr,), kwargs=kwargs
+		self.process = run_task(
+			engine.handle_ocr, result_queue, cancel_flag, **kwargs
 		)
 
-		self.process.daemon = True  # Ensure process terminates when parent does
-		self.process.start()
 		log.debug("OCR process started: %s", self.process.pid)
 
 		wx.CallLater(
