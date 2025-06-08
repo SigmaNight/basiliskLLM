@@ -117,7 +117,6 @@ optimize = 1
 build_exe = "dist"
 excludes = [
     "babel.messages", "commitizen", "distutils", "email", "ftplib", "h11.tests", "jinja2",
-    "multiprocessing",
     "numpy._core.tests", "numpy.f2py", "numpy.fft", "numpy.ma", "numpy.polynomial", "numpy.random", "numpy.testing",
     "packaging", "pip", "pydoc_data", "pytest", "_pytest", "pluggy",
     "setuptools", "setuptools_scm", "sqlite3",
