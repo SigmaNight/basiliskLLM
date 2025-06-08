@@ -123,8 +123,8 @@ class CompletionHandler:
 
 	def stop_completion(self):
 		"""Stop the current completion if running."""
-		self._stop_completion = True
 		if self.is_running():
+			self._stop_completion = True
 			logger.debug(f"Stopping completion task {self.task.ident}")
 			self.task.join(timeout=1)
 			wx.CallAfter(self.on_completion_end, False)

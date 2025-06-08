@@ -69,7 +69,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 		self.segment_manager = MessageSegmentManager()
 		self._search_dialog = None  # Lazy initialization in _do_search
-		self._speak_stream = True
+		self.speak_stream = True
 		self.a_output = AccessibleOutputHandler()
 		self.init_role_labels()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
@@ -227,7 +227,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				_("Speak stream"),
 				"(Shift+Space)",
 				self.on_toggle_speak_stream,
-				[self._speak_stream],
+				[self.speak_stream],
 			),
 			MenuItemInfo(
 				_("Show as HTML (from Markdown)"),
@@ -480,10 +480,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""Toggle stream speaking mode."""
 		if event:
 			return wx.CallLater(500, self.on_toggle_speak_stream)
-		self._speak_stream = not self._speak_stream
+		self.speak_stream = not self.speak_stream
 		self.a_output.handle(
 			_("Stream speaking %s")
-			% (_("enabled") if self._speak_stream else _("disabled")),
+			% (_("enabled") if self.speak_stream else _("disabled")),
 			braille=True,
 			clear_for_speak=False,
 		)
@@ -514,7 +514,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""
 		pos = self.GetInsertionPoint()
 		if (
-			self._speak_stream
+			self.speak_stream
 			and (
 				self.HasFocus()
 				or self.GetParent().prompt_panel.prompt.HasFocus()
