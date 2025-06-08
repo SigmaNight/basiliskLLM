@@ -143,6 +143,17 @@ class MistralAIEngine(BaseEngine):
 				default_temperature=0.7,
 			),
 			ProviderAIModel(
+				id="devstral-small-latest",
+				name="Devstral Small",
+				# Translators: This is a model description
+				description=_(
+					"A 24B text model, open source model that excels at using tools to explore codebases, editing multiple files and power software engineering agents."
+				),
+				context_window=128000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
 				id="codestral-latest",
 				name="Codestral",
 				# Translators: This is a model description
@@ -177,13 +188,13 @@ class MistralAIEngine(BaseEngine):
 				default_temperature=0.7,
 			),
 			ProviderAIModel(
-				id="open-codestral-mamba",
-				name="Codestral Mamba",
+				id="mistral-saba-latest",
+				name="Mistral Saba",
 				# Translators: This is a model description
 				description=_(
-					"A Mamba 2 language model specialized in code generation"
+					"A powerful and efficient model for languages from the Middle East and South Asia. "
 				),
-				context_window=256000,
+				context_window=32000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),
