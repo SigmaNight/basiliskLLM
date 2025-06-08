@@ -327,7 +327,7 @@ class OCRHandler:
 
 		self.process.daemon = True  # Ensure process terminates when parent does
 		self.process.start()
-		log.debug(f"OCR process started: {self.process.pid}")
+		log.debug("OCR process started: %s", self.process.pid)
 
 		wx.CallLater(
 			CHECK_TASK_DELAY,
