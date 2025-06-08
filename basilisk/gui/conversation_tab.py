@@ -24,7 +24,6 @@ from more_itertools import first, locate
 from upath import UPath
 
 import basilisk.config as config
-from basilisk.accessible_output import get_accessible_output
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	PROMPT_TITLE,
@@ -50,7 +49,6 @@ if TYPE_CHECKING:
 	from .main_frame import MainFrame
 
 log = logging.getLogger(__name__)
-accessible_output = get_accessible_output()
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -830,7 +828,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			new_block: The completed message block
 		"""
-		self.messages.handle_speech_stream_buffer()
+		self.messages.a_output.handle_stream_buffer()
 		self.messages.update_last_segment_length()
 
 	def _on_non_stream_finish(
