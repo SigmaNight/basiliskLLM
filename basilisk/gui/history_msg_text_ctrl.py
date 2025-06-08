@@ -75,7 +75,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self._search_dialog = None  # Lazy initialization in _do_search
 		self._speak_stream = True
 		self.accessible_output = get_accessible_output()
-		self.stream_buffer = ""
+
 		self.speech_stream_buffer = ""
 		self.init_role_labels()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
@@ -576,13 +576,13 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			# Fallback: treat the entire text as a single chunk
 			self.speech_stream_buffer += new_text
 
-	def flush_stream_buffer(self):
-		"""Flush the current speech stream buffer to the messages text control and accessible output handler.
+	def append_stream_chunk(self, text: str):
+		"""Append a chunk of text to the speech stream buffer.
 
-		This method ensures that the buffered text is appended to the text control and also sent to the accessible output handler for screen readers.
+		Args:
+			text: The text chunk to append
 		"""
 		pos = self.GetInsertionPoint()
-		text = self.stream_buffer
 		if (
 			self._speak_stream
 			and (
@@ -594,21 +594,6 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.handle_speech_stream_buffer(new_text=text)
 		self.AppendText(text)
 		self.SetInsertionPoint(pos)
-		self.stream_buffer = ""
-
-	def append_stream_chunk(self, text: str):
-		"""Append a chunk of text to the speech stream buffer.
-
-		Args:
-			text: The text chunk to append
-		"""
-		self.stream_buffer += text
-		# Flush buffer when encountering any of:
-		# - newline (\n)
-		# - punctuation marks (;:.?!)
-		# - closing quotes/brackets (»"\]}])
-		if RE_STREAM_BUFFER.match(self.stream_buffer):
-			self.flush_stream_buffer()
 
 	def on_remove_message_block(self, event: wx.CommandEvent | None = None):
 		"""Remove the current message block from the conversation.

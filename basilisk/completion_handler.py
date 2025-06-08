@@ -8,6 +8,7 @@ both streaming and non-streaming completion modes.
 from __future__ import annotations
 
 import logging
+import re
 import threading
 import time
 from typing import TYPE_CHECKING, Any, Callable, Optional
@@ -29,6 +30,9 @@ if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 logger = logging.getLogger(__name__)
+
+COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
+RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
 
 
 class CompletionHandler:
@@ -75,6 +79,7 @@ class CompletionHandler:
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
 		self.last_time = 0
+		self.stream_buffer: str = ""
 
 	@ensure_no_task_running
 	def start_completion(
@@ -160,6 +165,32 @@ class CompletionHandler:
 		if success:
 			wx.CallAfter(self._completion_finished_success)
 
+	def _handle_stream_chunk(
+		self, chunk: str | tuple[str, Any], message_block: MessageBlock
+	):
+		if isinstance(chunk, str):
+			self.stream_buffer += chunk
+		elif isinstance(chunk, tuple):
+			chunk_type, chunk_data = chunk
+			if chunk_type == "citation":
+				if not message_block.response.citations:
+					message_block.response.citations = []
+				message_block.response.citations.append(chunk_data)
+			else:
+				logger.warning(
+					f"Unknown chunk type in streaming response: {chunk_type}"
+				)
+
+		if RE_STREAM_BUFFER.match(self.stream_buffer):
+			self.flush_stream_buffer(message_block)
+
+	def flush_stream_buffer(self, message_block: MessageBlock) -> None:
+		"""Flush the stream buffer to the message block."""
+		if self.stream_buffer:
+			message_block.response.content += self.stream_buffer
+			wx.CallAfter(self._handle_stream_buffer, self.stream_buffer)
+			self.stream_buffer = ""
+
 	def _handle_streaming_completion(
 		self,
 		engine: BaseEngine,
@@ -190,22 +221,10 @@ class CompletionHandler:
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
-
-			if isinstance(chunk, str):
-				new_block.response.content += chunk
-				wx.CallAfter(self._handle_stream_chunk, chunk)
-			elif isinstance(chunk, tuple):
-				chunk_type, chunk_data = chunk
-				if chunk_type == "citation":
-					if not new_block.response.citations:
-						new_block.response.citations = []
-					new_block.response.citations.append(chunk_data)
-				else:
-					logger.warning(
-						f"Unknown chunk type in streaming response: {chunk_type}"
-					)
+			self._handle_stream_chunk(chunk, new_block)
 
 		# Notify that streaming has finished
+		self.flush_stream_buffer(new_block)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
 		return True
@@ -242,14 +261,14 @@ class CompletionHandler:
 
 		return True
 
-	def _handle_stream_chunk(self, chunk: str):
+	def _handle_stream_buffer(self, buffer: str):
 		"""Handle a streaming chunk on the main thread.
 
 		Args:
-			chunk: The streaming chunk content
+			buffer: The streaming buffer content
 		"""
 		if self.on_stream_chunk:
-			self.on_stream_chunk(chunk)
+			self.on_stream_chunk(buffer)
 
 		# Play periodic sound during streaming
 		new_time = time.time()

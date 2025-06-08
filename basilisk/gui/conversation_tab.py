@@ -830,7 +830,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			new_block: The completed message block
 		"""
-		self.messages.flush_stream_buffer()
 		self.messages.handle_speech_stream_buffer()
 		self.messages.update_last_segment_length()
 
