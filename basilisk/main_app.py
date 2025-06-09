@@ -61,9 +61,9 @@ class MainApp(wx.App):
 		log_level = (
 			global_vars.args.log_level or self.conf.general.log_level.name
 		)
-		log.debug(f"args: {global_vars.args}")
+		log.debug("args: %s", global_vars.args)
 		setup_logging(log_level)
-		log.debug(f"config: {self.conf}")
+		log.debug("config: %s", self.conf)
 		if getattr(sys, "frozen", False):
 			log.info(
 				"running frozen application: redirecting stdio to log file"
@@ -195,7 +195,8 @@ class MainApp(wx.App):
 			log.info("System certificate store activated")
 		except Exception as e:
 			log.error(
-				f"Failed to activate system certificate store: {e}",
+				"Failed to activate system certificate store: %s",
+				e,
 				exc_info=True,
 			)
 			wx.MessageBox(

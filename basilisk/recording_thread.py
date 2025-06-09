@@ -167,7 +167,7 @@ class RecordingThread(threading.Thread):
 				self.conversation_tab.on_transcription_received, transcription
 			)
 		except BaseException as err:
-			log.error(f"Error getting transcription: {err}")
+			log.error("Error getting transcription: %s", err)
 			wx.CallAfter(self.conversation_tab.on_transcription_error, str(err))
 
 	def abort(self):

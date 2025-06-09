@@ -300,7 +300,7 @@ class MainFrame(wx.Frame):
 			case HotkeyAction.CAPTURE_FULL:
 				self.screen_capture(CaptureMode.FULL)
 			case _:
-				log.error(f"Unknown hotkey action: {event.GetId()}")
+				log.error("Unknown hotkey action: %s", event.GetId())
 
 	def toggle_visibility(self, event):
 		"""Toggle the visibility of the main application frame. If the frame is shown, it is minimized to the system tray. If it is hidden, it is restored.
@@ -334,7 +334,7 @@ class MainFrame(wx.Frame):
 			screen_coordinates: Coordinates for partial screen capture (left, top, width, height). Defaults to None.
 			name: Custom name for the captured image. If not provided, a timestamp-based name is generated.
 		"""
-		log.debug(f"Capturing {capture_mode.value} screen")
+		log.debug("Capturing %s screen", capture_mode.value)
 		conv_tab = self.current_tab
 		if not conv_tab:
 			wx.MessageBox(
@@ -354,7 +354,7 @@ class MainFrame(wx.Frame):
 			conv_tab.conv_storage_path / f"attachments/{capture_name}"
 		)
 		name = name or capture_name
-		log.debug(f"Capture file URL: {capture_path}")
+		log.debug("Capture file URL: %s", capture_path)
 		thread = ScreenCaptureThread(
 			self,
 			capture_path,
@@ -435,7 +435,7 @@ class MainFrame(wx.Frame):
 			if tab.task:
 				task_id = tab.task.ident
 				log.debug(
-					f"Waiting for conversation task {task_id} to finish..."
+					"Waiting for conversation task %s to finish...", task_id
 				)
 				tab.task.join()
 				log.debug("... is dead")
@@ -486,7 +486,8 @@ class MainFrame(wx.Frame):
 		profile = config.conversation_profiles().default_profile
 		if profile:
 			log.info(
-				f"Creating a new conversation with default profile ({profile.name})"
+				"Creating a new conversation with default profile (%s)",
+				profile.name,
 			)
 		self.new_conversation(profile)
 
@@ -523,7 +524,7 @@ class MainFrame(wx.Frame):
 		profile = self.get_selected_profile_from_menu(event)
 		if not profile:
 			return
-		log.info(f"Creating a new conversation with profile: {profile.name}")
+		log.info("Creating a new conversation with profile: %s", profile.name)
 		self.new_conversation(profile)
 
 	def refresh_tab_title(self, include_frame: bool = False):
@@ -780,7 +781,7 @@ class MainFrame(wx.Frame):
 			tmp_nvda_addon_path = os.path.join(
 				tempfile.gettempdir(), "basiliskllm.nvda-addon"
 			)
-			log.debug(f"Creating NVDA addon: {tmp_nvda_addon_path}")
+			log.debug("Creating NVDA addon: %s", tmp_nvda_addon_path)
 			with zipfile.ZipFile(
 				tmp_nvda_addon_path, 'w', zipfile.ZIP_DEFLATED
 			) as zipf:
@@ -794,7 +795,7 @@ class MainFrame(wx.Frame):
 			log.debug("NVDA addon created")
 			os.startfile(tmp_nvda_addon_path)
 		except Exception as e:
-			log.error(f"Failed to create NVDA addon: {e}")
+			log.error("Failed to create NVDA addon: %s", e)
 			wx.MessageBox(
 				_("Failed to create NVDA addon"),
 				_("Error"),
@@ -847,7 +848,7 @@ class MainFrame(wx.Frame):
 		try:
 			os.startfile(get_log_file_path())
 		except Exception as e:
-			log.error(f"Failed to open log file: {e}")
+			log.error("Failed to open log file: %s", e)
 			wx.MessageBox(
 				_("Failed to open log file"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
@@ -884,7 +885,7 @@ class MainFrame(wx.Frame):
 				parent=self, title=_("New version available"), updater=updater
 			)
 			update_dialog.ShowModal()
-			log.debug(f"Update dialog shown: {update_dialog.IsShown()}")
+			log.debug("Update dialog shown: %s", update_dialog.IsShown())
 
 		wx.CallAfter(show_dialog)
 
@@ -901,7 +902,7 @@ class MainFrame(wx.Frame):
 				parent=self, title=_("Downloading update"), updater=updater
 			)
 			download_dialog.ShowModal()
-			log.debug(f"Download dialog shown: {download_dialog.IsShown()}")
+			log.debug("Download dialog shown: %s", download_dialog.IsShown())
 
 		wx.CallAfter(show_dialog)
 
@@ -1005,7 +1006,7 @@ class MainFrame(wx.Frame):
 		profile = self.get_selected_profile_from_menu(event)
 		if not profile:
 			return
-		log.info(f"Applying profile: {profile.name} to conversation")
+		log.info("Applying profile: %s to conversation", profile.name)
 		self.current_tab.apply_profile(profile)
 
 	def handle_no_account_configured(self):
@@ -1104,7 +1105,9 @@ class MainFrame(wx.Frame):
 				style=wx.OK | wx.ICON_ERROR,
 			)
 			log.error(
-				f"Failed to open conversation file: {file_path}, error: {e}",
+				"Failed to open conversation file: %s, error: %s",
+				file_path,
+				e,
 				exc_info=e,
 			)
 

@@ -341,7 +341,7 @@ class AnthropicEngine(BaseEngine):
 					}
 				)
 			case _:
-				log.warning(f"Unsupported citation type: {citation.type}")
+				log.warning("Unsupported citation type: %s", citation.type)
 		return citation_chunk_data
 
 	def _handle_thinking(

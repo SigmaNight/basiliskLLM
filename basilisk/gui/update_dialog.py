@@ -119,7 +119,7 @@ class DownloadUpdateDialog(wx.Dialog):
 			if download_finished:
 				wx.CallAfter(self.on_download_finished)
 		except Exception as e:
-			log.error(f"Error downloading update: {e}", exc_info=True)
+			log.error("Error downloading update: %s", e, exc_info=True)
 			wx.CallAfter(self.on_download_error, e)
 
 	def on_download_finished(self):
@@ -156,7 +156,10 @@ class DownloadUpdateDialog(wx.Dialog):
 		"""
 		download_percent = int(downloaded_length / total_length * 100)
 		log.debug(
-			f"Download progress: {download_percent}% - {downloaded_length} / {total_length}"
+			"Download progress: %d%% - %d / %d",
+			download_percent,
+			downloaded_length,
+			total_length,
 		)
 		wx.CallAfter(self.downloading_gauge.SetValue, download_percent)
 
@@ -312,7 +315,9 @@ class UpdateDialog(wx.Dialog):
 		self.checking_gauge.Hide()
 		self.update_message_label.Show()
 		self.current_version_label.Show()
-		log.debug(f"Setting new version label to {self.updater.latest_version}")
+		log.debug(
+			"Setting new version label to: %s", self.updater.latest_version
+		)
 		self.new_version_label.SetLabel(
 			_("New version: %s") % self.updater.latest_version
 		)
@@ -345,7 +350,7 @@ class UpdateDialog(wx.Dialog):
 			else:
 				wx.CallAfter(self.on_no_updates)
 		except Exception as e:
-			log.error(f"Error checking for updates: {e}")
+			log.error("Error checking for updates: %s", e, exc_info=True)
 			wx.CallAfter(self.on_check_update_error, e)
 			self.Destroy()
 

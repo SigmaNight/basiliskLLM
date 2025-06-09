@@ -148,7 +148,8 @@ class Account(BaseModel):
 			super().__init__(**data)
 		except Exception as e:
 			log.error(
-				f"Error in account {e} the account will not be accessible",
+				"Error in account '%s' the account will not be accessible",
+				data.get("name", "Unknown"),
 				exc_info=e,
 			)
 			raise e
@@ -404,7 +405,8 @@ class AccountManager(BasiliskBaseSettings):
 		account = self.get_account_from_info(self.default_account_info)
 		if not account:
 			log.warning(
-				f"Default account not found for id {self.default_account_info} using the first account"
+				"Default account not found for id %s using the first account",
+				self.default_account_info,
 			)
 			account = self[0]
 		return account
@@ -545,7 +547,10 @@ class AccountManager(BasiliskBaseSettings):
 			raise ValueError("Account must be an instance of Account")
 		self.accounts.append(account)
 		log.debug(
-			f"Added account for {account.provider.name} ({account.name}, source: {account.source})"
+			"Added account for %s (%s, source: %s)",
+			account.provider.name,
+			account.name,
+			account.source,
 		)
 
 	def get_accounts_by_provider(

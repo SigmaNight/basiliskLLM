@@ -974,7 +974,7 @@ class AccountDialog(wx.Dialog):
 			event: The event that triggered the update. If None, the update was not triggered by an event.
 		"""
 		account = self.account_manager[self.account_list.GetFirstSelected()]
-		log.debug(f"Selected account: {account}")
+		log.debug("Selected account: %s", account)
 		editable = account.source != AccountSource.ENV_VAR
 		self.edit_btn.Enable(editable)
 		self.remove_btn.Enable(editable)

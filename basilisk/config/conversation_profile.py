@@ -60,7 +60,8 @@ class ConversationProfile(BaseModel):
 			super().__init__(**data)
 		except Exception as e:
 			log.error(
-				f"Error in conversation profile {e}; the profile will not be accessible",
+				"Error in conversation profile '%s' the profile will not be accessible",
+				data.get("name", "unknown"),
 				exc_info=e,
 			)
 			raise e

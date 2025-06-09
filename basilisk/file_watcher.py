@@ -60,7 +60,7 @@ class FileWatcher(FileSystemEventHandler):
 		elif event.src_path == OPEN_BSKC_FILE:
 			self.on_open_bskc_file(event)
 		else:
-			logger.error(f"unknown event: {event}")
+			logger.error("unknown event: %s", event)
 
 	def on_focus_file(self, event: FileSystemEvent):
 		"""Handle modifications to the focus file with controlled event triggering.

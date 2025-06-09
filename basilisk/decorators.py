@@ -66,8 +66,9 @@ def measure_time(method: Callable):
 		module_name = method.__module__
 		qualname = method.__qualname__
 		result = method(*args, **kwargs)
+		exec_time = time.time() - start
 		logger.debug(
-			f"{module_name}.{qualname} took {time.time() - start:.3f} seconds"
+			"%s.%s took %.3f seconds", module_name, qualname, exec_time
 		)
 		return result
 

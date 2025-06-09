@@ -119,7 +119,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				parent_window, "/path/to/conversation.json", "My Conversation"
 			)
 		"""
-		log.debug(f"Opening conversation from {file_path}")
+		log.debug("Opening conversation from %s", file_path)
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
@@ -741,7 +741,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			paths: List of attachment file paths
 		"""
-		log.debug(f"Adding attachments: {paths}")
+		log.debug("Adding attachments: %s", paths)
 		for path in paths:
 			if isinstance(path, (AttachmentFile, ImageFile)):
 				self.attachment_files.append(path)
@@ -1202,7 +1202,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			target=self._handle_completion, kwargs=completion_kw
 		)
 		self.task.start()
-		log.debug(f"Task {self.task.ident} started")
+		log.debug("Task %s started", self.task.ident)
 
 	def on_stop_completion(self, event: wx.CommandEvent):
 		"""Handle the stopping of the current completion task.
@@ -1262,7 +1262,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 							new_block.response.citations.append(chunk_data)
 						case _:
 							log.warning(
-								f"Unknown chunk type in streaming response: {chunk_type}"
+								"Unknown chunk type in streaming response: %s",
+								chunk_type,
 							)
 			wx.CallAfter(self._post_completion_with_stream, new_block)
 		else:
@@ -1345,7 +1346,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			success: Whether the task completed successfully
 		"""
 		self.task.join()
-		log.debug(f"Task {self.task.ident} ended")
+		log.debug("Task %s ended", self.task.ident)
 		self.task = None
 		stop_sound()
 		if success:
@@ -1414,7 +1415,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 		True if the conversation was successfully saved, False otherwise.
 		"""
-		log.debug(f"Saving conversation to {file_path}")
+		log.debug("Saving conversation to %s", file_path)
 		try:
 			self.conversation.save(file_path)
 			return True

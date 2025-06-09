@@ -85,13 +85,15 @@ class OCRHandler:
 				self._handle_ocr_completion_message(message_type, data, dialog)
 			else:
 				log.warning(
-					f"Unknown message type in result queue: {message_type}"
+					"Unknown message type in result queue: %s", message_type
 				)
 		except Exception as e:
-			log.error(f"Error handling message: {str(e)}", exc_info=True)
+			log.error("Error handling message: %s", e, exc_info=True)
 			wx.MessageBox(
-				_("An error occurred while processing OCR results. Details:")
-				+ f"\n{e}",
+				_(
+					"An error occurred while processing OCR results. Details: \n%s"
+				)
+				% e,
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
@@ -167,7 +169,9 @@ class OCRHandler:
 			wx.MessageBox(data, _("Result"), wx.OK | wx.ICON_INFORMATION)
 		else:
 			log.warning(
-				f"Unexpected OCR result data type or empty result: {type(data).__name__} - {data}"
+				"Unexpected OCR result data type or empty result: %s - %s",
+				type(data),
+				data,
 			)
 			wx.MessageBox(
 				_("OCR completed, but no text was extracted."),
@@ -213,13 +217,13 @@ class OCRHandler:
 					log.warning("Process did not terminate, killing it")
 					self.process.kill()
 			except Exception as e:
-				log.error(f"Error terminating process: {str(e)}", exc_info=True)
+				log.error("Error terminating process: %", e, exc_info=True)
 
 		try:
 			if dialog and dialog.IsShown():
 				dialog.Destroy()
 		except Exception as e:
-			log.error(f"Error destroying dialog: {str(e)}", exc_info=True)
+			log.error("Error destroying dialog: %s", e, exc_info=True)
 
 		self.ocr_button.Enable()
 		self.process = None

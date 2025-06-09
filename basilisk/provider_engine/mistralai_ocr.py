@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 import os
-import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -107,7 +106,7 @@ def _update_ocr_progress(message: str, progress: int = None, result_queue=None):
 			if progress is not None:
 				result_queue.put(("progress", progress))
 		except Exception as e:
-			log.error(f"Error updating OCR progress: {str(e)}")
+			log.error("Error updating OCR progress: %s", e)
 	else:
 		log.info(message)
 
@@ -173,7 +172,7 @@ def _process_file_attachment(client, attachment, result_queue=None) -> str:
 		signed_url = _ocr_upload(
 			client=client, file={"file_name": attachment.name, "content": f}
 		)
-		log.debug(f"Signed URL: {signed_url}\n")
+		log.debug("Signed URL: %s\n", signed_url)
 
 	# Process the uploaded file
 	result = _ocr_result(
@@ -233,13 +232,15 @@ def _process_single_attachment(
 			return ""
 
 	except Exception as e:
-		error_trace = traceback.format_exc()
 		_update_ocr_progress(
 			f"Error processing attachment {attachment.name}: {str(e)}",
 			result_queue=result_queue,
 		)
 		log.error(
-			f"Error processing attachment {attachment.name}: {str(e)}\n{error_trace}"
+			"Error processing attachment %s:%s",
+			attachment.name,
+			e,
+			exc_info=True,
 		)
 		return ""
 
@@ -299,6 +300,5 @@ def handle_ocr(
 		return output_files
 
 	except Exception as e:
-		error_trace = traceback.format_exc()
-		log.error(f"OCR process error: {str(e)}\n{error_trace}")
+		log.error("OCR process error: %s", e, exc_info=True)
 		return "error", f"OCR process error: {str(e)}"

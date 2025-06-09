@@ -37,7 +37,8 @@ def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 			supported_locales.append(detected_locale)
 		else:
 			log.warning(
-				f"Translation compiled file not found for: {detected_locale.english_name}"
+				"Translation compiled file not found for: %s",
+				detected_locale.english_name,
 			)
 	return supported_locales
 
@@ -68,10 +69,14 @@ def get_wx_locale(current_locale: Locale) -> wx.Locale:
 	find_language = wx.Locale.FindLanguageInfo(current_locale.language)
 	if find_language:
 		log.debug(
-			f"wxPython locale found for: {current_locale.english_name}({find_language.Language})"
+			"wxPython locale found for: %s(%s)",
+			current_locale.english_name,
+			find_language.Language,
 		)
 		return wx.Locale(find_language.Language)
-	log.warning(f"wxPython locale not found for: {current_locale.english_name}")
+	log.warning(
+		"wxPython locale not found for: %s", current_locale.english_name
+	)
 	return wx.Locale(wx.LANGUAGE_DEFAULT)
 
 
@@ -88,7 +93,7 @@ def setup_translation(locale: Locale) -> None:
 		fallback=True,
 	)
 	translation.install()
-	log.debug(f"gettext Translation setup for: {locale.english_name}")
+	log.debug("gettext Translation setup for: %s", locale.english_name)
 
 
 def init_translation(language: Optional[str]) -> wx.Locale:
