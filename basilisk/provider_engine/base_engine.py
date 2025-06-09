@@ -86,6 +86,8 @@ class BaseEngine(ABC):
 		Returns:
 			The prepared message in provider-specific format.
 		"""
+		if not isinstance(message, Message):
+			return
 		for attachment in message.attachments:
 			if attachment.mime_type not in self.supported_attachment_formats:
 				raise ValueError(
