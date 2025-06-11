@@ -658,11 +658,13 @@ class EditAccountDialog(wx.Dialog):
 		self.custom_base_url_text_ctrl.Enable(provider.allow_custom_base_url)
 		default_base_url = provider.base_url
 		if default_base_url:
+			# Translators: A label in account dialog
 			self.custom_base_url_label.SetLabel(
 				_("Custom &base URL (default: {})").format(default_base_url)
 			)
 		else:
-			self.custom_base_url_label.SetLabel(_("Custom &base URL"))
+			# Translators: A label in account dialog
+			self.custom_base_url_label.SetLabel(_("Custom &base URL:"))
 
 	def on_ok(self, event: wx.CommandEvent) -> None:
 		"""Handle the OK button click event.
@@ -972,7 +974,7 @@ class AccountDialog(wx.Dialog):
 			event: The event that triggered the update. If None, the update was not triggered by an event.
 		"""
 		account = self.account_manager[self.account_list.GetFirstSelected()]
-		log.debug(f"Selected account: {account}")
+		log.debug("Selected account: %s", account)
 		editable = account.source != AccountSource.ENV_VAR
 		self.edit_btn.Enable(editable)
 		self.remove_btn.Enable(editable)

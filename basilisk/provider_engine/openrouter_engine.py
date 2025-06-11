@@ -121,10 +121,12 @@ class OpenRouterEngine(OpenAIEngine):
 						extra_info=extra_info,
 					)
 				)
-			log.debug(f"Got {len(models)} models")
+			log.debug("Got %d models", len(models))
 		else:
 			log.error(
-				f"Failed to get models from {url}. Response: {response.text}"
+				"Failed to get models from '%s'. Response: %s",
+				url,
+				response.text,
 			)
 		return models
 

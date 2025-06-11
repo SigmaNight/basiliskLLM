@@ -545,12 +545,15 @@ class PromptAttachmentsPanel(wx.Panel):
 		if not self.attachment_files:
 			self.attachments_list_label.Hide()
 			self.attachments_list.Hide()
-			self.Layout()
+			if getattr(self.Parent, "ocr_button", None):
+				self.Parent.ocr_button.Hide()
+			self.Parent.Layout()
 			return
 
 		self.attachments_list_label.Show()
 		self.attachments_list.Show()
-
+		if getattr(self.Parent, "ocr_button", None):
+			self.Parent.ocr_button.Show()
 		for attachment in self.attachment_files:
 			self.attachments_list.Append(attachment.get_display_info())
 
@@ -559,7 +562,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
 		)
 		self.attachments_list.EnsureVisible(last_index)
-		self.Layout()
+		self.Parent.Layout()
 
 	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
 		"""Add one or more attachments.
@@ -567,7 +570,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		Args:
 			paths: List of attachment file paths or attachment objects
 		"""
-		log.debug(f"Adding attachments: {paths}")
+		log.debug("Adding attachments: %s", paths)
 
 		if not self.current_engine:
 			wx.MessageBox(

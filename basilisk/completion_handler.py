@@ -119,13 +119,13 @@ class CompletionHandler:
 			target=self._handle_completion, kwargs=completion_args
 		)
 		self.task.start()
-		logger.debug(f"Completion task {self.task.ident} started")
+		logger.debug("Completion task %s started", self.task.ident)
 
 	def stop_completion(self):
 		"""Stop the current completion if running."""
 		if self.is_running():
 			self._stop_completion = True
-			logger.debug(f"Stopping completion task {self.task.ident}")
+			logger.debug("Stopping completion task: %s", self.task.ident)
 			self.task.join(timeout=1)
 			wx.CallAfter(self.on_completion_end, False)
 
@@ -178,7 +178,7 @@ class CompletionHandler:
 				message_block.response.citations.append(chunk_data)
 			else:
 				logger.warning(
-					f"Unknown chunk type in streaming response: {chunk_type}"
+					"Unknown chunk type in streaming response: %s", chunk_type
 				)
 
 		if RE_STREAM_BUFFER.match(self.stream_buffer):

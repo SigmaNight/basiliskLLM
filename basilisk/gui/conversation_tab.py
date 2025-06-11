@@ -40,6 +40,7 @@ from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
+from .ocr_handler import OCRHandler
 from .prompt_attachments_panel import PromptAttachmentsPanel
 
 if TYPE_CHECKING:
@@ -48,6 +49,8 @@ if TYPE_CHECKING:
 	from .main_frame import MainFrame
 
 log = logging.getLogger(__name__)
+
+CHECK_TASK_DELAY = 100  # ms
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -103,7 +106,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				parent_window, "/path/to/conversation.json", "My Conversation"
 			)
 		"""
-		log.debug(f"Opening conversation from {file_path}")
+		log.debug("Opening conversation from %s", file_path)
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
@@ -150,7 +153,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.attachment_files: list[AttachmentFile | ImageFile] = []
 		self.recording_thread: Optional[RecordingThread] = None
 
-		# Initialize completion handler
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
@@ -159,6 +161,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			on_stream_finish=self._on_stream_finish,
 			on_non_stream_finish=self._on_non_stream_finish,
 		)
+
+		self.process: Optional[Any] = None  # multiprocessing.Process
+		self.ocr_handler = OCRHandler(self)
 
 		self.init_ui()
 		self.init_data(profile)
@@ -199,6 +204,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		)
 		sizer.Add(self.prompt_panel, proportion=1, flag=wx.EXPAND)
 		self.prompt_panel.set_prompt_focus()
+		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
+		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
@@ -312,6 +319,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
+		self.ocr_button.Enable(
+			ProviderCapability.OCR in account.provider.engine_cls.capabilities
+		)
 		self.web_search_mode.Enable(
 			ProviderCapability.WEB_SEARCH
 			in account.provider.engine_cls.capabilities
@@ -338,7 +348,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		elif self.account_combo.GetCount() > 0:
 			self.account_combo.SetSelection(0)
 			self.account_combo.SetFocus()
-
 		self.Layout()
 
 	def on_config_change(self):
@@ -652,6 +661,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.completion_handler.stop_completion()
 
+		self._stop_completion = False
+
 	def generate_conversation_title(self):
 		"""Generate a title for the conversation tab by using the AI model to analyze the conversation content.
 
@@ -720,7 +731,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 		True if the conversation was successfully saved, False otherwise.
 		"""
-		log.debug(f"Saving conversation to {file_path}")
+		log.debug("Saving conversation to %s", file_path)
 		try:
 			self.conversation.save(file_path)
 			return True

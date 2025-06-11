@@ -66,10 +66,10 @@ class Provider:
 			cls = getattr(module, class_name)
 			return cls
 		except ImportError as e:
-			log.error(f"Error importing engine class: {e}")
+			log.error("Error importing engine class: %s", e)
 			raise e
 		except AttributeError as e:
-			log.error(f"Error getting engine class: {e}")
+			log.error("Error getting engine class: %s", e)
 			raise e
 
 
@@ -108,7 +108,7 @@ providers = [
 	Provider(
 		id="mistralai",
 		name="MistralAI",
-		base_url="https://api.mistral.ai/v1",
+		base_url=None,
 		api_type=ProviderAPIType.OPENAI,
 		organization_mode_available=False,
 		require_api_key=True,

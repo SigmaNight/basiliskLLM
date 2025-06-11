@@ -106,10 +106,10 @@ def parse_supported_attachment_formats(
 	for mime_type in sorted(supported_attachment_formats):
 		exts = mimetypes.guess_all_extensions(mime_type)
 		if exts:
-			log.debug(f"Adding wildcard for MIME type {mime_type}: {exts}")
+			log.debug("Adding wildcard for MIME type %s: %s", mime_type, exts)
 			wildcard_parts.append("*" + ";*".join(exts))
 		else:
-			log.warning(f"No extensions found for MIME type {mime_type}")
+			log.warning("No extensions found for MIME type %s", mime_type)
 
 	wildcard = ";".join(wildcard_parts)
 	return wildcard
@@ -397,12 +397,12 @@ class AttachmentFile(BaseModel):
 		Args:
 			location: The location of the file to remove.
 		"""
-		log.debug(f"Removing file at {location}")
+		log.debug("Removing file at %s", location)
 		try:
 			fs = location.fs
 			fs.rm(location.path)
 		except Exception as e:
-			log.error(f"Error deleting file at {location}: {e}")
+			log.error("Error deleting file at '%s': %s", location, e)
 
 	def read_as_plain_text(self) -> str:
 		"""Read the file as a plain text string.
@@ -531,7 +531,7 @@ class ImageFile(AttachmentFile):
 		"""
 		if self.size and self.size > 1024 * 1024 * 1024:
 			log.warning(
-				f"Large image ({self.display_size}) being encoded to base64"
+				"Large image (%s) being encoded to base64", self.display_size
 			)
 		return super().encode_base64()
 

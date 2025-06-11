@@ -49,7 +49,7 @@ class ServerThread(threading.Thread):
 			return
 		sock.bind(("127.0.0.1", self.port))
 		self.running.set()
-		log.info(f"Server started on port {self.port}")
+		log.info("Server started on port %d", self.port)
 		sock.listen(1)
 		while self.running.is_set():
 			sock.settimeout(1.0)
@@ -66,7 +66,7 @@ class ServerThread(threading.Thread):
 					else:
 						log.error("No data received")
 				except Exception as e:
-					log.error(f"Error receiving data: {e}")
+					log.error("Error receiving data: %s", e)
 				finally:
 					conn.close()
 		sock.close()
@@ -118,7 +118,7 @@ class ServerThread(threading.Thread):
 						name,
 					)
 			else:
-				log.error(f"Invalid grab mode: {grab_mode}")
+				log.error("Invalid grab mode: %s", grab_mode)
 		elif data.startswith("url:"):
 			name = ""
 			url = data.split(':', 1)[1].strip()
@@ -129,7 +129,7 @@ class ServerThread(threading.Thread):
 					url,
 				)
 		else:
-			log.error(f"no action for data: {data}")
+			log.error("no action for data: %s", data)
 
 	def stop(self):
 		"""Stop the server thread."""

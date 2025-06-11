@@ -78,7 +78,7 @@ class OllamaEngine(BaseEngine):
 		base_url = self.account.custom_base_url or str(
 			self.account.provider.base_url
 		)
-		log.info(f"Base URL: {base_url}")
+		log.info("Base URL: %s", base_url)
 		return Client(host=base_url)
 
 	def completion(
@@ -125,7 +125,9 @@ class OllamaEngine(BaseEngine):
 			for attachment in message.attachments:
 				if attachment.type == AttachmentFileTypes.URL:
 					log.warning(
-						f"Received unsupported image type: {attachment.type}, {attachment.location}"
+						"Received unsupported image type: %s, %s",
+						attachment.type,
+						attachment.location,
 					)
 					raise NotImplementedError(
 						"images URL are not supported for Ollama"

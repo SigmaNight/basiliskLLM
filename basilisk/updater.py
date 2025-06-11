@@ -135,9 +135,9 @@ class BaseUpdater(ABC):
 			True if the latest version string is different from the current version string, False otherwise.
 		"""
 		current_version = self.current_version
-		log.info(f"Current version: {current_version}")
+		log.info("Current version: %s", current_version)
 		latest_version = self.latest_version
-		log.info(f"Latest version: {latest_version}")
+		log.info("Latest version: %s", latest_version)
 		return current_version != latest_version
 
 	@cached_property
@@ -341,7 +341,7 @@ class NigthlyUpdater(BaseUpdater):
 		response.raise_for_status()
 		table_pattern = re.compile(r"(<table>.*?</table>)", re.DOTALL)
 		xml_table = re.findall(table_pattern, response.text)[0]
-		log.debug(f"link table received: {xml_table}")
+		log.debug("link table received: %s", xml_table)
 		return ET.fromstring(xml_table)
 
 	@cached_property
@@ -358,11 +358,11 @@ class NigthlyUpdater(BaseUpdater):
 		unique_version = set()
 		for link in version_links:
 			text = link.text
-			log.debug(f"version_link: {text}")
+			log.debug("version_link: %s", text)
 			parts = text.split("_")
 			if len(parts) > 1:
 				unique_version.add(parts[2])
-		log.debug(f"Versions found: {unique_version}")
+		log.debug("Versions found: %s", unique_version)
 		if len(unique_version) != 1:
 			raise Exception("No version found or multiple versions found")
 		return unique_version.pop()
@@ -403,7 +403,7 @@ class NigthlyUpdater(BaseUpdater):
 		"""
 		log.info("Downloading installer")
 		link = self.get_download_link(True)
-		log.debug(f"Installer link: {link}")
+		log.debug("Installer link: %s", link)
 		with tempfile.NamedTemporaryFile(
 			prefix="setup_basiliskllm_", suffix=".zip"
 		) as zip_tmp_file:
@@ -431,7 +431,7 @@ class NigthlyUpdater(BaseUpdater):
 		"""
 		log.info("getting link for portable")
 		link = self.get_download_link(False)
-		log.debug(f"Portable link: {link}")
+		log.debug("Portable link: %s", link)
 		with tempfile.NamedTemporaryFile(
 			prefix="portable_basiliskllm_",
 			suffix=".zip",
@@ -463,7 +463,7 @@ class NigthlyUpdater(BaseUpdater):
 			The path to the extracted installer file as a string.
 		"""
 		log.info(
-			f"Extracting installer from artifact zip file: {zip_tmp_file.name}"
+			"Extracting installer from artifact zip file: %s", zip_tmp_file.name
 		)
 		with zipfile.ZipFile(zip_tmp_file) as zip_file:
 			setup_file_name = [
@@ -479,7 +479,7 @@ class NigthlyUpdater(BaseUpdater):
 			) as setup_tmp_file:
 				setup_tmp_file.write(zip_file.read(setup_file_name))
 				setup_tmp_file.flush()
-				log.info(f"Installer extracted to: {setup_tmp_file.name}")
+				log.info("Installer extracted to: %s", setup_tmp_file.name)
 				return setup_tmp_file.name
 
 
@@ -581,7 +581,7 @@ class GithubUpdater(BaseUpdater):
 		"""
 		log.info("Downloading installer")
 		link = self.get_download_link(True)
-		log.debug(f"Installer link: {link}")
+		log.debug("Installer link: %s", link)
 		with tempfile.NamedTemporaryFile(
 			prefix="setup_basiliskllm_",
 			suffix=".exe",
@@ -612,7 +612,7 @@ class GithubUpdater(BaseUpdater):
 			The path to the downloaded portable file as a string, or None if the download failed.
 		"""
 		link = self.get_download_link(False)
-		log.debug(f"Portable link: {link}")
+		log.debug("Portable link: %s", link)
 		with tempfile.NamedTemporaryFile(
 			prefix="portable_basiliskllm_",
 			suffix=".zip",
@@ -637,7 +637,7 @@ def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
 	Returns:
 		The updater object based on the release channel.
 	"""
-	log.info(f"Getting updater from channel: {conf.general.release_channel}")
+	log.info("Getting updater from channel: %s", conf.general.release_channel)
 	match conf.general.release_channel:
 		case ReleaseChannelEnum.STABLE:
 			return GithubUpdater(pre_release=False)
@@ -688,13 +688,13 @@ def automatic_update_check(
 			return None
 		return updater
 	except httpx.HTTPStatusError as e:
-		log.error(f"Error checking for updates: {e}")
+		log.error("Error checking for updates: %s", e)
 		return None
 	except Exception as e:
-		log.error(f"Error checking for updates: {e}")
+		log.error("Error checking for updates: %s", e)
 		if retries > 0 and not stop:
 			retries -= 1
-			log.info(f"Retrying update check: {retries} retries left")
+			log.info("Retrying update check: %s retries left", retries)
 			time.sleep(300)
 			return automatic_update_check(
 				conf, notify_update_callback, stop, retries
@@ -734,10 +734,10 @@ def automatic_update_download(
 			notify_update_callback(updater)
 			return updater
 	except Exception as e:
-		log.error(f"Error downloading update: {e}", exc_info=True)
+		log.error("Error downloading update: %s", e, exc_info=True)
 		if retries > 0 and not stop:
 			retries -= 1
-			log.info(f"Retrying update download: {retries} retries left")
+			log.info("Retrying update download: %s retries left", retries)
 			time.sleep(300)
 			return automatic_update_download(
 				conf, notify_update_callback, stop, retries

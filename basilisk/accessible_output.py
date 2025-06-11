@@ -166,6 +166,6 @@ class AccessibleOutputHandler:
 				# Concatenate new text to the buffer if no punctuation is found
 				self.speech_stream_buffer += new_text
 		except re.error as e:
-			log.error(f"Regex error in _handle_speech_stream_buffer: {e}")
+			log.error("Regex error in _handle_speech_stream_buffer: %s", e)
 			# Fallback: treat the entire text as a single chunk
 			self.speech_stream_buffer += new_text

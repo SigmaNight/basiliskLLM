@@ -596,7 +596,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				case _:
 					# Translators: This is a citation format for unknown locations
 					location_text = _("Unknown location")
-					logger.warning(f"Unknown citation type: {citation}")
+					logger.warning("Unknown citation type: %s", citation)
 			if document_index is not None:
 				if document_title:
 					location_text = _(
