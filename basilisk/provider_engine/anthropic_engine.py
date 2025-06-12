@@ -51,6 +51,7 @@ class AnthropicEngine(BaseEngine):
 		ProviderCapability.IMAGE,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.CITATION,
+		ProviderCapability.WEB_SEARCH,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
@@ -288,6 +289,10 @@ class AnthropicEngine(BaseEngine):
 			Either a complete message or a stream of message events.
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
+		tools = None
+		web_search = kwargs.pop("web_search_mode", False)
+		if web_search:
+			tools = [{"type": "web_search_20250305", "name": "web_search"}]
 		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": model.id,
@@ -295,6 +300,7 @@ class AnthropicEngine(BaseEngine):
 			"temperature": new_block.temperature,
 			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"top_p": new_block.top_p,
+			"tools": tools,
 			"stream": new_block.stream,
 		}
 		if system_message:
