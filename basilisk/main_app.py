@@ -18,7 +18,6 @@ import basilisk.config as config
 import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
-from basilisk.accessible_output import get_accessible_output
 from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.file_watcher import init_file_watcher
 from basilisk.localization import init_translation
@@ -74,8 +73,6 @@ class MainApp(wx.App):
 		log.info("translation initialized")
 		initialize_sound_manager()
 		log.info("sound manager initialized")
-		get_accessible_output()
-		log.info("accessible output initialized")
 		self.init_main_frame()
 		log.info("main frame initialized")
 		self.init_system_cert_store()
