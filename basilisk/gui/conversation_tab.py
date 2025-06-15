@@ -416,7 +416,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if need_clear:
 			self.messages.Clear()
-			self.prompt_panel.clear()
+			self.prompt_panel.clear(True)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
@@ -757,9 +757,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			The index of the message block in the conversation, or None if not found
 		"""
-		if block not in self.conversation.messages:
+		try:
+			return self.conversation.messages.index(block)
+		except ValueError:
 			return None
-		return self.conversation.messages.index(block)
 
 	def _on_completion_start(self):
 		"""Called when completion starts."""

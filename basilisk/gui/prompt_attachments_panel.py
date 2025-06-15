@@ -639,10 +639,16 @@ class PromptAttachmentsPanel(wx.Panel):
 		"""
 		self.prompt.SetValue(text)
 
-	def clear(self):
-		"""Clear the prompt text and remove all attachments."""
+	def clear(self, refresh: bool = False):
+		"""Clear the prompt text and remove all attachments.
+
+		Args:
+			refresh: Whether to refresh the attachments list after clearing the prompt.
+		"""
 		self.prompt.Clear()
 		self.attachment_files = list()
+		if not refresh:
+			return
 		self.refresh_attachments_list()
 
 	def has_image_attachments(self) -> bool:
