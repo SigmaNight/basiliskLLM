@@ -265,7 +265,7 @@ class OCRHandler:
 			event: The button click event
 		"""
 		engine: BaseEngine = self.parent.current_engine
-		attachment_files = self.parent.attachment_files
+		attachment_files = self.parent.prompt_panel.attachment_files
 
 		if ProviderCapability.OCR not in engine.capabilities:
 			wx.MessageBox(
@@ -285,7 +285,7 @@ class OCRHandler:
 			)
 			return
 
-		if not self.parent.check_attachments_valid():
+		if not self.parent.prompt_panel.check_attachments_valid():
 			return
 
 		client = engine.client

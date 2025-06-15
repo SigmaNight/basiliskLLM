@@ -244,6 +244,7 @@ class MistralAIEngine(BaseEngine):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
+		stop_block_index: int | None = None,
 		**kwargs,
 	) -> ChatCompletionResponse | EventStream[CompletionEvent]:
 		"""Generates a chat completion using the MistralAI API.
@@ -252,16 +253,22 @@ class MistralAIEngine(BaseEngine):
 			new_block: The message block containing generation parameters.
 			conversation: The conversation history context.
 			system_message: Optional system message to guide the AI's behavior.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 			**kwargs: Additional keyword arguments for the API request.
 
 		Returns:
 			The chat completion response.
 		"""
-		super().completion(new_block, conversation, system_message, **kwargs)
+		super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)
 		params = {
 			"model": new_block.model.model_id,
 			"messages": self.get_messages(
-				new_block, conversation, system_message
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index=stop_block_index,
 			),
 			"temperature": new_block.temperature,
 			"top_p": new_block.top_p,

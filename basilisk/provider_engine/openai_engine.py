@@ -434,6 +434,7 @@ class OpenAIEngine(BaseEngine):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
+		stop_block_index: int | None = None,
 		**kwargs,
 	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
 		"""Generates a chat completion using the OpenAI API.
@@ -442,18 +443,24 @@ class OpenAIEngine(BaseEngine):
 			new_block: The message block containing generation parameters.
 			conversation: The conversation history context.
 			system_message: Optional system message to guide the AI's behavior.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 			**kwargs: Additional keyword arguments for the API request.
 
 		Returns:
 			Either a complete chat completion response or a generator for streaming
 			chat completion chunks.
 		"""
-		super().completion(new_block, conversation, system_message, **kwargs)
+		super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)
 		model_id = new_block.model.model_id
 		params = {
 			"model": model_id,
 			"messages": self.get_messages(
-				new_block, conversation, system_message
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index=stop_block_index,
 			),
 			"stream": new_block.stream,
 		}

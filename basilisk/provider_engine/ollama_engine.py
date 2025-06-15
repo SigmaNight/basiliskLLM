@@ -86,6 +86,7 @@ class OllamaEngine(BaseEngine):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: SystemMessage | None,
+		stop_block_index: int | None = None,
 		**kwargs,
 	) -> ChatResponse | Iterator[ChatResponse]:
 		"""Get completion from Ollama.
@@ -94,16 +95,22 @@ class OllamaEngine(BaseEngine):
 			new_block: The new message block.
 			conversation: The conversation instance.
 			system_message: The system message, if any.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 			**kwargs: Additional keyword arguments.
 
 		Returns:
 			The chat response or an iterator of chat responses.
 		"""
-		super().completion(new_block, conversation, system_message, **kwargs)
+		super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)
 		params = {
 			"model": new_block.model.model_id,
 			"messages": self.get_messages(
-				new_block, conversation, system_message
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index=stop_block_index,
 			),
 			"stream": new_block.stream,
 		}

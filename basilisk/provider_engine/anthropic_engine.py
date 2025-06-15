@@ -274,6 +274,7 @@ class AnthropicEngine(BaseEngine):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: SystemMessage | None,
+		stop_block_index: int | None = None,
 		**kwargs,
 	) -> Message | Stream[MessageStreamEvent]:
 		"""Sends a completion request to the Anthropic API.
@@ -282,16 +283,21 @@ class AnthropicEngine(BaseEngine):
 			new_block: Message block with generation parameters.
 			conversation: Current conversation context.
 			system_message: Optional system-level instruction message.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 			**kwargs: Additional API request parameters.
 
 		Returns:
 			Either a complete message or a stream of message events.
 		"""
-		super().completion(new_block, conversation, system_message, **kwargs)
+		super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)
 		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": model.id,
-			"messages": self.get_messages(new_block, conversation),
+			"messages": self.get_messages(
+				new_block, conversation, stop_block_index=stop_block_index
+			),
 			"temperature": new_block.temperature,
 			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"top_p": new_block.top_p,
