@@ -227,7 +227,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		btn_sizer.AddButton(wx.Button(self, wx.ID_CANCEL))
 
 		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
-		self.Bind(wx.EVT_BUTTON, self.on_cancxel, id=wx.ID_CANCEL)
+		self.Bind(wx.EVT_BUTTON, self.on_cancel, id=wx.ID_CANCEL)
 
 		btn_sizer.Realize()
 
@@ -354,7 +354,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.block.response.content = self.response_txt.GetValue()
 		event.Skip()
 
-	def on_cancxel(self, event: wx.CommandEvent):
+	def on_cancel(self, event: wx.CommandEvent):
 		"""Handle the Cancel button click.
 
 		Closes the dialog without saving changes.

@@ -445,6 +445,8 @@ class PromptAttachmentsPanel(wx.Panel):
 			)
 			return
 		except Exception as err:
+			if isinstance(err, (KeyboardInterrupt, SystemExit)):
+				raise
 			log.error(err, exc_info=True)
 			wx.CallAfter(
 				wx.MessageBox,
@@ -476,7 +478,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		Args:
 			event: Event triggered by the show attachment details action
 		"""
-		current_attachment = self.selected_attachment_file()
+		current_attachment = self.selected_attachment_file
 		if not current_attachment:
 			return
 
@@ -507,7 +509,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			event: Event triggered by the remove attachment action
 		"""
 		selection = self.attachments_list.GetFirstSelected()
-		current_attachment = self.selected_attachment_file()
+		current_attachment = self.selected_attachment_file
 		if not current_attachment:
 			return
 
@@ -530,11 +532,11 @@ class PromptAttachmentsPanel(wx.Panel):
 		Args:
 			event: Event triggered by the copy attachment location action
 		"""
-		current_attachment = self.selected_attachment_file()
+		current_attachment = self.selected_attachment_file
 		if not current_attachment:
 			return
 
-		location = "\"%s\"" % str(current_attachment.location)
+		location = f'"{current_attachment.location}"'
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(location))
 
@@ -704,12 +706,21 @@ class PromptAttachmentsPanel(wx.Panel):
 		for attachment in self.attachment_files:
 			if not attachment.mime_type.startswith("image/"):
 				continue
-			attachment.resize(
-				self.conv_storage_path,
-				config.conf().images.max_width,
-				config.conf().images.max_height,
-				config.conf().images.quality,
-			)
+			try:
+				attachment.resize(
+					self.conv_storage_path,
+					config.conf().images.max_width,
+					config.conf().images.max_height,
+					config.conf().images.quality,
+				)
+			except Exception as e:
+				log.error(
+					"Error resizing image attachment %s: %s",
+					attachment.location,
+					e,
+					exc_info=True,
+				)
+				continue
 
 	def ensure_model_compatibility(
 		self, current_model: ProviderAIModel | None

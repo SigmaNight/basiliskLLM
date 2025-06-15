@@ -661,8 +661,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.completion_handler.stop_completion()
 
-		self._stop_completion = False
-
 	def generate_conversation_title(self):
 		"""Generate a title for the conversation tab by using the AI model to analyze the conversation content.
 

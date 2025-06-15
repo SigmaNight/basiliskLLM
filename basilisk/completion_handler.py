@@ -59,7 +59,6 @@ class CompletionHandler:
 		"""Initialize the completion handler.
 
 		Args:
-			parent: The parent window for displaying error dialogs
 			on_completion_start: Callback called when completion starts
 			on_completion_end: Callback called when completion ends (success flag)
 			on_stream_chunk: Callback called for each streaming chunk
@@ -127,6 +126,7 @@ class CompletionHandler:
 			self._stop_completion = True
 			logger.debug("Stopping completion task: %s", self.task.ident)
 			self.task.join(timeout=1)
+		if self.on_completion_end:
 			wx.CallAfter(self.on_completion_end, False)
 
 	def is_running(self) -> bool:
