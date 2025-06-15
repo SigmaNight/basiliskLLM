@@ -617,7 +617,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		if (
 			not self.prompt_panel.prompt_text
-			and not self.prompt_panel.attachments_files
+			and not self.prompt_panel.attachment_files
 		):
 			self.prompt_panel.set_prompt_focus()
 			return
