@@ -18,6 +18,8 @@ reviews:
       enabled: true
     markdownlint:
       enabled: true
+    pylint:
+      enabled: false
     ruff:
       enabled: true
     yamllint:
