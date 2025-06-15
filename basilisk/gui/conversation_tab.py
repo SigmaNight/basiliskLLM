@@ -572,7 +572,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			request=Message(
 				role=MessageRoleEnum.USER,
 				content=self.prompt_panel.prompt_text,
-				attachments=list(self.prompt_panel.attachment_files),
+				attachments=self.prompt_panel.attachment_files,
 			),
 			model_id=model.id,
 			provider_id=self.current_account.provider.id,
@@ -800,7 +800,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
 		self.prompt_panel.clear()
-		self.prompt_panel.refresh_attachments_list()
 
 	def _on_stream_finish(self, new_block: MessageBlock):
 		"""Called when streaming finishes.
@@ -824,4 +823,3 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.display_new_block(new_block)
 		self.messages.handle_accessible_output(new_block.response.content)
 		self.prompt_panel.clear()
-		self.prompt_panel.refresh_attachments_list()

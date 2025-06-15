@@ -58,9 +58,8 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		BaseConversation.__init__(self)
 		self.conversation: Conversation = parent.conversation
 		self.a_output = parent.messages.a_output
-		self.block: MessageBlock = self.conversation.messages[
-			message_block_index
-		]
+		self.block_index = message_block_index
+		self.block: MessageBlock = self.conversation.messages[self.block_index]
 		self.system_message: SystemMessage | None = None
 		if self.block.system_index is not None:
 			self.system_message = self.conversation.systems[
@@ -403,6 +402,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			conversation=self.conversation,
 			new_block=temp_block,
 			stream=temp_block.stream,
+			stop_block_index=self.block_index,
 		)
 
 	def on_stop_regenerate(self, event: wx.CommandEvent):

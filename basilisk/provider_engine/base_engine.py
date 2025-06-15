@@ -111,6 +111,7 @@ class BaseEngine(ABC):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None = None,
+		stop_block_index: int | None = None,
 	) -> list[Message]:
 		"""Prepares message history for API requests.
 
@@ -118,6 +119,7 @@ class BaseEngine(ABC):
 			new_block: Current message block being processed.
 			conversation: Full conversation history.
 			system_message: Optional system-level instruction message.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 
 		Returns:
 			List of prepared messages in provider-specific format.
@@ -125,7 +127,9 @@ class BaseEngine(ABC):
 		messages = []
 		if system_message:
 			messages.append(self.prepare_message_request(system_message))
-		for block in conversation.messages:
+		for i, block in enumerate(conversation.messages):
+			if stop_block_index is not None and i >= stop_block_index:
+				break
 			if not block.response:
 				continue
 			messages.extend(
@@ -143,6 +147,7 @@ class BaseEngine(ABC):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
+		stop_block_index: int | None = None,
 		**kwargs: dict[str, Any],
 	) -> Any:
 		"""Generates a completion response.
@@ -154,6 +159,7 @@ class BaseEngine(ABC):
 			new_block: Configuration block containing model ,message request and other generation settings.
 			conversation: The current conversation context (paste message request and response).
 			system_message: Optional system-level instruction message.
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
 			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Returns:
