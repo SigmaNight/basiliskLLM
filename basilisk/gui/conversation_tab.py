@@ -496,7 +496,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			and self.GetTopLevelParent().IsShown()
 		):
 			self._handle_accessible_output(transcription.text)
-		self.prompt_panel.SetInsertionPointEnd()
+		self.prompt_panel.prompt.SetInsertionPointEnd()
 		self.prompt_panel.set_prompt_focus()
 
 	def on_transcription_error(self, error):
@@ -615,14 +615,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if not self.submit_btn.IsEnabled():
 			return
-		if not self.prompt_panel.check_attachments_valid():
-			self.prompt_panel.set_attachments_focus()
-			return
 		if (
 			not self.prompt_panel.prompt_text
-			and not self.prompt_panel.attachments_list
+			and not self.prompt_panel.attachments_files
 		):
 			self.prompt_panel.set_prompt_focus()
+			return
+
+		if not self.prompt_panel.check_attachments_valid():
+			self.prompt_panel.set_attachments_focus()
 			return
 
 		# Get new message block and check compatibility

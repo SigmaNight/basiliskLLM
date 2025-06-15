@@ -182,7 +182,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			event: The keyboard event
 		"""
 		shortcut = (event.GetModifiers(), event.GetKeyCode())
-		action = self.prompt_shortcuts.get(shortcut, wx.KeyEvent.Skip)
+		action = self.prompt_shortcuts.get(shortcut, lambda e: e.Skip())
 		action(event)
 
 	def on_prompt_context_menu(self, event: wx.ContextMenuEvent):
@@ -308,7 +308,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			(wx.MOD_NONE, wx.WXK_NUMPAD_ENTER): self.on_show_attachment_details,
 		}
 
-		action = shortcuts_map.get(shortcut, wx.KeyEvent.Skip)
+		action = shortcuts_map.get(shortcut, lambda e: e.Skip())
 		action(event)
 
 	def on_paste(self, event: wx.CommandEvent):

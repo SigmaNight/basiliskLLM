@@ -308,15 +308,11 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		Args:
 			event: The button event
 		"""
-		model = self.current_model
+		model = self.prompt_panel.ensure_model_compatibility(self.current_model)
 		account = self.current_account
 		if not account or not model:
-			wx.MessageBox(
-				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
 			event.Skip(False)
 			return
-
 		# Check if attachments are valid
 		if not self.prompt_panel.check_attachments_valid():
 			event.Skip(False)
