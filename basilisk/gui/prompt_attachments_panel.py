@@ -70,7 +70,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		self.task = None
 		self.current_engine = None  # Will be set by the parent component
 		self.init_ui()
-		self.init_prompt_shortcults()
+		self.init_prompt_shortcuts()
 
 	def init_ui(self):
 		"""Initialize the user interface components."""
@@ -156,7 +156,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		"""
 		self.current_engine = engine
 
-	def init_prompt_shortcults(self):
+	def init_prompt_shortcuts(self):
 		"""Initialize keyboard shortcuts for the prompt text control."""
 		self.prompt_shortcuts = {
 			(wx.MOD_CONTROL, wx.WXK_RETURN): self.on_submit_callback,

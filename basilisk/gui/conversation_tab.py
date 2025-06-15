@@ -27,9 +27,7 @@ import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	PROMPT_TITLE,
-	AttachmentFile,
 	Conversation,
-	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -150,7 +148,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.bskc_path = bskc_path
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
-		self.attachment_files: list[AttachmentFile | ImageFile] = []
 		self.recording_thread: Optional[RecordingThread] = None
 
 		self.completion_handler = CompletionHandler(
@@ -575,7 +572,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			request=Message(
 				role=MessageRoleEnum.USER,
 				content=self.prompt_panel.prompt_text,
-				attachments=self.prompt_panel.attachment_files,
+				attachments=list(self.prompt_panel.attachment_files),
 			),
 			model_id=model.id,
 			provider_id=self.current_account.provider.id,

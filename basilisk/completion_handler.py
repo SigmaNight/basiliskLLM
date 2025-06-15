@@ -62,7 +62,6 @@ class CompletionHandler:
 			on_completion_start: Callback called when completion starts
 			on_completion_end: Callback called when completion ends (success flag)
 			on_stream_chunk: Callback called for each streaming chunk
-			on_completion_result: Callback called with the final result
 			on_error: Callback called when an error occurs
 			on_stream_start: Callback called when streaming starts (new_block, system_message)
 			on_stream_finish: Callback called when streaming finishes (new_block)
@@ -125,7 +124,8 @@ class CompletionHandler:
 		if self.is_running():
 			self._stop_completion = True
 			logger.debug("Stopping completion task: %s", self.task.ident)
-			self.task.join(timeout=1)
+			self.task.join(timeout=0.05)
+			self.task = None
 		if self.on_completion_end:
 			wx.CallAfter(self.on_completion_end, False)
 
