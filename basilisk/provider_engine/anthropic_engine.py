@@ -300,11 +300,12 @@ class AnthropicEngine(BaseEngine):
 			"temperature": new_block.temperature,
 			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"top_p": new_block.top_p,
-			"tools": tools,
 			"stream": new_block.stream,
 		}
 		if system_message:
 			params["system"] = system_message.content
+		if tools:
+			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
 			params["model"] = model.id.replace("_reasoning", "")
