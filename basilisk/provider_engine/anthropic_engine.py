@@ -289,10 +289,10 @@ class AnthropicEngine(BaseEngine):
 			Either a complete message or a stream of message events.
 		"""
 		super().completion(new_block, conversation, system_message, **kwargs)
-		tools = None
+		tools = []
 		web_search = kwargs.pop("web_search_mode", False)
 		if web_search:
-			tools = [{"type": "web_search_20250305", "name": "web_search"}]
+			tools.append({"type": "web_search_20250305", "name": "web_search"})
 		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": model.id,
