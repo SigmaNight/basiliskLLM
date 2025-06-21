@@ -325,30 +325,11 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Processed citation data.
 		"""
-		citation_chunk_data = {"type": citation.type}
-		match citation.type:
-			case "char_location":
-				citation_chunk_data.update(
-					{
-						"start_char_index": citation.start_char_index,
-						"end_char_index": citation.end_char_index,
-						"cited_text": citation.cited_text,
-						"document_index": citation.document_index,
-						"document_title": citation.document_title,
-					}
-				)
-			case "page_location":
-				citation_chunk_data.update(
-					{
-						"start_page_number": citation.start_page_number,  # inclusive,
-						"end_page_number": citation.end_page_number,  # exclusive
-						"cited_text": citation.cited_text,
-						"document_index": citation.document_index,
-						"document_title": citation.document_title,
-					}
-				)
-			case _:
-				log.warning("Unsupported citation type: %s", citation.type)
+		citation_chunk_data = {}
+		if citation.type in ("char_location", "page_location"):
+			citation_chunk_data = dict(citation)
+		else:
+			log.warning("Unsupported citation type: %s", citation.type)
 		return citation_chunk_data
 
 	def _handle_thinking(
