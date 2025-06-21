@@ -51,6 +51,7 @@ class AnthropicEngine(BaseEngine):
 		ProviderCapability.IMAGE,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.CITATION,
+		ProviderCapability.WEB_SEARCH,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
@@ -292,6 +293,10 @@ class AnthropicEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		tools = []
+		web_search = kwargs.pop("web_search_mode", False)
+		if web_search:
+			tools.append({"type": "web_search_20250305", "name": "web_search"})
 		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": model.id,
@@ -305,6 +310,8 @@ class AnthropicEngine(BaseEngine):
 		}
 		if system_message:
 			params["system"] = system_message.content
+		if tools:
+			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
 			params["model"] = model.id.replace("_reasoning", "")
@@ -325,29 +332,11 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Processed citation data.
 		"""
-		citation_chunk_data = {
-			"type": citation.type,
-			"cited_text": citation.cited_text,
-			"document_index": citation.document_index,
-			"document_title": citation.document_title,
-		}
-		match citation.type:
-			case "char_location":
-				citation_chunk_data.update(
-					{
-						"start_char_index": citation.start_char_index,
-						"end_char_index": citation.end_char_index,
-					}
-				)
-			case "page_location":
-				citation_chunk_data.update(
-					{
-						"start_page_number": citation.start_page_number,  # inclusive,
-						"end_page_number": citation.end_page_number,  # exclusive
-					}
-				)
-			case _:
-				log.warning("Unsupported citation type: %s", citation.type)
+		citation_chunk_data = {}
+		if citation.type in ("char_location", "page_location"):
+			citation_chunk_data = dict(citation)
+		else:
+			log.warning("Unsupported citation type: %s", citation.type)
 		return citation_chunk_data
 
 	def _handle_thinking(
