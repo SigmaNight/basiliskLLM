@@ -199,6 +199,7 @@ class GeminiEngine(BaseEngine):
 		new_block: MessageBlock,
 		conversation: Conversation,
 		system_message: Message | None,
+		stop_block_index: int | None = None,
 		**kwargs,
 	) -> GenerateContentResponse | Iterator[GenerateContentResponse]:
 		"""Generates a completion response using the Gemini AI model with specified configuration.
@@ -209,12 +210,15 @@ class GeminiEngine(BaseEngine):
 			new_block: Configuration block containing message request, model and other generation settings
 			conversation: The current conversation context (past message request and response)
 			system_message: Optional system-level instruction message
+			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed
 			**kwargs: Additional keyword arguments for flexible configuration
 
 		Returns:
 			The generated content response from the Gemini model
 		"""
-		super().completion(new_block, conversation, system_message, **kwargs)
+		super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)
 		web_search = kwargs.pop("web_search_mode", False)
 		tools = None
 		if web_search:
@@ -234,7 +238,9 @@ class GeminiEngine(BaseEngine):
 		generate_kwargs = {
 			"model": new_block.model.model_id,
 			"config": config,
-			"contents": self.get_messages(new_block, conversation, None),
+			"contents": self.get_messages(
+				new_block, conversation, stop_block_index=stop_block_index
+			),
 		}
 		if new_block.stream:
 			return self.client.models.generate_content_stream(**generate_kwargs)

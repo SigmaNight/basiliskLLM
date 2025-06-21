@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 import weakref
 from collections import namedtuple
 from functools import partial
@@ -16,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 import wx
 
 import basilisk.config as config
-from basilisk.accessible_output import clear_for_speak, get_accessible_output
+from basilisk.accessible_output import AccessibleOutputHandler
 from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
@@ -27,6 +26,7 @@ from basilisk.message_segment_manager import (
 	MessageSegmentType,
 )
 
+from .edit_block_dialog import EditBlockDialog
 from .read_only_message_dialog import ReadOnlyMessageDialog
 from .search_dialog import SearchDialog, SearchDirection
 
@@ -35,9 +35,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
-RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
-RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
 
 MenuItemInfo = namedtuple(
 	"MenuItemInfo", ["label", "shortcut", "handler", "args"]
@@ -72,10 +69,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 		self.segment_manager = MessageSegmentManager()
 		self._search_dialog = None  # Lazy initialization in _do_search
-		self._speak_stream = True
-		self.accessible_output = get_accessible_output()
-		self.stream_buffer = ""
-		self.speech_stream_buffer = ""
+		self.speak_stream = True
+		self.a_output = AccessibleOutputHandler()
 		self.init_role_labels()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
 		self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
@@ -215,6 +210,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Going to the next message
 		- Moving to the start of the current message
 		- Moving to the end of the current message
+			- Editing the current message block
 		- Removing the current message block
 		- Searching in the messages
 		- Searching for the next occurrence
@@ -231,7 +227,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				_("Speak stream"),
 				"(Shift+Space)",
 				self.on_toggle_speak_stream,
-				[self._speak_stream],
+				[self.speak_stream],
 			),
 			MenuItemInfo(
 				_("Show as HTML (from Markdown)"),
@@ -269,6 +265,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				"(&n)",
 				self.move_to_end_of_message,
 				[],
+			),
+			MenuItemInfo(
+				_("Edit message block"), "(&e)", self.on_edit_message_block, []
 			),
 			MenuItemInfo(
 				_("Remove message block"),
@@ -354,7 +353,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			if config.conf().conversation.nav_msg_select:
 				self.on_select_current_message()
 			else:
-				self.handle_accessible_output(self.current_msg_content)
+				self.a_output.handle(
+					self.current_msg_content, clear_for_speak=True
+				)
 				self.report_number_of_citations()
 
 	def go_to_previous_message(self, event=None):
@@ -419,8 +420,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.on_select_current_message()
 		self.Copy()
 		self.SetInsertionPoint(cursor_pos)
-		self.handle_accessible_output(
-			_("Message copied to clipboard"), braille=True
+		self.a_output.handle(
+			_("Message copied to clipboard"),
+			braille=True,
+			clear_for_speak=False,
 		)
 
 	def move_to_start_of_message(self, event=None):
@@ -429,7 +432,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.segment_manager.absolute_position = cursor_pos
 		self.segment_manager.focus_content_block()
 		self.SetInsertionPoint(self.segment_manager.start)
-		self.handle_accessible_output(_("Start of message"))
+		self.a_output.handle(_("Start of message"), clear_for_speak=False)
 
 	def move_to_end_of_message(self, event=None):
 		"""Move cursor to end of current message."""
@@ -437,7 +440,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.segment_manager.absolute_position = cursor_pos
 		self.segment_manager.focus_content_block()
 		self.SetInsertionPoint(self.segment_manager.end - 1)
-		self.handle_accessible_output(_("End of message"))
+		self.a_output.handle(_("End of message"), clear_for_speak=False)
 
 	def _do_search(self, direction: SearchDirection = SearchDirection.FORWARD):
 		"""Open the search dialog, initializing it if not already created.
@@ -477,18 +480,19 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""Toggle stream speaking mode."""
 		if event:
 			return wx.CallLater(500, self.on_toggle_speak_stream)
-		self._speak_stream = not self._speak_stream
-		self.handle_accessible_output(
+		self.speak_stream = not self.speak_stream
+		self.a_output.handle(
 			_("Stream speaking %s")
-			% (_("enabled") if self._speak_stream else _("disabled")),
+			% (_("enabled") if self.speak_stream else _("disabled")),
 			braille=True,
+			clear_for_speak=False,
 		)
 
 	def on_read_current_message(self, event: wx.Event | None = None):
 		"""Read the current message."""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
-		self.handle_accessible_output(self.current_msg_content, force=True)
+		self.a_output.handle(self.current_msg_content, force=True)
 
 	def on_show_as_html(self, event: wx.Event | None):
 		"""Show current message as HTML.
@@ -502,105 +506,24 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.GetParent(), self.current_msg_content, "markdown"
 		)
 
-	def handle_accessible_output(
-		self, text: str, braille: bool = False, force: bool = False
-	):
-		"""Handle accessible output for screen readers, including both speech and braille output.
-
-		Args:
-			text: Text to output
-			braille: Whether to use braille output
-			force: Whether to force output
-		"""
-		if (
-			(not force and not config.conf().conversation.use_accessible_output)
-			or not isinstance(text, str)
-			or not text.strip()
-		):
-			return
-		if braille:
-			try:
-				self.accessible_output.braille(text)
-			except Exception as e:
-				logger.error(
-					"Failed to output text to braille display", exc_info=e
-				)
-		try:
-			self.accessible_output.speak(clear_for_speak(text))
-		except Exception as e:
-			logger.error("Failed to output text to screen reader", exc_info=e)
-
-	def handle_speech_stream_buffer(self, new_text: str = ''):
-		"""Processes incoming speech stream text and updates the buffer accordingly.
-
-		If the input `new_text` is not a valid string or is empty, it forces flushing the current buffer to the accessible output handler.
-		If `new_text` contains punctuation or newlines, it processes text up to the last
-		occurrence, sends that portion to the output handler, and retains the remaining
-		text in the buffer.
-
-		Args:
-			new_text: The new incoming text to process. If not a string or empty, the buffer is processed immediately.
-		"""
-		if not isinstance(new_text, str) or not new_text:
-			if self.speech_stream_buffer:
-				self.handle_accessible_output(self.speech_stream_buffer)
-				self.speech_stream_buffer = ""
-			return
-
-		try:
-			# Find the last occurrence of punctuation mark or newline
-			matches = list(RE_SPEECH_STREAM_BUFFER.finditer(new_text))
-			if matches:
-				# Use the last match
-				last_match = matches[-1]
-				part_to_handle = (
-					self.speech_stream_buffer + new_text[: last_match.end()]
-				)
-				remaining_text = new_text[last_match.end() :]
-
-				if part_to_handle:
-					self.handle_accessible_output(part_to_handle)
-
-				# Update the buffer with the remaining text
-				self.speech_stream_buffer = remaining_text.lstrip()
-			else:
-				# Concatenate new text to the buffer if no punctuation is found
-				self.speech_stream_buffer += new_text
-		except re.error as e:
-			logger.error("Regex error in _handle_speech_stream_buffer: %s", e)
-			# Fallback: treat the entire text as a single chunk
-			self.speech_stream_buffer += new_text
-
-	def flush_stream_buffer(self):
-		"""Flush the current speech stream buffer to the messages text control and accessible output handler.
-
-		This method ensures that the buffered text is appended to the text control and also sent to the accessible output handler for screen readers.
-		"""
-		pos = self.GetInsertionPoint()
-		text = self.stream_buffer
-		if (
-			self._speak_stream
-			and (self.HasFocus() or self.GetParent().prompt.HasFocus())
-			and self.GetTopLevelParent().IsShown()
-		):
-			self.handle_speech_stream_buffer(new_text=text)
-		self.AppendText(text)
-		self.SetInsertionPoint(pos)
-		self.stream_buffer = ""
-
 	def append_stream_chunk(self, text: str):
 		"""Append a chunk of text to the speech stream buffer.
 
 		Args:
 			text: The text chunk to append
 		"""
-		self.stream_buffer += text
-		# Flush buffer when encountering any of:
-		# - newline (\n)
-		# - punctuation marks (;:.?!)
-		# - closing quotes/brackets (»"\]}])
-		if RE_STREAM_BUFFER.match(self.stream_buffer):
-			self.flush_stream_buffer()
+		pos = self.GetInsertionPoint()
+		if (
+			self.speak_stream
+			and (
+				self.HasFocus()
+				or self.GetParent().prompt_panel.prompt.HasFocus()
+			)
+			and self.GetTopLevelParent().IsShown()
+		):
+			self.a_output.handle_stream_buffer(new_text=text)
+		self.AppendText(text)
+		self.SetInsertionPoint(pos)
 
 	def on_remove_message_block(self, event: wx.CommandEvent | None = None):
 		"""Remove the current message block from the conversation.
@@ -613,11 +536,31 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		if block:
 			self.GetParent().remove_message_block(block)
 			self.SetInsertionPoint(cursor_pos)
-			self.handle_accessible_output(
-				_("Message block removed"), braille=True
-			)
+			self.a_output.handle(_("Message block removed"), braille=True)
 		else:
 			wx.Bell()
+
+	def on_edit_message_block(self, event: wx.CommandEvent | None = None):
+		"""Edit the current message block.
+
+		Opens a dialog to edit the message block at the current cursor position.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		block = self.current_msg_block
+		if not block:
+			wx.Bell()
+			return
+		block_index = self.GetParent().get_conversation_block_index(block)
+		if block_index is None:
+			wx.Bell()
+			return
+		dlg = EditBlockDialog(self.GetParent(), block_index)
+		if dlg.ShowModal() == wx.ID_OK:
+			self.GetParent().refresh_messages()
+			self.a_output.handle(_("Message block updated"), braille=True)
+		dlg.Destroy()
 
 	@staticmethod
 	def _handle_citations(citations: list[dict[str, Any]]) -> str:
@@ -699,7 +642,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.report_number_of_citations()
 		citations = self.current_citations
 		if not citations:
-			self._handle_accessible_output(
+			self.a_output.handle(
 				# Translators: This message is emitted when there are no citations for the current message.
 				_("No citations for this message"),
 				braille=True,
@@ -729,6 +672,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		(wx.MOD_NONE, ord('C')): on_copy_message,
 		(wx.MOD_NONE, ord('B')): move_to_start_of_message,
 		(wx.MOD_NONE, ord('N')): move_to_end_of_message,
+		(wx.MOD_NONE, ord('E')): on_edit_message_block,
 		(wx.MOD_SHIFT, wx.WXK_DELETE): on_remove_message_block,
 		(wx.MOD_NONE, wx.WXK_F3): on_search_next,
 		(wx.MOD_NONE, ord('F')): on_search,
@@ -750,6 +694,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- B: Move to start of message
 		- N: Move to end of message
 		- Q: Show citations for current message
+		- E: Edit current message block
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)
