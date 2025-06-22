@@ -17,6 +17,8 @@ on:
 jobs:
   generate_pot:
     runs-on: windows-latest
+    permissions:
+      contents: read
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
@@ -49,6 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [generate_pot]
     if: ${{ inputs.branch_name == 'master' }}
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
