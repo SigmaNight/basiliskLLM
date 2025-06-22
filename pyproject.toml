@@ -57,7 +57,7 @@ requires-poetry = ">=2.0"
 [tool.poetry.group.dev.dependencies]
 commitizen = "^4.8.2"
 pre-commit = "^4.1.0"
-pytest = "^8.4.0"
+pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
 pytest-httpx = "^0.35.0"
 ruff = "^0.12.0"
