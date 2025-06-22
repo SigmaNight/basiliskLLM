@@ -6,7 +6,7 @@ authors = [
     {name = "André-Abush Clause", email ="dev@andreabc.net"},
 ]
 readme = "README.md"
-license = { text = "GPL-2.0-only"}
+license = "GPL-2.0-only"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
