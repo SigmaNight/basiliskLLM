@@ -1,6 +1,8 @@
 name: "build app executable"
 on:
   workflow_call:
+permissions:
+  contents: read
 
 jobs:
   build_windows:
