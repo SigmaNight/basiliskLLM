@@ -173,7 +173,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			self.GetParent(), "insert_previous_prompt", None
 		)
 		if previous_prompt:
-			self.prompt_shortcuts[(wx.MOD_NONE, wx.WXK_UP)] = previous_prompt
+			self.prompt_shortcuts[(wx.MOD_CONTROL, wx.WXK_UP)] = previous_prompt
 
 	def on_prompt_key_down(self, event: wx.KeyEvent):
 		"""Handle keyboard shortcuts for the prompt text control.
