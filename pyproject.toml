@@ -49,6 +49,8 @@ packages = ["basilisk"]
 [tool.setuptools_scm]
 
 [tool.uv]
+package = false
+no-build = true
 dev-dependencies = [
     "commitizen (>=4.8,<4.9)",
     "cx-freeze (>=8.3.0,<8.4.0)",
