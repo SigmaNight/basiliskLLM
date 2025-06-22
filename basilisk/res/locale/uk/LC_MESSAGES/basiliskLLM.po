@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-09 22:13+0000\n"
-"PO-Revision-Date: 2025-06-14 13:30\n"
+"POT-Creation-Date: 2025-06-21 09:14+0000\n"
+"PO-Revision-Date: 2025-06-21 13:30\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -18,40 +18,50 @@ msgstr ""
 "X-Crowdin-File-ID: 2\n"
 "Language: uk_UA\n"
 
-#: basilisk/decorators.py:35
-msgid "A task is already running. Please wait for it to complete."
-msgstr "Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
+#: basilisk/completion_handler.py:299
+msgid "An error occurred during completion: "
+msgstr "Під час завершення сталася помилка: "
 
 #. Translators: Error title
 #. Translators: A title for the error message in account dialog
 #. Translators: An error message title
 #. Translators: A message box title.
 #. Translators: Search dialog error title
-#: basilisk/decorators.py:36 basilisk/gui/account_dialog.py:139
-#: basilisk/gui/account_dialog.py:144 basilisk/gui/account_dialog.py:149
-#: basilisk/gui/account_dialog.py:684 basilisk/gui/account_dialog.py:1071
-#: basilisk/gui/account_dialog.py:1121 basilisk/gui/conversation_tab.py:547
-#: basilisk/gui/conversation_tab.py:583 basilisk/gui/conversation_tab.py:603
-#: basilisk/gui/conversation_tab.py:613 basilisk/gui/conversation_tab.py:760
-#: basilisk/gui/conversation_tab.py:952 basilisk/gui/conversation_tab.py:1010
-#: basilisk/gui/conversation_tab.py:1031 basilisk/gui/conversation_tab.py:1065
-#: basilisk/gui/conversation_tab.py:1076 basilisk/gui/conversation_tab.py:1176
-#: basilisk/gui/conversation_tab.py:1231 basilisk/gui/conversation_tab.py:1400
-#: basilisk/gui/conversation_tab.py:1425 basilisk/gui/main_frame.py:341
-#: basilisk/gui/main_frame.py:347 basilisk/gui/main_frame.py:512
-#: basilisk/gui/main_frame.py:560 basilisk/gui/main_frame.py:656
-#: basilisk/gui/main_frame.py:676 basilisk/gui/main_frame.py:801
-#: basilisk/gui/main_frame.py:853 basilisk/gui/main_frame.py:1045
-#: basilisk/gui/main_frame.py:1067 basilisk/gui/name_conversation_dialog.py:95
-#: basilisk/gui/ocr_handler.py:97 basilisk/gui/ocr_handler.py:146
-#: basilisk/gui/ocr_handler.py:274 basilisk/gui/ocr_handler.py:283
-#: basilisk/gui/ocr_handler.py:296 basilisk/gui/search_dialog.py:301
-#: basilisk/main_app.py:206
+#: basilisk/completion_handler.py:300 basilisk/decorators.py:36
+#: basilisk/gui/account_dialog.py:139 basilisk/gui/account_dialog.py:144
+#: basilisk/gui/account_dialog.py:149 basilisk/gui/account_dialog.py:684
+#: basilisk/gui/account_dialog.py:1071 basilisk/gui/account_dialog.py:1121
+#: basilisk/gui/conversation_tab.py:451 basilisk/gui/conversation_tab.py:512
+#: basilisk/gui/conversation_tab.py:533 basilisk/gui/conversation_tab.py:675
+#: basilisk/gui/conversation_tab.py:712 basilisk/gui/conversation_tab.py:737
+#: basilisk/gui/main_frame.py:341 basilisk/gui/main_frame.py:347
+#: basilisk/gui/main_frame.py:506 basilisk/gui/main_frame.py:554
+#: basilisk/gui/main_frame.py:650 basilisk/gui/main_frame.py:670
+#: basilisk/gui/main_frame.py:795 basilisk/gui/main_frame.py:847
+#: basilisk/gui/main_frame.py:1039 basilisk/gui/main_frame.py:1061
+#: basilisk/gui/name_conversation_dialog.py:95 basilisk/gui/ocr_handler.py:97
+#: basilisk/gui/ocr_handler.py:146 basilisk/gui/ocr_handler.py:274
+#: basilisk/gui/ocr_handler.py:283 basilisk/gui/ocr_handler.py:296
+#: basilisk/gui/prompt_attachments_panel.py:366
+#: basilisk/gui/prompt_attachments_panel.py:378
+#: basilisk/gui/prompt_attachments_panel.py:423
+#: basilisk/gui/prompt_attachments_panel.py:443
+#: basilisk/gui/prompt_attachments_panel.py:455
+#: basilisk/gui/prompt_attachments_panel.py:580
+#: basilisk/gui/prompt_attachments_panel.py:601
+#: basilisk/gui/prompt_attachments_panel.py:692
+#: basilisk/gui/prompt_attachments_panel.py:741
+#: basilisk/gui/prompt_attachments_panel.py:752
+#: basilisk/gui/search_dialog.py:301 basilisk/main_app.py:203
 msgid "Error"
 msgstr "Помилка"
 
+#: basilisk/decorators.py:35
+msgid "A task is already running. Please wait for it to complete."
+msgstr "Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
+
 #. Translators: Error message
-#: basilisk/main_app.py:204
+#: basilisk/main_app.py:201
 msgid "Failed to activate system certificate store"
 msgstr "Не вдалося активувати системне сховище сертифікатів"
 
@@ -137,10 +147,11 @@ msgstr "Організації"
 
 #. Translators: A label in account dialog
 #. Translators: This label appears in the main window's list of models
-#. Translators: This is a label for attachment name in the main window
+#. Translators: This is a label for attachment name
 #: basilisk/gui/account_dialog.py:220 basilisk/gui/account_dialog.py:866
-#: basilisk/gui/base_conversation.py:190 basilisk/gui/conversation_tab.py:243
-#: basilisk/gui/conversation_tab.py:643
+#: basilisk/gui/base_conversation.py:190
+#: basilisk/gui/prompt_attachments_panel.py:116
+#: basilisk/gui/prompt_attachments_panel.py:486
 msgid "Name"
 msgstr "Назва"
 
@@ -333,7 +344,8 @@ msgstr "Максимальна кількість токенів"
 
 #. Translators: This is a label for a context menu item
 #. Translators: This is a label for show details in the context menu
-#: basilisk/gui/base_conversation.py:335 basilisk/gui/conversation_tab.py:405
+#: basilisk/gui/base_conversation.py:335
+#: basilisk/gui/prompt_attachments_panel.py:243
 msgid "Show details"
 msgstr "Показати деталі"
 
@@ -458,350 +470,242 @@ msgstr "Режим потоку:"
 msgid "System prompt:"
 msgstr "Системна підказка:"
 
-#: basilisk/gui/conversation_tab.py:137
+#: basilisk/gui/conversation_tab.py:122
 msgid "Untitled conversation"
 msgstr "Розмова без назви"
 
 #. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:202
+#: basilisk/gui/conversation_tab.py:194
 msgid "&Messages:"
 msgstr "&Повідомлення:"
 
-#. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:211
-msgid "&Prompt:"
-msgstr "&Запит:"
-
-#. Translators: This is a label for models in the main window
-#: basilisk/gui/conversation_tab.py:228
-msgid "&Attachments:"
-msgstr ""
-
-#. Translators: This is a label for attachment size in the main window
-#: basilisk/gui/conversation_tab.py:248 basilisk/gui/conversation_tab.py:644
-msgid "Size"
-msgstr "Розмір"
-
-#. Translators: This is a label for attachment location in the main window
-#: basilisk/gui/conversation_tab.py:253 basilisk/gui/conversation_tab.py:645
-msgid "Location"
-msgstr ""
-
 #. Translators: This is a label for submit button in the main window
-#: basilisk/gui/conversation_tab.py:285 basilisk/gui/conversation_tab.py:820
+#: basilisk/gui/conversation_tab.py:228
+#: basilisk/gui/prompt_attachments_panel.py:197
 msgid "Submit"
 msgstr "Надіслати"
 
 #. Translators: This is a label for stop completion button in the main window
-#: basilisk/gui/conversation_tab.py:294
+#. Translators: This is a label for stop regeneration button
+#: basilisk/gui/conversation_tab.py:237 basilisk/gui/edit_block_dialog.py:220
 msgid "Stop completio&n"
 msgstr "Зупинити &виконання"
 
 #. Translators: This is a label for record button in the main window
-#: basilisk/gui/conversation_tab.py:303 basilisk/gui/conversation_tab.py:1042
+#: basilisk/gui/conversation_tab.py:246 basilisk/gui/conversation_tab.py:544
 msgid "Record"
 msgstr "Запис"
 
 #. Translators: This is a label for apply profile button in the main window
-#: basilisk/gui/conversation_tab.py:311
+#: basilisk/gui/conversation_tab.py:254
 msgid "Apply profile"
 msgstr "Вибрати профіль"
 
-#. Translators: This is a label for remove selected attachment in the context
-#. menu
-#: basilisk/gui/conversation_tab.py:414
-msgid "Remove selected attachment"
-msgstr ""
-
-#. Translators: This is a label for copy location in the context menu
-#: basilisk/gui/conversation_tab.py:423
-msgid "Copy location"
-msgstr ""
-
-#. Translators: This is a label for paste in the context menu
-#: basilisk/gui/conversation_tab.py:431 basilisk/gui/conversation_tab.py:824
-msgid "Paste (file or text)"
-msgstr ""
-
-#. Translators: This is a label for add files in the context menu
-#: basilisk/gui/conversation_tab.py:440
-msgid "Add files..."
-msgstr ""
-
-#. Translators: This is a label for add attachment URL in the context menu
-#: basilisk/gui/conversation_tab.py:449
-msgid "Add attachment URL..."
-msgstr ""
-
-#. Translators: This message is displayed when there are no supported
-#. attachment formats.
-#: basilisk/gui/conversation_tab.py:546
-msgid "This provider does not support any attachment formats."
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:551
-msgid "All supported formats"
-msgstr ""
-
-#. Translators: This is a label for select files in conversation tab
-#: basilisk/gui/conversation_tab.py:555
-msgid "Select one or more files to attach"
-msgstr ""
-
-#. Translators: This is a label for enter URL in add attachment dialog
-#: basilisk/gui/conversation_tab.py:573
-msgid "Enter the URL of the file to attach:"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:574
-msgid "Add attachment from URL"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:583
-msgid "Invalid URL, bad format."
-msgstr "Недійсний URL, неправильний формат."
-
-#. Translators: This message is displayed when the HTTP error occurs while
-#. adding a file from a URL.
-#: basilisk/gui/conversation_tab.py:602
-#, python-format
-msgid "HTTP error %s."
-msgstr "Помилка HTTP %s."
-
-#. Translators: This message is displayed when an error occurs while adding a
-#. file from a URL.
-#: basilisk/gui/conversation_tab.py:612
-#, python-format
-msgid "Error adding attachment from URL: %s"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:649
-msgid "MIME type"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:651
-msgid "Dimensions"
-msgstr "Розміри"
-
-#: basilisk/gui/conversation_tab.py:653
-#, python-format
-msgid "%s: %s"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:656
-msgid "Attachment details"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:757
-msgid "This attachment format is not supported by the current provider. Source:"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:815
-msgid "Insert previous prompt"
-msgstr "Вставити попередній запит"
-
-#: basilisk/gui/conversation_tab.py:951 basilisk/gui/conversation_tab.py:1030
+#: basilisk/gui/conversation_tab.py:450 basilisk/gui/conversation_tab.py:532
 msgid "The selected provider does not support speech-to-text"
 msgstr "Вибраний постачальник не підтримує перетворення мовлення в текст"
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/gui/conversation_tab.py:959
+#: basilisk/gui/conversation_tab.py:458
 msgid "Select an audio file to transcribe"
 msgstr "Виберіть аудіофайл для транскрибування"
 
-#: basilisk/gui/conversation_tab.py:961
+#: basilisk/gui/conversation_tab.py:460
 msgid "Audio files"
 msgstr "Аудіофайли"
 
-#: basilisk/gui/conversation_tab.py:974
+#: basilisk/gui/conversation_tab.py:473
 msgid "Recording..."
 msgstr "Запис..."
 
-#: basilisk/gui/conversation_tab.py:979
+#: basilisk/gui/conversation_tab.py:478
 msgid "Recording stopped"
 msgstr "Запис зупинено"
 
-#: basilisk/gui/conversation_tab.py:984
+#: basilisk/gui/conversation_tab.py:483
 msgid "Transcribing..."
 msgstr "Транскрибування..."
 
-#: basilisk/gui/conversation_tab.py:993 basilisk/gui/conversation_tab.py:1007
+#: basilisk/gui/conversation_tab.py:492 basilisk/gui/conversation_tab.py:509
 #: basilisk/gui/main_frame.py:246
 msgid "Ready"
 msgstr "Готово"
 
-#: basilisk/gui/conversation_tab.py:1009
+#: basilisk/gui/conversation_tab.py:511
 msgid "An error occurred during transcription: "
 msgstr "Під час транскрибування сталася помилка: "
 
-#: basilisk/gui/conversation_tab.py:1035
+#: basilisk/gui/conversation_tab.py:537
 msgid "Stop recording"
 msgstr "Зупинити запис"
 
-#: basilisk/gui/conversation_tab.py:1065
-msgid "Please select a model"
-msgstr "Будь ласка, виберіть модель"
-
-#: basilisk/gui/conversation_tab.py:1074
-#, python-brace-format
-msgid "The selected model does not support images. Please select a vision model instead ({})."
-msgstr "Обрана модель не підтримує зображення. Будь ласка, виберіть модель з комп’ютерним зором ({})."
-
-#: basilisk/gui/conversation_tab.py:1169
-#, python-format
-msgid "This attachment format is not supported by the current provider. Source: %s"
+#: basilisk/gui/conversation_tab.py:673
+msgid "A completion is already in progress. Please wait until it finishes."
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:1173
-#, python-format
-msgid "The attachment file does not exist: %s"
-msgstr ""
-
-#: basilisk/gui/conversation_tab.py:1230
-msgid "An error occurred during completion: "
-msgstr "Під час завершення сталася помилка: "
-
-#: basilisk/gui/conversation_tab.py:1399
+#: basilisk/gui/conversation_tab.py:711
 msgid "An error occurred during title generation:"
 msgstr "Під час створення назви сталася помилка:"
 
-#: basilisk/gui/conversation_tab.py:1424
+#: basilisk/gui/conversation_tab.py:736
 msgid "An error occurred while saving the conversation: "
 msgstr ""
 
-#: basilisk/gui/history_msg_text_ctrl.py:225
+#: basilisk/gui/edit_block_dialog.py:54
+msgid "Edit Message Block"
+msgstr ""
+
+#. Translators: This is a label for assistant response in the edit dialog
+#: basilisk/gui/edit_block_dialog.py:119
+msgid "&Assistant response:"
+msgstr ""
+
+#. Translators: This is a label for regenerate button
+#: basilisk/gui/edit_block_dialog.py:213
+msgid "&Regenerate Response"
+msgstr ""
+
+#: basilisk/gui/history_msg_text_ctrl.py:221
 msgid "Read current message"
 msgstr "Прочитати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:231
+#: basilisk/gui/history_msg_text_ctrl.py:227
 msgid "Speak stream"
 msgstr "Потік мовлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:237
+#: basilisk/gui/history_msg_text_ctrl.py:233
 msgid "Show as HTML (from Markdown)"
 msgstr "Показати як HTML (з Markdown)"
 
-#: basilisk/gui/history_msg_text_ctrl.py:242
+#: basilisk/gui/history_msg_text_ctrl.py:238
 msgid "Show citations"
 msgstr ""
 
-#: basilisk/gui/history_msg_text_ctrl.py:244
+#: basilisk/gui/history_msg_text_ctrl.py:240
 msgid "Copy current message"
 msgstr "Копіювати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:247
+#: basilisk/gui/history_msg_text_ctrl.py:243
 msgid "Select current message"
 msgstr "Вибрати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:253
+#: basilisk/gui/history_msg_text_ctrl.py:249
 msgid "Go to previous message"
 msgstr "Перейти до попереднього повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:259
+#: basilisk/gui/history_msg_text_ctrl.py:255
 msgid "Go to next message"
 msgstr "Перейти до наступного повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:262
+#: basilisk/gui/history_msg_text_ctrl.py:258
 msgid "Move to start of message"
 msgstr "Перейти на початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:268
+#: basilisk/gui/history_msg_text_ctrl.py:264
 msgid "Move to end of message"
 msgstr "Перейти в кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:274
+#: basilisk/gui/history_msg_text_ctrl.py:270
+msgid "Edit message block"
+msgstr ""
+
+#: basilisk/gui/history_msg_text_ctrl.py:273
 msgid "Remove message block"
 msgstr ""
 
-#: basilisk/gui/history_msg_text_ctrl.py:279
+#: basilisk/gui/history_msg_text_ctrl.py:278
 msgid "Find..."
 msgstr "Знайти..."
 
-#: basilisk/gui/history_msg_text_ctrl.py:280
+#: basilisk/gui/history_msg_text_ctrl.py:279
 msgid "Find Next"
 msgstr "Знайти далі"
 
-#: basilisk/gui/history_msg_text_ctrl.py:282
+#: basilisk/gui/history_msg_text_ctrl.py:281
 msgid "Find Previous"
 msgstr "Знайти попереднє"
 
-#: basilisk/gui/history_msg_text_ctrl.py:423
+#: basilisk/gui/history_msg_text_ctrl.py:424
 msgid "Message copied to clipboard"
 msgstr "Повідомлення скопійовано в буфер обміну"
 
-#: basilisk/gui/history_msg_text_ctrl.py:432
+#: basilisk/gui/history_msg_text_ctrl.py:435
 msgid "Start of message"
 msgstr "Початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:440
+#: basilisk/gui/history_msg_text_ctrl.py:443
 msgid "End of message"
 msgstr "Кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:482
+#: basilisk/gui/history_msg_text_ctrl.py:485
 #, python-format
 msgid "Stream speaking %s"
 msgstr "Потокове мовлення %s"
 
-#: basilisk/gui/history_msg_text_ctrl.py:483
+#: basilisk/gui/history_msg_text_ctrl.py:486
 msgid "enabled"
 msgstr "увімкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:483
+#: basilisk/gui/history_msg_text_ctrl.py:486
 msgid "disabled"
 msgstr "вимкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:617
+#: basilisk/gui/history_msg_text_ctrl.py:539
 msgid "Message block removed"
 msgstr "Повідомлення видалено"
 
+#: basilisk/gui/history_msg_text_ctrl.py:562
+msgid "Message block updated"
+msgstr ""
+
 #. Translators: This is a citation format for character locations
-#: basilisk/gui/history_msg_text_ctrl.py:643
+#: basilisk/gui/history_msg_text_ctrl.py:586
 #, python-brace-format
 msgid "C.{start} .. {end}"
 msgstr ""
 
 #. Translators: This is a citation format for page locations
-#: basilisk/gui/history_msg_text_ctrl.py:650
+#: basilisk/gui/history_msg_text_ctrl.py:593
 #, python-brace-format
 msgid "P.{start} .. {end}"
 msgstr ""
 
 #. Translators: This is a citation format for unknown locations
-#: basilisk/gui/history_msg_text_ctrl.py:655
+#: basilisk/gui/history_msg_text_ctrl.py:598
 msgid "Unknown location"
 msgstr ""
 
-#: basilisk/gui/history_msg_text_ctrl.py:660
+#: basilisk/gui/history_msg_text_ctrl.py:603
 #, python-brace-format
 msgid "{document_title} / {location_text}"
 msgstr ""
 
-#: basilisk/gui/history_msg_text_ctrl.py:667
+#: basilisk/gui/history_msg_text_ctrl.py:610
 #, python-brace-format
 msgid "Document {document_index} / {location_text}"
 msgstr ""
 
 #. Translators: This is a citation format for a cited text
-#: basilisk/gui/history_msg_text_ctrl.py:675
+#: basilisk/gui/history_msg_text_ctrl.py:618
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
 msgstr ""
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
-#: basilisk/gui/history_msg_text_ctrl.py:690
+#: basilisk/gui/history_msg_text_ctrl.py:633
 #, python-format
 msgid "%d citations in the current message"
 msgstr ""
 
 #. Translators: This message is emitted when there are no citations for the
 #. current message.
-#: basilisk/gui/history_msg_text_ctrl.py:704
+#: basilisk/gui/history_msg_text_ctrl.py:647
 msgid "No citations for this message"
 msgstr ""
 
 #. Translators: This is a title for message citations dialog
-#: basilisk/gui/history_msg_text_ctrl.py:716
+#: basilisk/gui/history_msg_text_ctrl.py:659
 msgid "Message citations"
 msgstr ""
 
@@ -818,19 +722,19 @@ msgstr "Нова розмова з профілю"
 
 #. Translators: A label for a menu item to open a conversation
 #. Translators: A title for the open conversation dialog
-#: basilisk/gui/main_frame.py:112 basilisk/gui/main_frame.py:1126
+#: basilisk/gui/main_frame.py:112 basilisk/gui/main_frame.py:1120
 msgid "Open conversation"
 msgstr "Відкрити розмову"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:120 basilisk/gui/main_frame.py:987
+#: basilisk/gui/main_frame.py:120 basilisk/gui/main_frame.py:981
 #: basilisk/gui/name_conversation_dialog.py:27
 msgid "Name conversation"
 msgstr "Назва розмови"
 
 #. Translators: A label for a menu item to save a conversation
 #. Translators: A title for the save conversation dialog
-#: basilisk/gui/main_frame.py:125 basilisk/gui/main_frame.py:1073
+#: basilisk/gui/main_frame.py:125 basilisk/gui/main_frame.py:1067
 msgid "Save conversation"
 msgstr "Зберегти розмову"
 
@@ -840,7 +744,7 @@ msgid "Save conversation as"
 msgstr "Зберегти розмову як"
 
 #. Translators: A label for a menu item to close a conversation
-#: basilisk/gui/main_frame.py:139 basilisk/gui/main_frame.py:992
+#: basilisk/gui/main_frame.py:139 basilisk/gui/main_frame.py:986
 msgid "Close conversation"
 msgstr "Закрити розмову"
 
@@ -871,7 +775,7 @@ msgstr "Керувати &обліковими записами"
 msgid "Install NVDA addon"
 msgstr "Встановити додаток для NVDA"
 
-#: basilisk/gui/main_frame.py:212 basilisk/gui/main_frame.py:840
+#: basilisk/gui/main_frame.py:212 basilisk/gui/main_frame.py:834
 msgid "Check updates"
 msgstr "Перевірити оновлення"
 
@@ -903,9 +807,9 @@ msgstr "&Довідка"
 msgid "Minimize to tray"
 msgstr "Згорнути в трей"
 
-#: basilisk/gui/main_frame.py:341 basilisk/gui/main_frame.py:560
-#: basilisk/gui/main_frame.py:656 basilisk/gui/main_frame.py:676
-#: basilisk/gui/main_frame.py:1045 basilisk/gui/main_frame.py:1067
+#: basilisk/gui/main_frame.py:341 basilisk/gui/main_frame.py:554
+#: basilisk/gui/main_frame.py:650 basilisk/gui/main_frame.py:670
+#: basilisk/gui/main_frame.py:1039 basilisk/gui/main_frame.py:1061
 msgid "No conversation selected"
 msgstr "Не вибрано жодної розмови"
 
@@ -914,81 +818,81 @@ msgid "No screen coordinates provided"
 msgstr ""
 
 #. Translators: An error message when a conversation profile is not found
-#: basilisk/gui/main_frame.py:510
+#: basilisk/gui/main_frame.py:504
 #, python-format
 msgid "Profile '%s' not found"
 msgstr "Профіль \"%s\" не знайдено"
 
 #. Translators: A default title for a conversation
-#: basilisk/gui/main_frame.py:588
+#: basilisk/gui/main_frame.py:582
 #, python-format
 msgid "Conversation %d"
 msgstr ""
 
-#: basilisk/gui/main_frame.py:712
+#: basilisk/gui/main_frame.py:706
 msgid "Manage accounts"
 msgstr "Керувати обліковими записами"
 
-#: basilisk/gui/main_frame.py:729
+#: basilisk/gui/main_frame.py:723
 msgid "Settings"
 msgstr "Налаштування"
 
-#: basilisk/gui/main_frame.py:745
+#: basilisk/gui/main_frame.py:739
 msgid "Manage conversation profiles"
 msgstr "Керувати профілями розмов"
 
-#: basilisk/gui/main_frame.py:800
+#: basilisk/gui/main_frame.py:794
 msgid "Failed to create NVDA addon"
 msgstr "Не вдалося створити додаток для NVDA"
 
-#: basilisk/gui/main_frame.py:853
+#: basilisk/gui/main_frame.py:847
 msgid "Failed to open log file"
 msgstr "Не вдалося відкрити файл журналу"
 
-#: basilisk/gui/main_frame.py:885
+#: basilisk/gui/main_frame.py:879
 msgid "New version available"
 msgstr "Доступна нова версія"
 
-#: basilisk/gui/main_frame.py:902 basilisk/gui/update_dialog.py:365
+#: basilisk/gui/main_frame.py:896 basilisk/gui/update_dialog.py:365
 msgid "Downloading update"
 msgstr "Завантаження оновлення"
 
 #. Translators: A label for a menu item to manage conversation profiles
-#: basilisk/gui/main_frame.py:918
+#: basilisk/gui/main_frame.py:912
 msgid "Manage conversation &profiles"
 msgstr "Керувати розмовами та &профілями"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:954
+#: basilisk/gui/main_frame.py:948
 msgid "Manual name conversation"
 msgstr "Назва розмови вручну"
 
 #. Translators: A label for a menu item to automatically name a conversation
-#: basilisk/gui/main_frame.py:965
+#: basilisk/gui/main_frame.py:959
 msgid "&Auto name conversation"
 msgstr "&Автоматична назва розмови"
 
 #. Translators: A label for a menu item to apply a conversation profile to the
 #. current conversation
-#: basilisk/gui/main_frame.py:982
+#: basilisk/gui/main_frame.py:976
 msgid "Apply conversation profile"
 msgstr "Застосувати профіль розмови"
 
-#: basilisk/gui/main_frame.py:1023
+#: basilisk/gui/main_frame.py:1017
 msgid "Please add an account first. Do you want to add an account now?"
 msgstr "Будь ласка, спочатку додайте обліковий запис. Ви хочете додати обліковий запис зараз?"
 
 #. translators: This is a title for the message box
-#: basilisk/gui/main_frame.py:1026
+#: basilisk/gui/main_frame.py:1020
 msgid "No account configured"
 msgstr "Обліковий запис не налаштовано"
 
-#: basilisk/gui/main_frame.py:1074 basilisk/gui/main_frame.py:1127
+#: basilisk/gui/main_frame.py:1068 basilisk/gui/main_frame.py:1121
 msgid "Basilisk conversation files"
 msgstr ""
 
 #. Translators: An error message when a conversation file cannot be opened
-#: basilisk/gui/main_frame.py:1103
+#: basilisk/gui/main_frame.py:1097
 #, python-format
 msgid "Failed to open conversation file: '%s', error: %s"
 msgstr ""
@@ -1181,6 +1085,142 @@ msgstr "Скасувати"
 msgid "System default (auto)"
 msgstr "Системна (авто)"
 
+#. Translators: This is a label for user prompt
+#: basilisk/gui/prompt_attachments_panel.py:83
+msgid "&Prompt:"
+msgstr "&Запит:"
+
+#. Translators: This is a label for attachments
+#: basilisk/gui/prompt_attachments_panel.py:100
+msgid "&Attachments:"
+msgstr ""
+
+#. Translators: This is a label for attachment size
+#: basilisk/gui/prompt_attachments_panel.py:121
+#: basilisk/gui/prompt_attachments_panel.py:487
+msgid "Size"
+msgstr "Розмір"
+
+#. Translators: This is a label for attachment location
+#: basilisk/gui/prompt_attachments_panel.py:126
+#: basilisk/gui/prompt_attachments_panel.py:488
+msgid "Location"
+msgstr ""
+
+#. Translators: This is a label for paste in the context menu
+#: basilisk/gui/prompt_attachments_panel.py:202
+#: basilisk/gui/prompt_attachments_panel.py:270
+msgid "Paste (file or text)"
+msgstr ""
+
+#. Translators: This is a label for remove selected attachment in the context
+#. menu
+#: basilisk/gui/prompt_attachments_panel.py:252
+msgid "Remove selected attachment"
+msgstr ""
+
+#. Translators: This is a label for copy location in the context menu
+#: basilisk/gui/prompt_attachments_panel.py:261
+msgid "Copy location"
+msgstr ""
+
+#. Translators: This is a label for add files in the context menu
+#: basilisk/gui/prompt_attachments_panel.py:279
+msgid "Add files..."
+msgstr ""
+
+#. Translators: This is a label for add attachment URL in the context menu
+#: basilisk/gui/prompt_attachments_panel.py:288
+msgid "Add attachment URL..."
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:365
+#: basilisk/gui/prompt_attachments_panel.py:579
+msgid "No engine available. Please select an account."
+msgstr ""
+
+#. Translators: This message is displayed when there are no supported
+#. attachment formats.
+#: basilisk/gui/prompt_attachments_panel.py:377
+msgid "This provider does not support any attachment formats."
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:383
+msgid "All supported formats"
+msgstr ""
+
+#. Translators: This is a label for select files dialog
+#: basilisk/gui/prompt_attachments_panel.py:387
+msgid "Select one or more files to attach"
+msgstr ""
+
+#. Translators: This is a label for enter URL in add attachment dialog
+#: basilisk/gui/prompt_attachments_panel.py:407
+msgid "Enter the URL of the file to attach:"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:408
+msgid "Add attachment from URL"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:423
+msgid "Invalid URL format."
+msgstr ""
+
+#. Translators: This message is displayed when an HTTP error occurs while
+#. adding a file from a URL.
+#: basilisk/gui/prompt_attachments_panel.py:442
+#, python-format
+msgid "HTTP error %s."
+msgstr "Помилка HTTP %s."
+
+#. Translators: This message is displayed when an error occurs while adding a
+#. file from a URL.
+#: basilisk/gui/prompt_attachments_panel.py:454
+#, python-format
+msgid "Error adding attachment from URL: %s"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:493
+msgid "MIME type"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:495
+msgid "Dimensions"
+msgstr "Розміри"
+
+#: basilisk/gui/prompt_attachments_panel.py:498
+#, python-format
+msgid "%s: %s"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:502
+msgid "Attachment details"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:598
+msgid "This attachment format is not supported by the current provider. Source:"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:685
+#, python-format
+msgid "This attachment format is not supported by the current provider. Source: %s"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:689
+#, python-format
+msgid "The attachment file does not exist: %s"
+msgstr ""
+
+#: basilisk/gui/prompt_attachments_panel.py:741
+msgid "Please select a model"
+msgstr "Будь ласка, виберіть модель"
+
+#: basilisk/gui/prompt_attachments_panel.py:750
+#, python-brace-format
+msgid "The selected model does not support images. Please select a vision model instead ({})."
+msgstr "Обрана модель не підтримує зображення. Будь ласка, виберіть модель з комп’ютерним зором ({})."
+
 #. Translators: Search dialog title
 #: basilisk/gui/search_dialog.py:59
 msgid "Search"
@@ -1343,38 +1383,38 @@ msgid "Error checking for updates: %s"
 msgstr "Помилка перевірки оновлень: %s"
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:97
-#: basilisk/provider_engine/anthropic_engine.py:106
+#: basilisk/provider_engine/anthropic_engine.py:98
+#: basilisk/provider_engine/anthropic_engine.py:107
 msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:116
-#: basilisk/provider_engine/anthropic_engine.py:125
+#: basilisk/provider_engine/anthropic_engine.py:117
+#: basilisk/provider_engine/anthropic_engine.py:126
 msgid "Our most capable model"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:136
-#: basilisk/provider_engine/anthropic_engine.py:147
+#: basilisk/provider_engine/anthropic_engine.py:137
+#: basilisk/provider_engine/anthropic_engine.py:148
 msgid "High-performance model with early extended thinking"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:158
+#: basilisk/provider_engine/anthropic_engine.py:159
 msgid "Our previous intelligent model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:167
+#: basilisk/provider_engine/anthropic_engine.py:168
 msgid "Our fastest model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:176
+#: basilisk/provider_engine/anthropic_engine.py:177
 msgid "Powerful model for complex tasks"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:186
+#: basilisk/provider_engine/anthropic_engine.py:187
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Найшвидша та найкомпактніша модель для майже миттєвої реакції"
 
