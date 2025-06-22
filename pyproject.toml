@@ -59,6 +59,9 @@ packages = ["basilisk"]
 
 [tool.setuptools_scm]
 
+[tool.uv]
+package = false
+
 [tool.coverage.run]
 branch = true
 source = ["basilisk"]
