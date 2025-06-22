@@ -53,7 +53,6 @@ jobs:
     if: ${{ inputs.branch_name == 'master' }}
     permissions:
       contents: read
-      actions: read
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
