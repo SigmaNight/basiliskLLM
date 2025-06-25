@@ -20,6 +20,7 @@ import basilisk.global_vars as global_vars
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.file_watcher import init_file_watcher
+from basilisk.hotkeys import HotkeyHandlerMixin
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	get_log_file_path,
@@ -33,7 +34,7 @@ from basilisk.updater import automatic_update_check, automatic_update_download
 log = logging.getLogger(__name__)
 
 
-class MainApp(wx.App):
+class MainApp(wx.App, HotkeyHandlerMixin):
 	"""Main application class for Basilisk."""
 
 	def OnInit(self) -> bool:
@@ -75,6 +76,8 @@ class MainApp(wx.App):
 		log.info("sound manager initialized")
 		self.init_main_frame()
 		log.info("main frame initialized")
+		self.init_hotkeys()
+		log.info("hotkeys initialized")
 		self.init_system_cert_store()
 		self.file_watcher = init_file_watcher(
 			send_focus=self.bring_window_to_focus,
