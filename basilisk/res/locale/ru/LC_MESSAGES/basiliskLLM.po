@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-21 09:14+0000\n"
-"PO-Revision-Date: 2025-06-21 13:30\n"
+"POT-Creation-Date: 2025-06-27 20:53+0000\n"
+"PO-Revision-Date: 2025-06-28 13:30\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -1563,3 +1563,4 @@ msgstr "Более мощная, чем любая модель GPT-3.5, спо�
 #: basilisk/provider_engine/openai_engine.py:374
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Те же возможности, что и в стандартном режиме GPT-4, но с 4-кратной длиной контекста"
+
