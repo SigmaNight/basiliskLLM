@@ -29,6 +29,6 @@ We use tabs, not spaces.
 ## Strings
 
 - Always use **double quotes** for strings
-- Use **f-strings** for string formatting
+- Use **percent formatting** for string
 - Use **\_("string")** for translatable strings
 - Use \*\*# translator: \*\* with context for translatable strings

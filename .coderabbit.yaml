@@ -10,7 +10,27 @@ reviews:
   collapse_walkthrough: false
   path_filters:
     - "!basilisk/res/**"
-  path_instructions: []
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        ## Indentation
+        We use tabs, not spaces.
+        ## naming conventions
+        - **snake_case** for variables and functions
+        - **PascalCase** for classes
+        - **UPPER_SNAKE_CASE** for constants
+        - **snake_case** for files and directories
+        - Use **whole words** in names when possible
+        ## documentation
+        - Use **docstrings** for all public classes and functions
+        - Use **type hints** for all public classes and functions
+        - Use **google style** for docstrings
+        ## Strings
+        - Always use **double quotes** for strings
+        - Use **percent formatting** for string
+        - Use **\_("string")** for translatable strings
+        - Use \*\*# translator: \*\* with context for translatable strings
+
   tools:
     github-checks:
       enabled: true
