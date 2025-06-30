@@ -69,7 +69,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 		self.segment_manager = MessageSegmentManager()
 		self._search_dialog = None  # Lazy initialization in _do_search
-		self.speak_stream = True
+		self.speak_response = True
 		self.a_output = AccessibleOutputHandler()
 		self.init_role_labels()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
@@ -224,10 +224,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				[],
 			),
 			MenuItemInfo(
-				_("Speak stream"),
+				_("Speak response"),
 				"(Shift+Space)",
-				self.on_toggle_speak_stream,
-				[self.speak_stream],
+				self.on_toggle_speak_response,
+				[self.speak_response],
 			),
 			MenuItemInfo(
 				_("Show as HTML (from Markdown)"),
@@ -476,14 +476,14 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			return self._do_search()
 		self._search_dialog.search_next()
 
-	def on_toggle_speak_stream(self, event: wx.Event | None = None):
-		"""Toggle stream speaking mode."""
+	def on_toggle_speak_response(self, event: wx.Event | None = None):
+		"""Toggle response speaking mode."""
 		if event:
-			return wx.CallLater(500, self.on_toggle_speak_stream)
-		self.speak_stream = not self.speak_stream
+			return wx.CallLater(500, self.on_toggle_speak_response)
+		self.speak_response = not self.speak_response
 		self.a_output.handle(
-			_("Stream speaking %s")
-			% (_("enabled") if self.speak_stream else _("disabled")),
+			_("Response speaking %s")
+			% (_("enabled") if self.speak_response else _("disabled")),
 			braille=True,
 			clear_for_speak=False,
 		)
@@ -506,6 +506,24 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.GetParent(), self.current_msg_content, "markdown"
 		)
 
+	@property
+	def should_speak_response(self) -> bool:
+		"""Check if the response should be spoken.
+
+		This property checks if the speak stream mode is enabled and if the text control has focus or its parent prompt panel has focus.
+
+		Returns:
+			True if the stream should be spoken, False otherwise.
+		"""
+		return (
+			self.speak_response
+			and (
+				self.HasFocus()
+				or self.GetParent().prompt_panel.prompt.HasFocus()
+			)
+			and self.GetTopLevelParent().IsShown()
+		)
+
 	def append_stream_chunk(self, text: str):
 		"""Append a chunk of text to the speech stream buffer.
 
@@ -513,14 +531,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			text: The text chunk to append
 		"""
 		pos = self.GetInsertionPoint()
-		if (
-			self.speak_stream
-			and (
-				self.HasFocus()
-				or self.GetParent().prompt_panel.prompt.HasFocus()
-			)
-			and self.GetTopLevelParent().IsShown()
-		):
+		if self.should_speak_response:
 			self.a_output.handle_stream_buffer(new_text=text)
 		self.AppendText(text)
 		self.SetInsertionPoint(pos)
@@ -662,7 +673,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 	# goes here because with need all the methods to be defined before we can assign to the dict
 	key_actions = {
-		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_stream,
+		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
 		(wx.MOD_NONE, wx.WXK_SPACE): on_read_current_message,
 		(wx.MOD_NONE, ord('J')): go_to_previous_message,
 		(wx.MOD_NONE, ord('K')): go_to_next_message,
