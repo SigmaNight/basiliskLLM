@@ -10,7 +10,7 @@ The provider_engine module is a wrapper for LLMs providers
 
 ## Indentation
 
-We use tabs, not spaces.$
+We use tabs, not spaces.
 
 ## naming conventions
 
