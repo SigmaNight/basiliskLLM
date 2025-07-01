@@ -76,7 +76,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			on_stream_finish=self._on_stream_finish,
 			on_non_stream_finish=self._on_non_stream_finish,
 		)
-		self.speak_stream = parent.messages.speak_stream
+		self.speak_response = parent.messages.speak_response
 
 		self.init_ui()
 		self.load_message_block_data()
@@ -463,7 +463,26 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		"""
 		# For non-streaming, we handle the accessible output here
 		self.response_txt.SetValue(new_block.response.content)
-		self.a_output.handle(new_block.response.content)
+		if self.should_speak_response:
+			self.a_output.handle(new_block.response.content)
+
+	@property
+	def should_speak_response(self) -> bool:
+		"""Check if the response should be spoken.
+
+		This property checks if the speak stream mode is enabled and if the text control has focus or its parent prompt panel has focus.
+
+		Returns:
+			True if the stream should be spoken, False otherwise.
+		"""
+		return (
+			self.speak_response
+			and (
+				self.response_txt.HasFocus()
+				or self.prompt_panel.prompt.HasFocus()
+			)
+			and self.GetTopLevelParent().IsShown()
+		)
 
 	def append_stream_chunk(self, text: str):
 		"""Append a chunk of text to the stream buffer and display it.
@@ -472,14 +491,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			text: The text chunk to append
 		"""
 		pos = self.response_txt.GetInsertionPoint()
-		if (
-			self.speak_stream
-			and (
-				self.response_txt.HasFocus()
-				or self.prompt_panel.prompt.HasFocus()
-			)
-			and self.GetTopLevelParent().IsShown()
-		):
+		if self.should_speak_response:
 			self.a_output.handle_stream_buffer(new_text=text)
 		self.response_txt.AppendText(text)
 		self.response_txt.SetInsertionPoint(pos)

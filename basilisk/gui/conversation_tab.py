@@ -822,5 +822,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
-		self.messages.handle_accessible_output(new_block.response.content)
+		if self.messages.should_speak_response:
+			self.messages.a_output.handle(new_block.response.content)
 		self.prompt_panel.clear()
