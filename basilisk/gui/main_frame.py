@@ -198,6 +198,14 @@ class MainFrame(wx.Frame):
 		preferences_item = tool_menu.Append(wx.ID_PREFERENCES)
 		self.Bind(wx.EVT_MENU, self.on_preferences, preferences_item)
 		update_item_label_suffix(preferences_item, "...\tCtrl+,")
+		global_shortcuts_item = tool_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage global shortcuts
+			_("Manage global shortcuts") + "...\tCtrl+Shift+K",
+		)
+		self.Bind(
+			wx.EVT_MENU, self.on_manage_global_shortcuts, global_shortcuts_item
+		)
 		tool_menu.AppendSeparator()
 		install_nvda_addon = tool_menu.Append(
 			wx.ID_ANY, _("Install NVDA addon")
@@ -272,17 +280,17 @@ class MainFrame(wx.Frame):
 		"""
 		self.RegisterHotKey(
 			HotkeyAction.TOGGLE_VISIBILITY.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('B'),
+			win32con.MOD_WIN | win32con.MOD_ALT,
+			win32con.VK_SPACE,
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_FULL.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('F'),
+			win32con.MOD_WIN | win32con.MOD_CONTROL,
+			ord('U'),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_WINDOW.value,
-			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			win32con.MOD_WIN | win32con.MOD_CONTROL,
 			ord('W'),
 		)
 
@@ -755,6 +763,18 @@ class MainFrame(wx.Frame):
 			)
 			menu.Insert(item_index, self.new_conversation_profile_item)
 		profile_dialog.Destroy()
+
+	def on_manage_global_shortcuts(self, event):
+		"""Open the global shortcuts dialog to manage global shortcuts.
+
+		Args:
+			event: The event that triggered the global shortcuts action. Can be None.
+		"""
+		from .global_shortcuts_dialog import GlobalShortcutsDialog
+
+		global_shortcuts_dialog = GlobalShortcutsDialog(self)
+		global_shortcuts_dialog.ShowModal()
+		global_shortcuts_dialog.Destroy()
 
 	def on_install_nvda_addon(self, event):
 		"""Install the NVDA addon for BasiliskLLM.
