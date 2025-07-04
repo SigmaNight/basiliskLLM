@@ -387,8 +387,22 @@ class MainFrame(wx.Frame):
 		if not self.IsShown():
 			log.debug("Already minimized")
 			return
-		log.debug("Minimized to tray")
+		log.debug(
+			"Minimizing to tray - IsShown: %s, IsIconized: %s",
+			self.IsShown(),
+			self.IsIconized(),
+		)
+
+		# First iconize the window, then hide it
+		if not self.IsIconized():
+			self.Iconize(True)
 		self.Hide()
+
+		log.debug(
+			"Minimized to tray - final state: IsShown: %s, IsIconized: %s",
+			self.IsShown(),
+			self.IsIconized(),
+		)
 
 	def on_restore(self, event: wx.Event | None):
 		"""Restore the main application frame from the system tray.
@@ -396,12 +410,37 @@ class MainFrame(wx.Frame):
 		Args:
 			event: The event that triggered the restore action. Can be None.
 		"""
-		if self.IsShown():
-			log.debug("Already restored")
+		log.debug(
+			"on_restore called - IsShown: %s, IsIconized: %s",
+			self.IsShown(),
+			self.IsIconized(),
+		)
+
+		if self.IsShown() and not self.IsIconized():
+			log.debug(
+				"Window already visible and not iconized, bringing to front"
+			)
+			self.force_focus_for_screen_reader()
 			return
-		log.debug("Restored from tray")
-		self.Show(True)
+
+		log.debug("Restoring window from tray/iconized state")
+
+		# First, ensure the window is shown
+		if not self.IsShown():
+			log.debug("Window was hidden, showing it")
+			self.Show(True)
+
+		# If the window is iconized, restore it
+		if self.IsIconized():
+			log.debug("Window was iconized, restoring it")
+			self.Iconize(False)
+
+		# Bring to front
+		log.debug("Bringing window to front")
 		self.Raise()
+
+		# Force focus for screen readers like NVDA
+		wx.CallAfter(self.force_focus_for_screen_reader)
 
 	def on_close(self, event: wx.Event | None):
 		"""Handle the close event for the main application frame.
@@ -1125,3 +1164,120 @@ class MainFrame(wx.Frame):
 			file_path = file_dialog.GetPath()
 			self.open_conversation(file_path)
 			file_dialog.Destroy()
+
+	def force_focus_for_screen_reader(self):
+		"""Force focus on the window for screen readers like NVDA.
+
+		This method uses Windows-specific APIs to ensure that screen readers
+		properly detect the focus change when the window is brought to the front.
+		"""
+		log.debug("force_focus_for_screen_reader called")
+
+		# First, use standard wxPython methods
+		self.Raise()
+		self.SetFocus()
+
+		if sys.platform == "win32":
+			try:
+				import win32con
+				import win32gui
+
+				# Get the window handle
+				hwnd = self.GetHandle()
+				log.debug("Window handle: %s", hwnd)
+
+				# Try multiple approaches to bring window to front
+				try:
+					# Method 1: Use BringWindowToTop
+					win32gui.BringWindowToTop(hwnd)
+					log.debug("BringWindowToTop succeeded")
+				except Exception as e:
+					log.debug("BringWindowToTop failed: %s", e)
+
+				try:
+					# Method 2: Show and activate
+					win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+					win32gui.SetActiveWindow(hwnd)
+					log.debug("ShowWindow and SetActiveWindow succeeded")
+				except Exception as e:
+					log.debug("ShowWindow/SetActiveWindow failed: %s", e)
+
+				try:
+					# Method 3: Try SetForegroundWindow as fallback
+					win32gui.SetForegroundWindow(hwnd)
+					log.debug("SetForegroundWindow succeeded")
+				except Exception as e:
+					log.debug("SetForegroundWindow failed: %s", e)
+
+				# Brief pause to let the window come to front
+				wx.CallLater(100, self._focus_on_conversation_input)
+
+			except ImportError:
+				# pywin32 not available, use wx methods only
+				log.debug("pywin32 not available, using wx methods only")
+				wx.CallAfter(self._focus_on_conversation_input)
+			except Exception as e:
+				log.warning("Failed to force focus for screen reader: %s", e)
+				wx.CallAfter(self._focus_on_conversation_input)
+		else:
+			# Non-Windows platform
+			log.debug("Non-Windows platform, using wx methods")
+			wx.CallAfter(self._focus_on_conversation_input)
+
+	def _focus_on_conversation_input(self):
+		"""Focus on the conversation input field if available."""
+		log.debug("_focus_on_conversation_input called")
+
+		try:
+			# Check if we have a valid selection
+			current_index = self.notebook.GetSelection()
+			if current_index == wx.NOT_FOUND:
+				log.debug("No valid tab selection found")
+				return
+
+			if current_index >= len(self.tabs_panels):
+				log.debug(
+					"Invalid tab index: %d >= %d",
+					current_index,
+					len(self.tabs_panels),
+				)
+				return
+
+			current_tab = self.tabs_panels[current_index]
+			log.debug("Current tab found: %s", current_tab)
+
+			# Look for the prompt field in prompt_panel
+			if (
+				hasattr(current_tab, "prompt_panel")
+				and current_tab.prompt_panel
+			):
+				if (
+					hasattr(current_tab.prompt_panel, "prompt")
+					and current_tab.prompt_panel.prompt
+				):
+					log.debug("Setting focus on prompt input")
+					current_tab.prompt_panel.prompt.SetFocus()
+
+					# For screen readers, also try to notify of the focus change
+					if sys.platform == "win32":
+						try:
+							import win32gui
+
+							# Get the handle of the input control
+							input_hwnd = (
+								current_tab.prompt_panel.prompt.GetHandle()
+							)
+							log.debug("Prompt control handle: %s", input_hwnd)
+							win32gui.SetFocus(input_hwnd)
+							log.debug("Windows focus set on prompt control")
+
+						except Exception as e:
+							log.debug(
+								"Could not set Windows focus on prompt: %s", e
+							)
+				else:
+					log.debug("No prompt found in prompt_panel")
+			else:
+				log.debug("No prompt_panel found on current tab")
+		except Exception as e:
+			log.debug("Error in _focus_on_conversation_input: %s", e)

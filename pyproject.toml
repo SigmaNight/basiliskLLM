@@ -90,6 +90,9 @@ skip-magic-trailing-comma = true
 extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004"]
 extend-ignore = ["D206"]
 
+[tool.ruff.lint.extend-per-file-ignores]
+"**/tests/*" = ["T201"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 

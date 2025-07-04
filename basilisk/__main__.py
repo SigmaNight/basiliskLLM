@@ -106,8 +106,10 @@ if __name__ == '__main__':
 	if not singleton_instance.acquire():
 		existing_pid = singleton_instance.get_existing_pid()
 		if existing_pid:
-			try:
-				psutil.Process(existing_pid)
+			# On Windows, existing_pid might be -1 (mutex-based detection)
+			# On POSIX, it's the actual PID
+			if existing_pid == -1:
+				# Windows mutex detected another instance, but we can't get the PID
 				if global_vars.args.show_already_running_msg:
 					display_already_running_msg()
 				else:
@@ -116,8 +118,23 @@ if __name__ == '__main__':
 					else:
 						send_focus_signal()
 				sys.exit(0)
-			except psutil.NoSuchProcess:
-				singleton_instance.acquire()
+			else:
+				# POSIX or Windows with actual PID - verify the process exists
+				try:
+					psutil.Process(existing_pid)
+					if global_vars.args.show_already_running_msg:
+						display_already_running_msg()
+					else:
+						if global_vars.args.bskc_file:
+							send_open_bskc_file_signal(
+								global_vars.args.bskc_file
+							)
+						else:
+							send_focus_signal()
+					sys.exit(0)
+				except psutil.NoSuchProcess:
+					# Process no longer exists, try to acquire the lock again
+					singleton_instance.acquire()
 	from basilisk.main_app import MainApp
 
 	app = MainApp()
