@@ -2,99 +2,41 @@
 
 This module implements platform-specific locking mechanisms to prevent
 multiple instances of the application from running simultaneously:
-- Windows: Uses pywin32 named mutex
 - POSIX: Uses fcntl file locking with proper stale lock handling
 """
 
-import atexit
+import errno
+import fcntl
 import os
-import sys
 from typing import Optional
 
-if sys.platform == "win32":
-	import win32api
-	import win32event
-	import winerror
-else:
-	import fcntl
+from basilisk.consts import FILE_LOCK_PATH
+
+from .abstract_singleton_instance import AbstractSingletonInstance
 
 
-class SingletonInstance:
+class PosixSingletonInstance(AbstractSingletonInstance):
 	"""Class to ensure that only one instance of basiliskLLM is running at a time.
 
 	This class implements platform-specific locking mechanisms:
-	- Windows: Uses named mutex through pywin32
 	- POSIX: Uses fcntl file locking with proper stale lock handling
 	- Prevents multiple instances from running simultaneously
 	- Automatically releases the lock on program exit
 	- Provides methods to check for existing instances and get their PIDs
 	"""
 
-	def __init__(self, file_lock: str, mutex_name: str):
+	def __init__(self):
 		"""Initialize the SingletonInstance object.
 
 		Args:
-			file_lock: Path to the lock file (used on all platforms)
-			mutex_name: Name for the mutex (Windows only)
+			file_lock: Path to the lock file (used on posix platforms)
 		"""
-		self.mutex_name = mutex_name
-		self.lock_file_path = file_lock
-		self.mutex_handle = None
+		super().__init__()
+		self.lock_file_path = file_lock = FILE_LOCK_PATH
 		self.lock_file_handle = None
-		self.is_windows = sys.platform == "win32"
-
-		if self.is_windows:
-			# Create a unique mutex name for the application
-			self.mutex_name = f"Global\\{mutex_name}"
-		else:
-			# Ensure the lock file directory exists for POSIX systems
-			os.makedirs(os.path.dirname(file_lock), exist_ok=True)
+		os.makedirs(os.path.dirname(file_lock), exist_ok=True)
 
 	def acquire(self) -> bool:
-		"""Acquire the lock.
-
-		This method attempts to create a mutex (Windows) or lock file (other platforms).
-		It handles errors during lock acquisition and automatically registers cleanup
-		on program exit.
-
-		Returns:
-			True if the lock was acquired, False otherwise.
-		"""
-		if self.is_windows:
-			return self._acquire_windows()
-		else:
-			return self._acquire_posix()
-
-	def _acquire_windows(self) -> bool:
-		"""Acquire the mutex on Windows using pywin32.
-
-		Returns:
-			True if the mutex was acquired, False if another instance is already running.
-		"""
-		try:
-			# Create or open the named mutex
-			self.mutex_handle = win32event.CreateMutex(
-				None, True, self.mutex_name
-			)
-
-			# Check if the mutex already existed
-			if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-				# Another instance is already running
-				win32api.CloseHandle(self.mutex_handle)
-				self.mutex_handle = None
-				return False
-
-			# Successfully acquired the mutex
-			atexit.register(self.release)
-			return True
-
-		except Exception:
-			if self.mutex_handle:
-				win32api.CloseHandle(self.mutex_handle)
-				self.mutex_handle = None
-			return False
-
-	def _acquire_posix(self) -> bool:
 		"""Acquire the lock on POSIX systems using fcntl file locking.
 
 		This method uses proper POSIX file locking with fcntl to ensure
@@ -142,7 +84,7 @@ class SingletonInstance:
 			self.lock_file_handle.flush()
 
 			# Register cleanup on exit
-			atexit.register(self.release)
+			self.register_release_on_exit()
 			return True
 
 		except (IOError, OSError):
@@ -178,9 +120,6 @@ class SingletonInstance:
 		Returns:
 			True if the process is alive, False otherwise.
 		"""
-		# Import errno within the method to avoid import issues on Windows
-		import errno
-
 		try:
 			# Send signal 0 to check if process exists
 			os.kill(pid, 0)
@@ -220,27 +159,6 @@ class SingletonInstance:
 			self._cleanup_failed_lock_attempt()
 
 	def release(self):
-		"""Release the lock.
-
-		This method releases the mutex (Windows) or removes the lock file (other platforms).
-		"""
-		if self.is_windows:
-			self._release_windows()
-		else:
-			self._release_posix()
-
-	def _release_windows(self):
-		"""Release the Windows mutex."""
-		if self.mutex_handle:
-			try:
-				win32event.ReleaseMutex(self.mutex_handle)
-				win32api.CloseHandle(self.mutex_handle)
-			except Exception:
-				pass
-			finally:
-				self.mutex_handle = None
-
-	def _release_posix(self):
 		"""Release the POSIX lock file."""
 		if self.lock_file_handle:
 			try:
@@ -266,64 +184,19 @@ class SingletonInstance:
 	def get_existing_pid(self) -> Optional[int]:
 		"""Get the PID of the existing instance, if any.
 
-		Note: On Windows with mutex-based locking, this method cannot reliably
-		determine the PID of the existing instance. It returns -1 if another
-		instance is detected but the PID cannot be determined.
-
 		Returns:
 			The PID of the existing instance, or None if no instance is running.
-			On Windows, returns -1 if another instance exists but PID cannot be determined.
 		"""
-		if self.is_windows:
-			# On Windows, we can't easily get the PID from a mutex
-			# We can only check if another instance exists
-			try:
-				test_mutex = win32event.CreateMutex(None, True, self.mutex_name)
-				if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-					win32api.CloseHandle(test_mutex)
-					return -1  # Return a special value to indicate another instance exists
-				else:
-					win32event.ReleaseMutex(test_mutex)
-					win32api.CloseHandle(test_mutex)
-					return None
-			except Exception:
-				return None
+		# POSIX file-based approach with proper lock checking
+		if not os.path.exists(self.lock_file_path):
+			return None
+
+		pid = self._get_lock_holder_pid()
+		if pid is None:
+			return None
+
+		# Check if the process is still alive
+		if self._is_process_alive(pid):
+			return pid
 		else:
-			# POSIX file-based approach with proper lock checking
-			if not os.path.exists(self.lock_file_path):
-				return None
-
-			try:
-				# Try to read the PID from the lock file
-				with open(self.lock_file_path, "r") as f:
-					pid_str = f.read().strip()
-					if not pid_str:
-						return None
-
-					pid = int(pid_str)
-
-					# Check if the process is still alive
-					if self._is_process_alive(pid):
-						return pid
-					else:
-						# Process is dead, lock file is stale
-						try:
-							os.remove(self.lock_file_path)
-						except Exception:
-							pass
-						return None
-			except (IOError, OSError, ValueError):
-				# File is corrupted or unreadable, try to remove it
-				try:
-					os.remove(self.lock_file_path)
-				except Exception:
-					pass
-				return None
-
-	def is_running(self) -> bool:
-		"""Check if another instance of the application is running.
-
-		Returns:
-			True if another instance is running, False otherwise.
-		"""
-		return self.get_existing_pid() is not None
+			return None

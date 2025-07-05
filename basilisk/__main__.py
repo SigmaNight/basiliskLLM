@@ -11,7 +11,7 @@ import multiprocessing
 import sys
 
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, FILE_LOCK_PATH
+from basilisk.consts import APP_NAME
 from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
@@ -98,10 +98,7 @@ if __name__ == '__main__':
 	multiprocessing.freeze_support()
 
 	global_vars.args = parse_args()
-	singleton_instance = SingletonInstance(
-		file_lock=FILE_LOCK_PATH, mutex_name=APP_NAME
-	)
-
+	singleton_instance = SingletonInstance()
 	if not singleton_instance.acquire():
 		# Another instance is already running
 		# The singleton mechanism handles stale lock detection and cleanup automatically

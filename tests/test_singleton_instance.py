@@ -1,8 +1,8 @@
-"""Tests for the SingletonInstance class.
+"""Tests for the SingletonInstance module.
 
-This module contains unit tests for the SingletonInstance class which ensures
-that only one instance of the application runs at a time using Windows mutex
-or file-based locking on other platforms.
+This module contains unit tests for the SingletonInstance implementation which ensures
+that only one instance of the application runs at a time using platform-specific
+locking mechanisms (Windows mutex or POSIX file locking).
 """
 
 import os
@@ -13,12 +13,11 @@ import unittest
 from basilisk.singleton_instance import SingletonInstance
 
 
-class TestSingletonInstance(unittest.TestCase):
-	"""Test cases for the SingletonInstance class."""
+class TestSingletonInstanceBase(unittest.TestCase):
+	"""Base test class for SingletonInstance tests."""
 
 	def setUp(self):
 		"""Set up test fixtures."""
-		self.test_mutex_name = "test_basilisk_singleton"
 		self.test_lock_file = os.path.join(
 			tempfile.gettempdir(), "test_basilisk.lock"
 		)
@@ -32,9 +31,13 @@ class TestSingletonInstance(unittest.TestCase):
 			except Exception:
 				pass
 
+
+class TestSingletonInstanceCore(TestSingletonInstanceBase):
+	"""Test core functionality of SingletonInstance."""
+
 	def test_singleton_acquire_release(self):
 		"""Test basic acquire and release functionality."""
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance = SingletonInstance()
 
 		# Should be able to acquire the lock
 		self.assertTrue(instance.acquire())
@@ -44,8 +47,8 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_singleton_multiple_instances(self):
 		"""Test that multiple instances cannot acquire the same lock."""
-		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance1 = SingletonInstance()
+		instance2 = SingletonInstance()
 
 		# First instance should acquire successfully
 		self.assertTrue(instance1.acquire())
@@ -59,8 +62,8 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_singleton_acquire_after_release(self):
 		"""Test that a lock can be acquired after being released."""
-		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance1 = SingletonInstance()
+		instance2 = SingletonInstance()
 
 		# First instance acquires
 		self.assertTrue(instance1.acquire())
@@ -77,13 +80,50 @@ class TestSingletonInstance(unittest.TestCase):
 		# Clean up
 		instance2.release()
 
+	def test_multiple_release_calls(self):
+		"""Test that multiple release calls don't cause errors."""
+		instance = SingletonInstance()
+
+		# Acquire the lock
+		self.assertTrue(instance.acquire())
+
+		# Release multiple times should not cause errors
+		instance.release()
+		instance.release()
+		instance.release()
+
+	def test_release_without_acquire(self):
+		"""Test that releasing without acquiring doesn't cause errors."""
+		instance = SingletonInstance()
+
+		# Release without acquiring should not cause errors
+		instance.release()
+
+	def test_is_running_method(self):
+		"""Test the is_running method."""
+		instance1 = SingletonInstance()
+		instance2 = SingletonInstance()
+
+		# Initially no instance is running
+		self.assertFalse(instance1.is_running())
+
+		# After acquiring, should detect running instance
+		instance1.acquire()
+		self.assertTrue(instance2.is_running())
+
+		# After releasing, should not detect running instance
+		instance1.release()
+		self.assertFalse(instance2.is_running())
+
+
+class TestSingletonInstancePlatformSpecific(TestSingletonInstanceBase):
+	"""Test platform-specific functionality of SingletonInstance."""
+
+	@unittest.skipUnless(sys.platform == "win32", "Windows-specific test")
 	def test_get_existing_pid_windows(self):
 		"""Test get_existing_pid on Windows (returns -1 when mutex exists)."""
-		if sys.platform != "win32":
-			self.skipTest("Test only runs on Windows")
-
-		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance1 = SingletonInstance()
+		instance2 = SingletonInstance()
 
 		# No existing instance
 		self.assertIsNone(instance1.get_existing_pid())
@@ -98,39 +138,31 @@ class TestSingletonInstance(unittest.TestCase):
 		# Clean up
 		instance1.release()
 
-	def test_get_existing_pid_file_based(self):
-		"""Test get_existing_pid behavior with file-based locking."""
-		# This test works on POSIX systems
-		if sys.platform == "win32":
-			self.skipTest("File-based PID reading not primary on Windows")
-
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+	@unittest.skipUnless(sys.platform != "win32", "POSIX-specific test")
+	def test_get_existing_pid_posix(self):
+		"""Test get_existing_pid behavior with POSIX file-based locking."""
+		instance = SingletonInstance()
 
 		# No existing instance
 		self.assertIsNone(instance.get_existing_pid())
 
-		# Manually create a lock file with a PID
-		with open(self.test_lock_file, "w") as f:
-			f.write(str(os.getpid()))
-
-		# Should be able to read the PID (but process is alive, so it should return the PID)
+		# Acquire lock and verify PID is returned
+		instance.acquire()
 		existing_pid = instance.get_existing_pid()
 		self.assertEqual(existing_pid, os.getpid())
 
 		# Clean up
-		if os.path.exists(self.test_lock_file):
-			os.remove(self.test_lock_file)
+		instance.release()
 
+	@unittest.skipUnless(sys.platform != "win32", "POSIX-specific test")
 	def test_stale_lock_cleanup(self):
 		"""Test that stale lock files are cleaned up properly."""
-		if sys.platform == "win32":
-			self.skipTest("Test only relevant for POSIX systems")
-
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance = SingletonInstance()
 
 		# Create a stale lock file with a non-existent PID
 		fake_pid = 999999  # Very unlikely to exist
-		with open(self.test_lock_file, "w") as f:
+		os.makedirs(os.path.dirname(instance.lock_file_path), exist_ok=True)
+		with open(instance.lock_file_path, "w") as f:
 			f.write(str(fake_pid))
 
 		# get_existing_pid should clean up the stale lock and return None
@@ -138,35 +170,305 @@ class TestSingletonInstance(unittest.TestCase):
 		self.assertIsNone(existing_pid)
 
 		# Lock file should be removed
-		self.assertFalse(os.path.exists(self.test_lock_file))
+		self.assertFalse(os.path.exists(instance.lock_file_path))
 
 	def test_platform_detection(self):
-		"""Test that the class correctly detects the platform."""
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		"""Test that the class correctly uses platform-specific implementation."""
+		instance = SingletonInstance()
 
+		# Test that the correct implementation is loaded
 		if sys.platform == "win32":
-			self.assertTrue(instance.is_windows)
+			self.assertTrue(hasattr(instance, "mutex_name"))
+			self.assertFalse(hasattr(instance, "lock_file_path"))
 		else:
-			self.assertFalse(instance.is_windows)
+			self.assertTrue(hasattr(instance, "lock_file_path"))
+			self.assertFalse(hasattr(instance, "mutex_name"))
 
-	def test_multiple_release_calls(self):
-		"""Test that multiple release calls don't cause errors."""
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+
+class TestSingletonInstanceEdgeCases(TestSingletonInstanceBase):
+	"""Test edge cases and error conditions for SingletonInstance."""
+
+	def test_concurrent_access_simulation(self):
+		"""Test concurrent access simulation by rapidly creating instances."""
+		instances = []
+		acquired_count = 0
+
+		# Create multiple instances rapidly
+		for i in range(5):
+			instance = SingletonInstance()
+			instances.append(instance)
+			if instance.acquire():
+				acquired_count += 1
+
+		# Only one instance should have acquired the lock
+		self.assertEqual(acquired_count, 1)
+
+		# Clean up all instances
+		for instance in instances:
+			instance.release()
+
+	def test_atexit_registration(self):
+		"""Test that release is properly registered with atexit."""
+		instance = SingletonInstance()
 
 		# Acquire the lock
 		self.assertTrue(instance.acquire())
 
-		# Release multiple times should not cause errors
-		instance.release()
-		instance.release()
+		# The register_release_on_exit should have been called
+		# We can't directly test atexit registration, but we can ensure
+		# that the method exists and doesn't raise an exception
+		self.assertTrue(hasattr(instance, "register_release_on_exit"))
+
+		# Clean up
 		instance.release()
 
-	def test_release_without_acquire(self):
-		"""Test that releasing without acquiring doesn't cause errors."""
-		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
-		# Release without acquiring should not cause errors
+class TestSingletonInstanceIntegration(TestSingletonInstanceBase):
+	"""Integration tests combining functionality from all singleton test files."""
+
+	def test_comprehensive_singleton_workflow(self):
+		"""Test comprehensive singleton workflow covering all use cases."""
+		instance1 = SingletonInstance()
+		instance2 = SingletonInstance()
+
+		# Phase 1: Initial acquisition
+		self.assertTrue(
+			instance1.acquire(), "First instance should acquire lock"
+		)
+		self.assertFalse(
+			instance2.acquire(), "Second instance should not acquire lock"
+		)
+
+		# Phase 2: Check existing instance detection
+		existing_pid = instance2.get_existing_pid()
+		if sys.platform == "win32":
+			self.assertEqual(
+				existing_pid,
+				-1,
+				"Windows should return -1 for existing instance",
+			)
+		else:
+			self.assertEqual(
+				existing_pid, os.getpid(), "POSIX should return current PID"
+			)
+
+		# Phase 3: Test is_running method
+		self.assertTrue(
+			instance2.is_running(), "Should detect running instance"
+		)
+
+		# Phase 4: Release and re-acquire
+		instance1.release()
+		self.assertFalse(
+			instance2.is_running(),
+			"Should not detect running instance after release",
+		)
+		self.assertTrue(
+			instance2.acquire(),
+			"Second instance should acquire after first releases",
+		)
+
+		# Cleanup
+		instance2.release()
+
+	@unittest.skipUnless(
+		sys.platform != "win32", "POSIX-specific comprehensive test"
+	)
+	def test_posix_file_locking_comprehensive(self):
+		"""Test comprehensive POSIX file locking behavior."""
+		instance = SingletonInstance()
+
+		# Test 1: Basic file locking
+		self.assertTrue(instance.acquire(), "Should acquire POSIX lock")
+		self.assertTrue(
+			os.path.exists(instance.lock_file_path), "Lock file should exist"
+		)
+
+		# Test 2: Verify PID in lock file
+		with open(instance.lock_file_path, "r") as f:
+			pid_in_file = int(f.read().strip())
+		self.assertEqual(
+			pid_in_file, os.getpid(), "Lock file should contain current PID"
+		)
+
+		# Test 3: Verify lock is active
+		existing_pid = instance.get_existing_pid()
+		self.assertEqual(
+			existing_pid,
+			os.getpid(),
+			"Should return current PID for active lock",
+		)
+
+		# Test 4: Release and cleanup
 		instance.release()
+		self.assertFalse(
+			os.path.exists(instance.lock_file_path),
+			"Lock file should be removed after release",
+		)
+
+	@unittest.skipUnless(
+		sys.platform != "win32", "POSIX-specific stale lock test"
+	)
+	def test_stale_lock_comprehensive_cleanup(self):
+		"""Test comprehensive stale lock cleanup behavior."""
+		instance = SingletonInstance()
+
+		# Create directory structure if needed
+		os.makedirs(os.path.dirname(instance.lock_file_path), exist_ok=True)
+
+		# Test 1: Create stale lock with non-existent PID
+		fake_pid = 999999
+		with open(instance.lock_file_path, "w") as f:
+			f.write(str(fake_pid))
+
+		# Test 2: Verify stale lock is detected and cleaned
+		existing_pid = instance.get_existing_pid()
+		self.assertIsNone(
+			existing_pid, "Stale lock should be detected and cleaned"
+		)
+		self.assertFalse(
+			os.path.exists(instance.lock_file_path),
+			"Stale lock file should be removed",
+		)
+
+		# Test 3: Should be able to acquire after stale cleanup
+		self.assertTrue(
+			instance.acquire(), "Should acquire lock after stale cleanup"
+		)
+
+		# Cleanup
+		instance.release()
+
+	def test_rapid_acquisition_attempts(self):
+		"""Test rapid acquisition attempts to verify thread safety."""
+		instances = []
+		acquisition_results = []
+
+		# Create multiple instances and try to acquire rapidly
+		for i in range(10):
+			instance = SingletonInstance()
+			instances.append(instance)
+			result = instance.acquire()
+			acquisition_results.append(result)
+
+		# Only one should have succeeded
+		successful_acquisitions = sum(acquisition_results)
+		self.assertEqual(
+			successful_acquisitions, 1, "Only one instance should acquire lock"
+		)
+
+		# Clean up all instances
+		for instance in instances:
+			instance.release()
+
+	def test_lock_persistence_across_instances(self):
+		"""Test that lock persists across different instance objects."""
+		# Create and acquire with first instance
+		instance1 = SingletonInstance()
+		self.assertTrue(instance1.acquire())
+
+		# Create new instance and test lock is still held
+		instance2 = SingletonInstance()
+		self.assertFalse(instance2.acquire())
+		self.assertTrue(instance2.is_running())
+
+		# Release first instance
+		instance1.release()
+
+		# New instance should now be able to acquire
+		self.assertFalse(instance2.is_running())
+		self.assertTrue(instance2.acquire())
+
+		# Cleanup
+		instance2.release()
+
+	def test_error_handling_robustness(self):
+		"""Test error handling and robustness of singleton implementation."""
+		instance = SingletonInstance()
+
+		# Test multiple releases without errors
+		instance.release()  # Should not raise exception
+		instance.release()  # Should not raise exception
+
+		# Test acquire/release cycle multiple times
+		for i in range(3):
+			self.assertTrue(
+				instance.acquire(), f"Acquisition {i + 1} should succeed"
+			)
+			instance.release()
+
+		# Test that after all operations, system is clean
+		self.assertFalse(instance.is_running())
+
+	@unittest.skipUnless(
+		sys.platform != "win32", "POSIX-specific directory test"
+	)
+	def test_lock_file_directory_creation(self):
+		"""Test that lock file directory is created if it doesn't exist."""
+		instance = SingletonInstance()
+
+		# Remove the directory if it exists
+		lock_dir = os.path.dirname(instance.lock_file_path)
+		if os.path.exists(lock_dir):
+			import shutil
+
+			shutil.rmtree(lock_dir)
+
+		# Directory should be created when acquiring lock
+		self.assertTrue(instance.acquire())
+		self.assertTrue(
+			os.path.exists(lock_dir), "Lock directory should be created"
+		)
+		self.assertTrue(
+			os.path.exists(instance.lock_file_path),
+			"Lock file should be created",
+		)
+
+		# Cleanup
+		instance.release()
+
+	def test_concurrent_instance_simulation(self):
+		"""Simulate concurrent instance creation and acquisition."""
+		# This simulates what would happen if multiple processes
+		# tried to start the application simultaneously
+
+		master_instance = SingletonInstance()
+		slave_instances = []
+
+		# Master acquires first
+		self.assertTrue(master_instance.acquire())
+
+		# Create multiple slave instances
+		for i in range(5):
+			slave = SingletonInstance()
+			slave_instances.append(slave)
+
+			# Each slave should fail to acquire
+			self.assertFalse(
+				slave.acquire(), f"Slave {i} should not acquire lock"
+			)
+			self.assertTrue(
+				slave.is_running(), f"Slave {i} should detect running instance"
+			)
+
+		# Master releases
+		master_instance.release()
+
+		# Now one slave should be able to acquire
+		acquisition_count = 0
+		for slave in slave_instances:
+			if slave.acquire():
+				acquisition_count += 1
+
+		self.assertEqual(
+			acquisition_count,
+			1,
+			"Exactly one slave should acquire after master release",
+		)
+
+		# Cleanup all slaves
+		for slave in slave_instances:
+			slave.release()
 
 
 if __name__ == "__main__":
