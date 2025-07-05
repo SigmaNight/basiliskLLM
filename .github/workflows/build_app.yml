@@ -33,7 +33,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}_${{ matrix.arch }}_poetry_
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+        run: poetry sync --no-interaction --no-root
       - name: run tests
         run: poetry run pytest --cov
       - name: compile translations

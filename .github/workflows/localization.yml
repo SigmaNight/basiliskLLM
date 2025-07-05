@@ -36,7 +36,7 @@ jobs:
             ${{ runner.os }}_x64_poetry_
 
       - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+        run: poetry sync --no-interaction --no-root
       - name: build POT file
         run: poetry run python setup.py extract_messages
       - name: upload POT file
