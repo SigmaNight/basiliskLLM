@@ -13,7 +13,10 @@ import wx
 from more_itertools import locate
 
 if sys.platform == 'win32':
+	import win32api
 	import win32con
+	import win32gui
+
 import basilisk.config as config
 from basilisk import global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
@@ -672,7 +675,17 @@ class MainFrame(wx.Frame):
 		Returns:
 			The currently selected conversation tab.
 		"""
-		return self.tabs_panels[self.notebook.GetSelection()]
+		selection = self.notebook.GetSelection()
+		if selection == wx.NOT_FOUND:
+			log.debug("No valid tab selection found go back to first tab")
+			return self.tabs_panels[0] if self.tabs_panels else None
+		if selection >= len(self.tabs_panels):
+			log.debug(
+				"Tab selection %d is out of range, returning first tab",
+				selection,
+			)
+			return self.tabs_panels[0] if self.tabs_panels else None
+		return self.tabs_panels[selection]
 
 	def on_add_attachments(
 		self, event: wx.Event | None, from_url: bool = False
@@ -1178,106 +1191,73 @@ class MainFrame(wx.Frame):
 		self.SetFocus()
 
 		if sys.platform == "win32":
-			try:
-				import win32con
-				import win32gui
+			self._force_focus_windows_screen_reader()
+		wx.CallLater(100, self._focus_on_conversation_input)
 
-				# Get the window handle
-				hwnd = self.GetHandle()
-				log.debug("Window handle: %s", hwnd)
+	def _force_focus_windows_screen_reader(self):
+		"""Force focus on the window for screen readers on Windows."""
+		hwnd = self.GetHandle()
+		log.debug("Window handle: %s", hwnd)
 
-				# Try multiple approaches to bring window to front
-				try:
-					# Method 1: Use BringWindowToTop
-					win32gui.BringWindowToTop(hwnd)
-					log.debug("BringWindowToTop succeeded")
-				except Exception as e:
-					log.debug("BringWindowToTop failed: %s", e)
+		# Try multiple approaches to bring window to front
 
-				try:
-					# Method 2: Show and activate
-					win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-					win32gui.SetActiveWindow(hwnd)
-					log.debug("ShowWindow and SetActiveWindow succeeded")
-				except Exception as e:
-					log.debug("ShowWindow/SetActiveWindow failed: %s", e)
+		# Method 1: Use BringWindowToTop
+		success = win32gui.BringWindowToTop(hwnd)
+		if success:
+			log.debug("BringWindowToTop succeeded")
+			return
 
-				try:
-					# Method 3: Try SetForegroundWindow as fallback
-					win32gui.SetForegroundWindow(hwnd)
-					log.debug("SetForegroundWindow succeeded")
-				except Exception as e:
-					log.debug("SetForegroundWindow failed: %s", e)
+		log.debug("BringWindowToTop failed: %s", win32api.GetLastError())
 
-				# Brief pause to let the window come to front
-				wx.CallLater(100, self._focus_on_conversation_input)
+		# Method 2: Show and activate
+		show_success = win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
 
-			except ImportError:
-				# pywin32 not available, use wx methods only
-				log.debug("pywin32 not available, using wx methods only")
-				wx.CallAfter(self._focus_on_conversation_input)
-			except Exception as e:
-				log.warning("Failed to force focus for screen reader: %s", e)
-				wx.CallAfter(self._focus_on_conversation_input)
+		active_success = win32gui.SetActiveWindow(hwnd)
+		if show_success and active_success:
+			log.debug("ShowWindow and SetActiveWindow succeeded")
+			return
 		else:
-			# Non-Windows platform
-			log.debug("Non-Windows platform, using wx methods")
-			wx.CallAfter(self._focus_on_conversation_input)
+			log.debug(
+				"ShowWindow/SetActiveWindow failed: %s", win32api.GetLastError()
+			)
+
+		# Method 3: Try SetForegroundWindow as fallback
+		success = win32gui.SetForegroundWindow(hwnd)
+		if success:
+			log.debug("SetForegroundWindow succeeded")
+		else:
+			log.debug("SetForegroundWindow failed: %s", win32api.GetLastError())
 
 	def _focus_on_conversation_input(self):
 		"""Focus on the conversation input field if available."""
 		log.debug("_focus_on_conversation_input called")
+		current_tab = self.current_tab
+		if not current_tab:
+			log.debug("No current tab available")
+			return
+		# Look for the prompt field in prompt_panel
+		if current_tab.prompt_panel:
+			prompt = current_tab.prompt_panel.prompt
+			log.debug("Setting focus on prompt input")
+			prompt.SetFocus()
+			if sys.platform == "win32":
+				self._notify_windows_focus_change(prompt)
+				log.debug("Windows focus change notified for prompt control")
 
-		try:
-			# Check if we have a valid selection
-			current_index = self.notebook.GetSelection()
-			if current_index == wx.NOT_FOUND:
-				log.debug("No valid tab selection found")
-				return
+	def _notify_windows_focus_change(self, ctrl: wx.Control):
+		"""Notify Windows of focus change for screen readers.
 
-			if current_index >= len(self.tabs_panels):
-				log.debug(
-					"Invalid tab index: %d >= %d",
-					current_index,
-					len(self.tabs_panels),
-				)
-				return
-
-			current_tab = self.tabs_panels[current_index]
-			log.debug("Current tab found: %s", current_tab)
-
-			# Look for the prompt field in prompt_panel
-			if (
-				hasattr(current_tab, "prompt_panel")
-				and current_tab.prompt_panel
-			):
-				if (
-					hasattr(current_tab.prompt_panel, "prompt")
-					and current_tab.prompt_panel.prompt
-				):
-					log.debug("Setting focus on prompt input")
-					current_tab.prompt_panel.prompt.SetFocus()
-
-					# For screen readers, also try to notify of the focus change
-					if sys.platform == "win32":
-						try:
-							import win32gui
-
-							# Get the handle of the input control
-							input_hwnd = (
-								current_tab.prompt_panel.prompt.GetHandle()
-							)
-							log.debug("Prompt control handle: %s", input_hwnd)
-							win32gui.SetFocus(input_hwnd)
-							log.debug("Windows focus set on prompt control")
-
-						except Exception as e:
-							log.debug(
-								"Could not set Windows focus on prompt: %s", e
-							)
-				else:
-					log.debug("No prompt found in prompt_panel")
-			else:
-				log.debug("No prompt_panel found on current tab")
-		except Exception as e:
-			log.debug("Error in _focus_on_conversation_input: %s", e)
+		This method sets the focus on the specified control using the Windows API.
+		It is particularly useful for screen readers like NVDA to ensure they are aware
+		args:
+			ctrl: The wx.Control to set focus on.
+		"""
+		# For screen readers, also try to notify of the focus change
+		# Get the handle of the input control
+		ctrl_hwnd = ctrl.GetHandle()
+		log.debug("control handle: %s", ctrl_hwnd)
+		success = win32gui.SetFocus(ctrl_hwnd)
+		if success:
+			log.debug("SetFocus on control succeeded")
+			return
+		log.error("SetFocus on control failed: %s", win32api.GetLastError())
