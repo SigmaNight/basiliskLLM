@@ -34,7 +34,7 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_singleton_acquire_release(self):
 		"""Test basic acquire and release functionality."""
-		instance = SingletonInstance(self.test_mutex_name)
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# Should be able to acquire the lock
 		self.assertTrue(instance.acquire())
@@ -44,8 +44,8 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_singleton_multiple_instances(self):
 		"""Test that multiple instances cannot acquire the same lock."""
-		instance1 = SingletonInstance(self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_mutex_name)
+		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# First instance should acquire successfully
 		self.assertTrue(instance1.acquire())
@@ -59,8 +59,8 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_singleton_acquire_after_release(self):
 		"""Test that a lock can be acquired after being released."""
-		instance1 = SingletonInstance(self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_mutex_name)
+		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# First instance acquires
 		self.assertTrue(instance1.acquire())
@@ -82,8 +82,8 @@ class TestSingletonInstance(unittest.TestCase):
 		if sys.platform != "win32":
 			self.skipTest("Test only runs on Windows")
 
-		instance1 = SingletonInstance(self.test_mutex_name)
-		instance2 = SingletonInstance(self.test_mutex_name)
+		instance1 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+		instance2 = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# No existing instance
 		self.assertIsNone(instance1.get_existing_pid())
@@ -99,36 +99,50 @@ class TestSingletonInstance(unittest.TestCase):
 		instance1.release()
 
 	def test_get_existing_pid_file_based(self):
-		"""Test get_existing_pid behavior with file-based locking simulation."""
-		# This test simulates the POSIX behavior but only tests the file reading logic
-		# On Windows, the actual behavior will be mutex-based
+		"""Test get_existing_pid behavior with file-based locking."""
+		# This test works on POSIX systems
+		if sys.platform == "win32":
+			self.skipTest("File-based PID reading not primary on Windows")
 
-		# Use a temporary file to simulate POSIX behavior
-		with tempfile.NamedTemporaryFile(delete=False) as tmp:
-			lock_file = tmp.name
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
-		try:
-			instance = SingletonInstance(lock_file)
+		# No existing instance
+		self.assertIsNone(instance.get_existing_pid())
 
-			# On Windows, this will always use mutex logic, so we skip the file test
-			if sys.platform == "win32":
-				self.skipTest("File-based PID reading not used on Windows")
+		# Manually create a lock file with a PID
+		with open(self.test_lock_file, "w") as f:
+			f.write(str(os.getpid()))
 
-			# Manually create a lock file with a PID
-			with open(lock_file, 'w') as f:
-				f.write(str(os.getpid()))
+		# Should be able to read the PID (but process is alive, so it should return the PID)
+		existing_pid = instance.get_existing_pid()
+		self.assertEqual(existing_pid, os.getpid())
 
-			# Should be able to read the PID
-			existing_pid = instance.get_existing_pid()
-			self.assertEqual(existing_pid, os.getpid())
+		# Clean up
+		if os.path.exists(self.test_lock_file):
+			os.remove(self.test_lock_file)
 
-		finally:
-			if os.path.exists(lock_file):
-				os.remove(lock_file)
+	def test_stale_lock_cleanup(self):
+		"""Test that stale lock files are cleaned up properly."""
+		if sys.platform == "win32":
+			self.skipTest("Test only relevant for POSIX systems")
+
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
+
+		# Create a stale lock file with a non-existent PID
+		fake_pid = 999999  # Very unlikely to exist
+		with open(self.test_lock_file, "w") as f:
+			f.write(str(fake_pid))
+
+		# get_existing_pid should clean up the stale lock and return None
+		existing_pid = instance.get_existing_pid()
+		self.assertIsNone(existing_pid)
+
+		# Lock file should be removed
+		self.assertFalse(os.path.exists(self.test_lock_file))
 
 	def test_platform_detection(self):
 		"""Test that the class correctly detects the platform."""
-		instance = SingletonInstance(self.test_mutex_name)
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		if sys.platform == "win32":
 			self.assertTrue(instance.is_windows)
@@ -137,7 +151,7 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_multiple_release_calls(self):
 		"""Test that multiple release calls don't cause errors."""
-		instance = SingletonInstance(self.test_mutex_name)
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# Acquire the lock
 		self.assertTrue(instance.acquire())
@@ -149,7 +163,7 @@ class TestSingletonInstance(unittest.TestCase):
 
 	def test_release_without_acquire(self):
 		"""Test that releasing without acquiring doesn't cause errors."""
-		instance = SingletonInstance(self.test_mutex_name)
+		instance = SingletonInstance(self.test_lock_file, self.test_mutex_name)
 
 		# Release without acquiring should not cause errors
 		instance.release()

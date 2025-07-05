@@ -2,19 +2,16 @@
 
 It provides a command-line interface for configuring and starting the application.
 The module parses command-line arguments, processes them, and initializes the application with the specified configurations.
-The module also checks for an existing instance of the application and displays a message if the application is already running.
-If the application is already running, the module sends signals to the running instance.
+The module also ensures only one instance of the application runs at a time using a singleton mechanism.
+If another instance is already running, the module sends signals to the running instance.
 """
 
 import argparse
 import multiprocessing
-import os
 import sys
 
-import psutil
-
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, FILE_LOCK_PATH, TMP_DIR
+from basilisk.consts import APP_NAME, FILE_LOCK_PATH
 from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
@@ -100,41 +97,26 @@ if __name__ == '__main__':
 	# Enable multiprocessing support for frozen executables
 	multiprocessing.freeze_support()
 
-	os.makedirs(TMP_DIR, exist_ok=True)
 	global_vars.args = parse_args()
-	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
+	singleton_instance = SingletonInstance(
+		file_lock=FILE_LOCK_PATH, mutex_name=APP_NAME
+	)
+
 	if not singleton_instance.acquire():
-		existing_pid = singleton_instance.get_existing_pid()
-		if existing_pid:
-			# On Windows, existing_pid might be -1 (mutex-based detection)
-			# On POSIX, it's the actual PID
-			if existing_pid == -1:
-				# Windows mutex detected another instance, but we can't get the PID
-				if global_vars.args.show_already_running_msg:
-					display_already_running_msg()
-				else:
-					if global_vars.args.bskc_file:
-						send_open_bskc_file_signal(global_vars.args.bskc_file)
-					else:
-						send_focus_signal()
-				sys.exit(0)
+		# Another instance is already running
+		# The singleton mechanism handles stale lock detection and cleanup automatically
+		if global_vars.args.show_already_running_msg:
+			display_already_running_msg()
+		else:
+			# Send signal to existing instance
+			if global_vars.args.bskc_file:
+				send_open_bskc_file_signal(global_vars.args.bskc_file)
 			else:
-				# POSIX or Windows with actual PID - verify the process exists
-				try:
-					psutil.Process(existing_pid)
-					if global_vars.args.show_already_running_msg:
-						display_already_running_msg()
-					else:
-						if global_vars.args.bskc_file:
-							send_open_bskc_file_signal(
-								global_vars.args.bskc_file
-							)
-						else:
-							send_focus_signal()
-					sys.exit(0)
-				except psutil.NoSuchProcess:
-					# Process no longer exists, try to acquire the lock again
-					singleton_instance.acquire()
+				send_focus_signal()
+
+		sys.exit(0)
+
+	# No other instance running, start the application
 	from basilisk.main_app import MainApp
 
 	app = MainApp()
