@@ -4,7 +4,7 @@ import pytest
 from pydantic import BaseModel, ValidationError
 from upath import UPath
 
-from basilisk.types import PydanticOrderedSet, PydanticUPath
+from basilisk.custom_types import PydanticOrderedSet, PydanticUPath
 
 
 class TestPydanticOrderedSet:

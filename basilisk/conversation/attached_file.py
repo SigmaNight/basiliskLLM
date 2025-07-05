@@ -24,8 +24,8 @@ from pydantic import (
 )
 from upath import UPath
 
+from basilisk.custom_types import PydanticUPath
 from basilisk.decorators import measure_time
-from basilisk.types import PydanticUPath
 
 log = logging.getLogger(__name__)
 

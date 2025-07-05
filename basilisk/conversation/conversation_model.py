@@ -16,8 +16,8 @@ from pydantic import (
 from upath import UPath
 
 from basilisk.consts import BSKC_VERSION
+from basilisk.custom_types import PydanticOrderedSet
 from basilisk.provider_ai_model import AIModelInfo
-from basilisk.types import PydanticOrderedSet
 
 from .attached_file import AttachmentFile, ImageFile
 from .conversation_helper import (
