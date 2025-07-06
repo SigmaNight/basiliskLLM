@@ -25,9 +25,8 @@ def parse_args():
 	Arguments:
 		--language, -l (str | None): Sets the application language. Defaults to None.
 		--log_level, -L (str | None): Sets the logging level. Valid levels are DEBUG, INFO, WARNING, ERROR, CRITICAL. Defaults to None.
-		--no-env-account, -N (bool): Disables loading accounts from environment variables. Defaults to False.
+		--no-env-account, -n (bool): Disables loading accounts from environment variables. Defaults to False.
 		--minimize, -m (bool): Starts the application in a minimized window state. Defaults to False.
-		--show_already_running_msg, -n (bool): Shows a message if the application is already running. Defaults to False.
 
 	Returns:
 		argparse.Namespace: Parsed command-line arguments with their values.
@@ -49,7 +48,7 @@ def parse_args():
 	)
 	parser.add_argument(
 		"--no-env-account",
-		"-N",
+		"-n",
 		help="Do not load accounts from environment variables",
 		action="store_true",
 	)
@@ -68,7 +67,7 @@ def parse_args():
 	return parser.parse_args()
 
 
-def action_on_already_running():
+def action_on_already_running() -> None:
 	"""Handle actions when the Basilisk application is already running.
 
 	This function performs the appropriate action based on command-line arguments.
