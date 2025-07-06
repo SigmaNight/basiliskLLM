@@ -5,8 +5,6 @@ multiple instances of the application from running simultaneously:
 - Windows: Uses pywin32 named mutex
 """
 
-from typing import Optional
-
 import win32api
 import win32event
 import winerror
@@ -27,11 +25,7 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 	"""
 
 	def __init__(self):
-		"""Initialize the SingletonInstance object.
-
-		Args:
-			mutex_name: Name for the mutex (Windows only)
-		"""
+		"""Initialize the SingletonInstance object."""
 		self.mutex_handle = None
 
 		# Create a unique mutex name for the application
@@ -76,7 +70,7 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 			finally:
 				self.mutex_handle = None
 
-	def get_existing_pid(self) -> Optional[int]:
+	def get_existing_pid(self) -> int | None:
 		"""Get the PID of the existing instance, if any.
 
 		Note: On Windows with mutex-based locking, this method cannot reliably

@@ -8,7 +8,6 @@ multiple instances of the application from running simultaneously:
 import errno
 import fcntl
 import os
-from typing import Optional
 
 from basilisk.consts import FILE_LOCK_PATH
 
@@ -32,9 +31,9 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			file_lock: Path to the lock file (used on posix platforms)
 		"""
 		super().__init__()
-		self.lock_file_path = file_lock = FILE_LOCK_PATH
+		self.lock_file_path = FILE_LOCK_PATH
 		self.lock_file_handle = None
-		os.makedirs(os.path.dirname(file_lock), exist_ok=True)
+		os.makedirs(os.path.dirname(self.lock_file_path), exist_ok=True)
 
 	def acquire(self) -> bool:
 		"""Acquire the lock on POSIX systems using fcntl file locking.
@@ -96,7 +95,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			self._cleanup_failed_lock_attempt()
 			return False
 
-	def _get_lock_holder_pid(self) -> Optional[int]:
+	def _get_lock_holder_pid(self) -> int | None:
 		"""Get the PID of the current lock holder from the lock file.
 
 		Returns:
@@ -158,7 +157,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		finally:
 			self._cleanup_failed_lock_attempt()
 
-	def release(self):
+	def release(self) -> None:
 		"""Release the POSIX lock file."""
 		if self.lock_file_handle:
 			try:
@@ -181,7 +180,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		except Exception:
 			pass
 
-	def get_existing_pid(self) -> Optional[int]:
+	def get_existing_pid(self) -> int | None:
 		"""Get the PID of the existing instance, if any.
 
 		Returns:
