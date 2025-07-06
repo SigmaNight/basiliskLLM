@@ -8,7 +8,7 @@ if sys.platform == "win32":
 	)
 else:
 	from .posix_singleton_instance import (
-		POSIXSingletonInstance as SingletonInstance,
+		PosixSingletonInstance as SingletonInstance,
 	)
 
 __all__ = ["SingletonInstance"]
