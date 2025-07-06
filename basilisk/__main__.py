@@ -17,26 +17,6 @@ from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
 
-def display_already_running_msg():
-	"""Display a message box indicating that the Basilisk application is already running.
-
-	This function uses the Windows API via ctypes to show a message box informing the user that the application is currently active. The message provides guidance on how to interact with the running instance.
-
-	Notes:
-	    - Uses Windows-specific MessageBoxW function
-	    - Displays an informational icon (0x40)
-	    - Message includes application name and interaction instructions
-	"""
-	import ctypes
-
-	ctypes.windll.user32.MessageBoxW(
-		0,
-		f"{APP_NAME} is already running. Use the tray icon to interact with the application or AltGr+Shift+B to focus the window.",
-		APP_NAME,
-		0x40 | 0x0,
-	)
-
-
 def parse_args():
 	"""Parse command-line arguments for the Basilisk application.
 
@@ -80,12 +60,6 @@ def parse_args():
 		action="store_true",
 	)
 	parser.add_argument(
-		"-n",
-		help="Show message window if application is already running",
-		action="store_true",
-		dest="show_already_running_msg",
-	)
-	parser.add_argument(
 		'bskc_file',
 		nargs='?',
 		help='Basilisk conversation file to open',
@@ -117,12 +91,8 @@ if __name__ == '__main__':
 	if not singleton_instance.acquire():
 		# Another instance is already running
 		# The singleton mechanism handles stale lock detection and cleanup automatically
-
-		if global_vars.args.show_already_running_msg:
-			display_already_running_msg()
-		else:
-			# Send signal to existing instance
-			action_on_already_running()
+		# Send signal to existing instance
+		action_on_already_running()
 		sys.exit(0)
 
 	from basilisk.main_app import MainApp
