@@ -25,11 +25,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 	"""
 
 	def __init__(self):
-		"""Initialize the SingletonInstance object.
-
-		Args:
-			file_lock: Path to the lock file (used on posix platforms)
-		"""
+		"""Initialize the SingletonInstance object."""
 		super().__init__()
 		self.lock_file_path = FILE_LOCK_PATH
 		self.lock_file_handle = None
@@ -197,5 +193,4 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		# Check if the process is still alive
 		if self._is_process_alive(pid):
 			return pid
-		else:
-			return None
+		return None

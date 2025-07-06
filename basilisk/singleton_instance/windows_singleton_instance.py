@@ -86,9 +86,8 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 			test_mutex = win32event.CreateMutex(None, True, self.mutex_name)
 			if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
 				win32api.CloseHandle(test_mutex)
-				return (
-					-1
-				)  # Return a special value to indicate another instance exists
+				# Return a special value to indicate another instance exists
+				return -1
 			else:
 				win32event.ReleaseMutex(test_mutex)
 				win32api.CloseHandle(test_mutex)
