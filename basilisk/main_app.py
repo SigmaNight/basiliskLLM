@@ -7,7 +7,6 @@ Returns:
 """
 
 import logging
-import shutil
 import sys
 import threading
 
@@ -18,7 +17,7 @@ import basilisk.config as config
 import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
-from basilisk.consts import APP_NAME, TMP_DIR
+from basilisk.consts import APP_NAME
 from basilisk.ipc import BasiliskIpc, FocusSignal, OpenBskcSignal
 from basilisk.localization import init_translation
 from basilisk.logger import (
@@ -158,13 +157,12 @@ class MainApp(wx.App):
 			self.stop_auto_update = True
 			self.auto_update.join()
 			log.info("Automatic update thread stopped")
-		log.debug("Stopping file watcher")
-		self.file_watcher.stop()
-		self.file_watcher.join()
-		log.info("File watcher stopped")
-		log.debug("Removing temporary files")
-		shutil.rmtree(TMP_DIR, ignore_errors=True)
-
+		# Stop IPC mechanism (Windows named pipes or file watcher)
+		# Clean up IPC
+		if self.ipc:
+			log.debug("Stopping IPC receiver")
+			self.ipc.stop_receiver()
+			log.info("IPC receiver stopped")
 		log.info("Application exited")
 		return 0
 
