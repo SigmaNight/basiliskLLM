@@ -4,6 +4,7 @@ This module contains unit tests for the Windows named pipe communication
 system used for inter-process communication in the application.
 """
 
+import os
 import sys
 import tempfile
 import time
@@ -107,7 +108,6 @@ def test_open_bskc_signal_integration(test_pipe_name, received_signals):
 			assert str(data.file_path) == test_file
 		finally:
 			# Clean up the temporary file
-			import os
 
 			if os.path.exists(test_file):
 				os.unlink(test_file)
@@ -160,7 +160,6 @@ def test_multiple_signals(test_pipe_name, received_signals):
 			assert len(received_signals) == 2
 		finally:
 			# Clean up the temporary file
-			import os
 
 			if os.path.exists(test_file):
 				os.unlink(test_file)

@@ -99,7 +99,6 @@ class UnixIpc(AbstractIpc):
 		"""Send a signal through the Unix domain socket.
 
 		Args:
-			signal_type: Type of signal to send
 			data: Signal data
 
 		Returns:
