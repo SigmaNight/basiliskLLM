@@ -7,14 +7,14 @@ between application instances via IPC mechanisms.
 from datetime import datetime
 from typing import Literal, Union
 
-from pydantic import BaseModel, FilePath, TypeAdapter
+from pydantic import BaseModel, Field, FilePath, TypeAdapter
 
 
 class FocusSignal(BaseModel):
 	"""Signal to focus the Basilisk window."""
 
 	signal_type: Literal["focus"] = "focus"
-	timestamp: datetime = datetime.now()
+	timestamp: datetime = Field(default_factory=datetime.now)
 
 
 class OpenBskcSignal(BaseModel):
