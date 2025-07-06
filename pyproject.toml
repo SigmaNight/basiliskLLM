@@ -99,6 +99,12 @@ split-on-trailing-comma = false
 convention = "google"
 
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"
