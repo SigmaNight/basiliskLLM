@@ -1,5 +1,7 @@
 """Common test fixtures for basiliskLLM."""
 
+from unittest import mock
+
 import pytest
 from PIL import Image
 from upath import UPath
@@ -112,3 +114,27 @@ def message_segments():
 def segment_manager(message_segments):
 	"""Return a message segment manager with test segments."""
 	return MessageSegmentManager(message_segments)
+
+
+@pytest.fixture(autouse=True)
+def mock_display_error_msg():
+	"""Mock display_signal_error_msg to prevent error dialogs in tests."""
+	with mock.patch(
+		"basilisk.send_signal.display_signal_error_msg"
+	) as mock_display:
+		# Also mock the platform-specific functions to ensure no system calls
+		with mock.patch(
+			"basilisk.send_signal._display_error_msg_windows"
+		) as mock_win:
+			with mock.patch(
+				"basilisk.send_signal._display_error_msg_macos"
+			) as mock_mac:
+				with mock.patch(
+					"basilisk.send_signal._display_error_msg_linux"
+				) as mock_linux:
+					yield {
+						"main": mock_display,
+						"windows": mock_win,
+						"macos": mock_mac,
+						"linux": mock_linux,
+					}

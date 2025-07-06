@@ -7,7 +7,6 @@ Returns:
 """
 
 import logging
-import shutil
 import sys
 import threading
 
@@ -18,8 +17,8 @@ import basilisk.config as config
 import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
-from basilisk.consts import APP_NAME, TMP_DIR
-from basilisk.file_watcher import init_file_watcher
+from basilisk.consts import APP_NAME
+from basilisk.ipc import BasiliskIpc, FocusSignal, OpenBskcSignal
 from basilisk.localization import init_translation
 from basilisk.logger import (
 	get_log_file_path,
@@ -76,10 +75,7 @@ class MainApp(wx.App):
 		self.init_main_frame()
 		log.info("main frame initialized")
 		self.init_system_cert_store()
-		self.file_watcher = init_file_watcher(
-			send_focus=self.bring_window_to_focus,
-			open_bskc=self.frame.open_conversation,
-		)
+		self.init_ipc()
 		self.server = None
 		if self.conf.server.enable:
 			self.server = ServerThread(self.frame, self.conf.server.port)
@@ -112,13 +108,6 @@ class MainApp(wx.App):
 		)
 		self.frame.Show(not global_vars.args.minimize)
 		self.SetTopWindow(self.frame)
-
-	def bring_window_to_focus(self):
-		"""Brings the main application window to the front and gives it focus.
-
-		This method is called by the file watcher when a Basilisk file is opened externally. It ensures that the main application window is brought to the front and given focus.
-		"""
-		wx.CallAfter(self.frame.toggle_visibility, None)
 
 	def start_auto_update_thread(self):
 		"""Starts the automatic update thread.
@@ -168,13 +157,12 @@ class MainApp(wx.App):
 			self.stop_auto_update = True
 			self.auto_update.join()
 			log.info("Automatic update thread stopped")
-		log.debug("Stopping file watcher")
-		self.file_watcher.stop()
-		self.file_watcher.join()
-		log.info("File watcher stopped")
-		log.debug("Removing temporary files")
-		shutil.rmtree(TMP_DIR, ignore_errors=True)
-
+		# Stop IPC mechanism (Windows named pipes or file watcher)
+		# Clean up IPC
+		if self.ipc:
+			log.debug("Stopping IPC receiver")
+			self.ipc.stop_receiver()
+			log.info("IPC receiver stopped")
 		log.info("Application exited")
 		return 0
 
@@ -203,3 +191,74 @@ class MainApp(wx.App):
 				_("Error"),
 				style=wx.ICON_ERROR,
 			)
+
+	def bring_window_to_focus(self, data: FocusSignal):
+		"""Brings the main application window to the front and gives it focus.
+
+		This method is called by the IPC mechanism when a focus signal is received.
+		It ensures that the main application window is brought to the front and given focus,
+		with special handling for screen readers like NVDA.
+
+		The logic is:
+		1. If window is hidden -> restore it
+		2. If window is visible but this is a focus signal from another instance -> toggle to hidden
+		3. If window is iconized -> restore it
+
+		Args:
+			data: Optional signal data (used by Windows IPC, ignored by file watcher)
+		"""
+		log.debug("bring_window_to_focus called with data: %s", data)
+		log.debug(
+			"Frame state - IsShown: %s, IsIconized: %s",
+			self.frame.IsShown(),
+			self.frame.IsIconized(),
+		)
+
+		if not self.frame.IsShown():
+			# Window is hidden, restore it
+			log.debug("Window is hidden, restoring")
+			wx.CallAfter(self.frame.on_restore, None)
+			return
+		elif self.frame.IsIconized():
+			# Window is iconized, restore it
+			log.debug("Window is iconized, restoring")
+			wx.CallAfter(self.frame.on_restore, None)
+			return
+		log.debug("Window is visible and signal received, minimizing")
+		wx.CallAfter(self.frame.on_minimize, None)
+
+	def open_conversation_file(self, data: OpenBskcSignal):
+		"""Opens a conversation file from Windows IPC signal data.
+
+		This method is called by the Windows IPC mechanism when an open_bskc signal is received.
+		It extracts the file path from the signal data and opens the conversation.
+
+		Args:
+			data: Signal data containing the file path
+		"""
+		wx.CallAfter(self.frame.open_conversation, data.file_path)
+		if not self.frame.IsShown():
+			# Window is hidden, restore it
+			log.debug("Window is hidden, restoring")
+			wx.CallAfter(self.frame.on_restore, None)
+		elif self.frame.IsIconized():
+			# Window is iconized, restore it
+			log.debug("Window is iconized, restoring")
+			wx.CallAfter(self.frame.on_restore, None)
+		else:
+			# Window is visible, just force focus for screen readers
+			log.debug("Window is visible, forcing focus for screen readers")
+			wx.CallAfter(self.frame.force_focus_for_screen_reader)
+
+	def init_ipc(self):
+		"""Initializes the IPC mechanism for inter-process communication."""
+		ipc_callbacks = {
+			"send_focus": self.bring_window_to_focus,
+			"open_bskc": self.open_conversation_file,
+		}
+		log.info("Initializing IPC mechanism")
+		self.ipc = BasiliskIpc("basilisk_ipc")
+		if self.ipc.start_receiver(ipc_callbacks):
+			log.info("IPC receiver started successfully")
+		else:
+			log.error("Failed to initialize IPC")

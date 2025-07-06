@@ -32,7 +32,6 @@ dependencies = [
     "sounddevice (>=0.5.1)",
     "truststore (>=0.10.1)",
     "universal-pathlib (>=0.2.6)",
-    "watchdog (>=6.0.0)",
     "wxpython (>=4.2.2)",
     "mistralai (>=1.8.1,<2.0.0)",
 ]
@@ -100,6 +99,12 @@ split-on-trailing-comma = false
 convention = "google"
 
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "$version"
@@ -137,6 +142,6 @@ zip_include_packages = [
     "mistralai", "more_itertools", "multiprocessing", "numpy", "ollama", "ordered_set", "openai",
     "PIL", "platform_utils", "platformdirs", "proto", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
     "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath", "typing_inspection",
-    "watchdog", "websockets", "win32api", "win32com", "win32ctypes", "win32timezone",
+    "websockets", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "xmlrpc", "yaml", "zipfile", "zipp", "zoneinfo",
     "basilisk"]
