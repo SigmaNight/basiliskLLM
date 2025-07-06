@@ -25,6 +25,13 @@ class WindowsIpc(AbstractIpc):
 	for efficient communication between application instances.
 	"""
 
+	# Named pipe configuration
+	PIPE_BUFFER_SIZE = 65536  # 64KB buffer for pipe I/O
+	# Retry configuration for sending signals
+	MAX_SEND_RETRIES = 3
+	# 10ms between retries
+	RETRY_DELAY_SECONDS = 0.01
+
 	def __init__(self, pipe_name: str):
 		r"""Initialize the Windows IPC mechanism.
 
@@ -42,7 +49,9 @@ class WindowsIpc(AbstractIpc):
 		"""
 		try:
 			# Read the message
-			result, data = win32file.ReadFile(pipe_handle, 65536)
+			result, data = win32file.ReadFile(
+				pipe_handle, self.PIPE_BUFFER_SIZE
+			)
 			if result == 0:  # Success
 				message = data.decode("utf-8")
 				self._process_message(message)
@@ -66,8 +75,8 @@ class WindowsIpc(AbstractIpc):
 					| win32pipe.PIPE_READMODE_MESSAGE
 					| win32pipe.PIPE_WAIT,
 					win32pipe.PIPE_UNLIMITED_INSTANCES,  # Allow multiple instances
-					65536,  # Output buffer size
-					65536,  # Input buffer size
+					self.PIPE_BUFFER_SIZE,  # Output buffer size
+					self.PIPE_BUFFER_SIZE,  # Input buffer size
 					0,  # Default timeout
 					None,  # Security attributes
 				)
@@ -101,10 +110,7 @@ class WindowsIpc(AbstractIpc):
 		Returns:
 			True if the signal was sent successfully, False otherwise
 		"""
-		max_retries = 3
-		retry_delay = 0.01  # 10ms between retries
-
-		for attempt in range(max_retries):
+		for attempt in range(self.MAX_SEND_RETRIES):
 			try:
 				# Try to connect to the named pipe
 				pipe_handle = win32file.CreateFile(
@@ -125,20 +131,20 @@ class WindowsIpc(AbstractIpc):
 				return True
 
 			except pywintypes.error as e:
-				if attempt < max_retries - 1:
+				if attempt < self.MAX_SEND_RETRIES - 1:
 					logger.debug(
 						"Retry %d/%d for signal %s: %s",
 						attempt + 1,
-						max_retries,
+						self.MAX_SEND_RETRIES,
 						data,
 						e,
 					)
-					time.sleep(retry_delay)
+					time.sleep(self.RETRY_DELAY_SECONDS)
 				else:
 					logger.error(
 						"Error sending signal %s after %d attempts: %s",
 						data,
-						max_retries,
+						self.MAX_SEND_RETRIES,
 						e,
 					)
 					return False
