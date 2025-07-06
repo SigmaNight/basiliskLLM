@@ -28,9 +28,9 @@ class WindowsIpc(AbstractIpc):
 	# Named pipe configuration
 	PIPE_BUFFER_SIZE = 65536  # 64KB buffer for pipe I/O
 	# Retry configuration for sending signals
-	MAX_SEND_RETRIES = 3
-	# 10ms between retries
-	RETRY_DELAY_SECONDS = 0.01
+	MAX_SEND_RETRIES = 5
+	# time between retries
+	RETRY_DELAY_SECONDS = 0.05
 
 	def __init__(self, pipe_name: str):
 		r"""Initialize the Windows IPC mechanism.
