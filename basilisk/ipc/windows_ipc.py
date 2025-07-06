@@ -34,6 +34,26 @@ class WindowsIpc(AbstractIpc):
 		super().__init__(pipe_name)
 		self.pipe_name = f"\\\\.\\pipe\\{pipe_name}"
 
+	def _handle_connection(self, pipe_handle):
+		"""Handle a client connection to the named pipe.
+
+		Args:
+			pipe_handle: Handle to the connected named pipe
+		"""
+		try:
+			# Read the message
+			result, data = win32file.ReadFile(pipe_handle, 65536)
+			if result == 0:  # Success
+				message = data.decode("utf-8")
+				self._process_message(message)
+		except pywintypes.error as e:
+			if e.winerror != win32con.ERROR_BROKEN_PIPE:
+				logger.error("Error reading from pipe: %s", e)
+		finally:
+			# Disconnect the client
+			win32pipe.DisconnectNamedPipe(pipe_handle)
+			win32file.CloseHandle(pipe_handle)
+
 	def _run_server(self):
 		"""Run the named pipe server loop with concurrent connection handling."""
 		while self.running:
@@ -60,25 +80,11 @@ class WindowsIpc(AbstractIpc):
 				logger.debug("Waiting for client connection...")
 				win32pipe.ConnectNamedPipe(pipe_handle, None)
 
-				# Handle the connection in a separate thread
-				def handle_connection(pipe_handle):
-					try:
-						# Read the message
-						result, data = win32file.ReadFile(pipe_handle, 65536)
-						if result == 0:  # Success
-							message = data.decode("utf-8")
-							self._process_message(message)
-					except pywintypes.error as e:
-						if e.winerror != win32con.ERROR_BROKEN_PIPE:
-							logger.error("Error reading from pipe: %s", e)
-					finally:
-						# Disconnect the client
-						win32pipe.DisconnectNamedPipe(pipe_handle)
-						win32file.CloseHandle(pipe_handle)
-
 				# Start handling connection in a separate thread
 				connection_thread = threading.Thread(
-					target=handle_connection, args=(pipe_handle,), daemon=True
+					target=self._handle_connection,
+					args=(pipe_handle,),
+					daemon=True,
 				)
 				connection_thread.start()
 
