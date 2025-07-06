@@ -54,9 +54,9 @@ Name: "DesktopIcon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "StartupIcon"; Description: "{cm:AutoStartProgram,{#SetupSetting("AppName")}}"; GroupDescription: "{cm:AutoStartProgramGroupDescription}"; Flags: unchecked
 
 [Icons]
-Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"
-Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n"; WorkingDir: "{app}"; Tasks: DesktopIcon
-Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-n -m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
+Name: "{group}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; WorkingDir: "{app}"; Tasks: DesktopIcon
+Name: "{autostartup}\{#SetupSetting("AppName")}"; Filename: "{app}\basilisk.exe"; Parameters: "-m"; WorkingDir: "{app}"; Tasks: StartupIcon; flags: runminimized
 
 [CustomMessages]
 CreateDirError=Unable to create directory: %1

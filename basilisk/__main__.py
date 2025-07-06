@@ -11,32 +11,10 @@ import multiprocessing
 import os
 import sys
 
-import psutil
-
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, FILE_LOCK_PATH, TMP_DIR
+from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
-
-
-def display_already_running_msg():
-	"""Display a message box indicating that the Basilisk application is already running.
-
-	This function uses the Windows API via ctypes to show a message box informing the user that the application is currently active. The message provides guidance on how to interact with the running instance.
-
-	Notes:
-	    - Uses Windows-specific MessageBoxW function
-	    - Displays an informational icon (0x40)
-	    - Message includes application name and interaction instructions
-	"""
-	import ctypes
-
-	ctypes.windll.user32.MessageBoxW(
-		0,
-		f"{APP_NAME} is already running. Use the tray icon to interact with the application or AltGr+Shift+B to focus the window.",
-		APP_NAME,
-		0x40 | 0x0,
-	)
 
 
 def parse_args():
@@ -47,9 +25,8 @@ def parse_args():
 	Arguments:
 		--language, -l (str | None): Sets the application language. Defaults to None.
 		--log_level, -L (str | None): Sets the logging level. Valid levels are DEBUG, INFO, WARNING, ERROR, CRITICAL. Defaults to None.
-		--no-env-account, -N (bool): Disables loading accounts from environment variables. Defaults to False.
+		--no-env-account, -n (bool): Disables loading accounts from environment variables. Defaults to False.
 		--minimize, -m (bool): Starts the application in a minimized window state. Defaults to False.
-		--show_already_running_msg, -n (bool): Shows a message if the application is already running. Defaults to False.
 
 	Returns:
 		argparse.Namespace: Parsed command-line arguments with their values.
@@ -71,7 +48,7 @@ def parse_args():
 	)
 	parser.add_argument(
 		"--no-env-account",
-		"-N",
+		"-n",
 		help="Do not load accounts from environment variables",
 		action="store_true",
 	)
@@ -82,12 +59,6 @@ def parse_args():
 		action="store_true",
 	)
 	parser.add_argument(
-		"-n",
-		help="Show message window if application is already running",
-		action="store_true",
-		dest="show_already_running_msg",
-	)
-	parser.add_argument(
 		'bskc_file',
 		nargs='?',
 		help='Basilisk conversation file to open',
@@ -96,28 +67,33 @@ def parse_args():
 	return parser.parse_args()
 
 
+def action_on_already_running() -> None:
+	"""Handle actions when the Basilisk application is already running.
+
+	This function performs the appropriate action based on command-line arguments.
+	If a BSKC file is specified, it sends a signal to open that file in the existing instance.
+	Otherwise, it sends a focus signal to bring the existing instance to the foreground.
+	"""
+	if global_vars.args.bskc_file:
+		send_open_bskc_file_signal(global_vars.args.bskc_file)
+	else:
+		send_focus_signal()
+
+
 if __name__ == '__main__':
 	# Enable multiprocessing support for frozen executables
 	multiprocessing.freeze_support()
 
 	os.makedirs(TMP_DIR, exist_ok=True)
 	global_vars.args = parse_args()
-	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
+	singleton_instance = SingletonInstance()
 	if not singleton_instance.acquire():
-		existing_pid = singleton_instance.get_existing_pid()
-		if existing_pid:
-			try:
-				psutil.Process(existing_pid)
-				if global_vars.args.show_already_running_msg:
-					display_already_running_msg()
-				else:
-					if global_vars.args.bskc_file:
-						send_open_bskc_file_signal(global_vars.args.bskc_file)
-					else:
-						send_focus_signal()
-				sys.exit(0)
-			except psutil.NoSuchProcess:
-				singleton_instance.acquire()
+		# Another instance is already running
+		# The singleton mechanism handles stale lock detection and cleanup automatically
+		# Send signal to existing instance
+		action_on_already_running()
+		sys.exit(0)
+
 	from basilisk.main_app import MainApp
 
 	app = MainApp()

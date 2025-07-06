@@ -24,7 +24,6 @@ dependencies = [
     "openai (>=1.65.1)",
     "ordered-set (>=4.1.0)",
     "pillow (>=11.1.0)",
-    "psutil (>=7.0.0)",
     "platformdirs (>=4.3.6)",
     "pydantic (>=2.10.6)",
     "pydantic-settings (>=2.8.1)",
@@ -37,6 +36,7 @@ dependencies = [
     "wxpython (>=4.2.2)",
     "mistralai (>=1.8.1,<2.0.0)",
 ]
+
 [project.urls]
 homepage = "https://github.com/SigmaNight/basiliskLLM"
 repository = "https://github.com/SigmaNight/basiliskLLM"
@@ -135,7 +135,7 @@ zip_include_packages = [
     "idna", "importlib", "importlib_metadata", "importlib_resources",
     "jaraco", "jiter", "json", "keyring", "libloader", "logging",
     "mistralai", "more_itertools", "multiprocessing", "numpy", "ollama", "ordered_set", "openai",
-    "PIL", "platform_utils", "platformdirs", "proto", "psutil", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
+    "PIL", "platform_utils", "platformdirs", "proto", "pyasn1", "pyasn1_modules", "pycparser", "pyparsing", "pydantic", "pydantic_core", "pydantic_settings", "pywin", "pywin32_system32",
     "re", "rsa", "requests", "sniffio", "tarfile", "tokenizers", "tomli", "truststore", "tqdm", "uritemplate", "urllib", "urllib3", "upath", "typing_inspection",
     "watchdog", "websockets", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "xmlrpc", "yaml", "zipfile", "zipp", "zoneinfo",
