@@ -11,10 +11,8 @@ import multiprocessing
 import os
 import sys
 
-import psutil
-
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, FILE_LOCK_PATH, TMP_DIR
+from basilisk.consts import APP_NAME, TMP_DIR
 from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
@@ -96,28 +94,37 @@ def parse_args():
 	return parser.parse_args()
 
 
+def action_on_already_running():
+	"""Handle actions when the Basilisk application is already running.
+
+	This function performs the appropriate action based on command-line arguments.
+	If a BSKC file is specified, it sends a signal to open that file in the existing instance.
+	Otherwise, it sends a focus signal to bring the existing instance to the foreground.
+	"""
+	if global_vars.args.bskc_file:
+		send_open_bskc_file_signal(global_vars.args.bskc_file)
+	else:
+		send_focus_signal()
+
+
 if __name__ == '__main__':
 	# Enable multiprocessing support for frozen executables
 	multiprocessing.freeze_support()
 
 	os.makedirs(TMP_DIR, exist_ok=True)
 	global_vars.args = parse_args()
-	singleton_instance = SingletonInstance(FILE_LOCK_PATH)
+	singleton_instance = SingletonInstance()
 	if not singleton_instance.acquire():
-		existing_pid = singleton_instance.get_existing_pid()
-		if existing_pid:
-			try:
-				psutil.Process(existing_pid)
-				if global_vars.args.show_already_running_msg:
-					display_already_running_msg()
-				else:
-					if global_vars.args.bskc_file:
-						send_open_bskc_file_signal(global_vars.args.bskc_file)
-					else:
-						send_focus_signal()
-				sys.exit(0)
-			except psutil.NoSuchProcess:
-				singleton_instance.acquire()
+		# Another instance is already running
+		# The singleton mechanism handles stale lock detection and cleanup automatically
+
+		if global_vars.args.show_already_running_msg:
+			display_already_running_msg()
+		else:
+			# Send signal to existing instance
+			action_on_already_running()
+		sys.exit(0)
+
 	from basilisk.main_app import MainApp
 
 	app = MainApp()
