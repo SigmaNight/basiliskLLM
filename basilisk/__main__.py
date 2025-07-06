@@ -8,11 +8,10 @@ If the application is already running, the module sends signals to the running i
 
 import argparse
 import multiprocessing
-import os
 import sys
 
 from basilisk import global_vars
-from basilisk.consts import APP_NAME, TMP_DIR
+from basilisk.consts import APP_NAME
 from basilisk.send_signal import send_focus_signal, send_open_bskc_file_signal
 from basilisk.singleton_instance import SingletonInstance
 
@@ -84,7 +83,6 @@ if __name__ == '__main__':
 	# Enable multiprocessing support for frozen executables
 	multiprocessing.freeze_support()
 
-	os.makedirs(TMP_DIR, exist_ok=True)
 	global_vars.args = parse_args()
 	singleton_instance = SingletonInstance()
 	if not singleton_instance.acquire():
