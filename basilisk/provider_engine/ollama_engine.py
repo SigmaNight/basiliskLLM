@@ -139,7 +139,7 @@ class OllamaEngine(BaseEngine):
 					raise NotImplementedError(
 						"images URL are not supported for Ollama"
 					)
-				images.append(attachment.encode_image())
+				images.append(attachment.read_as_bytes())
 		return {
 			"role": message.role.value,
 			"content": message.content,

@@ -404,14 +404,39 @@ class AttachmentFile(BaseModel):
 		except Exception as e:
 			log.error("Error deleting file at '%s': %s", location, e)
 
+	def _read_file(self, mode: str):
+		"""Read the file content using the specified mode.
+
+		Args:
+			mode: The file opening mode ("r" for text, "rb" for bytes).
+
+		Returns:
+			The file content in the format specified by the mode.
+		"""
+		# Use UTF-8 encoding for text modes to ensure consistent behavior across platforms
+		encoding = "utf-8" if "b" not in mode else None
+		open_kwargs = {"mode": mode}
+		if encoding:
+			open_kwargs["encoding"] = encoding
+
+		with self.send_location.open(**open_kwargs) as file:
+			return file.read()
+
 	def read_as_plain_text(self) -> str:
 		"""Read the file as a plain text string.
 
 		Returns:
 			The contents of the file as a plain text string.
 		"""
-		with self.send_location.open(mode="r") as file:
-			return file.read()
+		return self._read_file("r")
+
+	def read_as_bytes(self) -> bytes:
+		"""Read the file as bytes.
+
+		Returns:
+			The contents of the file as bytes.
+		"""
+		return self._read_file("rb")
 
 	def encode_base64(self) -> str:
 		"""Encode the file as a base64 string.
