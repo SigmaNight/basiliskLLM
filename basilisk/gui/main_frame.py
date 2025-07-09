@@ -402,6 +402,17 @@ class MainFrame(wx.Frame):
 		log.debug("Restored from tray")
 		self.Show(True)
 		self.Raise()
+		self.focus_current_tab()
+
+	def focus_current_tab(self):
+		"""Focus the currently selected conversation tab."""
+		current_tab = self.current_tab
+		parent = wx.Window.FindFocus().GetParent()
+		while parent is not None:
+			if parent == current_tab:
+				return
+			parent = parent.GetParent()
+		current_tab.prompt_panel.set_prompt_focus()
 
 	def on_close(self, event: wx.Event | None):
 		"""Handle the close event for the main application frame.
