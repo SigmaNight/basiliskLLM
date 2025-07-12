@@ -1519,15 +1519,15 @@ files = [
 
 [[package]]
 name = "mistralai"
-version = "1.9.1"
+version = "1.9.2"
 description = "Python Client SDK for the Mistral AI API."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "platform_machine == \"x86_64\" or platform_machine == \"i686\" or platform_machine == \"aarch64\" or platform_machine == \"armv7l\" or platform_machine == \"ppc64le\" or platform_machine == \"s390x\" or sys_platform != \"linux\" or platform_machine != \"x86_64\" and platform_machine != \"i686\" and platform_machine != \"aarch64\" and platform_machine != \"armv7l\" and platform_machine != \"ppc64le\" and platform_machine != \"s390x\""
 files = [
-    {file = "mistralai-1.9.1-py3-none-any.whl", hash = "sha256:250ec26534db6f4a4d5e6292b0801a64da2ab1f0d4c63a20d8ce27e3a427e402"},
-    {file = "mistralai-1.9.1.tar.gz", hash = "sha256:89eb1d48e9555c8289c02ddea966115eba0516355731726ea0a24eabb42f8419"},
+    {file = "mistralai-1.9.2-py3-none-any.whl", hash = "sha256:7c3fff00e50227d379dea82052455c2610612a8ef476fa97393191aeeb7ab15f"},
+    {file = "mistralai-1.9.2.tar.gz", hash = "sha256:c0c6d5aff18ffccbc0d22c06fbc84280d71eeaeb08fa4e1ef7326b36629cfb0b"},
 ]
 
 [package.dependencies]
