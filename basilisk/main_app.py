@@ -207,25 +207,8 @@ class MainApp(wx.App):
 		Args:
 			data: Optional signal data (used by Windows IPC, ignored by file watcher)
 		"""
-		log.debug("bring_window_to_focus called with data: %s", data)
-		log.debug(
-			"Frame state - IsShown: %s, IsIconized: %s",
-			self.frame.IsShown(),
-			self.frame.IsIconized(),
-		)
-
-		if not self.frame.IsShown():
-			# Window is hidden, restore it
-			log.debug("Window is hidden, restoring")
-			wx.CallAfter(self.frame.on_restore, None)
-			return
-		elif self.frame.IsIconized():
-			# Window is iconized, restore it
-			log.debug("Window is iconized, restoring")
-			wx.CallAfter(self.frame.on_restore, None)
-			return
-		log.debug("Window is visible and signal received, minimizing")
-		wx.CallAfter(self.frame.on_minimize, None)
+		log.info("Received focus signal, bringing window to front")
+		wx.CallAfter(self.frame.on_restore, None)
 
 	def open_conversation_file(self, data: OpenBskcSignal):
 		"""Opens a conversation file from Windows IPC signal data.
@@ -236,19 +219,12 @@ class MainApp(wx.App):
 		Args:
 			data: Signal data containing the file path
 		"""
+		log.info(
+			"Received open_bskc signal, opening conversation file: %s",
+			data.file_path,
+		)
 		wx.CallAfter(self.frame.open_conversation, data.file_path)
-		if not self.frame.IsShown():
-			# Window is hidden, restore it
-			log.debug("Window is hidden, restoring")
-			wx.CallAfter(self.frame.on_restore, None)
-		elif self.frame.IsIconized():
-			# Window is iconized, restore it
-			log.debug("Window is iconized, restoring")
-			wx.CallAfter(self.frame.on_restore, None)
-		else:
-			# Window is visible, just force focus for screen readers
-			log.debug("Window is visible, forcing focus for screen readers")
-			wx.CallAfter(self.frame.force_focus_for_screen_reader)
+		wx.CallAfter(self.frame.on_restore, None)
 
 	def init_ipc(self):
 		"""Initializes the IPC mechanism for inter-process communication."""

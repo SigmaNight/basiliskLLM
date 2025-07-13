@@ -396,11 +396,13 @@ class MainFrame(wx.Frame):
 		Args:
 			event: The event that triggered the restore action. Can be None.
 		"""
-		if self.IsShown():
-			log.debug("Already restored")
-			return
-		log.debug("Restored from tray")
-		self.Show(True)
+		if not self.IsShown():
+			log.debug("Restoring from tray")
+			self.Show(True)
+		if self.IsIconized():
+			log.debug("Restoring from iconized state")
+			self.Iconize(False)
+		log.debug("Bringing window to front")
 		self.Raise()
 		self.focus_current_tab()
 
