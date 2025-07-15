@@ -280,6 +280,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			MenuItemInfo(
 				_("Find Previous"), "(Shift+F3)", self.on_search_previous, []
 			),
+			MenuItemInfo(
+				_("Extract artifacts from message"), "(&a)", self.on_extract_artifacts, []
+			),
 		)
 
 	def on_context_menu(self, event: wx.ContextMenuEvent):
@@ -572,6 +575,63 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.GetParent().refresh_messages()
 			self.a_output.handle(_("Message block updated"), braille=True)
 		dlg.Destroy()
+
+	def on_extract_artifacts(self, event: wx.CommandEvent | None = None):
+		"""Extract artifacts from the current message.
+		
+		Scans the current message for artifacts (code blocks, significant text content)
+		and shows them in a temporary artifact viewer.
+		
+		Args:
+			event: The event that triggered the action
+		"""
+		content = self.current_msg_content
+		if not content.strip():
+			wx.Bell()
+			return
+		
+		# Import artifact detection locally to avoid circular imports
+		from basilisk.conversation.artifact import ArtifactDetector
+		from .html_view_window import show_html_view_window
+		
+		# Detect artifacts in current message
+		artifacts = ArtifactDetector.detect_artifacts(content)
+		
+		if not artifacts:
+			wx.MessageBox(
+				_("No artifacts found in the current message."),
+				_("No Artifacts"),
+				wx.OK | wx.ICON_INFORMATION
+			)
+			return
+		
+		# Show artifacts in a dialog
+		artifact_summary = []
+		artifact_summary.append("# " + _("Artifacts Found"))
+		artifact_summary.append("")
+		
+		for i, artifact in enumerate(artifacts, 1):
+			artifact_summary.append(f"## {i}. {artifact.title}")
+			artifact_summary.append("")
+			
+			if artifact.type.value == "code_block":
+				lang = artifact.language or ""
+				artifact_summary.append(f"```{lang}")
+				artifact_summary.append(artifact.content)
+				artifact_summary.append("```")
+			else:
+				artifact_summary.append(artifact.content)
+			
+			artifact_summary.append("")
+			artifact_summary.append("---")
+			artifact_summary.append("")
+		
+		show_html_view_window(
+			parent=self.GetTopLevelParent(),
+			content="\n".join(artifact_summary),
+			content_format="markdown",
+			title=_("Message Artifacts")
+		)
 
 	@staticmethod
 	def _handle_citations(citations: list[dict[str, Any]]) -> str:
