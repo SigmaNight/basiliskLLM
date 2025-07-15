@@ -179,6 +179,13 @@ class MainFrame(wx.Frame):
 			transcribe_audio_file_item,
 		)
 		conversation_menu.AppendSeparator()
+		manage_artifacts_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to manage conversation artifacts
+			_("Manage &artifacts") + "...\tCtrl+Shift+T",
+		)
+		self.Bind(wx.EVT_MENU, self.on_manage_artifacts, manage_artifacts_item)
+		conversation_menu.AppendSeparator()
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
 		self.signal_received = False
@@ -755,6 +762,31 @@ class MainFrame(wx.Frame):
 			)
 			menu.Insert(item_index, self.new_conversation_profile_item)
 		profile_dialog.Destroy()
+
+	def on_manage_artifacts(self, event: wx.Event | None):
+		"""Open the artifact management dialog for the current conversation.
+		
+		This opens a dialog showing all artifacts (code blocks, significant text content)
+		detected in the current conversation, allowing users to view, copy, and save them.
+		
+		Args:
+			event: The event that triggered the artifact management action. Can be None.
+		"""
+		current_tab = self.current_conversation_tab()
+		if current_tab is None:
+			wx.MessageBox(
+				_("No conversation is currently open."),
+				_("No Conversation"),
+				wx.OK | wx.ICON_INFORMATION
+			)
+			return
+		
+		# Scan for artifacts in the current conversation
+		current_tab.scan_for_artifacts()
+		
+		# Import and show the artifact dialog
+		from .artifact_dialog import show_artifact_dialog
+		show_artifact_dialog(self, current_tab)
 
 	def on_install_nvda_addon(self, event):
 		"""Install the NVDA addon for BasiliskLLM.

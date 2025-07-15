@@ -161,6 +161,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_handler = OCRHandler(self)
+		
+		# Initialize artifact manager for this conversation
+		from basilisk.conversation.artifact import ArtifactManager
+		self.artifact_manager = ArtifactManager()
 
 		self.init_ui()
 		self.init_data(profile)
@@ -739,6 +743,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			return False
 
+	def scan_for_artifacts(self) -> None:
+		"""Scan the current conversation for artifacts and update the artifact manager.
+		
+		This method goes through all message blocks in the conversation and extracts
+		artifacts (code blocks, significant text content) from assistant responses.
+		"""
+		# Clear existing artifacts
+		self.artifact_manager.clear_all()
+		
+		# Scan through all message blocks
+		for block in self.conversation.messages:
+			if block.response and block.response.content:
+				# Generate a message ID for reference
+				message_id = f"block_{id(block)}"
+				
+				# Extract artifacts from the response content
+				self.artifact_manager.add_artifacts_from_content(
+					block.response.content,
+					source_message_id=message_id
+				)
+
 	def remove_message_block(self, message_block: MessageBlock):
 		"""Remove a message block from the conversation.
 
@@ -810,6 +835,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.messages.a_output.handle_stream_buffer()
 		self.messages.update_last_segment_length()
+		
+		# Scan for artifacts in the completed response
+		if new_block.response and new_block.response.content:
+			message_id = f"block_{id(new_block)}"
+			self.artifact_manager.add_artifacts_from_content(
+				new_block.response.content,
+				source_message_id=message_id
+			)
 
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
@@ -825,3 +858,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if self.messages.should_speak_response:
 			self.messages.a_output.handle(new_block.response.content)
 		self.prompt_panel.clear()
+		
+		# Scan for artifacts in the completed response
+		if new_block.response and new_block.response.content:
+			message_id = f"block_{id(new_block)}"
+			self.artifact_manager.add_artifacts_from_content(
+				new_block.response.content,
+				source_message_id=message_id
+			)

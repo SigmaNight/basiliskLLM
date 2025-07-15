@@ -1,5 +1,6 @@
 """Module for managing conversation between users and the bot."""
 
+from .artifact import Artifact, ArtifactDetector, ArtifactManager, ArtifactType
 from .attached_file import (
 	URL_PATTERN,
 	AttachmentFile,
@@ -20,6 +21,10 @@ from .conversation_model import (
 )
 
 __all__ = [
+	"Artifact",
+	"ArtifactDetector", 
+	"ArtifactManager",
+	"ArtifactType",
 	"AttachmentFile",
 	"AttachmentFileTypes",
 	"build_from_url",
