@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-21 09:14+0000\n"
-"PO-Revision-Date: 2025-06-21 13:30\n"
+"POT-Creation-Date: 2025-07-19 12:26+0000\n"
+"PO-Revision-Date: 2025-07-19 13:33\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -52,7 +52,7 @@ msgstr "Une erreur s’est produite durant la génération : "
 #: basilisk/gui/prompt_attachments_panel.py:692
 #: basilisk/gui/prompt_attachments_panel.py:741
 #: basilisk/gui/prompt_attachments_panel.py:752
-#: basilisk/gui/search_dialog.py:301 basilisk/main_app.py:203
+#: basilisk/gui/search_dialog.py:301 basilisk/main_app.py:191
 msgid "Error"
 msgstr "Erreur"
 
@@ -61,7 +61,7 @@ msgid "A task is already running. Please wait for it to complete."
 msgstr "Une tâche est en cours d’exécution. Veuillez attendre la fin de cette dernière."
 
 #. Translators: Error message
-#: basilisk/main_app.py:201
+#: basilisk/main_app.py:189
 msgid "Failed to activate system certificate store"
 msgstr "Échec de l'activation du magasin de certificats système"
 
@@ -570,8 +570,8 @@ msgid "Read current message"
 msgstr "Lire le message actuel"
 
 #: basilisk/gui/history_msg_text_ctrl.py:227
-msgid "Speak stream"
-msgstr "Énoncer le stream"
+msgid "Speak response"
+msgstr ""
 
 #: basilisk/gui/history_msg_text_ctrl.py:233
 msgid "Show as HTML (from Markdown)"
@@ -639,8 +639,8 @@ msgstr "Fin du message"
 
 #: basilisk/gui/history_msg_text_ctrl.py:485
 #, python-format
-msgid "Stream speaking %s"
-msgstr "Streaming parlant %s"
+msgid "Response speaking %s"
+msgstr ""
 
 #: basilisk/gui/history_msg_text_ctrl.py:486
 msgid "enabled"
@@ -650,62 +650,62 @@ msgstr "activé"
 msgid "disabled"
 msgstr "désactivé"
 
-#: basilisk/gui/history_msg_text_ctrl.py:539
+#: basilisk/gui/history_msg_text_ctrl.py:550
 msgid "Message block removed"
 msgstr "Bloque de message suprimé"
 
-#: basilisk/gui/history_msg_text_ctrl.py:562
+#: basilisk/gui/history_msg_text_ctrl.py:573
 msgid "Message block updated"
 msgstr ""
 
 #. Translators: This is a citation format for character locations
-#: basilisk/gui/history_msg_text_ctrl.py:586
+#: basilisk/gui/history_msg_text_ctrl.py:597
 #, python-brace-format
 msgid "C.{start} .. {end}"
 msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
-#: basilisk/gui/history_msg_text_ctrl.py:593
+#: basilisk/gui/history_msg_text_ctrl.py:604
 #, python-brace-format
 msgid "P.{start} .. {end}"
 msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
-#: basilisk/gui/history_msg_text_ctrl.py:598
+#: basilisk/gui/history_msg_text_ctrl.py:609
 msgid "Unknown location"
 msgstr "Localisation inconnue"
 
-#: basilisk/gui/history_msg_text_ctrl.py:603
+#: basilisk/gui/history_msg_text_ctrl.py:614
 #, python-brace-format
 msgid "{document_title} / {location_text}"
 msgstr "{document_title} / {location_text}"
 
-#: basilisk/gui/history_msg_text_ctrl.py:610
+#: basilisk/gui/history_msg_text_ctrl.py:621
 #, python-brace-format
 msgid "Document {document_index} / {location_text}"
 msgstr "Document {document_index} / {location_text}"
 
 #. Translators: This is a citation format for a cited text
-#: basilisk/gui/history_msg_text_ctrl.py:618
+#: basilisk/gui/history_msg_text_ctrl.py:629
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
 msgstr "{location_text}: “ {cited_text} ”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
-#: basilisk/gui/history_msg_text_ctrl.py:633
+#: basilisk/gui/history_msg_text_ctrl.py:644
 #, python-format
 msgid "%d citations in the current message"
 msgstr "%d citations dans le message sélectionné"
 
 #. Translators: This message is emitted when there are no citations for the
 #. current message.
-#: basilisk/gui/history_msg_text_ctrl.py:647
+#: basilisk/gui/history_msg_text_ctrl.py:658
 msgid "No citations for this message"
 msgstr "Aucune citation pour le message sélectionné"
 
 #. Translators: This is a title for message citations dialog
-#: basilisk/gui/history_msg_text_ctrl.py:659
+#: basilisk/gui/history_msg_text_ctrl.py:670
 msgid "Message citations"
 msgstr ""
 
@@ -1563,3 +1563,4 @@ msgstr "Plus performant que n'importe quel modèle GPT-3.5, capable de réaliser
 #: basilisk/provider_engine/openai_engine.py:374
 msgid "Same capabilities as the standard gpt-4 mode but with 4x the context length"
 msgstr "Mêmes capacités que le mode gpt-4 standard mais avec une longueur de contexte 4 fois plus longue"
+
