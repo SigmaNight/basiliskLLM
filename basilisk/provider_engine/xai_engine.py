@@ -1,5 +1,5 @@
-"""
-Module for xAI API integration.
+"""Module for xAI API integration.
+
 This module provides the XAIEngine class for interacting with the xAI API,
 implementing capabilities for both text and image generation.
 """
