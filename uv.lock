@@ -14,7 +14,7 @@ resolution-markers = [
 [[package]]
 name = "accessible-output3"
 version = "0.0.0"
-source = { git = "https://github.com/SigmaNight/accessible_output3.git#3195825bc6401d4c5588383a4db37ad63718fa2d" }
+source = { git = "https://github.com/SigmaNight/accessible_output3.git#fa8754da4947d961eaaa73ebc05c030b8a37ea4a" }
 dependencies = [
     { name = "pyobjc", marker = "sys_platform == 'darwin'" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
