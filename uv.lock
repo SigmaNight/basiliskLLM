@@ -110,6 +110,11 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "cx-freeze" },
+    { name = "setuptools" },
+    { name = "setuptools-scm" },
+]
 dev = [
     { name = "commitizen" },
     { name = "cx-freeze" },
@@ -118,7 +123,18 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
     { name = "ruff" },
+    { name = "setuptools" },
     { name = "setuptools-scm" },
+]
+style = [
+    { name = "commitizen" },
+    { name = "pre-commit" },
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-httpx" },
 ]
 
 [package.metadata]
@@ -150,6 +166,11 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+build = [
+    { name = "cx-freeze", specifier = ">=8.3.0" },
+    { name = "setuptools", specifier = ">=68.0.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.0" },
+]
 dev = [
     { name = "commitizen", specifier = ">=4.8" },
     { name = "cx-freeze", specifier = ">=8.3.0" },
@@ -157,8 +178,19 @@ dev = [
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-cov", specifier = ">=6.2.0" },
     { name = "pytest-httpx", specifier = ">=0.35.0" },
-    { name = "ruff", specifier = ">=0.12.0,<0.13.0" },
+    { name = "ruff", specifier = ">=0.12.0" },
+    { name = "setuptools", specifier = ">=68.0.0" },
     { name = "setuptools-scm", specifier = ">=8.3.0" },
+]
+style = [
+    { name = "commitizen", specifier = ">=4.8" },
+    { name = "pre-commit", specifier = ">=4.1.0" },
+    { name = "ruff", specifier = ">=0.12.0" },
+]
+test = [
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-cov", specifier = ">=6.2.0" },
+    { name = "pytest-httpx", specifier = ">=0.35.0" },
 ]
 
 [[package]]
