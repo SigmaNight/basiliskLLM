@@ -25,7 +25,7 @@ jobs:
       - name: setup uv
         uses: astral-sh/setup-uv@v6
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --no-dev --group build
       - name: build POT file
         run: uv run setup.py extract_messages
       - name: upload POT file
