@@ -7,7 +7,7 @@ ci:
     autoupdate_commit_msg: 'ci(deps): pre-commit autoupdate'
     autoupdate_schedule: weekly
     skip:
-      - "ruff"
+      - "ruff-check"
       - "uv-lock"
 default_language_version:
   python: python3.12
