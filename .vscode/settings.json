@@ -2,7 +2,7 @@
 	"files.readonlyInclude": {
 		"**/.venv/Lib/site-packages/**": true,
 		"**/.venv/src/**": true,
-		"**/poetry.lock": true,
+		"**/uv.lock": true,
 	},
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
@@ -37,6 +37,6 @@
 		},
 		{
 			"text": "Always try uniting related tests in a suite."
-		},
-	],
+		}
+	]
 }
