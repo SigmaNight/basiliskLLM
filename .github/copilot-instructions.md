@@ -70,25 +70,35 @@ class AnthropicEngine(BaseEngine):
 
 ### Building & Distribution
 
+#### Development setup
+
 ```bash
-# Development setup
-poetry install && poetry shell
+uv sync --frozen --group dev
+```
 
-# Build standalone executable
-python -m cx_Freeze build_exe
+#### Build standalone executable
 
-# Create Windows installer (requires Inno Setup)
+```bash
+uv run -m cx_Freeze build_exe
+```
+
+#### Create Windows installer (requires Inno Setup)
+
+```powerShell
 iscc win_installer.iss
+```
 
-# Available VS Code tasks
+#### Available VS Code tasks
+
 - "compile translation file" (Babel message compilation)
 - "build executable" (cx_Freeze build)
 - "build windows installer" (Inno Setup)
-```
 
 ### Testing & Debugging
 
-- **Entry point**: `python -m basilisk` or `python basilisk/__main__.py`
+- **Entry point**: `uv run -m basilisk` or `uv run basilisk/__main__.py`
+- **Unit Tests**: `uv run -m pytest` for test suite in `tests/`
+- **Debugging**: Use VS Code debugger with `launch.json` configuration
 - **Command line args**: `--log-level DEBUG`, `--minimize`, `--language`, `--no-env-account`
 - **Logs**: Written to user config directory, accessible via Help → View Log
 - **Config location**: Uses `platformdirs.user_config_path()` for cross-platform config storage
@@ -108,6 +118,19 @@ iscc win_installer.iss
 - **Docstrings**: Google style with type hints for all public APIs
 - **Strings**: Double quotes, use `_("string")` for translatable text
 - **Custtom builtin functons**: the translation function is defined as a builtin and you don't need to import it explicitly.
+- **Imports**: Grouped as standard library, third-party, local imports; sorted alphabetically
+
+#### format
+
+```bash
+uv run -m ruff format
+```
+
+#### Linting
+
+```bash
+uv run -m ruff check --fix
+```
 
 ### wxPython Patterns
 

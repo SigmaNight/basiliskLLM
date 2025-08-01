@@ -6,8 +6,9 @@
         {
             "label": "compile translation file",
             "type": "shell",
-            "command": "python",
+            "command": "uv",
             "args": [
+                "run",
                 "setup.py",
                 "compile_catalog"
             ],
@@ -24,8 +25,9 @@
         {
             "label": "build executable",
             "type": "shell",
-            "command": "python",
+            "command": "uv",
             "args": [
+                "run",
                 "-m",
                 "cx_Freeze",
                 "build_exe"

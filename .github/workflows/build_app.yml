@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - x64
+          - x86_64
           - x86
 
     steps:
@@ -19,34 +19,30 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - name: setup uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          architecture: ${{ matrix.arch }}
-      - name: install poetry
-        uses: abatilo/actions-poetry@v4
-      - name: cache virtualenv
-        uses: actions/cache@v4
-        with:
-          path: ./.venv
-          key: ${{ runner.os }}_${{ matrix.arch }}_poetry_${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}_${{ matrix.arch }}_poetry_
+          python-version: 'cpython-3.12-windows-${{ matrix.arch }}'
       - name: Install dependencies
-        run: poetry sync --no-interaction --no-root
+        run: uv sync --frozen --no-dev --group build --group test
       - name: run tests
-        run: poetry run pytest --cov
+        run: uv run -m pytest --cov
       - name: compile translations
-        run: poetry run python setup.py compile_catalog
+        run: uv run setup.py compile_catalog
       - name: Build executable
-        run: poetry run python -m cx_Freeze build_exe
-      - name: get version info
-        id: get_version
+        run: uv run -m cx_Freeze build_exe
+      - name: get variables
+        id: get_variables
         run: |
-          $version = (poetry run python -m setuptools_scm)
+          $version = (uv run -m setuptools_scm)
           echo version_number=$version >> $env:GITHUB_OUTPUT
+          if ("${{ matrix.arch }}" -eq "x86_64") {
+            echo arch="x64" >> $env:GITHUB_OUTPUT
+          } else {
+            echo arch="x86" >> $env:GITHUB_OUTPUT
+          }
       - name: build windows installer
-        run: iscc .\win_installer.iss /DAppArch=${{ matrix.arch }} /DMyAppVersion=${{ steps.get_version.outputs.version_number }}
+        run: iscc .\win_installer.iss /DAppArch=${{ steps.get_variables.outputs.arch }} /DMyAppVersion=${{ steps.get_variables.outputs.version_number }}
       - name: create user config file for portable version
         run: |
           New-Item -Path dist -Name user_data -ItemType directory
@@ -58,14 +54,14 @@ jobs:
       - name: create and upload portable zip
         uses: actions/upload-artifact@v4
         with:
-          name: portable_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
+          name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: setup_basiliskLLM_${{ steps.get_version.outputs.version_number }}_${{ runner.os }}_${{ matrix.arch }}
+          name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: output_setup/*
           if-no-files-found: error
           retention-days: 30

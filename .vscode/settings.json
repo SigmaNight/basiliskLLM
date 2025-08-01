@@ -2,7 +2,7 @@
 	"files.readonlyInclude": {
 		"**/.venv/Lib/site-packages/**": true,
 		"**/.venv/src/**": true,
-		"**/poetry.lock": true,
+		"**/uv.lock": true
 	},
 	"files.insertFinalNewline": true,
 	"files.trimTrailingWhitespace": true,
@@ -29,7 +29,7 @@
 	"ruff.organizeImports": true,
 	"github.copilot.chat.codeGeneration.useInstructionFiles": true,
 	"github.copilot.chat.commitMessageGeneration.instructions": [
-		{"text": "Use conventional commit message format."},
+		{"text": "Use conventional commit message format."}
 	],
 	"github.copilot.chat.testGeneration.instructions": [
 		{
@@ -37,6 +37,6 @@
 		},
 		{
 			"text": "Always try uniting related tests in a suite."
-		},
-	],
+		}
+	]
 }
