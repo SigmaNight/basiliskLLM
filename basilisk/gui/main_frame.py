@@ -765,10 +765,10 @@ class MainFrame(wx.Frame):
 
 	def on_manage_artifacts(self, event: wx.Event | None):
 		"""Open the artifact management dialog for the current conversation.
-		
+
 		This opens a dialog showing all artifacts (code blocks, significant text content)
 		detected in the current conversation, allowing users to view, copy, and save them.
-		
+
 		Args:
 			event: The event that triggered the artifact management action. Can be None.
 		"""
@@ -777,15 +777,16 @@ class MainFrame(wx.Frame):
 			wx.MessageBox(
 				_("No conversation is currently open."),
 				_("No Conversation"),
-				wx.OK | wx.ICON_INFORMATION
+				wx.OK | wx.ICON_INFORMATION,
 			)
 			return
-		
+
 		# Scan for artifacts in the current conversation
 		current_tab.scan_for_artifacts()
-		
+
 		# Import and show the artifact dialog
 		from .artifact_dialog import show_artifact_dialog
+
 		show_artifact_dialog(self, current_tab)
 
 	def on_install_nvda_addon(self, event):

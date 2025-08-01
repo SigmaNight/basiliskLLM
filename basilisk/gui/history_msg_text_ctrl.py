@@ -281,7 +281,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				_("Find Previous"), "(Shift+F3)", self.on_search_previous, []
 			),
 			MenuItemInfo(
-				_("Extract artifacts from message"), "(&a)", self.on_extract_artifacts, []
+				_("Extract artifacts from message"),
+				"(&a)",
+				self.on_extract_artifacts,
+				[],
 			),
 		)
 
@@ -578,10 +581,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 	def on_extract_artifacts(self, event: wx.CommandEvent | None = None):
 		"""Extract artifacts from the current message.
-		
+
 		Scans the current message for artifacts (code blocks, significant text content)
 		and shows them in a temporary artifact viewer.
-		
+
 		Args:
 			event: The event that triggered the action
 		"""
@@ -589,31 +592,31 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		if not content.strip():
 			wx.Bell()
 			return
-		
+
 		# Import artifact detection locally to avoid circular imports
 		from basilisk.conversation.artifact import ArtifactDetector
 		from .html_view_window import show_html_view_window
-		
+
 		# Detect artifacts in current message
 		artifacts = ArtifactDetector.detect_artifacts(content)
-		
+
 		if not artifacts:
 			wx.MessageBox(
 				_("No artifacts found in the current message."),
 				_("No Artifacts"),
-				wx.OK | wx.ICON_INFORMATION
+				wx.OK | wx.ICON_INFORMATION,
 			)
 			return
-		
+
 		# Show artifacts in a dialog
 		artifact_summary = []
 		artifact_summary.append("# " + _("Artifacts Found"))
 		artifact_summary.append("")
-		
+
 		for i, artifact in enumerate(artifacts, 1):
 			artifact_summary.append(f"## {i}. {artifact.title}")
 			artifact_summary.append("")
-			
+
 			if artifact.type.value == "code_block":
 				lang = artifact.language or ""
 				artifact_summary.append(f"```{lang}")
@@ -621,16 +624,16 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				artifact_summary.append("```")
 			else:
 				artifact_summary.append(artifact.content)
-			
+
 			artifact_summary.append("")
 			artifact_summary.append("---")
 			artifact_summary.append("")
-		
+
 		show_html_view_window(
 			parent=self.GetTopLevelParent(),
 			content="\n".join(artifact_summary),
 			content_format="markdown",
-			title=_("Message Artifacts")
+			title=_("Message Artifacts"),
 		)
 
 	@staticmethod

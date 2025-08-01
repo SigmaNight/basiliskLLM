@@ -22,7 +22,7 @@ from .conversation_model import (
 
 __all__ = [
 	"Artifact",
-	"ArtifactDetector", 
+	"ArtifactDetector",
 	"ArtifactManager",
 	"ArtifactType",
 	"AttachmentFile",
