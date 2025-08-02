@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-07-19 12:26+0000\n"
-"PO-Revision-Date: 2025-07-19 13:33\n"
+"POT-Creation-Date: 2025-08-01 21:56+0000\n"
+"PO-Revision-Date: 2025-08-02 13:33\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -571,7 +571,7 @@ msgstr "Прочитать текущее сообщение"
 
 #: basilisk/gui/history_msg_text_ctrl.py:227
 msgid "Speak response"
-msgstr ""
+msgstr "Озвучивать ответ"
 
 #: basilisk/gui/history_msg_text_ctrl.py:233
 msgid "Show as HTML (from Markdown)"
@@ -640,7 +640,7 @@ msgstr "Конец сообщения"
 #: basilisk/gui/history_msg_text_ctrl.py:485
 #, python-format
 msgid "Response speaking %s"
-msgstr ""
+msgstr "Озвучивание ответа %s"
 
 #: basilisk/gui/history_msg_text_ctrl.py:486
 msgid "enabled"
@@ -1442,7 +1442,7 @@ msgstr "Наша новейшая компактная модель корпор
 
 #: basilisk/provider_engine/mistralai_engine.py:150
 msgid "A 24B text model, open source model that excels at using tools to explore codebases, editing multiple files and power software engineering agents."
-msgstr ""
+msgstr "Текстовая модель с 24 миллиардами параметров с открытым исходным кодом, которая отлично справляется с использованием инструментов для изучения кодовых баз, редактирования нескольких файлов и мощных агентов разработки программного обеспечения."
 
 #: basilisk/provider_engine/mistralai_engine.py:161
 msgid "Our cutting-edge language model for coding released May 2024"
@@ -1493,7 +1493,7 @@ msgstr "Указывает на одну из самых последних ит
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:169
 msgid "GPT model for web search in Chat Completions"
-msgstr ""
+msgstr "Модель GPT для веб-поиска в Chat Completions"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:179
