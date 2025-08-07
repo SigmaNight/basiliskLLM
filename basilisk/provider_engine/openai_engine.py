@@ -100,6 +100,72 @@ class OpenAIEngine(BaseEngine):
 		# See <https://platform.openai.com/docs/models>
 		return [
 			ProviderAIModel(
+				id="gpt-5",
+				name="GPT-5",
+				# Translators: This is a model description
+				description=_("Fastest, most cost-efficient version of GPT-5"),
+				context_window=400000,
+				max_output_tokens=128000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-5-mini",
+				name="GPT-5 mini",
+				# Translators: This is a model description
+				description=_(
+					"A faster, more cost-efficient version of GPT-5 for well-defined tasks"
+				),
+				context_window=400000,
+				max_output_tokens=128000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-5-nano",
+				name="GPT-5 nano",
+				# Translators: This is a model description
+				description=_("Fastest, most cost-efficient version of GPT-5"),
+				context_window=400000,
+				max_output_tokens=128000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-5-chat-latest",
+				name="GPT-5 Chat",
+				# Translators: This is a model description
+				description=_("GPT-5 model used in ChatGPT"),
+				context_window=400000,
+				max_output_tokens=128000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-oss-120b",
+				name="gpt-oss-120b",
+				# Translators: This is a model description
+				description=_(
+					"Our most powerful open weight model, which fits into a single H100 GPU"
+				),
+				context_window=131072,
+				max_output_tokens=131072,
+				vision=False,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
+				id="gpt-oss-20b",
+				name="gpt-oss-20b",
+				# Translators: This is a model description
+				description=_(
+					"Our medium-sized open weight model for low latency"
+				),
+				context_window=131072,
+				max_output_tokens=131072,
+				vision=False,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
 				id="gpt-4.1",
 				name="GPT-4.1",
 				# Translators: This is a model description
