@@ -299,17 +299,6 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="o1-mini",
-				name="o1 Mini",
-				# Translators: This is a model description
-				description=_("Points to the most recent o1-mini snapshot"),
-				context_window=128000,
-				max_output_tokens=65536,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
 				id="gpt-4-turbo",
 				name="GPT 4 Turbo",
 				# Translators: This is a model description
@@ -411,35 +400,12 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="gpt-4-vision-preview",
-				name="GPT 4 Vision Preview",
-				# Translators: This is a model description
-				description=_(
-					"GPT-4 Turbo with vision. Ability to understand images, in addition to all other GPT-4 Turbo capabilities"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
 				id="gpt-4-0613",
 				name="GPT 4 (0613)",
 				# Translators: This is a model description
 				description=_(
 					"More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 				),
-				max_output_tokens=8192,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-32k-0613",
-				name="GPT 4 (32k) (0613)",
-				# Translators: This is a model description
-				description=_(
-					"Same capabilities as the standard gpt-4 mode but with 4x the context length"
-				),
-				context_window=32768,
 				max_output_tokens=8192,
 				max_temperature=2.0,
 			),
