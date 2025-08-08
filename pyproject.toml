@@ -71,6 +71,7 @@ issues = "https://github.com/SigmaNight/basiliskLLM/issues"
 packages = ["basilisk"]
 
 [tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.uv]
 package = false
