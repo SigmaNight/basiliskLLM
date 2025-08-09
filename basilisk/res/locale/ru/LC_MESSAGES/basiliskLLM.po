@@ -1574,4 +1574,3 @@ msgstr "Модель GPT-4 Turbo с улучшенным следованием 
 #: basilisk/provider_engine/openai_engine.py:407
 msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr "Более мощная, чем любая модель GPT-3.5, способна выполнять более сложные задачи и оптимизирована для общения в чате"
-

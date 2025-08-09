@@ -1573,4 +1573,3 @@ msgstr ""
 #: basilisk/provider_engine/openai_engine.py:407
 msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr ""
-
