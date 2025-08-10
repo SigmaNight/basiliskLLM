@@ -169,7 +169,7 @@ requires-dist = [
 build = [
     { name = "cx-freeze", specifier = ">=8.3.0" },
     { name = "setuptools", specifier = ">=68.0.0" },
-    { name = "setuptools-scm", specifier = ">=8.3.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
 ]
 dev = [
     { name = "commitizen", specifier = ">=4.8.3" },
@@ -180,7 +180,7 @@ dev = [
     { name = "pytest-httpx", specifier = ">=0.35.0" },
     { name = "ruff", specifier = ">=0.12.8" },
     { name = "setuptools", specifier = ">=68.0.0" },
-    { name = "setuptools-scm", specifier = ">=8.3.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
 ]
 style = [
     { name = "commitizen", specifier = ">=4.8.3" },
