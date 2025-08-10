@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.12.*"
 resolution-markers = [
     "(platform_machine != 'aarch64' and platform_machine != 'armv7l' and platform_machine != 'i686' and platform_machine != 'ppc64le' and platform_machine != 's390x' and platform_machine != 'x86_64') or sys_platform != 'linux'",
@@ -169,7 +169,7 @@ requires-dist = [
 build = [
     { name = "cx-freeze", specifier = ">=8.3.0" },
     { name = "setuptools", specifier = ">=68.0.0" },
-    { name = "setuptools-scm", specifier = ">=8.3.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
 ]
 dev = [
     { name = "commitizen", specifier = ">=4.8" },
@@ -180,7 +180,7 @@ dev = [
     { name = "pytest-httpx", specifier = ">=0.35.0" },
     { name = "ruff", specifier = ">=0.12.0" },
     { name = "setuptools", specifier = ">=68.0.0" },
-    { name = "setuptools-scm", specifier = ">=8.3.0" },
+    { name = "setuptools-scm", specifier = ">=8.3.1" },
 ]
 style = [
     { name = "commitizen", specifier = ">=4.8" },
