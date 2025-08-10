@@ -36,8 +36,8 @@
   },
   "packageRules": [
     {
-      "description": "Automerge dependencies with high confidence",
-      "matchConfidence": ["high", "very high"],
+      "description": "Automerge dependencies",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     }
   ]
