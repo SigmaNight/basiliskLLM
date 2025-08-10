@@ -30,7 +30,7 @@ dependencies = [
     "pywin32 (>=308.0.0) ; sys_platform == 'win32'",
     "pyyaml (>=6.0.2)",
     "sounddevice (>=0.5.1)",
-    "truststore (>=0.10.1)",
+    "truststore (>=0.10.3)",
     "universal-pathlib (>=0.2.6)",
     "wxpython (>=4.2.3)",
 ]
