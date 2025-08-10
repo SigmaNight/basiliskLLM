@@ -3,8 +3,8 @@
   "extends": [
     "config:recommended"
   ],
-  "separateMinorPatch": true,
-  "separateMajorMinor": true,
+  "separateMinorPatch": false,
+  "separateMajorMinor": false,
   "separateMultipleMajor": false,
 
   "schedule": [
