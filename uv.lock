@@ -162,7 +162,7 @@ requires-dist = [
     { name = "sounddevice", specifier = ">=0.5.1" },
     { name = "truststore", specifier = ">=0.10.1" },
     { name = "universal-pathlib", specifier = ">=0.2.6" },
-    { name = "wxpython", specifier = ">=4.2.2" },
+    { name = "wxpython", specifier = ">=4.2.3" },
 ]
 
 [package.metadata.requires-dev]
