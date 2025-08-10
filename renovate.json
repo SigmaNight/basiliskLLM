@@ -6,6 +6,8 @@
   "separateMinorPatch": false,
   "separateMajorMinor": false,
   "separateMultipleMajor": false,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
   "schedule": [
     "every weekend"
   ],
