@@ -158,7 +158,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=308.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.1" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "sounddevice", specifier = ">=0.5.1" },
     { name = "truststore", specifier = ">=0.10.1" },
     { name = "universal-pathlib", specifier = ">=0.2.6" },
