@@ -3,7 +3,17 @@
   "extends": [
     "config:recommended"
   ],
+  "separateMinorPatch": true,
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+
+  "schedule": [
+    "every weekend"
+  ],
   "lockFileMaintenance": {
-    "enabled": true
-  }
+    "enabled": true,
+    "schedule": ["every weekend"]
+  },
+  "enabledManagers": ["pep621", "github-actions"]
+
 }
