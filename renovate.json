@@ -6,16 +6,15 @@
   "separateMinorPatch": false,
   "separateMajorMinor": false,
   "separateMultipleMajor": false,
-
   "schedule": [
     "every weekend"
   ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["every weekend"]
-  },
+  "semanticCommitScope": "deps-{{ groupName }}",
   "enabledManagers": ["pep621", "github-actions"],
   "pep621": {
     "rangeStrategy": "bump"
-  }
+  },
+  "ignoreDeps": [
+    "python"
+  ]
 }
