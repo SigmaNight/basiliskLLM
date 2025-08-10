@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "separateMinorPatch": false,
+  "separateMajorMinor": false,
+  "separateMultipleMajor": false,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "schedule": [
+    "every weekend"
+  ],
+  "enabledManagers": ["pep621", "github-actions"],
+  "pep621": {
+    "rangeStrategy": "bump"
+  },
+  "ignoreDeps": [
+    "python"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "recreateWhen": "always",
+    "rebaseStalePrs": true,
+    "branchTopic": "lock-file-maintenance",
+    "commitMessageAction": "Lock file maintenance",
+    "commitMessageTopic": null,
+    "commitMessageExtra": null,
+    "schedule": [
+      "every weekend"
+    ],
+    "groupName": null,
+    "prBodyDefinitions": {
+      "Change": "All locks refreshed"
+    }
+  }
+}
