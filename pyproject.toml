@@ -24,7 +24,7 @@ dependencies = [
     "openai (>=1.99.6)",
     "ordered-set (>=4.1.0)",
     "pillow (>=11.1.0)",
-    "platformdirs (>=4.3.6)",
+    "platformdirs (>=4.3.8)",
     "pydantic (>=2.10.6)",
     "pydantic-settings (>=2.8.1)",
     "pywin32 (>=308.0.0) ; sys_platform == 'win32'",
