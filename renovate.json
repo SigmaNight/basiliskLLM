@@ -5,7 +5,7 @@
   ],
   "separateMinorPatch": true,
   "separateMajorMinor": true,
-  "separateMultipleMajor": true,
+  "separateMultipleMajor": false,
 
   "schedule": [
     "every weekend"
