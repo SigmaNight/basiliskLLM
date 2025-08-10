@@ -32,7 +32,7 @@ dependencies = [
     "sounddevice (>=0.5.1)",
     "truststore (>=0.10.1)",
     "universal-pathlib (>=0.2.6)",
-    "wxpython (>=4.2.2)",
+    "wxpython (>=4.2.3)",
 ]
 
 [dependency-groups]
