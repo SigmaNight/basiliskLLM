@@ -29,7 +29,7 @@ dependencies = [
     "pydantic-settings (>=2.8.1)",
     "pywin32 (>=308.0.0) ; sys_platform == 'win32'",
     "pyyaml (>=6.0.2)",
-    "sounddevice (>=0.5.1)",
+    "sounddevice (>=0.5.2)",
     "truststore (>=0.10.3)",
     "universal-pathlib (>=0.2.6)",
     "wxpython (>=4.2.3)",
