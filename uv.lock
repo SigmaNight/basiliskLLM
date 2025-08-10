@@ -153,7 +153,7 @@ requires-dist = [
     { name = "ollama", specifier = ">=0.5.3" },
     { name = "openai", specifier = ">=1.99.6" },
     { name = "ordered-set", specifier = ">=4.1.0" },
-    { name = "pillow", specifier = ">=11.1.0" },
+    { name = "pillow", specifier = ">=11.3.0" },
     { name = "platformdirs", specifier = ">=4.3.8" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
