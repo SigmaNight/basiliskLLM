@@ -15,5 +15,7 @@
     "schedule": ["every weekend"]
   },
   "enabledManagers": ["pep621", "github-actions"]
-
+  "pep621": {
+    "rangeStrategy": "bump"
+  }
 }
