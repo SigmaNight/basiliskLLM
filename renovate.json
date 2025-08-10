@@ -33,5 +33,12 @@
     "prBodyDefinitions": {
       "Change": "All locks refreshed"
     }
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Automerge dependencies with high confidence",
+      "matchConfidence": ["high", "very high"],
+      "automerge": true
+    }
+  ]
 }
