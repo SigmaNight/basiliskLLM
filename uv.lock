@@ -148,7 +148,7 @@ requires-dist = [
     { name = "keyring", specifier = ">=25.6.0" },
     { name = "markdown2", specifier = ">=2.5.4" },
     { name = "mistralai", specifier = ">=1.9.3,<2.0.0" },
-    { name = "more-itertools", specifier = ">=10.6.0" },
+    { name = "more-itertools", specifier = ">=10.7.0" },
     { name = "numpy", specifier = ">=2.2.1" },
     { name = "ollama", specifier = ">=0.4.7" },
     { name = "openai", specifier = ">=1.65.1" },
