@@ -411,7 +411,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if isinstance(content, str):
 			return content
 
-	def refresh_messages(self, need_clear: bool = True):
+	def refresh_messages(
+		self, need_clear: bool = True, preserve_prompt: bool = False
+	):
 		"""Refreshes the messages displayed in the conversation tab.
 
 		This method updates the conversation display by optionally clearing existing content and then
@@ -422,10 +424,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		Args:
 			need_clear: If True, clears existing messages, message segments, and attachments. Defaults to True.
+			preserve_prompt: If True, preserves the current prompt and attachments even when need_clear is True. Defaults to False.
 		"""
 		if need_clear:
 			self.messages.Clear()
-			self.prompt_panel.clear(True)
+			if not preserve_prompt:
+				self.prompt_panel.clear(True)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
@@ -762,7 +766,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			message_block: The message block to remove
 		"""
 		self.conversation.remove_block(message_block)
-		self.refresh_messages()
+		self.refresh_messages(preserve_prompt=True)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.
