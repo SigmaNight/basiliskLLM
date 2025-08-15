@@ -671,7 +671,10 @@ class OpenAIEngine(BaseEngine):
 			params["reasoning"] = {"effort": "medium"}
 
 		if new_block.max_tokens:
-			params["max_output_tokens"] = new_block.max_tokens
+			# For responses API, ensure minimum token limit for message generation
+			# Models that use responses API often need extra tokens for reasoning/processing
+			min_tokens = 100  # Minimum tokens for responses API
+			params["max_output_tokens"] = max(new_block.max_tokens, min_tokens)
 
 		params.update(kwargs)
 
@@ -697,18 +700,44 @@ class OpenAIEngine(BaseEngine):
 		Yields:
 			Content from each chunk in the stream.
 		"""
+		has_deltas = False
+
 		for chunk in stream:
-			# Handle responses API streaming
-			if hasattr(chunk, 'type') and chunk.type == 'message':
-				if hasattr(chunk, 'content') and chunk.content:
-					for content_item in chunk.content:
-						if (
-							hasattr(content_item, 'type')
-							and content_item.type == 'output_text'
-						):
-							if hasattr(content_item, 'text'):
+			# Handle responses API streaming events
+			if hasattr(chunk, 'type'):
+				# Handle text delta events from responses API
+				if chunk.type == 'response.output_text.delta':
+					has_deltas = True
+					if hasattr(chunk, 'delta'):
+						# The delta attribute directly contains the text string
+						yield str(chunk.delta)
+				# Handle message content events
+				elif chunk.type == 'response.output_item.added':
+					if (
+						hasattr(chunk, 'item')
+						and chunk.item
+						and hasattr(chunk.item, 'content')
+						and chunk.item.content
+					):
+						for content_item in chunk.item.content:
+							if (
+								hasattr(content_item, 'type')
+								and content_item.type == 'output_text'
+								and hasattr(content_item, 'text')
+							):
 								yield content_item.text
-			# Handle chat completions API streaming
+				# Handle completion event with final output (fallback when no deltas)
+				elif chunk.type == 'response.completed':
+					# Only yield the complete text if we haven't seen any deltas
+					if (
+						not has_deltas
+						and hasattr(chunk, 'response')
+						and chunk.response
+						and hasattr(chunk.response, 'output_text')
+					):
+						if chunk.response.output_text:
+							yield chunk.response.output_text
+			# Handle chat completions API streaming (fallback)
 			elif hasattr(chunk, 'choices'):
 				delta = chunk.choices[0].delta
 				if delta and delta.content:
@@ -729,9 +758,45 @@ class OpenAIEngine(BaseEngine):
 		"""
 		# Handle responses API response
 		if hasattr(response, 'output_text'):
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT, content=response.output_text
-			)
+			# If output_text is not empty, use it directly
+			if response.output_text:
+				new_block.response = Message(
+					role=MessageRoleEnum.ASSISTANT, content=response.output_text
+				)
+			# Otherwise, try to extract text from output items
+			elif hasattr(response, 'output') and response.output:
+				message_content = ""
+				for item in response.output:
+					if (
+						item.type == 'message'
+						and hasattr(item, 'content')
+						and item.content
+					):
+						for content_item in item.content:
+							if content_item.type == 'output_text' and hasattr(
+								content_item, 'text'
+							):
+								message_content += content_item.text
+					# For reasoning models, the reasoning item might contain the actual response
+					# This is a fallback for when only reasoning items are returned
+					elif (
+						item.type == 'reasoning'
+						and hasattr(item, 'content')
+						and item.content
+					):
+						for content_item in item.content:
+							if hasattr(content_item, 'text'):
+								message_content += content_item.text
+
+				if message_content:
+					new_block.response = Message(
+						role=MessageRoleEnum.ASSISTANT, content=message_content
+					)
+				else:
+					# Final fallback - empty response
+					new_block.response = Message(
+						role=MessageRoleEnum.ASSISTANT, content=""
+					)
 		# Handle chat completions API response
 		elif hasattr(response, 'choices'):
 			content = response.choices[0].message.content
