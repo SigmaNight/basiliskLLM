@@ -23,6 +23,12 @@ from openai.types.chat.chat_completion_content_part_image_param import (
 	ImageURL,
 )
 
+try:
+	from openai.types.response import Response
+except ImportError:
+	# Fallback for older OpenAI SDK versions
+	Response = None
+
 from basilisk.conversation import (
 	Conversation,
 	Message,
@@ -33,6 +39,15 @@ from basilisk.conversation import (
 if TYPE_CHECKING:
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+
+# Import translation function
+try:
+	_ = __builtins__['_']
+except (KeyError, TypeError):
+
+	def _(text):
+		return text
+
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +123,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=128000,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-5-mini",
@@ -120,6 +136,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=128000,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-5-nano",
@@ -130,6 +147,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=128000,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-5-chat-latest",
@@ -174,6 +192,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=32768,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-4.1-mini",
@@ -461,6 +480,83 @@ class OpenAIEngine(BaseEngine):
 			],
 		)
 
+	def prepare_responses_input(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None = None,
+		stop_block_index: int | None = None,
+	) -> list[dict]:
+		"""Prepares input for OpenAI responses API.
+
+		Args:
+			new_block: The message block containing generation parameters.
+			conversation: The conversation history context.
+			system_message: Optional system message to guide the AI's behavior.
+			stop_block_index: Optional index to stop processing messages at.
+
+		Returns:
+			List of input messages formatted for responses API.
+		"""
+		input_messages = []
+
+		if system_message:
+			input_messages.append(
+				{"role": "system", "content": system_message.content}
+			)
+
+		for i, block in enumerate(conversation.messages):
+			if stop_block_index is not None and i >= stop_block_index:
+				break
+			if not block.response:
+				continue
+
+			# Add user message
+			user_content = [
+				{"type": "input_text", "text": block.request.content}
+			]
+
+			# Add attachments if present
+			if getattr(block.request, "attachments", None):
+				for attachment in block.request.attachments:
+					user_content.append(
+						{"type": "input_file", "file_data": attachment.url}
+					)
+
+			input_messages.extend(
+				[
+					{"role": "user", "content": user_content},
+					{"role": "assistant", "content": block.response.content},
+				]
+			)
+
+		# Add current user message
+		user_content = [
+			{"type": "input_text", "text": new_block.request.content}
+		]
+
+		if getattr(new_block.request, "attachments", None):
+			for attachment in new_block.request.attachments:
+				user_content.append(
+					{"type": "input_file", "file_data": attachment.url}
+				)
+
+		input_messages.append({"role": "user", "content": user_content})
+
+		return input_messages
+
+	def should_use_responses_api(self, model_id: str) -> bool:
+		"""Determines if responses API should be used for given model.
+
+		Args:
+			model_id: The model identifier.
+
+		Returns:
+			True if responses API should be used, False otherwise.
+		"""
+		model = self.get_model(model_id)
+		return model and getattr(model, 'prefer_responses_api', False)
+
 	def completion(
 		self,
 		new_block: MessageBlock,
@@ -468,7 +564,9 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+	) -> Union[
+		ChatCompletion, Generator[ChatCompletionChunk, None, None], "Response"
+	]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:
@@ -479,12 +577,41 @@ class OpenAIEngine(BaseEngine):
 			**kwargs: Additional keyword arguments for the API request.
 
 		Returns:
-			Either a complete chat completion response or a generator for streaming
-			chat completion chunks.
+			Either a complete chat completion response, a generator for streaming
+			chat completion chunks, or a responses API response.
 		"""
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model_id = new_block.model.model_id
+
+		# Check if we should use responses API
+		if self.should_use_responses_api(model_id):
+			return self._completion_responses_api(
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index,
+				**kwargs,
+			)
+		else:
+			return self._completion_chat_api(
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index,
+				**kwargs,
+			)
+
+	def _completion_chat_api(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None = None,
+		**kwargs,
+	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+		"""Generates completion using chat completions API."""
 		model_id = new_block.model.model_id
 		params = {
 			"model": model_id,
@@ -509,39 +636,115 @@ class OpenAIEngine(BaseEngine):
 		response = self.client.chat.completions.create(**params)
 		return response
 
-	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
-	):
+	def _completion_responses_api(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None = None,
+		**kwargs,
+	) -> "Response":
+		"""Generates completion using responses API."""
+		if not hasattr(self.client, 'responses'):
+			# Fallback to chat API if responses API not available
+			log.warning("Responses API not available, falling back to chat API")
+			return self._completion_chat_api(
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index,
+				**kwargs,
+			)
+
+		model_id = new_block.model.model_id
+		params = {
+			"model": model_id,
+			"input": self.prepare_responses_input(
+				new_block, conversation, system_message, stop_block_index
+			),
+			"stream": new_block.stream,
+		}
+
+		# Add reasoning parameters for reasoning models
+		model = self.get_model(model_id)
+		if model and model.reasoning:
+			params["reasoning"] = {"effort": "medium"}
+
+		if new_block.max_tokens:
+			params["max_output_tokens"] = new_block.max_tokens
+
+		params.update(kwargs)
+
+		try:
+			response = self.client.responses.create(**params)
+			return response
+		except Exception as e:
+			log.warning("Responses API failed: %s, falling back to chat API", e)
+			return self._completion_chat_api(
+				new_block,
+				conversation,
+				system_message,
+				stop_block_index,
+				**kwargs,
+			)
+
+	def completion_response_with_stream(self, stream):
 		"""Processes a streaming completion response.
 
 		Args:
-			stream: Generator of chat completion chunks.
+			stream: Generator of chat completion chunks or responses API events.
 
 		Yields:
 			Content from each chunk in the stream.
 		"""
 		for chunk in stream:
-			delta = chunk.choices[0].delta
-			if delta and delta.content:
-				yield delta.content
+			# Handle responses API streaming
+			if hasattr(chunk, 'type') and chunk.type == 'message':
+				if hasattr(chunk, 'content') and chunk.content:
+					for content_item in chunk.content:
+						if (
+							hasattr(content_item, 'type')
+							and content_item.type == 'output_text'
+						):
+							if hasattr(content_item, 'text'):
+								yield content_item.text
+			# Handle chat completions API streaming
+			elif hasattr(chunk, 'choices'):
+				delta = chunk.choices[0].delta
+				if delta and delta.content:
+					yield delta.content
 
 	def completion_response_without_stream(
-		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
+		self, response, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes a non-streaming completion response.
 
 		Args:
-			response: The chat completion response.
+			response: The chat completion or responses API response.
 			new_block: The message block to update with the response.
 			**kwargs: Additional keyword arguments.
 
 		Returns:
 			Updated message block containing the response.
 		"""
-		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
-		)
+		# Handle responses API response
+		if hasattr(response, 'output_text'):
+			new_block.response = Message(
+				role=MessageRoleEnum.ASSISTANT, content=response.output_text
+			)
+		# Handle chat completions API response
+		elif hasattr(response, 'choices'):
+			content = response.choices[0].message.content
+			new_block.response = Message(
+				role=MessageRoleEnum.ASSISTANT,
+				content=str(content),  # Ensure it's a string
+			)
+		else:
+			# Fallback - try to extract content from response
+			content = getattr(response, 'content', str(response))
+			new_block.response = Message(
+				role=MessageRoleEnum.ASSISTANT, content=str(content)
+			)
 		return new_block
 
 	def get_transcription(

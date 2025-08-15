@@ -34,6 +34,7 @@ class ProviderAIModel:
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	prefer_responses_api: bool = field(default=False)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
