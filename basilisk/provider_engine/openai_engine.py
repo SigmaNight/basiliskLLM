@@ -671,10 +671,7 @@ class OpenAIEngine(BaseEngine):
 			params["reasoning"] = {"effort": "medium"}
 
 		if new_block.max_tokens:
-			# For responses API, ensure minimum token limit for message generation
-			# Models that use responses API often need extra tokens for reasoning/processing
-			min_tokens = 100  # Minimum tokens for responses API
-			params["max_output_tokens"] = max(new_block.max_tokens, min_tokens)
+			params["max_output_tokens"] = new_block.max_tokens
 
 		params.update(kwargs)
 
