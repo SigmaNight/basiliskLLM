@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: install wxpython build requirements
         run: sudo apt-get install libgtk-3-dev libglew-dev
