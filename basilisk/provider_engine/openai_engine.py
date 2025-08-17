@@ -672,7 +672,7 @@ class OpenAIEngine(BaseEngine):
 		"""Generates completion using responses API."""
 		if not hasattr(self.client, "responses"):
 			# Fallback to chat API if responses API not available
-			# Translator: Warning message when Responses API is not available and system falls back to Chat API
+			# Translators: Warning message when Responses API is not available and system falls back to Chat API
 			log.warning(
 				_("Responses API not available, falling back to chat API")
 			)
@@ -720,7 +720,7 @@ class OpenAIEngine(BaseEngine):
 			response = self.client.responses.create(**params)
 			return response
 		except Exception as e:
-			# Translator: Warning message when Responses API fails with an error and system falls back to Chat API
+			# Translators: Warning message when Responses API fails with an error and system falls back to Chat API
 			log.warning(
 				_("Responses API failed: %s, falling back to chat API"), e
 			)
