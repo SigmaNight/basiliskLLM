@@ -505,12 +505,13 @@ class OpenAIEngine(BaseEngine):
 			attachments: List of attachment objects.
 
 		Returns:
-			List of input items formatted for Responses API (input_image or input_file).
+			List of input items formatted for Responses API. Attachments with
+			supported image MIME types become input_image items, others become input_file.
 		"""
 		items = []
 		for attachment in attachments:
 			mime = getattr(attachment, "mime_type", "") or ""
-			if mime.startswith("image/"):
+			if mime in self.supported_attachment_formats:
 				items.append(
 					{
 						"type": "input_image",
