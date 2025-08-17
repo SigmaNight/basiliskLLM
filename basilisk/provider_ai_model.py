@@ -115,8 +115,7 @@ class AIModelInfo(BaseModel):
 		"""Retrieve a provider instance by its unique identifier.
 
 		Args:
-		provider_id: The unique identifier of the provider to retrieve.
-		model_id: The unique identifier of the AI model.
+			provider_id: The unique identifier of the provider to retrieve.
 
 		Returns:
 			Provider: The provider instance corresponding to the given provider ID.
