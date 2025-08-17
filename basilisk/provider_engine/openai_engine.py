@@ -25,9 +25,16 @@ from openai.types.chat.chat_completion_content_part_image_param import (
 
 try:
 	from openai.types.response import Response
+
+	try:
+		# Try to import Responses API streaming types if available
+		from openai._streaming import Stream as ResponseStream
+	except ImportError:
+		ResponseStream = None
 except ImportError:
 	# Fallback for older OpenAI SDK versions
 	Response = None
+	ResponseStream = None
 
 from basilisk.conversation import (
 	Conversation,
@@ -565,7 +572,10 @@ class OpenAIEngine(BaseEngine):
 		stop_block_index: int | None = None,
 		**kwargs,
 	) -> Union[
-		ChatCompletion, Generator[ChatCompletionChunk, None, None], "Response"
+		ChatCompletion,
+		Generator[ChatCompletionChunk, None, None],
+		"Response",
+		Generator[object, None, None],  # Responses API streaming events
 	]:
 		"""Generates a chat completion using the OpenAI API.
 
