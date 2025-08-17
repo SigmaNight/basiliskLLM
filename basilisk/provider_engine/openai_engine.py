@@ -658,11 +658,12 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> "Response":
+	) -> Union["Response", Generator[object, None, None]]:
 		"""Generates completion using responses API."""
 		if not hasattr(self.client, 'responses'):
 			# Fallback to chat API if responses API not available
-			log.warning("Responses API not available, falling back to chat API")
+			# Translator: Warning message when Responses API is not available and system falls back to Chat API
+			log.warning(_("Responses API not available, falling back to chat API"))
 			return self._completion_chat_api(
 				new_block,
 				conversation,
@@ -679,6 +680,12 @@ class OpenAIEngine(BaseEngine):
 			),
 			"stream": new_block.stream,
 		}
+		
+		# Add sampling parameters for parity with chat API
+		if hasattr(new_block, "temperature") and new_block.temperature is not None:
+			params["temperature"] = new_block.temperature
+		if hasattr(new_block, "top_p") and new_block.top_p is not None:
+			params["top_p"] = new_block.top_p
 
 		# Add reasoning parameters for reasoning models
 		model = self.get_model(model_id)
@@ -694,7 +701,8 @@ class OpenAIEngine(BaseEngine):
 			response = self.client.responses.create(**params)
 			return response
 		except Exception as e:
-			log.warning("Responses API failed: %s, falling back to chat API", e)
+			# Translator: Warning message when Responses API fails with an error and system falls back to Chat API
+			log.warning(_("Responses API failed: %s, falling back to chat API"), e)
 			return self._completion_chat_api(
 				new_block,
 				conversation,
