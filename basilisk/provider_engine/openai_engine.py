@@ -892,12 +892,15 @@ class OpenAIEngine(BaseEngine):
 		return str(getattr(response, "content", str(response)))
 
 	def completion_response_without_stream(
-		self, response, new_block: MessageBlock, **kwargs
+		self,
+		response: Union[ChatCompletion, "Response"],
+		new_block: MessageBlock,
+		**kwargs,
 	) -> MessageBlock:
 		"""Processes a non-streaming completion response.
 
 		Args:
-			response: The chat completion or responses API response.
+			response: The chat completion (ChatCompletion) or responses API response (Response).
 			new_block: The message block to update with the response.
 			**kwargs: Additional keyword arguments.
 
