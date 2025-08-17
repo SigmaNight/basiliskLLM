@@ -53,7 +53,7 @@ try:
 	_ = __builtins__["_"]
 except (KeyError, TypeError):
 
-	def _(text):
+	def _(text: str) -> str:
 		return text
 
 
@@ -125,7 +125,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-5",
 				name="GPT-5",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Fastest, most cost-efficient version of GPT-5"),
 				context_window=400000,
 				max_output_tokens=128000,
@@ -136,7 +136,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-5-mini",
 				name="GPT-5 mini",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"A faster, more cost-efficient version of GPT-5 for well-defined tasks"
 				),
@@ -149,7 +149,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-5-nano",
 				name="GPT-5 nano",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Fastest, most cost-efficient version of GPT-5"),
 				context_window=400000,
 				max_output_tokens=128000,
@@ -160,7 +160,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-5-chat-latest",
 				name="GPT-5 Chat",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("GPT-5 model used in ChatGPT"),
 				context_window=400000,
 				max_output_tokens=128000,
@@ -170,7 +170,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-oss-120b",
 				name="gpt-oss-120b",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Our most powerful open weight model, which fits into a single H100 GPU"
 				),
@@ -182,7 +182,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-oss-20b",
 				name="gpt-oss-20b",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Our medium-sized open weight model for low latency"
 				),
@@ -194,7 +194,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4.1",
 				name="GPT-4.1",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Flagship GPT model for complex tasks"),
 				context_window=1047576,
 				max_output_tokens=32768,
@@ -205,7 +205,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4.1-mini",
 				name="GPT-4.1 mini",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Balanced for intelligence, speed, and cost"),
 				context_window=1047576,
 				max_output_tokens=32768,
@@ -215,7 +215,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4.1-nano",
 				name="GPT-4.1 nano",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Fastest, most cost-effective GPT-4.1 model"),
 				context_window=1047576,
 				max_output_tokens=32768,
@@ -225,7 +225,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="o4-mini",
 				name="o4-mini",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Faster, more affordable reasoning model"),
 				context_window=200000,
 				max_output_tokens=100000,
@@ -235,7 +235,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="o3",
 				name="o3",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Our most powerful reasoning model"),
 				context_window=200000,
 				max_output_tokens=100000,
@@ -246,7 +246,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o",
 				name="GPT 4o",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
@@ -258,7 +258,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-search-preview",
 				name="GPT-4o Search Preview",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("GPT model for web search in Chat Completions"),
 				context_window=128000,
 				max_output_tokens=16384,
@@ -268,7 +268,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-mini-search-preview",
 				name="GPT-4o mini Search Preview",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_("Fast, affordable small model for web search"),
 				context_window=128000,
 				max_output_tokens=16384,
@@ -278,7 +278,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="chatgpt-4o-latest",
 				name="ChatGPT 4o",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
 				),
@@ -290,7 +290,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-mini",
 				name="GPT 4o Mini",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
@@ -302,7 +302,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="o3-mini",
 				name="o3 Mini",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Our most recent small reasoning model, providing high intelligence at the same cost and latency targets of o1-mini. o3-mini also supports key developer features, like Structured Outputs, function calling, Batch API, and more. Like other models in the o-series, it is designed to excel at science, math, and coding tasks."
 				),
@@ -315,7 +315,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="o1",
 				name="o1",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Points to the most recent snapshot of the o1 model"
 				),
@@ -328,7 +328,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4-turbo",
 				name="GPT 4 Turbo",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"The latest GPT-4 Turbo model with vision capabilities"
 				),
@@ -340,7 +340,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-3.5-turbo",
 				name="GPT 3.5 Turbo",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Points to one of the most recent iterations of gpt-3.5 model"
 				),
@@ -350,7 +350,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-2024-08-06",
 				name="GPT 4o (2024-08-06)",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Latest snapshot that supports Structured Outputs"
 				),
@@ -362,7 +362,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-2024-05-13",
 				name="GPT 4o (2024-05-13)",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Our high-intelligence flagship model for complex, multi-step tasks"
 				),
@@ -374,7 +374,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4o-mini-2024-07-18",
 				name="GPT 4o Mini (2024-07-18)",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
 				),
@@ -386,7 +386,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-3.5-turbo-0125",
 				name="GPT 3.5 Turbo (0125)",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
 				),
@@ -396,7 +396,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4-turbo-preview",
 				name="GPT 4 Turbo Preview",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"Points to one of the most recent iterations of gpt-4 model"
 				),
@@ -407,7 +407,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4-0125-preview",
 				name="GPT 4 (0125) Preview",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
 				),
@@ -418,7 +418,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4-1106-preview",
 				name="GPT 4 (1106) Preview",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
 				),
@@ -429,7 +429,7 @@ class OpenAIEngine(BaseEngine):
 			ProviderAIModel(
 				id="gpt-4-0613",
 				name="GPT 4 (0613)",
-				# Translators: This is a model description
+				# translator: This is a model description
 				description=_(
 					"More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 				),
@@ -456,7 +456,7 @@ class OpenAIEngine(BaseEngine):
 		# Handle system messages differently (text-only, no attachments)
 		if message.role == MessageRoleEnum.SYSTEM:
 			return ChatCompletionSystemMessageParam(
-				role=message.role.value, content=message.content
+				role="system", content=message.content
 			)
 
 		# Handle user messages with potential attachments
@@ -474,7 +474,7 @@ class OpenAIEngine(BaseEngine):
 					)
 				)
 		return ChatCompletionUserMessageParam(
-			role=message.role.value, content=content
+			role="user", content=content
 		)
 
 	def prepare_message_response(
@@ -490,7 +490,7 @@ class OpenAIEngine(BaseEngine):
 		"""
 		super().prepare_message_response(response)
 		return ChatCompletionAssistantMessageParam(
-			role=response.role.value,
+			role="assistant",
 			content=[
 				ChatCompletionContentPartTextParam(
 					text=response.content, type="text"
@@ -699,7 +699,7 @@ class OpenAIEngine(BaseEngine):
 		"""Generates completion using responses API."""
 		if not hasattr(self.client, "responses"):
 			# Fallback to chat API if responses API not available
-			# Translators: Warning message when Responses API is not available and system falls back to Chat API
+			# translator: Warning message when Responses API is not available and system falls back to Chat API
 			log.warning(
 				_("Responses API not available, falling back to chat API")
 			)
@@ -744,10 +744,11 @@ class OpenAIEngine(BaseEngine):
 		params.update(kwargs)
 
 		try:
+			# Note: Streaming is handled via the stream=True parameter
 			response = self.client.responses.create(**params)
 			return response
 		except Exception as e:
-			# Translators: Warning message when Responses API fails with an error and system falls back to Chat API
+			# translator: Warning message when Responses API fails with an error and system falls back to Chat API
 			log.warning(
 				_("Responses API failed: %s, falling back to chat API"), e
 			)
@@ -890,9 +891,11 @@ class OpenAIEngine(BaseEngine):
 	def _extract_text_from_reasoning_item(self, item):
 		"""Extracts text from a reasoning output item."""
 		if hasattr(item, "content") and item.content:
-			for content_item in item.content:
-				if hasattr(content_item, "text"):
-					return content_item.text
+			return "".join(
+				getattr(content_item, "text", "")
+				for content_item in item.content
+				if hasattr(content_item, "text")
+			)
 		return ""
 
 	def _extract_chat_api_content(self, response):

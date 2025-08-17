@@ -20,8 +20,8 @@ class ProviderAIModel:
 		max_output_tokens: The maximum number of output tokens for the AI model.
 		max_temperature: The maximum temperature for the AI model.
 		default_temperature: The default temperature for the AI model.
-		reasoning: Whether the AI model supports reasoning.
 		vision: Whether the AI model supports vision.
+		reasoning: Whether the AI model supports reasoning.
 		prefer_responses_api: Whether to prefer the OpenAI Responses API for this model.
 		extra_info: Additional information for the AI model.
 	"""
