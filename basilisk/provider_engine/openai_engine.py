@@ -555,7 +555,7 @@ class OpenAIEngine(BaseEngine):
 			True if responses API should be used, False otherwise.
 		"""
 		model = self.get_model(model_id)
-		return model and getattr(model, 'prefer_responses_api', False)
+		return bool(model and getattr(model, 'prefer_responses_api', False))
 
 	def completion(
 		self,
@@ -621,7 +621,7 @@ class OpenAIEngine(BaseEngine):
 				system_message,
 				stop_block_index=stop_block_index,
 			),
-			"stream": new_block.stream,
+			"stream": new_block.stream,  # Enable streaming for real-time response display
 		}
 		if model_id not in [
 			"gpt-4o-search-preview",
