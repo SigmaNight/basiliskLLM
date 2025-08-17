@@ -396,3 +396,45 @@ class TestResponsesAPIIntegration:
 		)
 
 		assert result_block.response.content == ""
+
+	def test_streaming_duplicate_output_prevention(self, engine):
+		"""Test that streaming prevents duplicate output from response.completed."""
+		# Test case where output_item.added provides content followed by response.completed
+		mock_output_item_chunk = Mock()
+		mock_output_item_chunk.type = "response.output_item.added"
+		mock_output_item_chunk.item = Mock()
+		mock_output_item_chunk.item.content = [Mock()]
+		mock_output_item_chunk.item.content[0].type = "output_text"
+		mock_output_item_chunk.item.content[0].text = "Item content"
+
+		mock_completed_chunk = Mock()
+		mock_completed_chunk.type = "response.completed"
+		mock_completed_chunk.response = Mock()
+		mock_completed_chunk.response.output_text = (
+			"Item content"  # Same content
+		)
+
+		# Stream should yield content only once (from output_item.added)
+		stream_content = list(
+			engine.completion_response_with_stream(
+				[mock_output_item_chunk, mock_completed_chunk]
+			)
+		)
+
+		# Should only get content once, not duplicated
+		assert stream_content == ["Item content"]
+
+	def test_streaming_completed_fallback(self, engine):
+		"""Test that response.completed provides content when no other output exists."""
+		# Test case where only response.completed provides content
+		mock_completed_chunk = Mock()
+		mock_completed_chunk.type = "response.completed"
+		mock_completed_chunk.response = Mock()
+		mock_completed_chunk.response.output_text = "Completed content"
+
+		# Stream should yield content from response.completed
+		stream_content = list(
+			engine.completion_response_with_stream([mock_completed_chunk])
+		)
+
+		assert stream_content == ["Completed content"]

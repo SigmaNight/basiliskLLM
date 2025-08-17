@@ -759,23 +759,30 @@ class OpenAIEngine(BaseEngine):
 				**kwargs,
 			)
 
-	def _handle_responses_api_streaming_chunk(self, chunk, has_deltas):
+	def _handle_responses_api_streaming_chunk(self, chunk, has_output):
 		"""Handles streaming chunk from responses API.
 
 		Args:
 			chunk: Streaming chunk from responses API.
-			has_deltas: Whether we've seen delta events.
+			has_output: Dictionary with 'value' key to track if any output was produced.
 
 		Yields:
 			Content from the chunk.
 		"""
 		if chunk.type == "response.output_text.delta":
 			if hasattr(chunk, "delta"):
+				has_output["value"] = True
 				yield str(chunk.delta)
 		elif chunk.type == "response.output_item.added":
-			yield from self._extract_output_item_content(chunk)
-		elif chunk.type == "response.completed" and not has_deltas:
-			yield from self._extract_completed_response_text(chunk)
+			content_gen = self._extract_output_item_content(chunk)
+			for content in content_gen:
+				has_output["value"] = True
+				yield content
+		elif chunk.type == "response.completed" and not has_output["value"]:
+			content_gen = self._extract_completed_response_text(chunk)
+			for content in content_gen:
+				has_output["value"] = True
+				yield content
 
 	def _extract_output_item_content(self, chunk):
 		"""Extracts content from output item added event."""
@@ -819,17 +826,14 @@ class OpenAIEngine(BaseEngine):
 		Yields:
 			Content from each chunk in the stream.
 		"""
-		has_deltas = False
+		has_output = {"value": False}  # Use dict for mutable reference
 
 		for chunk in stream:
 			# Handle responses API streaming events
 			if hasattr(chunk, "type"):
 				yield from self._handle_responses_api_streaming_chunk(
-					chunk, has_deltas
+					chunk, has_output
 				)
-				# Update has_deltas based on chunk type
-				if chunk.type == "response.output_text.delta":
-					has_deltas = True
 			# Handle chat completions API streaming (fallback)
 			else:
 				yield from self._handle_chat_api_streaming_chunk(chunk)
