@@ -17,14 +17,14 @@ from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.decorators import measure_time
 
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .legacy_openai_engine import LegacyOpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 getcontext().prec = 20
 
 
-class OpenRouterEngine(OpenAIEngine):
+class OpenRouterEngine(LegacyOpenAIEngine):
 	"""Engine implementation for OpenRouter API integration.
 
 	Extends OpenAIEngine to provide OpenRouter-specific model configurations and capabilities.

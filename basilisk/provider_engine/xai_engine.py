@@ -8,12 +8,12 @@ import logging
 from functools import cached_property
 
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .legacy_openai_engine import LegacyOpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
-class XAIEngine(OpenAIEngine):
+class XAIEngine(LegacyOpenAIEngine):
 	"""Engine implementation for xAI API integration.
 
 	Extends OpenAIEngine to provide xAI-specific model configurations and capabilities.

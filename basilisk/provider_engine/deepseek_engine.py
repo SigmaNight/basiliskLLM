@@ -17,12 +17,12 @@ from openai.types.chat import (
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
 
 from .base_engine import ProviderAIModel
-from .openai_engine import OpenAIEngine, ProviderCapability
+from .legacy_openai_engine import LegacyOpenAIEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
 
-class DeepSeekAIEngine(OpenAIEngine):
+class DeepSeekAIEngine(LegacyOpenAIEngine):
 	"""Engine implementation for DeepSeek API integration.
 
 	Extends OpenAIEngine to provide DeepSeek-specific model configurations and capabilities.
