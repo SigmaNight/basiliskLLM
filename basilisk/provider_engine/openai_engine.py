@@ -530,10 +530,15 @@ class OpenAIEngine(BaseEngine):
 						{"type": "input_file", "file_url": attachment.url}
 					)
 
+			# Add assistant message with typed content format
+			assistant_content = [
+				{"type": "input_text", "text": block.response.content}
+			]
+			
 			input_messages.extend(
 				[
 					{"role": "user", "content": user_content},
-					{"role": "assistant", "content": block.response.content},
+					{"role": "assistant", "content": assistant_content},
 				]
 			)
 
