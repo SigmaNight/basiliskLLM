@@ -621,7 +621,8 @@ class OpenAIEngine(BaseEngine):
 
 		Returns:
 			Either a complete chat completion response, a generator for streaming
-			chat completion chunks, or a responses API response.
+			chat completion chunks, a responses API response, or a generator for
+			Responses API streaming events when using streaming mode.
 		"""
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
