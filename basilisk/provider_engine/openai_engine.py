@@ -688,6 +688,57 @@ class OpenAIEngine(BaseEngine):
 				**kwargs,
 			)
 
+	def _handle_responses_api_streaming_chunk(self, chunk, has_deltas):
+		"""Handles streaming chunk from responses API.
+
+		Args:
+			chunk: Streaming chunk from responses API.
+			has_deltas: Whether we've seen delta events.
+
+		Yields:
+			Content from the chunk.
+		"""
+		if chunk.type == 'response.output_text.delta':
+			if hasattr(chunk, 'delta'):
+				yield str(chunk.delta)
+		elif chunk.type == 'response.output_item.added':
+			yield from self._extract_output_item_content(chunk)
+		elif chunk.type == 'response.completed' and not has_deltas:
+			yield from self._extract_completed_response_text(chunk)
+
+	def _extract_output_item_content(self, chunk):
+		"""Extracts content from output item added event."""
+		if (
+			hasattr(chunk, 'item')
+			and chunk.item
+			and hasattr(chunk.item, 'content')
+			and chunk.item.content
+		):
+			for content_item in chunk.item.content:
+				if (
+					hasattr(content_item, 'type')
+					and content_item.type == 'output_text'
+					and hasattr(content_item, 'text')
+				):
+					yield content_item.text
+
+	def _extract_completed_response_text(self, chunk):
+		"""Extracts text from completed response event."""
+		if (
+			hasattr(chunk, 'response')
+			and chunk.response
+			and hasattr(chunk.response, 'output_text')
+			and chunk.response.output_text
+		):
+			yield chunk.response.output_text
+
+	def _handle_chat_api_streaming_chunk(self, chunk):
+		"""Handles streaming chunk from chat completions API."""
+		if hasattr(chunk, 'choices'):
+			delta = chunk.choices[0].delta
+			if delta and delta.content:
+				yield delta.content
+
 	def completion_response_with_stream(self, stream):
 		"""Processes a streaming completion response.
 
@@ -702,43 +753,80 @@ class OpenAIEngine(BaseEngine):
 		for chunk in stream:
 			# Handle responses API streaming events
 			if hasattr(chunk, 'type'):
-				# Handle text delta events from responses API
+				yield from self._handle_responses_api_streaming_chunk(
+					chunk, has_deltas
+				)
+				# Update has_deltas based on chunk type
 				if chunk.type == 'response.output_text.delta':
 					has_deltas = True
-					if hasattr(chunk, 'delta'):
-						# The delta attribute directly contains the text string
-						yield str(chunk.delta)
-				# Handle message content events
-				elif chunk.type == 'response.output_item.added':
-					if (
-						hasattr(chunk, 'item')
-						and chunk.item
-						and hasattr(chunk.item, 'content')
-						and chunk.item.content
-					):
-						for content_item in chunk.item.content:
-							if (
-								hasattr(content_item, 'type')
-								and content_item.type == 'output_text'
-								and hasattr(content_item, 'text')
-							):
-								yield content_item.text
-				# Handle completion event with final output (fallback when no deltas)
-				elif chunk.type == 'response.completed':
-					# Only yield the complete text if we haven't seen any deltas
-					if (
-						not has_deltas
-						and hasattr(chunk, 'response')
-						and chunk.response
-						and hasattr(chunk.response, 'output_text')
-					):
-						if chunk.response.output_text:
-							yield chunk.response.output_text
 			# Handle chat completions API streaming (fallback)
-			elif hasattr(chunk, 'choices'):
-				delta = chunk.choices[0].delta
-				if delta and delta.content:
-					yield delta.content
+			else:
+				yield from self._handle_chat_api_streaming_chunk(chunk)
+
+	def _extract_responses_api_content(self, response):
+		"""Extracts content from responses API response.
+
+		Args:
+			response: Responses API response object.
+
+		Returns:
+			Extracted content string.
+		"""
+		# If output_text is available and not empty, use it directly
+		if response.output_text:
+			return response.output_text
+
+		# Otherwise, try to extract text from output items
+		if hasattr(response, 'output') and response.output:
+			return self._extract_content_from_output_items(response.output)
+
+		# Final fallback - empty response
+		return ""
+
+	def _extract_content_from_output_items(self, output_items):
+		"""Extracts content from response output items.
+
+		Args:
+			output_items: List of output items from responses API.
+
+		Returns:
+			Concatenated content string.
+		"""
+		message_content = ""
+		for item in output_items:
+			if item.type == 'message':
+				message_content += self._extract_text_from_message_item(item)
+			elif item.type == 'reasoning':
+				# Fallback for reasoning models when only reasoning items are returned
+				message_content += self._extract_text_from_reasoning_item(item)
+		return message_content
+
+	def _extract_text_from_message_item(self, item):
+		"""Extracts text from a message output item."""
+		if hasattr(item, 'content') and item.content:
+			for content_item in item.content:
+				if (
+					content_item.type == 'output_text'
+					and hasattr(content_item, 'text')
+				):
+					return content_item.text
+		return ""
+
+	def _extract_text_from_reasoning_item(self, item):
+		"""Extracts text from a reasoning output item."""
+		if hasattr(item, 'content') and item.content:
+			for content_item in item.content:
+				if hasattr(content_item, 'text'):
+					return content_item.text
+		return ""
+
+	def _extract_chat_api_content(self, response):
+		"""Extracts content from chat completions API response."""
+		if hasattr(response, 'choices'):
+			content = response.choices[0].message.content
+			return str(content) if content else ""
+		# Final fallback
+		return str(getattr(response, 'content', str(response)))
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs
@@ -755,58 +843,14 @@ class OpenAIEngine(BaseEngine):
 		"""
 		# Handle responses API response
 		if hasattr(response, 'output_text'):
-			# If output_text is not empty, use it directly
-			if response.output_text:
-				new_block.response = Message(
-					role=MessageRoleEnum.ASSISTANT, content=response.output_text
-				)
-			# Otherwise, try to extract text from output items
-			elif hasattr(response, 'output') and response.output:
-				message_content = ""
-				for item in response.output:
-					if (
-						item.type == 'message'
-						and hasattr(item, 'content')
-						and item.content
-					):
-						for content_item in item.content:
-							if content_item.type == 'output_text' and hasattr(
-								content_item, 'text'
-							):
-								message_content += content_item.text
-					# For reasoning models, the reasoning item might contain the actual response
-					# This is a fallback for when only reasoning items are returned
-					elif (
-						item.type == 'reasoning'
-						and hasattr(item, 'content')
-						and item.content
-					):
-						for content_item in item.content:
-							if hasattr(content_item, 'text'):
-								message_content += content_item.text
-
-				if message_content:
-					new_block.response = Message(
-						role=MessageRoleEnum.ASSISTANT, content=message_content
-					)
-				else:
-					# Final fallback - empty response
-					new_block.response = Message(
-						role=MessageRoleEnum.ASSISTANT, content=""
-					)
-		# Handle chat completions API response
-		elif hasattr(response, 'choices'):
-			content = response.choices[0].message.content
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT,
-				content=str(content),  # Ensure it's a string
-			)
+			content = self._extract_responses_api_content(response)
 		else:
-			# Fallback - try to extract content from response
-			content = getattr(response, 'content', str(response))
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT, content=str(content)
-			)
+			# Handle chat completions API response
+			content = self._extract_chat_api_content(response)
+
+		new_block.response = Message(
+			role=MessageRoleEnum.ASSISTANT, content=content
+		)
 		return new_block
 
 	def get_transcription(
