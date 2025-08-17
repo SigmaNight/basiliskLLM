@@ -16,6 +16,7 @@ from openai.types.chat import (
 	ChatCompletionAssistantMessageParam,
 	ChatCompletionChunk,
 	ChatCompletionContentPartTextParam,
+	ChatCompletionSystemMessageParam,
 	ChatCompletionUserMessageParam,
 )
 from openai.types.chat.chat_completion_content_part_image_param import (
@@ -439,7 +440,9 @@ class OpenAIEngine(BaseEngine):
 
 	def prepare_message_request(
 		self, message: Message
-	) -> ChatCompletionUserMessageParam:
+	) -> Union[
+		ChatCompletionUserMessageParam, ChatCompletionSystemMessageParam
+	]:
 		"""Prepares a message for OpenAI API request.
 
 		Args:
@@ -449,6 +452,14 @@ class OpenAIEngine(BaseEngine):
 			OpenAI API compatible message parameter.
 		"""
 		super().prepare_message_request(message)
+
+		# Handle system messages differently (text-only, no attachments)
+		if message.role == MessageRoleEnum.SYSTEM:
+			return ChatCompletionSystemMessageParam(
+				role=message.role.value, content=message.content
+			)
+
+		# Handle user messages with potential attachments
 		content = [
 			ChatCompletionContentPartTextParam(
 				text=message.content, type="text"
@@ -500,17 +511,16 @@ class OpenAIEngine(BaseEngine):
 			new_block: The message block containing generation parameters.
 			conversation: The conversation history context.
 			system_message: Optional system message to guide the AI's behavior.
+								Note: system_message is handled via instructions parameter, not input.
 			stop_block_index: Optional index to stop processing messages at.
 
 		Returns:
-			List of input messages formatted for responses API.
+			List of input messages formatted for responses API (without system message).
 		"""
 		input_messages = []
 
-		if system_message:
-			input_messages.append(
-				{"role": "system", "content": system_message.content}
-			)
+		# Note: system_message is handled via instructions parameter in _completion_responses_api
+		# and should not be included in the input messages array
 
 		for i, block in enumerate(conversation.messages):
 			if stop_block_index is not None and i >= stop_block_index:
@@ -682,6 +692,10 @@ class OpenAIEngine(BaseEngine):
 			),
 			"stream": new_block.stream,
 		}
+
+		# Add system message as instructions parameter (proper Responses API format)
+		if system_message:
+			params["instructions"] = system_message.content
 
 		# Add sampling parameters for parity with chat API
 		if (
