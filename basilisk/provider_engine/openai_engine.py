@@ -520,7 +520,7 @@ class OpenAIEngine(BaseEngine):
 			if getattr(block.request, "attachments", None):
 				for attachment in block.request.attachments:
 					user_content.append(
-						{"type": "input_file", "file_data": attachment.url}
+						{"type": "input_file", "file_url": attachment.url}
 					)
 
 			input_messages.extend(
@@ -538,7 +538,7 @@ class OpenAIEngine(BaseEngine):
 		if getattr(new_block.request, "attachments", None):
 			for attachment in new_block.request.attachments:
 				user_content.append(
-					{"type": "input_file", "file_data": attachment.url}
+					{"type": "input_file", "file_url": attachment.url}
 				)
 
 		input_messages.append({"role": "user", "content": user_content})
@@ -803,13 +803,14 @@ class OpenAIEngine(BaseEngine):
 
 	def _extract_text_from_message_item(self, item):
 		"""Extracts text from a message output item."""
+		text_content = ""
 		if hasattr(item, 'content') and item.content:
 			for content_item in item.content:
 				if content_item.type == 'output_text' and hasattr(
 					content_item, 'text'
 				):
-					return content_item.text
-		return ""
+					text_content += content_item.text
+		return text_content
 
 	def _extract_text_from_reasoning_item(self, item):
 		"""Extracts text from a reasoning output item."""

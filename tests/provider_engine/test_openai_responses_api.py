@@ -14,7 +14,8 @@ from pydantic import SecretStr
 
 # Add the project root to Python path for tests
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+if str(project_root) not in sys.path:
+	sys.path.insert(0, str(project_root))
 
 from basilisk.config import Account  # noqa: E402
 from basilisk.conversation import (  # noqa: E402
@@ -40,15 +41,15 @@ class TestResponsesAPILive:
 
 		provider = get_provider(id="openai")
 		account = Account(
-			provider=provider, api_key=SecretStr(api_key), name='test_account'
+			provider=provider, api_key=SecretStr(api_key), name="test_account"
 		)
 		return OpenAIEngine(account)
 
 	def test_engine_creation(self, engine):
 		"""Test that engine can be created successfully."""
 		assert engine is not None
-		assert hasattr(engine, 'client')
-		assert hasattr(engine, 'models')
+		assert hasattr(engine, "client")
+		assert hasattr(engine, "models")
 
 	def test_model_discovery(self, engine):
 		"""Test that models are properly configured."""
@@ -61,14 +62,14 @@ class TestResponsesAPILive:
 
 		# Verify they have the responses API preference (some may be False)
 		responses_api_models = [
-			m for m in gpt5_models if getattr(m, 'prefer_responses_api', False)
+			m for m in gpt5_models if getattr(m, "prefer_responses_api", False)
 		]
 		assert (
 			len(responses_api_models) > 0
 		)  # At least some should use responses API
 
 		for model in responses_api_models:
-			assert hasattr(model, 'prefer_responses_api')
+			assert hasattr(model, "prefer_responses_api")
 			assert model.prefer_responses_api is True
 
 	@pytest.mark.slow
@@ -138,7 +139,7 @@ class TestResponsesAPILive:
 
 		# Get model to check if it's marked as reasoning
 		model = engine.get_model("o3")
-		if model and getattr(model, 'reasoning', False):
+		if model and getattr(model, "reasoning", False):
 			# Test would add reasoning parameters
 			responses_input = engine.prepare_responses_input(
 				new_block, Conversation()
@@ -156,8 +157,8 @@ class TestResponsesAPIFallback:
 		provider = get_provider(id="openai")
 		account = Account(
 			provider=provider,
-			api_key=SecretStr('fake_key'),
-			name='test_account',
+			api_key=SecretStr("fake_key"),
+			name="test_account",
 		)
 		return OpenAIEngine(account)
 

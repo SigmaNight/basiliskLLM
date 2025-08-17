@@ -22,6 +22,7 @@ class ProviderAIModel:
 		default_temperature: The default temperature for the AI model.
 		reasoning: Whether the AI model supports reasoning.
 		vision: Whether the AI model supports vision.
+		prefer_responses_api: Whether to prefer the OpenAI Responses API for this model.
 		extra_info: Additional information for the AI model.
 	"""
 
