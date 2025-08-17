@@ -498,6 +498,29 @@ class OpenAIEngine(BaseEngine):
 			],
 		)
 
+	def _responses_items_for_attachments(self, attachments) -> list[dict]:
+		"""Converts attachments to Responses API input items.
+
+		Args:
+			attachments: List of attachment objects.
+
+		Returns:
+			List of input items formatted for Responses API (input_image or input_file).
+		"""
+		items = []
+		for attachment in attachments:
+			mime = getattr(attachment, "mime_type", "") or ""
+			if mime.startswith("image/"):
+				items.append(
+					{
+						"type": "input_image",
+						"image_url": {"url": attachment.url},
+					}
+				)
+			else:
+				items.append({"type": "input_file", "file_url": attachment.url})
+		return items
+
 	def prepare_responses_input(
 		self,
 		new_block: MessageBlock,
@@ -535,19 +558,11 @@ class OpenAIEngine(BaseEngine):
 
 			# Add attachments if present
 			if getattr(block.request, "attachments", None):
-				for attachment in block.request.attachments:
-					mime = getattr(attachment, "mime_type", "") or ""
-					if mime.startswith("image/"):
-						user_content.append(
-							{
-								"type": "input_image",
-								"image_url": {"url": attachment.url},
-							}
-						)
-					else:
-						user_content.append(
-							{"type": "input_file", "file_url": attachment.url}
-						)
+				user_content.extend(
+					self._responses_items_for_attachments(
+						block.request.attachments
+					)
+				)
 
 			# Add assistant message with typed content format
 			assistant_content = [
@@ -567,19 +582,11 @@ class OpenAIEngine(BaseEngine):
 		]
 
 		if getattr(new_block.request, "attachments", None):
-			for attachment in new_block.request.attachments:
-				mime = getattr(attachment, "mime_type", "") or ""
-				if mime.startswith("image/"):
-					user_content.append(
-						{
-							"type": "input_image",
-							"image_url": {"url": attachment.url},
-						}
-					)
-				else:
-					user_content.append(
-						{"type": "input_file", "file_url": attachment.url}
-					)
+			user_content.extend(
+				self._responses_items_for_attachments(
+					new_block.request.attachments
+				)
+			)
 
 		input_messages.append({"role": "user", "content": user_content})
 
