@@ -864,9 +864,8 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Transcription of the audio content.
 		"""
-		file = open(audio_file_path, "rb")
-		transcription = self.client.audio.transcriptions.create(
-			model="whisper-1", file=file, response_format=response_format
-		)
-		file.close()
+		with open(audio_file_path, "rb") as file:
+			transcription = self.client.audio.transcriptions.create(
+				model="whisper-1", file=file, response_format=response_format
+			)
 		return transcription
