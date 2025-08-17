@@ -49,7 +49,7 @@ from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 # Import translation function
 try:
-	_ = __builtins__['_']
+	_ = __builtins__["_"]
 except (KeyError, TypeError):
 
 	def _(text):
@@ -534,7 +534,7 @@ class OpenAIEngine(BaseEngine):
 			assistant_content = [
 				{"type": "input_text", "text": block.response.content}
 			]
-			
+
 			input_messages.extend(
 				[
 					{"role": "user", "content": user_content},
@@ -567,7 +567,7 @@ class OpenAIEngine(BaseEngine):
 			True if responses API should be used, False otherwise.
 		"""
 		model = self.get_model(model_id)
-		return bool(model and getattr(model, 'prefer_responses_api', False))
+		return bool(model and getattr(model, "prefer_responses_api", False))
 
 	def completion(
 		self,
@@ -660,10 +660,12 @@ class OpenAIEngine(BaseEngine):
 		**kwargs,
 	) -> Union["Response", Generator[object, None, None]]:
 		"""Generates completion using responses API."""
-		if not hasattr(self.client, 'responses'):
+		if not hasattr(self.client, "responses"):
 			# Fallback to chat API if responses API not available
 			# Translator: Warning message when Responses API is not available and system falls back to Chat API
-			log.warning(_("Responses API not available, falling back to chat API"))
+			log.warning(
+				_("Responses API not available, falling back to chat API")
+			)
 			return self._completion_chat_api(
 				new_block,
 				conversation,
@@ -680,9 +682,12 @@ class OpenAIEngine(BaseEngine):
 			),
 			"stream": new_block.stream,
 		}
-		
+
 		# Add sampling parameters for parity with chat API
-		if hasattr(new_block, "temperature") and new_block.temperature is not None:
+		if (
+			hasattr(new_block, "temperature")
+			and new_block.temperature is not None
+		):
 			params["temperature"] = new_block.temperature
 		if hasattr(new_block, "top_p") and new_block.top_p is not None:
 			params["top_p"] = new_block.top_p
@@ -702,7 +707,9 @@ class OpenAIEngine(BaseEngine):
 			return response
 		except Exception as e:
 			# Translator: Warning message when Responses API fails with an error and system falls back to Chat API
-			log.warning(_("Responses API failed: %s, falling back to chat API"), e)
+			log.warning(
+				_("Responses API failed: %s, falling back to chat API"), e
+			)
 			return self._completion_chat_api(
 				new_block,
 				conversation,
@@ -721,43 +728,43 @@ class OpenAIEngine(BaseEngine):
 		Yields:
 			Content from the chunk.
 		"""
-		if chunk.type == 'response.output_text.delta':
-			if hasattr(chunk, 'delta'):
+		if chunk.type == "response.output_text.delta":
+			if hasattr(chunk, "delta"):
 				yield str(chunk.delta)
-		elif chunk.type == 'response.output_item.added':
+		elif chunk.type == "response.output_item.added":
 			yield from self._extract_output_item_content(chunk)
-		elif chunk.type == 'response.completed' and not has_deltas:
+		elif chunk.type == "response.completed" and not has_deltas:
 			yield from self._extract_completed_response_text(chunk)
 
 	def _extract_output_item_content(self, chunk):
 		"""Extracts content from output item added event."""
 		if (
-			hasattr(chunk, 'item')
+			hasattr(chunk, "item")
 			and chunk.item
-			and hasattr(chunk.item, 'content')
+			and hasattr(chunk.item, "content")
 			and chunk.item.content
 		):
 			for content_item in chunk.item.content:
 				if (
-					hasattr(content_item, 'type')
-					and content_item.type == 'output_text'
-					and hasattr(content_item, 'text')
+					hasattr(content_item, "type")
+					and content_item.type == "output_text"
+					and hasattr(content_item, "text")
 				):
 					yield content_item.text
 
 	def _extract_completed_response_text(self, chunk):
 		"""Extracts text from completed response event."""
 		if (
-			hasattr(chunk, 'response')
+			hasattr(chunk, "response")
 			and chunk.response
-			and hasattr(chunk.response, 'output_text')
+			and hasattr(chunk.response, "output_text")
 			and chunk.response.output_text
 		):
 			yield chunk.response.output_text
 
 	def _handle_chat_api_streaming_chunk(self, chunk):
 		"""Handles streaming chunk from chat completions API."""
-		if hasattr(chunk, 'choices'):
+		if hasattr(chunk, "choices"):
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
 				yield delta.content
@@ -775,12 +782,12 @@ class OpenAIEngine(BaseEngine):
 
 		for chunk in stream:
 			# Handle responses API streaming events
-			if hasattr(chunk, 'type'):
+			if hasattr(chunk, "type"):
 				yield from self._handle_responses_api_streaming_chunk(
 					chunk, has_deltas
 				)
 				# Update has_deltas based on chunk type
-				if chunk.type == 'response.output_text.delta':
+				if chunk.type == "response.output_text.delta":
 					has_deltas = True
 			# Handle chat completions API streaming (fallback)
 			else:
@@ -800,7 +807,7 @@ class OpenAIEngine(BaseEngine):
 			return response.output_text
 
 		# Otherwise, try to extract text from output items
-		if hasattr(response, 'output') and response.output:
+		if hasattr(response, "output") and response.output:
 			return self._extract_content_from_output_items(response.output)
 
 		# Final fallback - empty response
@@ -817,9 +824,9 @@ class OpenAIEngine(BaseEngine):
 		"""
 		message_content = ""
 		for item in output_items:
-			if item.type == 'message':
+			if item.type == "message":
 				message_content += self._extract_text_from_message_item(item)
-			elif item.type == 'reasoning':
+			elif item.type == "reasoning":
 				# Fallback for reasoning models when only reasoning items are returned
 				message_content += self._extract_text_from_reasoning_item(item)
 		return message_content
@@ -827,29 +834,29 @@ class OpenAIEngine(BaseEngine):
 	def _extract_text_from_message_item(self, item):
 		"""Extracts text from a message output item."""
 		text_content = ""
-		if hasattr(item, 'content') and item.content:
+		if hasattr(item, "content") and item.content:
 			for content_item in item.content:
-				if content_item.type == 'output_text' and hasattr(
-					content_item, 'text'
+				if content_item.type == "output_text" and hasattr(
+					content_item, "text"
 				):
 					text_content += content_item.text
 		return text_content
 
 	def _extract_text_from_reasoning_item(self, item):
 		"""Extracts text from a reasoning output item."""
-		if hasattr(item, 'content') and item.content:
+		if hasattr(item, "content") and item.content:
 			for content_item in item.content:
-				if hasattr(content_item, 'text'):
+				if hasattr(content_item, "text"):
 					return content_item.text
 		return ""
 
 	def _extract_chat_api_content(self, response):
 		"""Extracts content from chat completions API response."""
-		if hasattr(response, 'choices'):
+		if hasattr(response, "choices"):
 			content = response.choices[0].message.content
 			return str(content) if content else ""
 		# Final fallback
-		return str(getattr(response, 'content', str(response)))
+		return str(getattr(response, "content", str(response)))
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs
@@ -865,7 +872,7 @@ class OpenAIEngine(BaseEngine):
 			Updated message block containing the response.
 		"""
 		# Handle responses API response
-		if hasattr(response, 'output_text'):
+		if hasattr(response, "output_text"):
 			content = self._extract_responses_api_content(response)
 		else:
 			# Handle chat completions API response
@@ -892,4 +899,8 @@ class OpenAIEngine(BaseEngine):
 			transcription = self.client.audio.transcriptions.create(
 				model="whisper-1", file=file, response_format=response_format
 			)
-		return transcription
+		# Extract text content from transcription object
+		if hasattr(transcription, "text"):
+			return transcription.text
+		else:
+			return str(transcription)
