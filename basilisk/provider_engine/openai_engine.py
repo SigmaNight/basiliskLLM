@@ -805,9 +805,8 @@ class OpenAIEngine(BaseEngine):
 		"""Extracts text from a message output item."""
 		if hasattr(item, 'content') and item.content:
 			for content_item in item.content:
-				if (
-					content_item.type == 'output_text'
-					and hasattr(content_item, 'text')
+				if content_item.type == 'output_text' and hasattr(
+					content_item, 'text'
 				):
 					return content_item.text
 		return ""
