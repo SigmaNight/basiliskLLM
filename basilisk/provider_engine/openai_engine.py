@@ -536,9 +536,18 @@ class OpenAIEngine(BaseEngine):
 			# Add attachments if present
 			if getattr(block.request, "attachments", None):
 				for attachment in block.request.attachments:
-					user_content.append(
-						{"type": "input_file", "file_url": attachment.url}
-					)
+					mime = getattr(attachment, "mime_type", "") or ""
+					if mime.startswith("image/"):
+						user_content.append(
+							{
+								"type": "input_image",
+								"image_url": {"url": attachment.url},
+							}
+						)
+					else:
+						user_content.append(
+							{"type": "input_file", "file_url": attachment.url}
+						)
 
 			# Add assistant message with typed content format
 			assistant_content = [
@@ -559,9 +568,18 @@ class OpenAIEngine(BaseEngine):
 
 		if getattr(new_block.request, "attachments", None):
 			for attachment in new_block.request.attachments:
-				user_content.append(
-					{"type": "input_file", "file_url": attachment.url}
-				)
+				mime = getattr(attachment, "mime_type", "") or ""
+				if mime.startswith("image/"):
+					user_content.append(
+						{
+							"type": "input_image",
+							"image_url": {"url": attachment.url},
+						}
+					)
+				else:
+					user_content.append(
+						{"type": "input_file", "file_url": attachment.url}
+					)
 
 		input_messages.append({"role": "user", "content": user_content})
 
