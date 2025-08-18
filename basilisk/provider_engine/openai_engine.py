@@ -143,30 +143,6 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="gpt-oss-120b",
-				name="gpt-oss-120b",
-				# Translators: This is a model description
-				description=_(
-					"Our most powerful open weight model, which fits into a single H100 GPU"
-				),
-				context_window=131072,
-				max_output_tokens=131072,
-				vision=False,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-oss-20b",
-				name="gpt-oss-20b",
-				# Translators: This is a model description
-				description=_(
-					"Our medium-sized open weight model for low latency"
-				),
-				context_window=131072,
-				max_output_tokens=131072,
-				vision=False,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
 				id="gpt-4.1",
 				name="GPT-4.1",
 				# Translators: This is a model description
@@ -224,26 +200,6 @@ class OpenAIEngine(BaseEngine):
 				description=_(
 					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-search-preview",
-				name="GPT-4o Search Preview",
-				# Translators: This is a model description
-				description=_("GPT model for web search in Chat Completions"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-mini-search-preview",
-				name="GPT-4o mini Search Preview",
-				# Translators: This is a model description
-				description=_("Fast, affordable small model for web search"),
 				context_window=128000,
 				max_output_tokens=16384,
 				vision=True,
