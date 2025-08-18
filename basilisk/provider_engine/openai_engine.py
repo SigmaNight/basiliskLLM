@@ -22,6 +22,7 @@ from openai.types.responses import (
 	ResponseOutputTextParam,
 	ResponseStreamEvent,
 	ResponseTextDeltaEvent,
+	WebSearchToolParam,
 )
 
 from basilisk.conversation import (
@@ -53,6 +54,7 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
+		ProviderCapability.WEB_SEARCH,
 	}
 
 	supported_attachment_formats: set[str] = {
@@ -443,8 +445,17 @@ class OpenAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		tools = []
+		web_search = kwargs.pop("web_search_mode", False)
+		if web_search:
+			tools.append(
+				WebSearchToolParam(
+					type="web_search_preview", search_context_size="medium"
+				)
+			)
+		model = self.get_model(new_block.model.model_id)
 		params = {
-			"model": self.get_model(new_block.model.model_id),
+			"model": model.id,
 			"input": self.get_messages(
 				new_block,
 				conversation,
@@ -458,6 +469,8 @@ class OpenAIEngine(BaseEngine):
 		}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		if tools:
+			params["tools"] = tools
 		params.update(kwargs)
 		response = self.client.responses.create(**params)
 		return response
