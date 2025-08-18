@@ -17,9 +17,9 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider import get_provider  # noqa: E402
-from basilisk.provider_ai_model import AIModelInfo  # noqa: E402
-from basilisk.provider_engine.openai_engine import OpenAIEngine  # noqa: E402
+from basilisk.provider import get_provider
+from basilisk.provider_ai_model import AIModelInfo
+from basilisk.provider_engine.openai_engine import OpenAIEngine
 
 
 class TestResponsesAPILive:
@@ -69,10 +69,23 @@ class TestResponsesAPILive:
 	@pytest.mark.parametrize(
 		"model_id,expected",
 		[
+			# GPT-5 series should use responses API
 			("gpt-5", True),
-			("gpt-4.1", True),
 			("gpt-5-mini", True),
+			("gpt-5-nano", True),
+			# GPT-4.1 series should use responses API
+			("gpt-4.1", True),
+			("gpt-4.1-mini", True),
+			("gpt-4.1-nano", True),
+			# o-series reasoning models should use responses API
+			("o3", True),
+			("o3-mini", True),
+			("o4-mini", True),
+			("o1", True),
+			# Other models should not use responses API
 			("gpt-4o", False),
+			("gpt-4o-mini", False),
+			("gpt-3.5-turbo", False),
 		],
 	)
 	def test_api_selection_logic(self, engine, model_id, expected):

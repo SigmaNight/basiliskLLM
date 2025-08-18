@@ -211,6 +211,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=32768,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-4.1-nano",
@@ -221,6 +222,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=32768,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="o4-mini",
@@ -231,6 +233,7 @@ class OpenAIEngine(BaseEngine):
 				max_output_tokens=100000,
 				vision=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="o3",
@@ -242,6 +245,7 @@ class OpenAIEngine(BaseEngine):
 				vision=True,
 				reasoning=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-4o",
@@ -311,6 +315,7 @@ class OpenAIEngine(BaseEngine):
 				vision=True,
 				reasoning=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="o1",
@@ -324,6 +329,7 @@ class OpenAIEngine(BaseEngine):
 				vision=True,
 				reasoning=True,
 				max_temperature=2.0,
+				prefer_responses_api=True,
 			),
 			ProviderAIModel(
 				id="gpt-4-turbo",
