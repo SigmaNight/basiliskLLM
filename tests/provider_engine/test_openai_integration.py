@@ -439,7 +439,9 @@ class TestResponsesAPIIntegration:
 
 		assert stream_content == ["Completed content"]
 
-	def test_responses_api_streaming_completion(self, engine, conversation_with_history):
+	def test_responses_api_streaming_completion(
+		self, engine, conversation_with_history
+	):
 		"""Test that completion returns a stream for Responses API when stream=True."""
 		# Create MessageBlock with stream=True
 		request = Message(role=MessageRoleEnum.USER, content="Test message")
@@ -461,20 +463,28 @@ class TestResponsesAPIIntegration:
 		mock_completed_event = Mock()
 		mock_completed_event.type = "response.completed"
 
-		mock_stream = [mock_delta_event1, mock_delta_event2, mock_completed_event]
+		mock_stream = [
+			mock_delta_event1,
+			mock_delta_event2,
+			mock_completed_event,
+		]
 
 		# Mock the client
 		with patch.object(engine, "client") as mock_client:
 			mock_client.responses.create.return_value = iter(mock_stream)
 
 			# Call completion and verify it returns an iterable
-			result = engine.completion(new_block, conversation_with_history, None)
-			
+			result = engine.completion(
+				new_block, conversation_with_history, None
+			)
+
 			# Assert the result is iterable
 			assert hasattr(result, "__iter__")
-			
+
 			# Pass it to completion_response_with_stream and collect deltas
-			collected_content = list(engine.completion_response_with_stream(result))
-			
+			collected_content = list(
+				engine.completion_response_with_stream(result)
+			)
+
 			# Assert collected content matches expected deltas
 			assert collected_content == ["foo", "bar"]

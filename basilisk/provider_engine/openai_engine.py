@@ -473,9 +473,7 @@ class OpenAIEngine(BaseEngine):
 						image_url=image, type="image_url"
 					)
 				)
-		return ChatCompletionUserMessageParam(
-			role="user", content=content
-		)
+		return ChatCompletionUserMessageParam(role="user", content=content)
 
 	def prepare_message_response(
 		self, response: Message
