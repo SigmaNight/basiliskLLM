@@ -8,19 +8,20 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Generator, Union
+from typing import TYPE_CHECKING, Generator
 
 from openai import OpenAI
-from openai.types.chat import (
-	ChatCompletion,
-	ChatCompletionAssistantMessageParam,
-	ChatCompletionChunk,
-	ChatCompletionContentPartTextParam,
-	ChatCompletionUserMessageParam,
-)
-from openai.types.chat.chat_completion_content_part_image_param import (
-	ChatCompletionContentPartImageParam,
-	ImageURL,
+from openai.types.responses import (
+	EasyInputMessageParam,
+	Response,
+	ResponseInputImageParam,
+	ResponseInputTextParam,
+	ResponseOutputMessage,
+	ResponseOutputRefusal,
+	ResponseOutputText,
+	ResponseOutputTextParam,
+	ResponseStreamEvent,
+	ResponseTextDeltaEvent,
 )
 
 from basilisk.conversation import (
@@ -413,7 +414,7 @@ class OpenAIEngine(BaseEngine):
 
 	def prepare_message_request(
 		self, message: Message
-	) -> ChatCompletionUserMessageParam:
+	) -> EasyInputMessageParam:
 		"""Prepares a message for OpenAI API request.
 
 		Args:
@@ -424,25 +425,24 @@ class OpenAIEngine(BaseEngine):
 		"""
 		super().prepare_message_request(message)
 		content = [
-			ChatCompletionContentPartTextParam(
-				text=message.content, type="text"
-			)
+			ResponseInputTextParam(text=message.content, type="input_text")
 		]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				image = ImageURL(url=attachment.url, detail="auto")
 				content.append(
-					ChatCompletionContentPartImageParam(
-						image_url=image, type="image_url"
+					ResponseInputImageParam(
+						image_url=attachment.url,
+						detail="auto",
+						type="input_image",
 					)
 				)
-		return ChatCompletionUserMessageParam(
-			role=message.role.value, content=content
+		return EasyInputMessageParam(
+			role=message.role.value, content=content, type="message"
 		)
 
 	def prepare_message_response(
 		self, response: Message
-	) -> ChatCompletionAssistantMessageParam:
+	) -> EasyInputMessageParam:
 		"""Prepares an assistant message response.
 
 		Args:
@@ -452,13 +452,14 @@ class OpenAIEngine(BaseEngine):
 			OpenAI API compatible assistant message parameter.
 		"""
 		super().prepare_message_response(response)
-		return ChatCompletionAssistantMessageParam(
+		return EasyInputMessageParam(
 			role=response.role.value,
 			content=[
-				ChatCompletionContentPartTextParam(
-					text=response.content, type="text"
+				ResponseOutputTextParam(
+					text=response.content, type="output_text"
 				)
 			],
+			type="message",
 		)
 
 	def completion(
@@ -468,7 +469,7 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+	) -> Response | Generator[ResponseStreamEvent, None, None]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:
@@ -488,29 +489,25 @@ class OpenAIEngine(BaseEngine):
 		model_id = new_block.model.model_id
 		params = {
 			"model": model_id,
-			"messages": self.get_messages(
+			"input": self.get_messages(
 				new_block,
 				conversation,
 				system_message,
 				stop_block_index=stop_block_index,
 			),
 			"stream": new_block.stream,
+			"temperature": new_block.temperature,
+			"top_p": new_block.top_p,
+			"store": False,
 		}
-		if model_id not in [
-			"gpt-4o-search-preview",
-			"gpt-4o-mini-search-preview",
-		]:
-			params.update(
-				{"temperature": new_block.temperature, "top_p": new_block.top_p}
-			)
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
-		response = self.client.chat.completions.create(**params)
+		response = self.client.responses.create(**params)
 		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self, stream: Generator[ResponseStreamEvent, None, None]
 	):
 		"""Processes a streaming completion response.
 
@@ -520,13 +517,17 @@ class OpenAIEngine(BaseEngine):
 		Yields:
 			Content from each chunk in the stream.
 		"""
-		for chunk in stream:
-			delta = chunk.choices[0].delta
-			if delta and delta.content:
-				yield delta.content
+		for event in stream:
+			if isinstance(event, ResponseTextDeltaEvent):
+				yield event.delta
+			else:
+				log.warning(
+					"Received unexpected event type: %s", type(event).__name__
+				)
+				continue
 
 	def completion_response_without_stream(
-		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
+		self, response: Response, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes a non-streaming completion response.
 
@@ -538,10 +539,24 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Updated message block containing the response.
 		"""
-		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
-		)
+		for res_output in response.output:
+			if isinstance(res_output, ResponseOutputMessage):
+				for res_content in res_output.content:
+					if isinstance(res_content, ResponseOutputText):
+						new_block.response = Message(
+							role=MessageRoleEnum.ASSISTANT,
+							content=res_content.text,
+						)
+					elif isinstance(res_content, ResponseOutputRefusal):
+						raise ValueError(
+							f"OpenAI refused to answer the question: {res_content.refusal}"
+						)
+			else:
+				log.warning(
+					"Received unexpected output type: %s",
+					type(res_output).__name__,
+				)
+				continue
 		return new_block
 
 	def get_transcription(
