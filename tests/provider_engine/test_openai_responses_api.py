@@ -6,19 +6,12 @@ It includes both basic functionality tests and comprehensive edge case testing.
 """
 
 import os
-import sys
-from pathlib import Path
 
 import pytest
 from pydantic import SecretStr
 
-# Add the project root to Python path for tests
-project_root = Path(__file__).parent.parent.parent
-if str(project_root) not in sys.path:
-	sys.path.insert(0, str(project_root))
-
-from basilisk.config import Account  # noqa: E402
-from basilisk.conversation import (  # noqa: E402
+from basilisk.config import Account
+from basilisk.conversation import (
 	Conversation,
 	Message,
 	MessageBlock,
@@ -73,11 +66,19 @@ class TestResponsesAPILive:
 			assert model.prefer_responses_api is True
 
 	@pytest.mark.slow
-	@pytest.mark.parametrize("model_id", ["gpt-5", "gpt-4.1"])
-	def test_api_selection_logic(self, engine, model_id):
-		"""Test API selection for responses-enabled models."""
+	@pytest.mark.parametrize(
+		"model_id,expected",
+		[
+			("gpt-5", True),
+			("gpt-4.1", True),
+			("gpt-5-mini", True),
+			("gpt-4o", False),
+		],
+	)
+	def test_api_selection_logic(self, engine, model_id, expected):
+		"""Test API selection for both responses-enabled and regular models."""
 		result = engine.should_use_responses_api(model_id)
-		assert result is True
+		assert result is expected
 
 	@pytest.mark.slow
 	def test_input_preparation(self, engine):
