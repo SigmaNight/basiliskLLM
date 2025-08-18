@@ -54,6 +54,7 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 	}
+
 	supported_attachment_formats: set[str] = {
 		"image/gif",
 		"image/jpeg",
@@ -442,9 +443,8 @@ class OpenAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
-		model_id = new_block.model.model_id
 		params = {
-			"model": model_id,
+			"model": self.get_model(new_block.model.model_id),
 			"input": self.get_messages(
 				new_block,
 				conversation,
