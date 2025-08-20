@@ -10,14 +10,15 @@ from typing import Generator
 
 from openai.types.chat import (
 	ChatCompletion,
+	ChatCompletionAssistantMessageParam,
 	ChatCompletionChunk,
-	ChatCompletionUserMessageParam,
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import ProviderAIModel
-from .legacy_openai_engine import LegacyOpenAIEngine, ProviderCapability
+from .legacy_openai_engine import LegacyOpenAIEngine
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
 class DeepSeekAIEngine(LegacyOpenAIEngine):
 	"""Engine implementation for DeepSeek API integration.
 
-	Extends OpenAIEngine to provide DeepSeek-specific model configurations and capabilities.
+	Extends LegacyOpenAIEngine to provide DeepSeek-specific model configurations and capabilities.
 	Supports text generation and reasoning capabilities.
 
 	Attributes:
@@ -134,7 +135,7 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 
 	def prepare_message_response(
 		self, message: Message
-	) -> ChatCompletionUserMessageParam:
+	) -> ChatCompletionAssistantMessageParam:
 		"""Prepares a message response for the DeepSeek API.
 
 		Args:
@@ -143,6 +144,6 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		Returns:
 			DeepSeek API compatible message parameter.
 		"""
-		return ChatCompletionUserMessageParam(
+		return ChatCompletionAssistantMessageParam(
 			role=message.role.value, content=message.content
 		)

@@ -15,9 +15,10 @@ from openai.types.chat import ChatCompletion, ChatCompletionChunk
 
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.decorators import measure_time
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
 
-from .base_engine import ProviderAIModel
-from .legacy_openai_engine import LegacyOpenAIEngine, ProviderCapability
+from .legacy_openai_engine import LegacyOpenAIEngine
 
 log = logging.getLogger(__name__)
 

@@ -31,10 +31,13 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
+
+from .base_engine import BaseEngine
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
@@ -508,14 +511,12 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Updated message block containing the response.
 		"""
+		txt_parts = []
 		for res_output in response.output:
 			if isinstance(res_output, ResponseOutputMessage):
 				for res_content in res_output.content:
 					if isinstance(res_content, ResponseOutputText):
-						new_block.response = Message(
-							role=MessageRoleEnum.ASSISTANT,
-							content=res_content.text,
-						)
+						txt_parts.append(res_content.text)
 					elif isinstance(res_content, ResponseOutputRefusal):
 						raise ValueError(
 							f"OpenAI refused to answer the question: {res_content.refusal}"
@@ -526,6 +527,9 @@ class OpenAIEngine(BaseEngine):
 					type(res_output).__name__,
 				)
 				continue
+		new_block.response = Message(
+			role=MessageRoleEnum.ASSISTANT, content="".join(txt_parts)
+		)
 		return new_block
 
 	def get_transcription(
