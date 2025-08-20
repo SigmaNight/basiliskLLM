@@ -11,36 +11,81 @@ from basilisk.config.conversation_profile import (
 )
 
 
+@pytest.fixture
+def isolated_config_manager(tmp_path, monkeypatch):
+	"""Provide an isolated conversation profile manager for testing.
+	
+	This fixture ensures tests don't interfere with real user configuration files
+	by using a temporary directory and mocking the config loading mechanism.
+	"""
+	# Mock the user config path to use a temporary directory
+	monkeypatch.setattr(
+		"basilisk.config.config_helper.user_config_path",
+		tmp_path / "config"
+	)
+	
+	# Clear the cache to ensure we get a fresh instance
+	get_conversation_profile_config.cache_clear()
+	
+	# Yield the function so tests can call it to get an isolated manager
+	yield get_conversation_profile_config
+	
+	# Clean up the cache after the test
+	get_conversation_profile_config.cache_clear()
+
+
+@pytest.fixture
+def clean_config_manager(tmp_path, monkeypatch):
+	"""Provide a clean ConversationProfileManager instance for testing.
+	
+	This fixture creates isolated ConversationProfileManager instances that don't
+	load from real user configuration files. Use this when you need to create
+	manager instances directly without going through the cached function.
+	"""
+	# Mock the user config path to use a temporary directory
+	monkeypatch.setattr(
+		"basilisk.config.config_helper.user_config_path",
+		tmp_path / "config"
+	)
+	
+	# Return a factory function to create clean managers
+	def _create_manager(**kwargs):
+		from basilisk.config.conversation_profile import ConversationProfileManager
+		return ConversationProfileManager(**kwargs)
+	
+	yield _create_manager
+
+
 class TestConversationProfileManager:
 	"""Tests for ConversationProfileManager validation and functionality."""
 
-	def test_valid_default_profile(self):
+	def test_valid_default_profile(self, clean_config_manager):
 		"""Test that a valid default profile passes validation."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
 		)
 
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile], default_profile_id=profile.id
 		)
 
 		assert manager.default_profile == profile
 		assert manager.default_profile_id == profile.id
 
-	def test_no_default_profile(self):
+	def test_no_default_profile(self, clean_config_manager):
 		"""Test that no default profile is valid."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
 		)
 
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile], default_profile_id=None
 		)
 
 		assert manager.default_profile is None
 		assert manager.default_profile_id is None
 
-	def test_orphaned_default_profile_id_auto_corrects(self):
+	def test_orphaned_default_profile_id_auto_corrects(self, clean_config_manager):
 		"""Test that an orphaned default_profile_id is auto-corrected (no longer fails)."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
@@ -50,7 +95,7 @@ class TestConversationProfileManager:
 		orphaned_id = uuid4()
 
 		# This should now auto-correct instead of failing
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile],  # profile with different ID
 			default_profile_id=orphaned_id,  # orphaned ID
 		)
@@ -59,13 +104,13 @@ class TestConversationProfileManager:
 		assert manager.default_profile_id is None
 		assert manager.default_profile is None
 
-	def test_remove_default_profile_clears_default_id(self):
+	def test_remove_default_profile_clears_default_id(self, clean_config_manager):
 		"""Test that removing the default profile clears the default_profile_id."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
 		)
 
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile], default_profile_id=profile.id
 		)
 
@@ -80,7 +125,7 @@ class TestConversationProfileManager:
 class TestOrphanedDefaultProfileScenario:
 	"""Test the specific scenario that causes cx_Freeze installation failure."""
 
-	def test_simulate_orphaned_default_profile_from_config_file(self):
+	def test_simulate_orphaned_default_profile_from_config_file(self, clean_config_manager):
 		"""Simulate loading a config file with orphaned default_profile_id.
 
 		This reproduces the exact scenario described in the issue:
@@ -101,7 +146,7 @@ class TestOrphanedDefaultProfileScenario:
 		deleted_profile_id = uuid4()
 
 		# This should now auto-correct instead of failing
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile1, profile2], default_profile_id=deleted_profile_id
 		)
 
@@ -110,12 +155,12 @@ class TestOrphanedDefaultProfileScenario:
 		assert manager.default_profile is None
 		assert len(manager.profiles) == 2  # Original profiles remain
 
-	def test_empty_profiles_with_default_profile_id(self):
+	def test_empty_profiles_with_default_profile_id(self, clean_config_manager):
 		"""Test edge case where profiles list is empty but default_profile_id is set."""
 		orphaned_id = uuid4()
 
 		# This should now auto-correct instead of failing
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[], default_profile_id=orphaned_id
 		)
 
@@ -124,7 +169,7 @@ class TestOrphanedDefaultProfileScenario:
 		assert manager.default_profile is None
 		assert len(manager.profiles) == 0
 
-	def test_valid_default_after_correction_still_works(self):
+	def test_valid_default_after_correction_still_works(self, clean_config_manager):
 		"""Test that after auto-correction, setting a valid default still works."""
 		profile1 = ConversationProfile(
 			name="Profile 1", system_prompt="Prompt 1"
@@ -135,7 +180,7 @@ class TestOrphanedDefaultProfileScenario:
 
 		# Start with orphaned default_profile_id
 		orphaned_id = uuid4()
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile1, profile2], default_profile_id=orphaned_id
 		)
 
@@ -303,38 +348,38 @@ class TestConversationProfile:
 class TestConversationProfileManagerCollectionOperations:
 	"""Tests for ConversationProfileManager collection-like operations."""
 
-	def test_iteration(self):
+	def test_iteration(self, clean_config_manager):
 		"""Test iteration over profiles in manager."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		profiles_list = list(manager)
 		assert len(profiles_list) == 2
 		assert profile1 in profiles_list
 		assert profile2 in profiles_list
 
-	def test_length(self):
+	def test_length(self, clean_config_manager):
 		"""Test len() operation on manager."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager()
+		manager = clean_config_manager()
 		assert len(manager) == 0
 
-		manager = ConversationProfileManager(profiles=[profile1])
+		manager = clean_config_manager(profiles=[profile1])
 		assert len(manager) == 1
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 		assert len(manager) == 2
 
-	def test_getitem_by_index(self):
+	def test_getitem_by_index(self, clean_config_manager):
 		"""Test accessing profiles by integer index."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		assert manager[0] == profile1
 		assert manager[1] == profile2
@@ -342,12 +387,12 @@ class TestConversationProfileManagerCollectionOperations:
 		with pytest.raises(IndexError):
 			_ = manager[2]
 
-	def test_getitem_by_uuid(self):
+	def test_getitem_by_uuid(self, clean_config_manager):
 		"""Test accessing profiles by UUID."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		assert manager[profile1.id] == profile1
 		assert manager[profile2.id] == profile2
@@ -356,63 +401,63 @@ class TestConversationProfileManagerCollectionOperations:
 		with pytest.raises(KeyError):
 			_ = manager[uuid4()]
 
-	def test_getitem_invalid_type(self):
+	def test_getitem_invalid_type(self, clean_config_manager):
 		"""Test accessing profiles with invalid index type."""
 		profile = ConversationProfile(name="Profile")
-		manager = ConversationProfileManager(profiles=[profile])
+		manager = clean_config_manager(profiles=[profile])
 
 		with pytest.raises(TypeError):
 			_ = manager["invalid_type"]
 
-	def test_setitem_by_index(self):
+	def test_setitem_by_index(self, clean_config_manager):
 		"""Test setting profiles by integer index."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 		new_profile = ConversationProfile(name="New Profile")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		manager[0] = new_profile
 		assert manager[0] == new_profile
 		assert len(manager) == 2
 
-	def test_setitem_by_uuid_existing(self):
+	def test_setitem_by_uuid_existing(self, clean_config_manager):
 		"""Test setting profiles by UUID for existing profile."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 		new_profile = ConversationProfile(name="New Profile")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		manager[profile1.id] = new_profile
 		assert manager[0] == new_profile
 		assert len(manager) == 2
 
-	def test_setitem_by_uuid_new(self):
+	def test_setitem_by_uuid_new(self, clean_config_manager):
 		"""Test setting profiles by UUID for non-existent profile (adds new)."""
 		profile1 = ConversationProfile(name="Profile 1")
 		new_profile = ConversationProfile(name="New Profile")
 
-		manager = ConversationProfileManager(profiles=[profile1])
+		manager = clean_config_manager(profiles=[profile1])
 
 		manager[uuid4()] = new_profile
 		assert len(manager) == 2
 		assert new_profile in list(manager)
 
-	def test_setitem_invalid_type(self):
+	def test_setitem_invalid_type(self, clean_config_manager):
 		"""Test setting profiles with invalid index type."""
 		profile = ConversationProfile(name="Profile")
-		manager = ConversationProfileManager(profiles=[profile])
+		manager = clean_config_manager(profiles=[profile])
 
 		with pytest.raises(TypeError):
 			manager["invalid_type"] = profile
 
-	def test_delitem(self):
+	def test_delitem(self, clean_config_manager):
 		"""Test deleting profiles by index."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 		assert len(manager) == 2
 
 		del manager[0]
@@ -422,12 +467,12 @@ class TestConversationProfileManagerCollectionOperations:
 		with pytest.raises(IndexError):
 			del manager[1]
 
-	def test_delitem_removes_default_if_deleted(self):
+	def test_delitem_removes_default_if_deleted(self, clean_config_manager):
 		"""Test that deleting the default profile clears default_profile_id."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(
+		manager = clean_config_manager(
 			profiles=[profile1, profile2], default_profile_id=profile1.id
 		)
 
@@ -437,12 +482,12 @@ class TestConversationProfileManagerCollectionOperations:
 		assert manager.default_profile_id is None
 		assert manager.default_profile is None
 
-	def test_add_method(self):
+	def test_add_method(self, clean_config_manager):
 		"""Test add method adds profiles correctly."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager()
+		manager = clean_config_manager()
 		assert len(manager) == 0
 
 		manager.add(profile1)
@@ -453,7 +498,7 @@ class TestConversationProfileManagerCollectionOperations:
 		assert len(manager) == 2
 		assert manager[1] == profile2
 
-	def test_get_profile_with_kwargs(self):
+	def test_get_profile_with_kwargs(self, clean_config_manager):
 		"""Test get_profile method with various keyword arguments."""
 		profile1 = ConversationProfile(
 			name="Profile 1", system_prompt="Prompt 1"
@@ -462,7 +507,7 @@ class TestConversationProfileManagerCollectionOperations:
 			name="Profile 2", system_prompt="Prompt 2"
 		)
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		# Test finding by name
 		found = manager.get_profile(name="Profile 1")
@@ -490,14 +535,132 @@ class TestConversationProfileManagerCollectionOperations:
 class TestConversationProfileManagerConfig:
 	"""Tests for ConversationProfileManager configuration functionality."""
 
-	def test_get_conversation_profile_config_function(self):
-		"""Test the global configuration function."""
-		config = get_conversation_profile_config()
+	def test_get_conversation_profile_config_function(self, isolated_config_manager):
+		"""Test the global configuration function with proper isolation."""
+		config = isolated_config_manager()
 		assert isinstance(config, ConversationProfileManager)
 
 		# Test caching - should return same instance
-		config2 = get_conversation_profile_config()
+		config2 = isolated_config_manager()
 		assert config is config2
+
+	def test_config_loading_with_existing_profiles_file(self, tmp_path, monkeypatch):
+		"""Test that config loading works when there's an existing profiles.yml file.
+		
+		This test simulates the real-world scenario where a user has an existing
+		conversation profile configuration file on their system.
+		"""
+		import yaml
+		
+		# Create a temporary config directory 
+		config_dir = tmp_path / "config"
+		config_dir.mkdir()
+		profiles_file = config_dir / "profiles.yml"
+		
+		# Create a realistic profiles.yml file with test data
+		test_config = {
+			"profiles": [
+				{
+					"id": str(uuid4()),
+					"name": "Test Profile 1",
+					"system_prompt": "You are a helpful assistant"
+				},
+				{
+					"id": str(uuid4()),
+					"name": "Test Profile 2", 
+					"system_prompt": "You are a coding assistant",
+					"stream_mode": False
+				}
+			],
+			"default_profile_id": None
+		}
+		
+		# Write the test config to the file
+		with profiles_file.open("w") as f:
+			yaml.dump(test_config, f)
+		
+		# Mock the config helper to use our temporary directory
+		monkeypatch.setattr(
+			"basilisk.config.config_helper.user_config_path",
+			config_dir
+		)
+		
+		# Create a new manager instance (without using the cached function)
+		from basilisk.config.conversation_profile import ConversationProfileManager
+		config = ConversationProfileManager()
+		
+		assert isinstance(config, ConversationProfileManager)
+		assert len(config.profiles) == 2
+		assert config.profiles[0].name == "Test Profile 1"
+		assert config.profiles[1].name == "Test Profile 2"
+		assert config.default_profile_id is None
+
+	def test_config_loading_with_corrupted_profiles_file(self, tmp_path, monkeypatch):
+		"""Test that config loading handles corrupted profile files gracefully.
+		
+		This test simulates scenarios where the profiles.yml file contains
+		orphaned default_profile_id references or other validation issues.
+		"""
+		import yaml
+		
+		# Create a temporary config directory
+		config_dir = tmp_path / "config"
+		config_dir.mkdir()
+		profiles_file = config_dir / "profiles.yml"
+		
+		# Create a profiles.yml file with an orphaned default_profile_id
+		orphaned_id = str(uuid4())
+		test_config = {
+			"profiles": [
+				{
+					"id": str(uuid4()),
+					"name": "Existing Profile",
+					"system_prompt": "I'm a working profile"
+				}
+			],
+			"default_profile_id": orphaned_id  # This ID doesn't exist in profiles
+		}
+		
+		# Write the corrupted config to the file
+		with profiles_file.open("w") as f:
+			yaml.dump(test_config, f)
+		
+		# Mock the config helper to use our temporary directory
+		monkeypatch.setattr(
+			"basilisk.config.config_helper.user_config_path",
+			config_dir
+		)
+		
+		# Create a new manager instance that will auto-correct the configuration
+		from basilisk.config.conversation_profile import ConversationProfileManager
+		config = ConversationProfileManager()
+		
+		assert isinstance(config, ConversationProfileManager)
+		assert len(config.profiles) == 1
+		assert config.profiles[0].name == "Existing Profile"
+		# The orphaned default_profile_id should be auto-corrected to None
+		assert config.default_profile_id is None
+		assert config.default_profile is None
+
+	def test_config_isolation_prevents_test_interference(self, isolated_config_manager):
+		"""Test that tests don't interfere with real user configuration files.
+		
+		This test verifies that the test isolation works correctly and tests
+		don't fail when there are existing user configuration files on the system.
+		"""
+		# This should work regardless of what config files exist on the system
+		config = isolated_config_manager()
+		assert isinstance(config, ConversationProfileManager)
+		
+		# Should start with no profiles (clean slate)
+		assert len(config.profiles) == 0
+		assert config.default_profile_id is None
+		
+		# Test that we can add profiles and they work correctly
+		profile = ConversationProfile(name="Test Profile")
+		config.add(profile)
+		assert len(config.profiles) == 1
+		assert config.profiles[0].name == "Test Profile"
 
 
 class TestConversationProfileAccountIntegration:
@@ -587,7 +750,7 @@ class TestConversationProfileAdvancedValidation:
 class TestConversationProfileManagerPersistence:
 	"""Tests for ConversationProfileManager save functionality."""
 
-	def test_save_method_creates_config(self, tmp_path, monkeypatch):
+	def test_save_method_creates_config(self, tmp_path, monkeypatch, clean_config_manager):
 		"""Test that save method properly calls save_config_file."""
 		# Mock the save_config_file function
 		import basilisk.config.conversation_profile
@@ -607,7 +770,7 @@ class TestConversationProfileManagerPersistence:
 		)
 
 		profile = ConversationProfile(name="Test Profile")
-		manager = ConversationProfileManager(profiles=[profile])
+		manager = clean_config_manager(profiles=[profile])
 
 		manager.save()
 
@@ -619,24 +782,24 @@ class TestConversationProfileManagerPersistence:
 class TestConversationProfileManagerComplexScenarios:
 	"""Tests for complex scenarios and edge cases."""
 
-	def test_manager_with_multiple_profiles_same_name(self):
+	def test_manager_with_multiple_profiles_same_name(self, clean_config_manager):
 		"""Test manager handles profiles with same name correctly."""
 		profile1 = ConversationProfile(name="Same Name")
 		profile2 = ConversationProfile(name="Same Name")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		# Should be able to distinguish by ID
 		assert manager[profile1.id] == profile1
 		assert manager[profile2.id] == profile2
 		assert profile1 != profile2  # Different IDs
 
-	def test_set_default_clears_cached_property(self):
+	def test_set_default_clears_cached_property(self, clean_config_manager):
 		"""Test that setting default profile clears the cached property."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1, profile2])
+		manager = clean_config_manager(profiles=[profile1, profile2])
 
 		# Set initial default
 		manager.set_default_profile(profile1)
@@ -647,24 +810,24 @@ class TestConversationProfileManagerComplexScenarios:
 		assert manager.default_profile == profile2
 		assert manager.default_profile != profile1
 
-	def test_remove_non_existent_profile(self):
+	def test_remove_non_existent_profile(self, clean_config_manager):
 		"""Test removing a profile that doesn't exist in the list."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
 
-		manager = ConversationProfileManager(profiles=[profile1])
+		manager = clean_config_manager(profiles=[profile1])
 
 		# This should raise ValueError since profile2 is not in the list
 		with pytest.raises(ValueError):
 			manager.remove(profile2)
 
-	def test_large_profile_collection(self):
+	def test_large_profile_collection(self, clean_config_manager):
 		"""Test manager with a large number of profiles."""
 		profiles = []
 		for i in range(100):
 			profiles.append(ConversationProfile(name=f"Profile {i}"))
 
-		manager = ConversationProfileManager(profiles=profiles)
+		manager = clean_config_manager(profiles=profiles)
 		assert len(manager) == 100
 
 		# Test iteration
