@@ -195,29 +195,20 @@ class TestConversationProfile:
 
 	def test_ai_model_string_conversion(self):
 		"""Test ai_model_info field validator converts strings correctly."""
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-		)
+		profile = ConversationProfile(name="Test", ai_model_info="openai/gpt-4")
 		assert profile.ai_model_info.provider_id == "openai"
 		assert profile.ai_model_info.model_id == "gpt-4"
 
 	def test_ai_model_dict_passthrough(self):
 		"""Test ai_model_info field validator passes through dict unchanged."""
 		model_dict = {"provider_id": "anthropic", "model_id": "claude-3"}
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info=model_dict,
-		)
+		profile = ConversationProfile(name="Test", ai_model_info=model_dict)
 		assert profile.ai_model_info.provider_id == "anthropic"
 		assert profile.ai_model_info.model_id == "claude-3"
 
 	def test_ai_model_none_passthrough(self):
 		"""Test ai_model_info field validator passes through None unchanged."""
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info=None,
-		)
+		profile = ConversationProfile(name="Test", ai_model_info=None)
 		assert profile.ai_model_info is None
 
 	def test_get_default_class_method(self):
@@ -235,10 +226,7 @@ class TestConversationProfile:
 		assert profile.ai_model_id is None
 
 		# With model info
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-		)
+		profile = ConversationProfile(name="Test", ai_model_info="openai/gpt-4")
 		assert profile.ai_model_id == "gpt-4"
 
 	def test_ai_provider_property_no_account_no_model(self):
@@ -248,10 +236,7 @@ class TestConversationProfile:
 
 	def test_ai_provider_property_with_model_only(self):
 		"""Test ai_provider property when only model is set."""
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-		)
+		profile = ConversationProfile(name="Test", ai_model_info="openai/gpt-4")
 		assert profile.ai_provider.id == "openai"
 
 	def test_set_model_info_method(self):
@@ -281,23 +266,20 @@ class TestConversationProfile:
 
 	def test_model_params_validation_without_model(self):
 		"""Test that model parameters cannot be set without an AI model."""
-		with pytest.raises(ValueError, match="Max tokens must be None without model"):
-			ConversationProfile(
-				name="Test",
-				max_tokens=100,
-			)
+		with pytest.raises(
+			ValueError, match="Max tokens must be None without model"
+		):
+			ConversationProfile(name="Test", max_tokens=100)
 
-		with pytest.raises(ValueError, match="Temperature must be None without model"):
-			ConversationProfile(
-				name="Test",
-				temperature=0.7,
-			)
+		with pytest.raises(
+			ValueError, match="Temperature must be None without model"
+		):
+			ConversationProfile(name="Test", temperature=0.7)
 
-		with pytest.raises(ValueError, match="Top P must be None without model"):
-			ConversationProfile(
-				name="Test",
-				top_p=0.9,
-			)
+		with pytest.raises(
+			ValueError, match="Top P must be None without model"
+		):
+			ConversationProfile(name="Test", top_p=0.9)
 
 	def test_model_params_validation_with_model(self):
 		"""Test that model parameters can be set when AI model is present."""
@@ -316,8 +298,7 @@ class TestConversationProfile:
 		"""Test handling of invalid ai_model string formats."""
 		with pytest.raises(ValueError):
 			ConversationProfile(
-				name="Test",
-				ai_model_info="invalid_format_no_slash",
+				name="Test", ai_model_info="invalid_format_no_slash"
 			)
 
 
@@ -476,8 +457,12 @@ class TestConversationProfileManagerCollectionOperations:
 
 	def test_get_profile_with_kwargs(self):
 		"""Test get_profile method with various keyword arguments."""
-		profile1 = ConversationProfile(name="Profile 1", system_prompt="Prompt 1")
-		profile2 = ConversationProfile(name="Profile 2", system_prompt="Prompt 2")
+		profile1 = ConversationProfile(
+			name="Profile 1", system_prompt="Prompt 1"
+		)
+		profile2 = ConversationProfile(
+			name="Profile 2", system_prompt="Prompt 2"
+		)
 
 		manager = ConversationProfileManager(profiles=[profile1, profile2])
 
@@ -498,7 +483,9 @@ class TestConversationProfileManagerCollectionOperations:
 		assert found is None
 
 		# Test multiple criteria mismatch
-		found = manager.get_profile(name="Profile 1", system_prompt="Wrong Prompt")
+		found = manager.get_profile(
+			name="Profile 1", system_prompt="Wrong Prompt"
+		)
 		assert found is None
 
 
@@ -535,11 +522,8 @@ class TestConversationProfileAccountIntegration:
 		# This test will create a mock account to test the logic
 		# Since we don't have a real account system set up in tests,
 		# we'll test the property logic directly
-		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-		)
-		
+		profile = ConversationProfile(name="Test", ai_model_info="openai/gpt-4")
+
 		# When no account is set, should return model provider
 		assert profile.ai_provider.id == "openai"
 
@@ -550,14 +534,12 @@ class TestConversationProfileAdvancedValidation:
 	def test_revalidation_on_field_change(self):
 		"""Test that validation runs when fields are changed."""
 		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-			max_tokens=100,
+			name="Test", ai_model_info="openai/gpt-4", max_tokens=100
 		)
-		
+
 		# Remove the model - should trigger validation error on next access
 		profile.ai_model_info = None
-		
+
 		# This should trigger revalidation and fail
 		with pytest.raises(Exception):
 			profile.model_validate(profile.model_dump())
@@ -579,17 +561,13 @@ class TestConversationProfileAdvancedValidation:
 		"""Test edge case temperature values."""
 		# Test with 0 temperature
 		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-			temperature=0.0,
+			name="Test", ai_model_info="openai/gpt-4", temperature=0.0
 		)
 		assert profile.temperature == 0.0
-		
+
 		# Test with 1.0 temperature
 		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-			temperature=1.0,
+			name="Test", ai_model_info="openai/gpt-4", temperature=1.0
 		)
 		assert profile.temperature == 1.0
 
@@ -597,17 +575,13 @@ class TestConversationProfileAdvancedValidation:
 		"""Test edge case top_p values."""
 		# Test with 0.1 top_p
 		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-			top_p=0.1,
+			name="Test", ai_model_info="openai/gpt-4", top_p=0.1
 		)
 		assert profile.top_p == 0.1
-		
+
 		# Test with 1.0 top_p
 		profile = ConversationProfile(
-			name="Test",
-			ai_model_info="openai/gpt-4",
-			top_p=1.0,
+			name="Test", ai_model_info="openai/gpt-4", top_p=1.0
 		)
 		assert profile.top_p == 1.0
 
@@ -619,26 +593,26 @@ class TestConversationProfileManagerPersistence:
 		"""Test that save method properly calls save_config_file."""
 		# Mock the save_config_file function
 		import basilisk.config.conversation_profile
-		
+
 		saved_data = None
 		saved_filename = None
-		
+
 		def mock_save_config_file(data, filename):
 			nonlocal saved_data, saved_filename
 			saved_data = data
 			saved_filename = filename
-		
+
 		monkeypatch.setattr(
-			basilisk.config.conversation_profile, 
-			"save_config_file", 
-			mock_save_config_file
+			basilisk.config.conversation_profile,
+			"save_config_file",
+			mock_save_config_file,
 		)
-		
+
 		profile = ConversationProfile(name="Test Profile")
 		manager = ConversationProfileManager(profiles=[profile])
-		
+
 		manager.save()
-		
+
 		assert saved_filename == "profiles.yml"
 		assert saved_data is not None
 		assert "profiles" in saved_data
@@ -651,9 +625,9 @@ class TestConversationProfileManagerComplexScenarios:
 		"""Test manager handles profiles with same name correctly."""
 		profile1 = ConversationProfile(name="Same Name")
 		profile2 = ConversationProfile(name="Same Name")
-		
+
 		manager = ConversationProfileManager(profiles=[profile1, profile2])
-		
+
 		# Should be able to distinguish by ID
 		assert manager[profile1.id] == profile1
 		assert manager[profile2.id] == profile2
@@ -663,13 +637,13 @@ class TestConversationProfileManagerComplexScenarios:
 		"""Test that setting default profile clears the cached property."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
-		
+
 		manager = ConversationProfileManager(profiles=[profile1, profile2])
-		
+
 		# Set initial default
 		manager.set_default_profile(profile1)
 		assert manager.default_profile == profile1
-		
+
 		# Change default
 		manager.set_default_profile(profile2)
 		assert manager.default_profile == profile2
@@ -679,9 +653,9 @@ class TestConversationProfileManagerComplexScenarios:
 		"""Test removing a profile that doesn't exist in the list."""
 		profile1 = ConversationProfile(name="Profile 1")
 		profile2 = ConversationProfile(name="Profile 2")
-		
+
 		manager = ConversationProfileManager(profiles=[profile1])
-		
+
 		# This should raise ValueError since profile2 is not in the list
 		with pytest.raises(ValueError):
 			manager.remove(profile2)
@@ -691,15 +665,15 @@ class TestConversationProfileManagerComplexScenarios:
 		profiles = []
 		for i in range(100):
 			profiles.append(ConversationProfile(name=f"Profile {i}"))
-		
+
 		manager = ConversationProfileManager(profiles=profiles)
 		assert len(manager) == 100
-		
+
 		# Test iteration
 		profile_names = [p.name for p in manager]
 		assert len(profile_names) == 100
 		assert "Profile 50" in profile_names
-		
+
 		# Test access by index and UUID
 		assert manager[50].name == "Profile 50"
 		assert manager[profiles[75].id] == profiles[75]
@@ -715,6 +689,6 @@ class TestConversationProfileManagerComplexScenarios:
 			top_p=0.7,
 			system_prompt="Be helpful",
 		)
-		
+
 		assert profile.ai_model_id == "gemini-pro"
 		assert profile.ai_provider.id == "gemini"
