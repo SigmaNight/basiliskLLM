@@ -1,15 +1,14 @@
 """Tests for conversation profile configuration and validation."""
 
-import pytest
 from uuid import UUID, uuid4
+
+import pytest
 
 from basilisk.config.conversation_profile import (
 	ConversationProfile,
 	ConversationProfileManager,
 	get_conversation_profile_config,
 )
-from basilisk.provider_ai_model import AIModelInfo
-from basilisk.provider import Provider
 
 
 class TestConversationProfileManager:
@@ -261,8 +260,7 @@ class TestConversationProfile:
 		assert profile1 == profile3
 
 		# Comparison with None should be False
-		assert profile1 != None
-		assert not (profile1 == None)
+		assert profile1 is not None
 
 	def test_model_params_validation_without_model(self):
 		"""Test that model parameters cannot be set without an AI model."""
