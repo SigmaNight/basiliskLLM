@@ -42,25 +42,25 @@ def test_basilisk_ipc_initialization(test_pipe_name):
 def test_unix_socket_cleanup(test_pipe_name):
 	"""Test that Unix socket files are properly cleaned up."""
 	ipc = BasiliskIpc(test_pipe_name)
-	
+
 	# Extract socket path (this is Unix specific)
 	socket_path = f"/tmp/basilisk_{test_pipe_name}.sock"
-	
+
 	# Socket file should not exist initially
 	assert not os.path.exists(socket_path)
-	
+
 	# Start receiver
 	success = ipc.start_receiver({"send_focus": lambda x: None})
 	assert success
 	time.sleep(0.1)  # Give time to start
-	
+
 	# Socket file should exist while running
 	assert os.path.exists(socket_path)
-	
+
 	# Stop receiver
 	ipc.stop_receiver()
 	time.sleep(0.1)  # Give time to cleanup
-	
+
 	# Socket file should be cleaned up
 	assert not os.path.exists(socket_path)
 
@@ -192,23 +192,25 @@ def test_multiple_signals(test_pipe_name, received_signals):
 def test_unix_socket_permissions(test_pipe_name):
 	"""Test Unix socket file permissions and ownership."""
 	ipc = BasiliskIpc(test_pipe_name)
-	
+
 	# Extract socket path
 	socket_path = f"/tmp/basilisk_{test_pipe_name}.sock"
-	
+
 	try:
 		# Start receiver
 		success = ipc.start_receiver({"send_focus": lambda x: None})
 		assert success
 		time.sleep(0.1)
-		
+
 		# Check socket file exists and permissions
 		assert os.path.exists(socket_path)
-		
+
 		# Check that the socket is accessible
 		stat_info = os.stat(socket_path)
-		assert stat_info.st_uid == os.getuid()  # Should be owned by current user
-		
+		assert (
+			stat_info.st_uid == os.getuid()
+		)  # Should be owned by current user
+
 	finally:
 		ipc.stop_receiver()
 
@@ -219,7 +221,7 @@ def test_unix_socket_permissions(test_pipe_name):
 def test_unix_socket_error_handling(test_pipe_name):
 	"""Test error handling in Unix socket operations."""
 	ipc = BasiliskIpc(test_pipe_name)
-	
+
 	# Test sending signal without receiver
 	focus_signal = FocusSignal(timestamp=datetime.now())
 	result = ipc.send_signal(focus_signal.model_dump_json())
@@ -233,30 +235,30 @@ def test_unix_socket_error_handling(test_pipe_name):
 def test_receiver_stop_without_start(test_pipe_name):
 	"""Test that stopping a receiver without starting doesn't cause errors."""
 	ipc = BasiliskIpc(test_pipe_name)
-	
+
 	# Should not raise any exceptions
 	ipc.stop_receiver()
 	assert not ipc.is_running()
 
 
 @pytest.mark.skipif(
-	sys.platform == "win32", reason="Unix IPC only works on Unix/Linux"  
+	sys.platform == "win32", reason="Unix IPC only works on Unix/Linux"
 )
 def test_start_receiver_twice(test_pipe_name):
 	"""Test that starting a receiver twice returns True and doesn't cause issues."""
 	ipc = BasiliskIpc(test_pipe_name)
-	
+
 	try:
 		# First start should succeed
 		result1 = ipc.start_receiver({"send_focus": lambda x: None})
 		assert result1 is True
 		assert ipc.is_running()
-		
+
 		# Second start should also return True (already running)
 		result2 = ipc.start_receiver({"send_focus": lambda x: None})
 		assert result2 is True
 		assert ipc.is_running()
-		
+
 	finally:
 		ipc.stop_receiver()
 
@@ -266,7 +268,7 @@ def test_start_receiver_twice(test_pipe_name):
 )
 def test_concurrent_senders(test_pipe_name, received_signals):
 	"""Test multiple concurrent senders to the same Unix socket."""
-	
+
 	def on_focus(data):
 		received_signals.append(("focus", data))
 
@@ -281,7 +283,7 @@ def test_concurrent_senders(test_pipe_name, received_signals):
 		# Send multiple signals quickly
 		focus_signal = FocusSignal(timestamp=datetime.now())
 		signal_data = focus_signal.model_dump_json()
-		
+
 		results = []
 		for _ in range(5):
 			result = ipc.send_signal(signal_data)

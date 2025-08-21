@@ -86,7 +86,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		try:
 			# Ensure the directory exists
 			os.makedirs(os.path.dirname(self.lock_file_path), exist_ok=True)
-			
+
 			# Open the lock file for writing
 			self.lock_file_handle = open(self.lock_file_path, "w")
 
