@@ -2,6 +2,7 @@ api_token_env: CROWDIN_PERSONAL_TOKEN
 project_id_env: CROWDIN_PROJECT_ID
 base_path: .
 preserve_hierarchy: true
+
 files:
   - source: basiliskLLM.pot
-    translation: basilisk/res/locale/%locale%/LC_MESSAGES/basiliskLLM.po
+    translation: basilisk/res/locale/%osx_locale%/LC_MESSAGES/basiliskLLM.po
