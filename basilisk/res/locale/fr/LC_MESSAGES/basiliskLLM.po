@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-16 08:47+0000\n"
-"PO-Revision-Date: 2025-08-16 13:30\n"
+"POT-Creation-Date: 2025-08-23 13:26+0000\n"
+"PO-Revision-Date: 2025-08-23 13:28\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -1460,116 +1460,135 @@ msgid "A powerful and efficient model for languages from the Middle East and Sou
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:106
-#: basilisk/provider_engine/openai_engine.py:128
+#: basilisk/provider_engine/openai_engine.py:113
+#: basilisk/provider_engine/openai_engine.py:135
 msgid "Fastest, most cost-efficient version of GPT-5"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:117
+#: basilisk/provider_engine/openai_engine.py:124
 msgid "A faster, more cost-efficient version of GPT-5 for well-defined tasks"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:138
+#: basilisk/provider_engine/openai_engine.py:145
 msgid "GPT-5 model used in ChatGPT"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:149
-msgid "Our most powerful open weight model, which fits into a single H100 GPU"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:161
-msgid "Our medium-sized open weight model for low latency"
-msgstr ""
-
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:172
+#: basilisk/provider_engine/openai_engine.py:155
 msgid "Flagship GPT model for complex tasks"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:182
+#: basilisk/provider_engine/openai_engine.py:165
 msgid "Balanced for intelligence, speed, and cost"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:192
+#: basilisk/provider_engine/openai_engine.py:175
 msgid "Fastest, most cost-effective GPT-4.1 model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:202
+#: basilisk/provider_engine/openai_engine.py:185
 msgid "Faster, more affordable reasoning model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:212
+#: basilisk/provider_engine/openai_engine.py:195
 msgid "Our most powerful reasoning model"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:224
-#: basilisk/provider_engine/openai_engine.py:268
+#: basilisk/provider_engine/openai_engine.py:207
+#: basilisk/provider_engine/openai_engine.py:231
 msgid "Points to one of the most recent iterations of gpt-4o-mini model"
 msgstr "Pointe vers l'une des itérations les plus récentes du modèle gpt-4o-mini"
 
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:235
-msgid "GPT model for web search in Chat Completions"
-msgstr ""
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:245
-msgid "Fast, affordable small model for web search"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:256
+#: basilisk/provider_engine/openai_engine.py:219
 msgid "Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
 msgstr "Modèle dynamique mis à jour en continu avec la version actuelle de GPT-4 dans ChatGPT"
 
-#: basilisk/provider_engine/openai_engine.py:280
+#: basilisk/provider_engine/openai_engine.py:243
 msgid "Our most recent small reasoning model, providing high intelligence at the same cost and latency targets of o1-mini. o3-mini also supports key developer features, like Structured Outputs, function calling, Batch API, and more. Like other models in the o-series, it is designed to excel at science, math, and coding tasks."
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:293
+#: basilisk/provider_engine/openai_engine.py:256
 msgid "Points to the most recent snapshot of the o1 model"
 msgstr "Pointe vers l'instantané le plus récent du modèle o1"
 
-#: basilisk/provider_engine/openai_engine.py:306
+#: basilisk/provider_engine/openai_engine.py:269
 msgid "The latest GPT-4 Turbo model with vision capabilities"
 msgstr "Le dernier modèle GPT-4 Turbo avec des capacités de vision"
 
-#: basilisk/provider_engine/openai_engine.py:318
+#: basilisk/provider_engine/openai_engine.py:281
 msgid "Points to one of the most recent iterations of gpt-3.5 model"
 msgstr "Pointe vers l'une des itérations les plus récentes du modèle gpt-3.5"
 
-#: basilisk/provider_engine/openai_engine.py:328
+#: basilisk/provider_engine/openai_engine.py:291
 msgid "Latest snapshot that supports Structured Outputs"
 msgstr "Dernière version prenant en charge les sorties structurées"
 
-#: basilisk/provider_engine/openai_engine.py:340
+#: basilisk/provider_engine/openai_engine.py:303
 msgid "Our high-intelligence flagship model for complex, multi-step tasks"
 msgstr "Notre modèle phare à haute intelligence pour des tâches complexes et multilingues"
 
-#: basilisk/provider_engine/openai_engine.py:352
+#: basilisk/provider_engine/openai_engine.py:315
 msgid "Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
 msgstr "Notre modèle petit, abordable et intelligent pour des tâches rapides et légères. GPT-4o mini est moins cher et plus performant que GPT-3.5 Turbo"
 
-#: basilisk/provider_engine/openai_engine.py:364
+#: basilisk/provider_engine/openai_engine.py:327
 msgid "The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
 msgstr "Le dernier GPT-3.5 Turbo ProviderAIModel avec une précision accrue dans les réponses aux formats demandés et une correction d’un bogue qui causait un problème d’encodage de texte pour les appels de fonction en langues autres que l’anglais"
 
-#: basilisk/provider_engine/openai_engine.py:374
+#: basilisk/provider_engine/openai_engine.py:337
 msgid "Points to one of the most recent iterations of gpt-4 model"
 msgstr "Pointe vers l'une des itérations les plus récentes du modèle GPT-4"
 
-#: basilisk/provider_engine/openai_engine.py:385
+#: basilisk/provider_engine/openai_engine.py:348
 msgid "The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
 msgstr "Le dernier modèle GPT-4 ProviderAIModel conçu pour réduire les cas de \"paresse\" où le ProviderAIModel ne termine pas une tâche"
 
-#: basilisk/provider_engine/openai_engine.py:396
+#: basilisk/provider_engine/openai_engine.py:359
 msgid "GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
 msgstr "GPT-4 Turbo ProviderAIModel offrant un meilleur suivi des instructions, le mode JSON, des sorties reproductibles, l’appel de fonctions parallèles, et plus encore"
 
-#: basilisk/provider_engine/openai_engine.py:407
+#: basilisk/provider_engine/openai_engine.py:370
 msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr "Plus performant que n'importe quel modèle GPT-3.5, capable de réaliser des tâches plus complexes et optimisé pour les conversations"
+
+#: basilisk/provider_engine/xai_engine.py:47
+msgid "The most intelligent model from xAI, featuring native tool use, real-time search integration, and a context window of 256,000 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:58
+msgid "The most powerful version of Grok 4, utilizing parallel test-time compute for multiple hypotheses, setting new standards in performance and reliability."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:69
+msgid "A flagship model from xAI, offering advanced reasoning and a context window of 131,072 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:79
+msgid "A compact version of Grok 3, optimized for efficiency with a context window of 131,072 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:89
+msgid "A high-speed variant of Grok 3, designed for rapid text generation with a context window of 131,072 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:99
+msgid "A fast and compact version of Grok 3, balancing speed and efficiency with a context window of 131,072 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:109
+msgid "Grok 2 model (Dec 2024), offering robust text generation capabilities with a context window of 131,072 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:119
+msgid "Grok 2 vision model (Dec 2024), supporting image and text processing with a context window of 32,768 tokens."
+msgstr ""
+
+#: basilisk/provider_engine/xai_engine.py:130
+msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
+msgstr ""
+
