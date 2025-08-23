@@ -4,4 +4,4 @@ base_path: .
 preserve_hierarchy: true
 files:
   - source: basiliskLLM.pot
-    translation: basilisk/res/locale/%two_letters_code%/LC_MESSAGES/basiliskLLM.po
+    translation: basilisk/res/locale/%locale%/LC_MESSAGES/basiliskLLM.po
