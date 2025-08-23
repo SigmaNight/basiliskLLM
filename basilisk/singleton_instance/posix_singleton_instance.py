@@ -8,6 +8,7 @@ multiple instances of the application from running simultaneously:
 import errno
 import fcntl
 import os
+import threading
 
 from basilisk.consts import FILE_LOCK_PATH
 
@@ -24,11 +25,16 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 	- Provides methods to check for existing instances and get their PIDs
 	"""
 
+	# Class-level lock to prevent multiple instances within the same process
+	_process_lock = threading.Lock()
+	_process_acquired = False
+
 	def __init__(self):
 		"""Initialize the SingletonInstance object."""
 		super().__init__()
 		self.lock_file_path = FILE_LOCK_PATH
 		self.lock_file_handle = None
+		self._has_process_lock = False
 		os.makedirs(os.path.dirname(self.lock_file_path), exist_ok=True)
 
 	def acquire(self) -> bool:
@@ -36,28 +42,40 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 
 		This method uses proper POSIX file locking with fcntl to ensure
 		atomic lock acquisition. It also handles stale lock files from
-		crashed processes.
+		crashed processes and prevents multiple instances within the same process.
 
 		Returns:
 			True if the lock was acquired, False otherwise.
 		"""
-		# Try to acquire the lock
-		if self._try_acquire_posix_lock():
-			return True
-
-		# Lock acquisition failed, check if it's due to existing lock
-		try:
-			# Check if the lock holder is still alive
-			existing_pid = self._get_lock_holder_pid()
-			if existing_pid and self._is_process_alive(existing_pid):
-				# Valid lock holder exists
+		# First, try to acquire the process-level lock
+		with PosixSingletonInstance._process_lock:
+			if PosixSingletonInstance._process_acquired:
+				# Another instance in this process already has the lock
 				return False
-			else:
-				# Stale lock file, try to remove it and retry once
-				self._cleanup_stale_lock()
-				return self._try_acquire_posix_lock()
-		except Exception:
-			return False
+
+			# Try to acquire the file-level lock
+			if self._try_acquire_posix_lock():
+				PosixSingletonInstance._process_acquired = True
+				self._has_process_lock = True
+				return True
+
+			# Lock acquisition failed, check if it's due to existing lock
+			try:
+				# Check if the lock holder is still alive
+				existing_pid = self._get_lock_holder_pid()
+				if existing_pid and self._is_process_alive(existing_pid):
+					# Valid lock holder exists
+					return False
+				else:
+					# Stale lock file, try to remove it and retry once
+					self._cleanup_stale_lock()
+					if self._try_acquire_posix_lock():
+						PosixSingletonInstance._process_acquired = True
+						self._has_process_lock = True
+						return True
+					return False
+			except Exception:
+				return False
 
 	def _try_acquire_posix_lock(self) -> bool:
 		"""Try to acquire the POSIX lock without retry logic.
@@ -66,6 +84,9 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			True if the lock was acquired, False otherwise.
 		"""
 		try:
+			# Ensure the directory exists
+			os.makedirs(os.path.dirname(self.lock_file_path), exist_ok=True)
+
 			# Open the lock file for writing
 			self.lock_file_handle = open(self.lock_file_path, "w")
 
@@ -176,6 +197,12 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		except Exception:
 			pass
 
+		# Release the process-level lock if we have it
+		if self._has_process_lock:
+			with PosixSingletonInstance._process_lock:
+				PosixSingletonInstance._process_acquired = False
+				self._has_process_lock = False
+
 	def get_existing_pid(self) -> int | None:
 		"""Get the PID of the existing instance, if any.
 
@@ -193,4 +220,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 		# Check if the process is still alive
 		if self._is_process_alive(pid):
 			return pid
-		return None
+		else:
+			# Process is dead, clean up stale lock
+			self._cleanup_stale_lock()
+			return None
