@@ -5,4 +5,10 @@ preserve_hierarchy: true
 
 files:
   - source: basiliskLLM.pot
-    translation: basilisk/res/locale/%osx_locale%/LC_MESSAGES/basiliskLLM.po
+    translation: basilisk/res/locale/%locale_with_underscore%/LC_MESSAGES/basiliskLLM.po
+    languages_mapping:
+      locale_with_underscore:
+        fr_FR: fr
+        ru_RU: ru
+        tr_TR: tr
+        uk_UA: uk
