@@ -6,7 +6,6 @@ import pytest
 
 from basilisk.config.conversation_profile import (
 	ConversationProfile,
-	ConversationProfileManager,
 	get_conversation_profile_config,
 )
 
@@ -14,38 +13,38 @@ from basilisk.config.conversation_profile import (
 @pytest.fixture
 def isolated_config_manager(tmp_path):
 	"""Provide an isolated conversation profile manager for testing.
-	
+
 	This fixture ensures tests don't interfere with real user configuration files
 	by returning a test manager that doesn't load from files.
 	"""
 	# Create the same test class as used in clean_config_manager
-	from basilisk.config.conversation_profile import ConversationProfile
-	from basilisk.config.config_helper import BasiliskBaseSettings
-	from pydantic import Field, model_validator, OnErrorOmit
-	from pydantic_settings import SettingsConfigDict
-	from typing import Optional
-	from pydantic import UUID4
 	from functools import cached_property
+	from typing import Optional
 	from uuid import UUID
-	
+
+	from pydantic import UUID4, Field, OnErrorOmit, model_validator
+	from pydantic_settings import SettingsConfigDict
+
+	from basilisk.config.config_helper import BasiliskBaseSettings
+	from basilisk.config.conversation_profile import ConversationProfile
+
 	class TestConversationProfileManager(BasiliskBaseSettings):
 		"""Test version of ConversationProfileManager that doesn't load from files."""
-		
-		model_config = SettingsConfigDict(
-			env_prefix="BASILISK_",
-			extra="allow",
-		)
-		
+
+		model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
+
 		profiles: list[OnErrorOmit[ConversationProfile]] = Field(
 			default_factory=list
 		)
 		default_profile_id: Optional[UUID4] = Field(default=None)
-		
+
 		# Copy all the methods from the original class
 		def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
 			return next(
 				filter(
-					lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
+					lambda p: all(
+						getattr(p, k) == v for k, v in kwargs.items()
+					),
 					self.profiles,
 				),
 				None,
@@ -123,28 +122,29 @@ def isolated_config_manager(tmp_path):
 		def save(self):
 			"""Mock save method for testing."""
 			from basilisk.config.conversation_profile import save_config_file
+
 			save_config_file(
 				self.model_dump(
 					mode="json", exclude_defaults=True, exclude_none=True
 				),
 				"profiles.yml",
 			)
-	
+
 	# Global instance for caching tests
 	_cached_instance = None
-	
+
 	def mock_get_conversation_profile_config():
 		nonlocal _cached_instance
 		if _cached_instance is None:
 			_cached_instance = TestConversationProfileManager()
 		return _cached_instance
-	
+
 	# Clear the cache to ensure we get a fresh instance
 	get_conversation_profile_config.cache_clear()
-	
+
 	# Yield the mock function
 	yield mock_get_conversation_profile_config
-	
+
 	# Clean up the cache after the test
 	get_conversation_profile_config.cache_clear()
 
@@ -152,39 +152,39 @@ def isolated_config_manager(tmp_path):
 @pytest.fixture
 def clean_config_manager(tmp_path):
 	"""Provide a clean ConversationProfileManager instance for testing.
-	
+
 	This fixture creates isolated ConversationProfileManager instances that don't
 	load from real user configuration files. Use this when you need to create
 	manager instances directly without going through the cached function.
 	"""
 	# Create a test-only manager class that doesn't load from files
-	from basilisk.config.conversation_profile import ConversationProfile
-	from basilisk.config.config_helper import BasiliskBaseSettings
-	from pydantic import Field, model_validator, OnErrorOmit
-	from pydantic_settings import SettingsConfigDict
-	from typing import Optional
-	from pydantic import UUID4
 	from functools import cached_property
+	from typing import Optional
 	from uuid import UUID
-	
+
+	from pydantic import UUID4, Field, OnErrorOmit, model_validator
+	from pydantic_settings import SettingsConfigDict
+
+	from basilisk.config.config_helper import BasiliskBaseSettings
+	from basilisk.config.conversation_profile import ConversationProfile
+
 	class TestConversationProfileManager(BasiliskBaseSettings):
 		"""Test version of ConversationProfileManager that doesn't load from files."""
-		
-		model_config = SettingsConfigDict(
-			env_prefix="BASILISK_",
-			extra="allow",
-		)
-		
+
+		model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
+
 		profiles: list[OnErrorOmit[ConversationProfile]] = Field(
 			default_factory=list
 		)
 		default_profile_id: Optional[UUID4] = Field(default=None)
-		
+
 		# Copy all the methods from the original class
 		def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
 			return next(
 				filter(
-					lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
+					lambda p: all(
+						getattr(p, k) == v for k, v in kwargs.items()
+					),
 					self.profiles,
 				),
 				None,
@@ -262,17 +262,18 @@ def clean_config_manager(tmp_path):
 		def save(self):
 			"""Mock save method for testing."""
 			from basilisk.config.conversation_profile import save_config_file
+
 			save_config_file(
 				self.model_dump(
 					mode="json", exclude_defaults=True, exclude_none=True
 				),
 				"profiles.yml",
 			)
-	
+
 	# Return a factory function to create clean managers
 	def _create_manager(**kwargs):
 		return TestConversationProfileManager(**kwargs)
-	
+
 	yield _create_manager
 
 
@@ -305,7 +306,9 @@ class TestConversationProfileManager:
 		assert manager.default_profile is None
 		assert manager.default_profile_id is None
 
-	def test_orphaned_default_profile_id_auto_corrects(self, clean_config_manager):
+	def test_orphaned_default_profile_id_auto_corrects(
+		self, clean_config_manager
+	):
 		"""Test that an orphaned default_profile_id is auto-corrected (no longer fails)."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
@@ -324,7 +327,9 @@ class TestConversationProfileManager:
 		assert manager.default_profile_id is None
 		assert manager.default_profile is None
 
-	def test_remove_default_profile_clears_default_id(self, clean_config_manager):
+	def test_remove_default_profile_clears_default_id(
+		self, clean_config_manager
+	):
 		"""Test that removing the default profile clears the default_profile_id."""
 		profile = ConversationProfile(
 			name="Test Profile", system_prompt="Test prompt"
@@ -345,7 +350,9 @@ class TestConversationProfileManager:
 class TestOrphanedDefaultProfileScenario:
 	"""Test the specific scenario that causes cx_Freeze installation failure."""
 
-	def test_simulate_orphaned_default_profile_from_config_file(self, clean_config_manager):
+	def test_simulate_orphaned_default_profile_from_config_file(
+		self, clean_config_manager
+	):
 		"""Simulate loading a config file with orphaned default_profile_id.
 
 		This reproduces the exact scenario described in the issue:
@@ -389,7 +396,9 @@ class TestOrphanedDefaultProfileScenario:
 		assert manager.default_profile is None
 		assert len(manager.profiles) == 0
 
-	def test_valid_default_after_correction_still_works(self, clean_config_manager):
+	def test_valid_default_after_correction_still_works(
+		self, clean_config_manager
+	):
 		"""Test that after auto-correction, setting a valid default still works."""
 		profile1 = ConversationProfile(
 			name="Profile 1", system_prompt="Prompt 1"
@@ -755,7 +764,9 @@ class TestConversationProfileManagerCollectionOperations:
 class TestConversationProfileManagerConfig:
 	"""Tests for ConversationProfileManager configuration functionality."""
 
-	def test_get_conversation_profile_config_function(self, isolated_config_manager):
+	def test_get_conversation_profile_config_function(
+		self, isolated_config_manager
+	):
 		"""Test the global configuration function with proper isolation."""
 		config = isolated_config_manager()
 		# Check that it behaves like a ConversationProfileManager
@@ -768,9 +779,11 @@ class TestConversationProfileManagerConfig:
 		config2 = isolated_config_manager()
 		assert config is config2
 
-	def test_config_isolation_prevents_test_interference(self, isolated_config_manager):
+	def test_config_isolation_prevents_test_interference(
+		self, isolated_config_manager
+	):
 		"""Test that tests don't interfere with real user configuration files.
-		
+
 		This test verifies that the test isolation works correctly and tests
 		don't fail when there are existing user configuration files on the system.
 		"""
@@ -779,11 +792,11 @@ class TestConversationProfileManagerConfig:
 		# Check that it behaves like a ConversationProfileManager
 		assert hasattr(config, 'profiles')
 		assert hasattr(config, 'default_profile_id')
-		
+
 		# Should start with no profiles (clean slate)
 		assert len(config.profiles) == 0
 		assert config.default_profile_id is None
-		
+
 		# Test that we can add profiles and they work correctly
 		profile = ConversationProfile(name="Test Profile")
 		config.add(profile)
@@ -878,7 +891,9 @@ class TestConversationProfileAdvancedValidation:
 class TestConversationProfileManagerPersistence:
 	"""Tests for ConversationProfileManager save functionality."""
 
-	def test_save_method_creates_config(self, tmp_path, monkeypatch, clean_config_manager):
+	def test_save_method_creates_config(
+		self, tmp_path, monkeypatch, clean_config_manager
+	):
 		"""Test that save method properly calls save_config_file."""
 		# Mock the save_config_file function
 		import basilisk.config.conversation_profile
@@ -910,7 +925,9 @@ class TestConversationProfileManagerPersistence:
 class TestConversationProfileManagerComplexScenarios:
 	"""Tests for complex scenarios and edge cases."""
 
-	def test_manager_with_multiple_profiles_same_name(self, clean_config_manager):
+	def test_manager_with_multiple_profiles_same_name(
+		self, clean_config_manager
+	):
 		"""Test manager handles profiles with same name correctly."""
 		profile1 = ConversationProfile(name="Same Name")
 		profile2 = ConversationProfile(name="Same Name")
