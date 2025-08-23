@@ -1,153 +1,56 @@
 """Tests for conversation profile configuration and validation."""
 
-from functools import cached_property
-from typing import Optional
+from unittest import mock
 from uuid import UUID, uuid4
 
 import pytest
-from pydantic import UUID4, Field, OnErrorOmit, model_validator
-from pydantic_settings import SettingsConfigDict
 
 from basilisk.config.config_helper import BasiliskBaseSettings
 from basilisk.config.conversation_profile import (
 	ConversationProfile,
+	ConversationProfileManager,
 	get_conversation_profile_config,
 )
 
 
-class IsolatedConversationProfileManager(BasiliskBaseSettings):
-	"""Test version of ConversationProfileManager that doesn't load from files.
+@pytest.fixture
+def mock_settings_sources():
+	"""Mock the settings_customise_sources method to prevent loading real config files.
 
-	This class provides a complete mock implementation of ConversationProfileManager
-	for testing purposes, ensuring tests don't interfere with real user configuration.
+	This overrides the method to only use init_settings, avoiding any file loading.
 	"""
+	original_method = BasiliskBaseSettings.settings_customise_sources
 
-	model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
-
-	profiles: list[OnErrorOmit[ConversationProfile]] = Field(
-		default_factory=list
-	)
-	default_profile_id: Optional[UUID4] = Field(default=None)
-
-	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
-		"""Find a profile matching the given keyword arguments."""
-		return next(
-			filter(
-				lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
-				self.profiles,
-			),
-			None,
-		)
-
-	@cached_property
-	def default_profile(self) -> ConversationProfile | None:
-		"""Get the current default profile, if any."""
-		if self.default_profile_id is None:
-			return None
-		return self.get_profile(id=self.default_profile_id)
-
-	def set_default_profile(self, value: ConversationProfile | None):
-		"""Set or clear the default profile."""
-		if value is None:
-			self.default_profile_id = None
-		else:
-			self.default_profile_id = value.id
-		self._clear_default_cache()
-
-	def _clear_default_cache(self):
-		"""Clear the cached default_profile property."""
-		if "default_profile" in self.__dict__:
-			del self.__dict__["default_profile"]
-
-	@model_validator(mode="after")
-	def check_default_profile(self) -> "IsolatedConversationProfileManager":
-		"""Validate and auto-correct orphaned default_profile_id references."""
-		if self.default_profile_id is None:
-			return self
-		if self.default_profile is None:
-			# Auto-correct invalid default_profile_id instead of failing
-			self.default_profile_id = None
-			self._clear_default_cache()
-		return self
-
-	def __iter__(self):
-		"""Iterate over all profiles."""
-		return iter(self.profiles)
-
-	def add(self, profile: ConversationProfile):
-		"""Add a new profile to the collection."""
-		self.profiles.append(profile)
-
-	def remove(self, profile: ConversationProfile):
-		"""Remove a profile from the collection."""
-		if profile == self.default_profile:
-			self.default_profile_id = None
-			self._clear_default_cache()
-		self.profiles.remove(profile)
-
-	def __len__(self) -> int:
-		"""Return the number of profiles."""
-		return len(self.profiles)
-
-	def __getitem__(self, index: int | UUID) -> ConversationProfile:
-		"""Get a profile by index or UUID."""
-		if isinstance(index, int):
-			return self.profiles[index]
-		elif isinstance(index, UUID):
-			return self._get_profile_by_uuid(index)
-		else:
-			raise TypeError(f"Invalid index type: {type(index)}")
-
-	def _get_profile_by_uuid(self, profile_id: UUID) -> ConversationProfile:
-		"""Get a profile by UUID, raising KeyError if not found."""
-		profile = self.get_profile(id=profile_id)
-		if profile is None:
-			raise KeyError(f"No profile found with id {profile_id}")
-		return profile
-
-	def __delitem__(self, index: int):
-		"""Delete a profile by index."""
-		profile = self.profiles[index]
-		self.remove(profile)
-
-	def __setitem__(self, index: int | UUID, value: ConversationProfile):
-		"""Set a profile by index or UUID."""
-		if isinstance(index, int):
-			self.profiles[index] = value
-		elif isinstance(index, UUID):
-			self._set_profile_by_uuid(index, value)
-		else:
-			raise TypeError(f"Invalid index type: {type(index)}")
-
-	def _set_profile_by_uuid(
-		self, profile_id: UUID, value: ConversationProfile
+	@classmethod
+	def mock_settings_customise_sources(
+		cls,
+		settings_cls,
+		init_settings,
+		env_settings,
+		dotenv_settings,
+		file_secret_settings,
 	):
-		"""Set a profile by UUID, adding if not found."""
-		profile = self.get_profile(id=profile_id)
-		if not profile:
-			self.add(value)
-		else:
-			idx = self.profiles.index(profile)
-			self.profiles[idx] = value
+		# Only use init_settings, skip loading from files
+		return (init_settings,)
 
-	def save(self):
-		"""Mock save method for testing."""
-		from basilisk.config.conversation_profile import save_config_file
+	# Apply the mock
+	with mock.patch.object(
+		BasiliskBaseSettings,
+		'settings_customise_sources',
+		mock_settings_customise_sources,
+	):
+		yield
 
-		save_config_file(
-			self.model_dump(
-				mode="json", exclude_defaults=True, exclude_none=True
-			),
-			"profiles.yml",
-		)
+	# Reset after test
+	BasiliskBaseSettings.settings_customise_sources = original_method
 
 
 @pytest.fixture
-def isolated_config_manager(tmp_path):
+def isolated_config_manager(mock_settings_sources):
 	"""Provide an isolated conversation profile manager for testing.
 
 	This fixture ensures tests don't interfere with real user configuration files
-	by returning a test manager that doesn't load from files.
+	by mocking the configuration source method.
 	"""
 	# Clear the cache to ensure we get a fresh instance
 	get_conversation_profile_config.cache_clear()
@@ -156,7 +59,7 @@ def isolated_config_manager(tmp_path):
 		"""Get or create a cached isolated manager instance."""
 		if not hasattr(_get_isolated_manager, '_cached_instance'):
 			_get_isolated_manager._cached_instance = (
-				IsolatedConversationProfileManager()
+				ConversationProfileManager()
 			)
 		return _get_isolated_manager._cached_instance
 
@@ -168,7 +71,7 @@ def isolated_config_manager(tmp_path):
 
 
 @pytest.fixture
-def clean_config_manager(tmp_path):
+def clean_config_manager(mock_settings_sources):
 	"""Provide a clean ConversationProfileManager instance for testing.
 
 	This fixture creates isolated ConversationProfileManager instances that don't
@@ -178,7 +81,7 @@ def clean_config_manager(tmp_path):
 
 	def _create_manager(**kwargs):
 		"""Create a new isolated manager instance with optional parameters."""
-		return IsolatedConversationProfileManager(**kwargs)
+		return ConversationProfileManager(**kwargs)
 
 	return _create_manager
 
