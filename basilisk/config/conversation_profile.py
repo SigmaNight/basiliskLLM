@@ -292,6 +292,10 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			return self
 		if self.default_profile is None:
 			# Auto-correct invalid default_profile_id instead of failing
+			log.warning(
+				"Unable to load default profile with id: '%s'",
+				self.default_profile_id,
+			)
 			self.default_profile_id = None
 			if "default_profile" in self.__dict__:
 				del self.__dict__["default_profile"]
