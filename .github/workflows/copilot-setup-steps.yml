@@ -31,9 +31,5 @@ jobs:
         uses: actions/checkout@v5
       - name: setup uv
         uses: astral-sh/setup-uv@v6
-      - name: install wxpython 4.2.3
-        run: |
-          uv venv
-          uv pip install https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/wxpython-4.2.3-cp312-cp312-linux_x86_64.whl
       - name: install dev dependencies
         run: uv sync --frozen --compile --dev
