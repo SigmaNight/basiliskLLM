@@ -1,13 +1,118 @@
 """Tests for conversation profile configuration and validation."""
 
+from functools import cached_property
+from typing import Optional
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import UUID4, Field, OnErrorOmit, model_validator
+from pydantic_settings import SettingsConfigDict
 
+from basilisk.config.config_helper import BasiliskBaseSettings
 from basilisk.config.conversation_profile import (
 	ConversationProfile,
 	get_conversation_profile_config,
 )
+
+
+class IsolatedConversationProfileManager(BasiliskBaseSettings):
+	"""Test version of ConversationProfileManager that doesn't load from files."""
+
+	model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
+
+	profiles: list[OnErrorOmit[ConversationProfile]] = Field(
+		default_factory=list
+	)
+	default_profile_id: Optional[UUID4] = Field(default=None)
+
+	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
+		return next(
+			filter(
+				lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
+				self.profiles,
+			),
+			None,
+		)
+
+	@cached_property
+	def default_profile(self) -> ConversationProfile | None:
+		if self.default_profile_id is None:
+			return None
+		return self.get_profile(id=self.default_profile_id)
+
+	def set_default_profile(self, value: ConversationProfile | None):
+		if value is None:
+			self.default_profile_id = None
+		else:
+			self.default_profile_id = value.id
+		if "default_profile" in self.__dict__:
+			del self.__dict__["default_profile"]
+
+	@model_validator(mode="after")
+	def check_default_profile(self) -> "IsolatedConversationProfileManager":
+		if self.default_profile_id is None:
+			return self
+		if self.default_profile is None:
+			# Auto-correct invalid default_profile_id instead of failing
+			self.default_profile_id = None
+			if "default_profile" in self.__dict__:
+				del self.__dict__["default_profile"]
+		return self
+
+	def __iter__(self):
+		return iter(self.profiles)
+
+	def add(self, profile: ConversationProfile):
+		self.profiles.append(profile)
+
+	def remove(self, profile: ConversationProfile):
+		if profile == self.default_profile:
+			self.default_profile_id = None
+			if "default_profile" in self.__dict__:
+				del self.__dict__["default_profile"]
+		self.profiles.remove(profile)
+
+	def __len__(self) -> int:
+		return len(self.profiles)
+
+	def __getitem__(self, index: int | UUID) -> ConversationProfile:
+		if isinstance(index, int):
+			return self.profiles[index]
+		elif isinstance(index, UUID):
+			profile = self.get_profile(id=index)
+			if profile is None:
+				raise KeyError(f"No profile found with id {index}")
+			return profile
+		else:
+			raise TypeError(f"Invalid index type: {type(index)}")
+
+	def __delitem__(self, index: int):
+		profile = self.profiles[index]
+		self.remove(profile)
+
+	def __setitem__(self, index: int | UUID, value: ConversationProfile):
+		if isinstance(index, int):
+			self.profiles[index] = value
+		elif isinstance(index, UUID):
+			profile = self.get_profile(id=index)
+			if not profile:
+				self.add(value)
+			else:
+				idx = self.profiles.index(profile)
+				self.profiles[idx] = value
+		else:
+			raise TypeError(f"Invalid index type: {type(index)}")
+
+	def save(self):
+		"""Mock save method for testing."""
+		from basilisk.config.conversation_profile import save_config_file
+
+		save_config_file(
+			self.model_dump(
+				mode="json", exclude_defaults=True, exclude_none=True
+			),
+			"profiles.yml",
+		)
 
 
 @pytest.fixture
@@ -17,126 +122,13 @@ def isolated_config_manager(tmp_path):
 	This fixture ensures tests don't interfere with real user configuration files
 	by returning a test manager that doesn't load from files.
 	"""
-	# Create the same test class as used in clean_config_manager
-	from functools import cached_property
-	from typing import Optional
-	from uuid import UUID
-
-	from pydantic import UUID4, Field, OnErrorOmit, model_validator
-	from pydantic_settings import SettingsConfigDict
-
-	from basilisk.config.config_helper import BasiliskBaseSettings
-	from basilisk.config.conversation_profile import ConversationProfile
-
-	class TestConversationProfileManager(BasiliskBaseSettings):
-		"""Test version of ConversationProfileManager that doesn't load from files."""
-
-		model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
-
-		profiles: list[OnErrorOmit[ConversationProfile]] = Field(
-			default_factory=list
-		)
-		default_profile_id: Optional[UUID4] = Field(default=None)
-
-		# Copy all the methods from the original class
-		def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
-			return next(
-				filter(
-					lambda p: all(
-						getattr(p, k) == v for k, v in kwargs.items()
-					),
-					self.profiles,
-				),
-				None,
-			)
-
-		@cached_property
-		def default_profile(self) -> ConversationProfile | None:
-			if self.default_profile_id is None:
-				return None
-			return self.get_profile(id=self.default_profile_id)
-
-		def set_default_profile(self, value: ConversationProfile | None):
-			if value is None:
-				self.default_profile_id = None
-			else:
-				self.default_profile_id = value.id
-			if "default_profile" in self.__dict__:
-				del self.__dict__["default_profile"]
-
-		@model_validator(mode="after")
-		def check_default_profile(self) -> "TestConversationProfileManager":
-			if self.default_profile_id is None:
-				return self
-			if self.default_profile is None:
-				# Auto-correct invalid default_profile_id instead of failing
-				self.default_profile_id = None
-				if "default_profile" in self.__dict__:
-					del self.__dict__["default_profile"]
-			return self
-
-		def __iter__(self):
-			return iter(self.profiles)
-
-		def add(self, profile: ConversationProfile):
-			self.profiles.append(profile)
-
-		def remove(self, profile: ConversationProfile):
-			if profile == self.default_profile:
-				self.default_profile_id = None
-				if "default_profile" in self.__dict__:
-					del self.__dict__["default_profile"]
-			self.profiles.remove(profile)
-
-		def __len__(self) -> int:
-			return len(self.profiles)
-
-		def __getitem__(self, index: int | UUID) -> ConversationProfile:
-			if isinstance(index, int):
-				return self.profiles[index]
-			elif isinstance(index, UUID):
-				profile = self.get_profile(id=index)
-				if profile is None:
-					raise KeyError(f"No profile found with id {index}")
-				return profile
-			else:
-				raise TypeError(f"Invalid index type: {type(index)}")
-
-		def __delitem__(self, index: int):
-			profile = self.profiles[index]
-			self.remove(profile)
-
-		def __setitem__(self, index: int | UUID, value: ConversationProfile):
-			if isinstance(index, int):
-				self.profiles[index] = value
-			elif isinstance(index, UUID):
-				profile = self.get_profile(id=index)
-				if not profile:
-					self.add(value)
-				else:
-					idx = self.profiles.index(profile)
-					self.profiles[idx] = value
-			else:
-				raise TypeError(f"Invalid index type: {type(index)}")
-
-		def save(self):
-			"""Mock save method for testing."""
-			from basilisk.config.conversation_profile import save_config_file
-
-			save_config_file(
-				self.model_dump(
-					mode="json", exclude_defaults=True, exclude_none=True
-				),
-				"profiles.yml",
-			)
-
 	# Global instance for caching tests
 	_cached_instance = None
 
 	def mock_get_conversation_profile_config():
 		nonlocal _cached_instance
 		if _cached_instance is None:
-			_cached_instance = TestConversationProfileManager()
+			_cached_instance = IsolatedConversationProfileManager()
 		return _cached_instance
 
 	# Clear the cache to ensure we get a fresh instance
@@ -157,122 +149,10 @@ def clean_config_manager(tmp_path):
 	load from real user configuration files. Use this when you need to create
 	manager instances directly without going through the cached function.
 	"""
-	# Create a test-only manager class that doesn't load from files
-	from functools import cached_property
-	from typing import Optional
-	from uuid import UUID
-
-	from pydantic import UUID4, Field, OnErrorOmit, model_validator
-	from pydantic_settings import SettingsConfigDict
-
-	from basilisk.config.config_helper import BasiliskBaseSettings
-	from basilisk.config.conversation_profile import ConversationProfile
-
-	class TestConversationProfileManager(BasiliskBaseSettings):
-		"""Test version of ConversationProfileManager that doesn't load from files."""
-
-		model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
-
-		profiles: list[OnErrorOmit[ConversationProfile]] = Field(
-			default_factory=list
-		)
-		default_profile_id: Optional[UUID4] = Field(default=None)
-
-		# Copy all the methods from the original class
-		def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
-			return next(
-				filter(
-					lambda p: all(
-						getattr(p, k) == v for k, v in kwargs.items()
-					),
-					self.profiles,
-				),
-				None,
-			)
-
-		@cached_property
-		def default_profile(self) -> ConversationProfile | None:
-			if self.default_profile_id is None:
-				return None
-			return self.get_profile(id=self.default_profile_id)
-
-		def set_default_profile(self, value: ConversationProfile | None):
-			if value is None:
-				self.default_profile_id = None
-			else:
-				self.default_profile_id = value.id
-			if "default_profile" in self.__dict__:
-				del self.__dict__["default_profile"]
-
-		@model_validator(mode="after")
-		def check_default_profile(self) -> "TestConversationProfileManager":
-			if self.default_profile_id is None:
-				return self
-			if self.default_profile is None:
-				# Auto-correct invalid default_profile_id instead of failing
-				self.default_profile_id = None
-				if "default_profile" in self.__dict__:
-					del self.__dict__["default_profile"]
-			return self
-
-		def __iter__(self):
-			return iter(self.profiles)
-
-		def add(self, profile: ConversationProfile):
-			self.profiles.append(profile)
-
-		def remove(self, profile: ConversationProfile):
-			if profile == self.default_profile:
-				self.default_profile_id = None
-				if "default_profile" in self.__dict__:
-					del self.__dict__["default_profile"]
-			self.profiles.remove(profile)
-
-		def __len__(self) -> int:
-			return len(self.profiles)
-
-		def __getitem__(self, index: int | UUID) -> ConversationProfile:
-			if isinstance(index, int):
-				return self.profiles[index]
-			elif isinstance(index, UUID):
-				profile = self.get_profile(id=index)
-				if profile is None:
-					raise KeyError(f"No profile found with id {index}")
-				return profile
-			else:
-				raise TypeError(f"Invalid index type: {type(index)}")
-
-		def __delitem__(self, index: int):
-			profile = self.profiles[index]
-			self.remove(profile)
-
-		def __setitem__(self, index: int | UUID, value: ConversationProfile):
-			if isinstance(index, int):
-				self.profiles[index] = value
-			elif isinstance(index, UUID):
-				profile = self.get_profile(id=index)
-				if not profile:
-					self.add(value)
-				else:
-					idx = self.profiles.index(profile)
-					self.profiles[idx] = value
-			else:
-				raise TypeError(f"Invalid index type: {type(index)}")
-
-		def save(self):
-			"""Mock save method for testing."""
-			from basilisk.config.conversation_profile import save_config_file
-
-			save_config_file(
-				self.model_dump(
-					mode="json", exclude_defaults=True, exclude_none=True
-				),
-				"profiles.yml",
-			)
 
 	# Return a factory function to create clean managers
 	def _create_manager(**kwargs):
-		return TestConversationProfileManager(**kwargs)
+		return IsolatedConversationProfileManager(**kwargs)
 
 	yield _create_manager
 
