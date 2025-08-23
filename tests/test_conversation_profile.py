@@ -16,7 +16,11 @@ from basilisk.config.conversation_profile import (
 
 
 class IsolatedConversationProfileManager(BasiliskBaseSettings):
-	"""Test version of ConversationProfileManager that doesn't load from files."""
+	"""Test version of ConversationProfileManager that doesn't load from files.
+
+	This class provides a complete mock implementation of ConversationProfileManager
+	for testing purposes, ensuring tests don't interfere with real user configuration.
+	"""
 
 	model_config = SettingsConfigDict(env_prefix="BASILISK_", extra="allow")
 
@@ -26,6 +30,7 @@ class IsolatedConversationProfileManager(BasiliskBaseSettings):
 	default_profile_id: Optional[UUID4] = Field(default=None)
 
 	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
+		"""Find a profile matching the given keyword arguments."""
 		return next(
 			filter(
 				lambda p: all(getattr(p, k) == v for k, v in kwargs.items()),
@@ -36,72 +41,94 @@ class IsolatedConversationProfileManager(BasiliskBaseSettings):
 
 	@cached_property
 	def default_profile(self) -> ConversationProfile | None:
+		"""Get the current default profile, if any."""
 		if self.default_profile_id is None:
 			return None
 		return self.get_profile(id=self.default_profile_id)
 
 	def set_default_profile(self, value: ConversationProfile | None):
+		"""Set or clear the default profile."""
 		if value is None:
 			self.default_profile_id = None
 		else:
 			self.default_profile_id = value.id
+		self._clear_default_cache()
+
+	def _clear_default_cache(self):
+		"""Clear the cached default_profile property."""
 		if "default_profile" in self.__dict__:
 			del self.__dict__["default_profile"]
 
 	@model_validator(mode="after")
 	def check_default_profile(self) -> "IsolatedConversationProfileManager":
+		"""Validate and auto-correct orphaned default_profile_id references."""
 		if self.default_profile_id is None:
 			return self
 		if self.default_profile is None:
 			# Auto-correct invalid default_profile_id instead of failing
 			self.default_profile_id = None
-			if "default_profile" in self.__dict__:
-				del self.__dict__["default_profile"]
+			self._clear_default_cache()
 		return self
 
 	def __iter__(self):
+		"""Iterate over all profiles."""
 		return iter(self.profiles)
 
 	def add(self, profile: ConversationProfile):
+		"""Add a new profile to the collection."""
 		self.profiles.append(profile)
 
 	def remove(self, profile: ConversationProfile):
+		"""Remove a profile from the collection."""
 		if profile == self.default_profile:
 			self.default_profile_id = None
-			if "default_profile" in self.__dict__:
-				del self.__dict__["default_profile"]
+			self._clear_default_cache()
 		self.profiles.remove(profile)
 
 	def __len__(self) -> int:
+		"""Return the number of profiles."""
 		return len(self.profiles)
 
 	def __getitem__(self, index: int | UUID) -> ConversationProfile:
+		"""Get a profile by index or UUID."""
 		if isinstance(index, int):
 			return self.profiles[index]
 		elif isinstance(index, UUID):
-			profile = self.get_profile(id=index)
-			if profile is None:
-				raise KeyError(f"No profile found with id {index}")
-			return profile
+			return self._get_profile_by_uuid(index)
 		else:
 			raise TypeError(f"Invalid index type: {type(index)}")
 
+	def _get_profile_by_uuid(self, profile_id: UUID) -> ConversationProfile:
+		"""Get a profile by UUID, raising KeyError if not found."""
+		profile = self.get_profile(id=profile_id)
+		if profile is None:
+			raise KeyError(f"No profile found with id {profile_id}")
+		return profile
+
 	def __delitem__(self, index: int):
+		"""Delete a profile by index."""
 		profile = self.profiles[index]
 		self.remove(profile)
 
 	def __setitem__(self, index: int | UUID, value: ConversationProfile):
+		"""Set a profile by index or UUID."""
 		if isinstance(index, int):
 			self.profiles[index] = value
 		elif isinstance(index, UUID):
-			profile = self.get_profile(id=index)
-			if not profile:
-				self.add(value)
-			else:
-				idx = self.profiles.index(profile)
-				self.profiles[idx] = value
+			self._set_profile_by_uuid(index, value)
 		else:
 			raise TypeError(f"Invalid index type: {type(index)}")
+
+	def _set_profile_by_uuid(
+		self, profile_id: UUID, value: ConversationProfile
+	):
+		"""Set a profile by UUID, adding if not found."""
+		profile = self.get_profile(id=profile_id)
+		if not profile:
+			self.add(value)
+		else:
+			idx = self.profiles.index(profile)
+			self.profiles[idx] = value
 
 	def save(self):
 		"""Mock save method for testing."""
@@ -122,20 +149,19 @@ def isolated_config_manager(tmp_path):
 	This fixture ensures tests don't interfere with real user configuration files
 	by returning a test manager that doesn't load from files.
 	"""
-	# Global instance for caching tests
-	_cached_instance = None
-
-	def mock_get_conversation_profile_config():
-		nonlocal _cached_instance
-		if _cached_instance is None:
-			_cached_instance = IsolatedConversationProfileManager()
-		return _cached_instance
-
 	# Clear the cache to ensure we get a fresh instance
 	get_conversation_profile_config.cache_clear()
 
+	def _get_isolated_manager():
+		"""Get or create a cached isolated manager instance."""
+		if not hasattr(_get_isolated_manager, '_cached_instance'):
+			_get_isolated_manager._cached_instance = (
+				IsolatedConversationProfileManager()
+			)
+		return _get_isolated_manager._cached_instance
+
 	# Yield the mock function
-	yield mock_get_conversation_profile_config
+	yield _get_isolated_manager
 
 	# Clean up the cache after the test
 	get_conversation_profile_config.cache_clear()
@@ -150,11 +176,11 @@ def clean_config_manager(tmp_path):
 	manager instances directly without going through the cached function.
 	"""
 
-	# Return a factory function to create clean managers
 	def _create_manager(**kwargs):
+		"""Create a new isolated manager instance with optional parameters."""
 		return IsolatedConversationProfileManager(**kwargs)
 
-	yield _create_manager
+	return _create_manager
 
 
 class TestConversationProfileManager:
