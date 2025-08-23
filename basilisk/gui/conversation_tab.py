@@ -429,7 +429,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if need_clear:
 			self.messages.Clear()
 			if not preserve_prompt:
-				self.prompt_panel.clear(True)
+				self.prompt_panel.clear(False)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
