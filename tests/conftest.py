@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 from upath import UPath
 
+from basilisk.config.config_helper import BasiliskBaseSettings
 from basilisk.conversation import (
 	AttachmentFile,
 	Conversation,
@@ -138,3 +139,35 @@ def mock_display_error_msg():
 						"macos": mock_mac,
 						"linux": mock_linux,
 					}
+
+
+@pytest.fixture
+def mock_settings_sources():
+	"""Mock the settings_customise_sources method to prevent loading real config files.
+
+	This overrides the method to only use init_settings, avoiding any file loading.
+	"""
+	original_method = BasiliskBaseSettings.settings_customise_sources
+
+	@classmethod
+	def mock_settings_customise_sources(
+		cls,
+		settings_cls,
+		init_settings,
+		env_settings,
+		dotenv_settings,
+		file_secret_settings,
+	):
+		# Only use init_settings, skip loading from files
+		return (init_settings,)
+
+	# Apply the mock
+	with mock.patch.object(
+		BasiliskBaseSettings,
+		'settings_customise_sources',
+		mock_settings_customise_sources,
+	):
+		yield
+
+	# Reset after test
+	BasiliskBaseSettings.settings_customise_sources = original_method
