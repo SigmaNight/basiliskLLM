@@ -18,12 +18,15 @@ Each LLM provider inherits from `BaseEngine` in `basilisk/provider_engine/base_e
 
 ```python
 class AnthropicEngine(BaseEngine):
-    capabilities = {ProviderCapability.TEXT, ProviderCapability.IMAGE}
+	capabilities = {
+		ProviderCapability.TEXT,
+		ProviderCapability.IMAGE
+	}
 
-    @cached_property
-    def client(self) -> Anthropic: ...
+	@cached_property
+	def client(self) -> Anthropic: ...
 
-    def completion(self, new_block, conversation, system_message): ...
+	def completion(self, new_block, conversation, system_message): ...
 ```
 
 ### Configuration Architecture
@@ -105,8 +108,9 @@ iscc win_installer.iss
 
 ### Translation System
 
-- **Babel-based**: Uses `_("string")` for translatable strings with `# translator:` context comments
-- **Compilation**: `python setup.py compile_catalog` before building
+- **Babel-based**: Uses `_("string")` to mark translatable strings
+- **context comment**: Use `# Translators:` or `# translators:` before the string to provide helpful context for translators
+- **Compilation**: `uv run setup.py compile_catalog` before building
 - **Supported**: Multiple languages with automatic locale detection
 
 ## Coding Conventions

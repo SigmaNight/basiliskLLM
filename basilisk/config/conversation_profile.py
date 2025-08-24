@@ -282,16 +282,23 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	def check_default_profile(self) -> ConversationProfileManager:
 		"""Validates that the default profile is set and exists.
 
-		Raises:
-			ValueError: If the default profile is not found.
+		Auto-corrects invalid default_profile_id by setting it to None if the
+		referenced profile no longer exists, instead of raising an error.
 
 		Returns:
-		The current conversation profile manager instance if validation passes.
+		The current conversation profile manager instance after validation/correction.
 		"""
 		if self.default_profile_id is None:
 			return self
 		if self.default_profile is None:
-			raise ValueError("Default profile not found")
+			# Auto-correct invalid default_profile_id instead of failing
+			log.warning(
+				"Unable to load default profile with id: '%s'",
+				self.default_profile_id,
+			)
+			self.default_profile_id = None
+			if "default_profile" in self.__dict__:
+				del self.__dict__["default_profile"]
 		return self
 
 	def __iter__(self) -> Iterable[ConversationProfile]:

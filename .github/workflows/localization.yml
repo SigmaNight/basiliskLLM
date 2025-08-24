@@ -21,7 +21,7 @@ jobs:
       contents: read
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: setup uv
         uses: astral-sh/setup-uv@v6
       - name: Install dependencies
@@ -44,7 +44,7 @@ jobs:
       contents: read
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: download translations template artifact
         uses: actions/download-artifact@v5
         with:

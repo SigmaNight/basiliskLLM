@@ -27,7 +27,9 @@ import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	PROMPT_TITLE,
+	AttachmentFile,
 	Conversation,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -150,6 +152,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conversation = conversation or Conversation()
 		self.recording_thread: Optional[RecordingThread] = None
 
+		# Initialize variables for error recovery
+		self._stored_prompt_text: Optional[str] = None
+		self._stored_attachments: Optional[list[AttachmentFile | ImageFile]] = (
+			None
+		)
+
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
@@ -157,6 +165,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			on_stream_start=self._on_stream_start,
 			on_stream_finish=self._on_stream_finish,
 			on_non_stream_finish=self._on_non_stream_finish,
+			on_error=self._on_completion_error,
 		)
 
 		self.process: Optional[Any] = None  # multiprocessing.Process
@@ -411,7 +420,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if isinstance(content, str):
 			return content
 
-	def refresh_messages(self, need_clear: bool = True):
+	def refresh_messages(
+		self, need_clear: bool = True, preserve_prompt: bool = False
+	):
 		"""Refreshes the messages displayed in the conversation tab.
 
 		This method updates the conversation display by optionally clearing existing content and then
@@ -422,10 +433,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		Args:
 			need_clear: If True, clears existing messages, message segments, and attachments. Defaults to True.
+			preserve_prompt: If True, preserves the current prompt and attachments even when need_clear is True. Defaults to False.
 		"""
 		if need_clear:
 			self.messages.Clear()
-			self.prompt_panel.clear(True)
+			if not preserve_prompt:
+				self.prompt_panel.clear(False)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
@@ -640,6 +653,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if not new_block:
 			return
 
+		# Store current prompt content and attachments for potential error recovery
+		self._store_prompt_content()
+
+		# Clear the prompt panel immediately after successful validation
+		# This ensures attachments are cleared even if completion fails
+		self.prompt_panel.clear(refresh=True)
+
 		# Prepare completion arguments for web search if available
 		completion_kwargs = {}
 		if (
@@ -755,7 +775,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			message_block: The message block to remove
 		"""
 		self.conversation.remove_block(message_block)
-		self.refresh_messages()
+		self.refresh_messages(preserve_prompt=True)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.
@@ -786,6 +806,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
+
+		# Clear stored variables after successful completion
+		if success:
+			self._clear_stored_content()
+
 		if success and config.conf().conversation.focus_history_after_send:
 			self.messages.SetFocus()
 
@@ -809,7 +834,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
 		self.messages.SetInsertionPointEnd()
-		self.prompt_panel.clear()
 
 	def _on_stream_finish(self, new_block: MessageBlock):
 		"""Called when streaming finishes.
@@ -833,4 +857,38 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.display_new_block(new_block)
 		if self.messages.should_speak_response:
 			self.messages.a_output.handle(new_block.response.content)
-		self.prompt_panel.clear()
+
+	def _store_prompt_content(self):
+		"""Store current prompt content and attachments for error recovery."""
+		self._stored_prompt_text = self.prompt_panel.prompt_text
+		self._stored_attachments = self.prompt_panel.attachment_files.copy()
+
+	def _restore_prompt_content(self):
+		"""Restore previously stored prompt content and attachments."""
+		if (
+			self._stored_prompt_text is not None
+			and self._stored_attachments is not None
+		):
+			self.prompt_panel.prompt_text = self._stored_prompt_text
+			self.prompt_panel.attachment_files = self._stored_attachments
+			self.prompt_panel.refresh_attachments_list()
+
+	def _clear_stored_content(self):
+		"""Clear stored prompt content and attachments."""
+		self._stored_prompt_text = None
+		self._stored_attachments = None
+
+	def _on_completion_error(self, error_message: str):
+		"""Called when a completion error occurs.
+
+		Args:
+			error_message: The error message
+		"""
+		self._restore_prompt_content()
+		self._clear_stored_content()
+
+		wx.MessageBox(
+			_("An error occurred during completion: ") + error_message,
+			_("Error"),
+			wx.OK | wx.ICON_ERROR,
+		)

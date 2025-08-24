@@ -8,19 +8,21 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Generator, Union
+from typing import TYPE_CHECKING, Generator
 
 from openai import OpenAI
-from openai.types.chat import (
-	ChatCompletion,
-	ChatCompletionAssistantMessageParam,
-	ChatCompletionChunk,
-	ChatCompletionContentPartTextParam,
-	ChatCompletionUserMessageParam,
-)
-from openai.types.chat.chat_completion_content_part_image_param import (
-	ChatCompletionContentPartImageParam,
-	ImageURL,
+from openai.types.responses import (
+	EasyInputMessageParam,
+	Response,
+	ResponseInputImageParam,
+	ResponseInputTextParam,
+	ResponseOutputMessage,
+	ResponseOutputRefusal,
+	ResponseOutputText,
+	ResponseOutputTextParam,
+	ResponseStreamEvent,
+	ResponseTextDeltaEvent,
+	WebSearchToolParam,
 )
 
 from basilisk.conversation import (
@@ -29,10 +31,13 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
+
+from .base_engine import BaseEngine
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +57,9 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.TEXT,
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
+		ProviderCapability.WEB_SEARCH,
 	}
+
 	supported_attachment_formats: set[str] = {
 		"image/gif",
 		"image/jpeg",
@@ -142,30 +149,6 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
-				id="gpt-oss-120b",
-				name="gpt-oss-120b",
-				# Translators: This is a model description
-				description=_(
-					"Our most powerful open weight model, which fits into a single H100 GPU"
-				),
-				context_window=131072,
-				max_output_tokens=131072,
-				vision=False,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-oss-20b",
-				name="gpt-oss-20b",
-				# Translators: This is a model description
-				description=_(
-					"Our medium-sized open weight model for low latency"
-				),
-				context_window=131072,
-				max_output_tokens=131072,
-				vision=False,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
 				id="gpt-4.1",
 				name="GPT-4.1",
 				# Translators: This is a model description
@@ -223,26 +206,6 @@ class OpenAIEngine(BaseEngine):
 				description=_(
 					"Points to one of the most recent iterations of gpt-4o-mini model"
 				),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-search-preview",
-				name="GPT-4o Search Preview",
-				# Translators: This is a model description
-				description=_("GPT model for web search in Chat Completions"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-mini-search-preview",
-				name="GPT-4o mini Search Preview",
-				# Translators: This is a model description
-				description=_("Fast, affordable small model for web search"),
 				context_window=128000,
 				max_output_tokens=16384,
 				vision=True,
@@ -413,7 +376,7 @@ class OpenAIEngine(BaseEngine):
 
 	def prepare_message_request(
 		self, message: Message
-	) -> ChatCompletionUserMessageParam:
+	) -> EasyInputMessageParam:
 		"""Prepares a message for OpenAI API request.
 
 		Args:
@@ -424,25 +387,24 @@ class OpenAIEngine(BaseEngine):
 		"""
 		super().prepare_message_request(message)
 		content = [
-			ChatCompletionContentPartTextParam(
-				text=message.content, type="text"
-			)
+			ResponseInputTextParam(text=message.content, type="input_text")
 		]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				image = ImageURL(url=attachment.url, detail="auto")
 				content.append(
-					ChatCompletionContentPartImageParam(
-						image_url=image, type="image_url"
+					ResponseInputImageParam(
+						image_url=attachment.url,
+						detail="auto",
+						type="input_image",
 					)
 				)
-		return ChatCompletionUserMessageParam(
-			role=message.role.value, content=content
+		return EasyInputMessageParam(
+			role=message.role.value, content=content, type="message"
 		)
 
 	def prepare_message_response(
 		self, response: Message
-	) -> ChatCompletionAssistantMessageParam:
+	) -> EasyInputMessageParam:
 		"""Prepares an assistant message response.
 
 		Args:
@@ -452,13 +414,14 @@ class OpenAIEngine(BaseEngine):
 			OpenAI API compatible assistant message parameter.
 		"""
 		super().prepare_message_response(response)
-		return ChatCompletionAssistantMessageParam(
+		return EasyInputMessageParam(
 			role=response.role.value,
 			content=[
-				ChatCompletionContentPartTextParam(
-					text=response.content, type="text"
+				ResponseOutputTextParam(
+					text=response.content, type="output_text"
 				)
 			],
+			type="message",
 		)
 
 	def completion(
@@ -468,7 +431,7 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+	) -> Response | Generator[ResponseStreamEvent, None, None]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:
@@ -485,32 +448,38 @@ class OpenAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
-		model_id = new_block.model.model_id
+		tools = []
+		web_search = kwargs.pop("web_search_mode", False)
+		if web_search:
+			tools.append(
+				WebSearchToolParam(
+					type="web_search_preview", search_context_size="medium"
+				)
+			)
+		model = self.get_model(new_block.model.model_id)
 		params = {
-			"model": model_id,
-			"messages": self.get_messages(
+			"model": model.id,
+			"input": self.get_messages(
 				new_block,
 				conversation,
 				system_message,
 				stop_block_index=stop_block_index,
 			),
 			"stream": new_block.stream,
+			"temperature": new_block.temperature,
+			"top_p": new_block.top_p,
+			"store": False,
 		}
-		if model_id not in [
-			"gpt-4o-search-preview",
-			"gpt-4o-mini-search-preview",
-		]:
-			params.update(
-				{"temperature": new_block.temperature, "top_p": new_block.top_p}
-			)
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		if tools:
+			params["tools"] = tools
 		params.update(kwargs)
-		response = self.client.chat.completions.create(**params)
+		response = self.client.responses.create(**params)
 		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self, stream: Generator[ResponseStreamEvent, None, None]
 	):
 		"""Processes a streaming completion response.
 
@@ -520,13 +489,17 @@ class OpenAIEngine(BaseEngine):
 		Yields:
 			Content from each chunk in the stream.
 		"""
-		for chunk in stream:
-			delta = chunk.choices[0].delta
-			if delta and delta.content:
-				yield delta.content
+		for event in stream:
+			if isinstance(event, ResponseTextDeltaEvent):
+				yield event.delta
+			else:
+				log.warning(
+					"Received unexpected event type: %s", type(event).__name__
+				)
+				continue
 
 	def completion_response_without_stream(
-		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
+		self, response: Response, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes a non-streaming completion response.
 
@@ -538,9 +511,24 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Updated message block containing the response.
 		"""
+		txt_parts = []
+		for res_output in response.output:
+			if isinstance(res_output, ResponseOutputMessage):
+				for res_content in res_output.content:
+					if isinstance(res_content, ResponseOutputText):
+						txt_parts.append(res_content.text)
+					elif isinstance(res_content, ResponseOutputRefusal):
+						raise ValueError(
+							f"OpenAI refused to answer the question: {res_content.refusal}"
+						)
+			else:
+				log.warning(
+					"Received unexpected output type: %s",
+					type(res_output).__name__,
+				)
+				continue
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
+			role=MessageRoleEnum.ASSISTANT, content="".join(txt_parts)
 		)
 		return new_block
 
