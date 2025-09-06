@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-23 13:26+0000\n"
-"PO-Revision-Date: 2025-08-23 13:28\n"
+"POT-Creation-Date: 2025-08-23 17:06+0000\n"
+"PO-Revision-Date: 2025-08-30 13:25\n"
 "Last-Translator: \n"
 "Language-Team: Turkish\n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Crowdin-File-ID: 2\n"
 "Language: tr_TR\n"
 
-#: basilisk/completion_handler.py:299
+#: basilisk/completion_handler.py:299 basilisk/gui/conversation_tab.py:882
 msgid "An error occurred during completion: "
 msgstr "Tamamlama sırasında bir hata oluştu: "
 
@@ -31,18 +31,18 @@ msgstr "Tamamlama sırasında bir hata oluştu: "
 #: basilisk/gui/account_dialog.py:139 basilisk/gui/account_dialog.py:144
 #: basilisk/gui/account_dialog.py:149 basilisk/gui/account_dialog.py:684
 #: basilisk/gui/account_dialog.py:1071 basilisk/gui/account_dialog.py:1121
-#: basilisk/gui/conversation_tab.py:451 basilisk/gui/conversation_tab.py:512
-#: basilisk/gui/conversation_tab.py:533 basilisk/gui/conversation_tab.py:675
-#: basilisk/gui/conversation_tab.py:712 basilisk/gui/conversation_tab.py:737
-#: basilisk/gui/main_frame.py:341 basilisk/gui/main_frame.py:347
-#: basilisk/gui/main_frame.py:506 basilisk/gui/main_frame.py:554
-#: basilisk/gui/main_frame.py:650 basilisk/gui/main_frame.py:670
-#: basilisk/gui/main_frame.py:795 basilisk/gui/main_frame.py:847
-#: basilisk/gui/main_frame.py:1039 basilisk/gui/main_frame.py:1061
-#: basilisk/gui/name_conversation_dialog.py:95 basilisk/gui/ocr_handler.py:97
-#: basilisk/gui/ocr_handler.py:146 basilisk/gui/ocr_handler.py:274
-#: basilisk/gui/ocr_handler.py:283 basilisk/gui/ocr_handler.py:296
-#: basilisk/gui/prompt_attachments_panel.py:366
+#: basilisk/gui/conversation_tab.py:464 basilisk/gui/conversation_tab.py:525
+#: basilisk/gui/conversation_tab.py:546 basilisk/gui/conversation_tab.py:695
+#: basilisk/gui/conversation_tab.py:732 basilisk/gui/conversation_tab.py:757
+#: basilisk/gui/conversation_tab.py:883 basilisk/gui/main_frame.py:341
+#: basilisk/gui/main_frame.py:347 basilisk/gui/main_frame.py:506
+#: basilisk/gui/main_frame.py:554 basilisk/gui/main_frame.py:650
+#: basilisk/gui/main_frame.py:670 basilisk/gui/main_frame.py:795
+#: basilisk/gui/main_frame.py:847 basilisk/gui/main_frame.py:1039
+#: basilisk/gui/main_frame.py:1061 basilisk/gui/name_conversation_dialog.py:95
+#: basilisk/gui/ocr_handler.py:97 basilisk/gui/ocr_handler.py:146
+#: basilisk/gui/ocr_handler.py:274 basilisk/gui/ocr_handler.py:283
+#: basilisk/gui/ocr_handler.py:296 basilisk/gui/prompt_attachments_panel.py:366
 #: basilisk/gui/prompt_attachments_panel.py:378
 #: basilisk/gui/prompt_attachments_panel.py:423
 #: basilisk/gui/prompt_attachments_panel.py:443
@@ -470,84 +470,84 @@ msgstr ""
 msgid "System prompt:"
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:122
+#: basilisk/gui/conversation_tab.py:124
 msgid "Untitled conversation"
 msgstr ""
 
 #. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:194
+#: basilisk/gui/conversation_tab.py:203
 msgid "&Messages:"
 msgstr "&Mesajlar:"
 
 #. Translators: This is a label for submit button in the main window
-#: basilisk/gui/conversation_tab.py:228
+#: basilisk/gui/conversation_tab.py:237
 #: basilisk/gui/prompt_attachments_panel.py:197
 msgid "Submit"
 msgstr "Gönder"
 
 #. Translators: This is a label for stop completion button in the main window
 #. Translators: This is a label for stop regeneration button
-#: basilisk/gui/conversation_tab.py:237 basilisk/gui/edit_block_dialog.py:220
+#: basilisk/gui/conversation_tab.py:246 basilisk/gui/edit_block_dialog.py:220
 msgid "Stop completio&n"
 msgstr "Tamamlamayı d&urdur"
 
 #. Translators: This is a label for record button in the main window
-#: basilisk/gui/conversation_tab.py:246 basilisk/gui/conversation_tab.py:544
+#: basilisk/gui/conversation_tab.py:255 basilisk/gui/conversation_tab.py:557
 msgid "Record"
 msgstr "Ses kaydet"
 
 #. Translators: This is a label for apply profile button in the main window
-#: basilisk/gui/conversation_tab.py:254
+#: basilisk/gui/conversation_tab.py:263
 msgid "Apply profile"
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:450 basilisk/gui/conversation_tab.py:532
+#: basilisk/gui/conversation_tab.py:463 basilisk/gui/conversation_tab.py:545
 msgid "The selected provider does not support speech-to-text"
 msgstr "Seçilen sağlayıcı konuşmayı metne dönüştürmeyi desteklemiyor"
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/gui/conversation_tab.py:458
+#: basilisk/gui/conversation_tab.py:471
 msgid "Select an audio file to transcribe"
 msgstr "Metne dönüştürülecek bir ses dosyası seçin"
 
-#: basilisk/gui/conversation_tab.py:460
+#: basilisk/gui/conversation_tab.py:473
 msgid "Audio files"
 msgstr "Ses dosyaları"
 
-#: basilisk/gui/conversation_tab.py:473
+#: basilisk/gui/conversation_tab.py:486
 msgid "Recording..."
 msgstr "Ses kaydediliyor..."
 
-#: basilisk/gui/conversation_tab.py:478
+#: basilisk/gui/conversation_tab.py:491
 msgid "Recording stopped"
 msgstr "Kayıt durduruldu"
 
-#: basilisk/gui/conversation_tab.py:483
+#: basilisk/gui/conversation_tab.py:496
 msgid "Transcribing..."
 msgstr "Metne dönüştürülüyor..."
 
-#: basilisk/gui/conversation_tab.py:492 basilisk/gui/conversation_tab.py:509
+#: basilisk/gui/conversation_tab.py:505 basilisk/gui/conversation_tab.py:522
 #: basilisk/gui/main_frame.py:246
 msgid "Ready"
 msgstr "Hazır"
 
-#: basilisk/gui/conversation_tab.py:511
+#: basilisk/gui/conversation_tab.py:524
 msgid "An error occurred during transcription: "
 msgstr "Metne dönüştürme sırasında bir hata oluştu: "
 
-#: basilisk/gui/conversation_tab.py:537
+#: basilisk/gui/conversation_tab.py:550
 msgid "Stop recording"
 msgstr "Kaydı Durdur"
 
-#: basilisk/gui/conversation_tab.py:673
+#: basilisk/gui/conversation_tab.py:693
 msgid "A completion is already in progress. Please wait until it finishes."
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:711
+#: basilisk/gui/conversation_tab.py:731
 msgid "An error occurred during title generation:"
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:736
+#: basilisk/gui/conversation_tab.py:756
 msgid "An error occurred while saving the conversation: "
 msgstr ""
 
