@@ -49,7 +49,7 @@ test = [
 
 style = [
     "ruff (>=0.12.10,<0.13)",
-    "commitizen (>=4.8.3,<4.9)",
+    "commitizen (>=4.8.4,<4.9)",
     "pre-commit (>=4.3.0,<4.4)",
 ]
 
