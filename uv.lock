@@ -178,14 +178,14 @@ dev = [
     { name = "pytest", specifier = ">=8.4.2,<8.5" },
     { name = "pytest-cov", specifier = ">=6.2.1,<6.3" },
     { name = "pytest-httpx", specifier = ">=0.35.0,<0.36" },
-    { name = "ruff", specifier = ">=0.12.10,<0.13" },
+    { name = "ruff", specifier = ">=0.12.12,<0.13" },
     { name = "setuptools" },
     { name = "setuptools-scm", specifier = ">=9.2.0" },
 ]
 style = [
     { name = "commitizen", specifier = ">=4.8.4,<4.9" },
     { name = "pre-commit", specifier = ">=4.3.0,<4.4" },
-    { name = "ruff", specifier = ">=0.12.10,<0.13" },
+    { name = "ruff", specifier = ">=0.12.12,<0.13" },
 ]
 test = [
     { name = "pytest", specifier = ">=8.4.2,<8.5" },
