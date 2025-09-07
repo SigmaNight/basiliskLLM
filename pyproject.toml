@@ -12,7 +12,7 @@ dependencies = [
     "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
     "anthropic (>=0.66.0,<0.67)",
     "babel (>=2.17,<2.18)",
-    "fsspec (>=2025.7,<2025.8)",
+    "fsspec (>=2025.9.0,<2025.10)",
     "google-genai (>=1.33.0,<1.34)",
     "httpx (>=0.28.1,<0.29.0)",
     "keyring (>=25.6,<25.7)",
