@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-23 17:06+0000\n"
-"PO-Revision-Date: 2025-08-30 13:25\n"
+"POT-Creation-Date: 2025-09-07 12:46+0000\n"
+"PO-Revision-Date: 2025-09-13 13:22\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -240,7 +240,7 @@ msgstr "Особистий"
 #: basilisk/gui/account_dialog.py:663
 #, python-brace-format
 msgid "Custom &base URL (default: {})"
-msgstr "Користувацький &URL (початково.)"
+msgstr "Користувацький &URL (початково: {})"
 
 #. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:705
