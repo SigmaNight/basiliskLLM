@@ -532,7 +532,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.SetStatusText(_("Ready"))
 		show_enhanced_error_dialog(
 			parent=self,
-			message=_("An error occurred during transcription: ") + str(error),
+			message=_("An error occurred during transcription: %s")
+			% str(error),
 			title=_("Transcription Error"),
 			is_completion_error=False,
 		)
@@ -766,8 +767,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception as e:
 			show_enhanced_error_dialog(
 				parent=self,
-				message=_("An error occurred while saving the conversation: ")
-				+ str(e),
+				message=_("An error occurred while saving the conversation: %s")
+				% str(e),
 				title=_("Save Error"),
 				is_completion_error=False,
 			)
@@ -894,7 +895,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		show_enhanced_error_dialog(
 			parent=self,
-			message=_("An error occurred during completion: ") + error_message,
+			message=_("An error occurred during completion: %s")
+			% error_message,
 			title=_("Completion Error"),
 			is_completion_error=True,
 		)
