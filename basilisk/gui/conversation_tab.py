@@ -740,8 +740,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception as e:
 			show_enhanced_error_dialog(
 				parent=self,
-				message=_("An error occurred during title generation:")
-				+ f" {e}",
+				message=_("An error occurred during title generation: %s") % e,
 				title=_("Title Generation Error"),
 				is_completion_error=True,
 			)
