@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # URL detection pattern that matches http/https URLs
 URL_PATTERN = re.compile(
-	r'https?://(?:[-\w.])+(?:\:[0-9]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?)?',
+	r"https?://(?:[-\w.])+(?:\:[0-9]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?)?",
 	re.IGNORECASE,
 )
 
