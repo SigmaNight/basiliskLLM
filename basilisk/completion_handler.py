@@ -298,8 +298,8 @@ class CompletionHandler:
 		else:
 			show_enhanced_error_dialog(
 				parent=None,
-				message=_("An error occurred during completion: ")
-				+ error_message,
+				message=_("An error occurred during completion: %s")
+				% error_message,
 				title=_("Completion Error"),
 				is_completion_error=True,
 			)

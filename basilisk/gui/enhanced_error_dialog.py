@@ -215,7 +215,7 @@ class EnhancedErrorDialog(wx.Dialog):
 		except Exception as e:
 			logger.error("Failed to copy to clipboard: %s", e)
 			wx.MessageBox(
-				_("Failed to copy to clipboard: ") + str(e),
+				_("Failed to copy to clipboard: %s") % str(e),
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 				self,
@@ -251,7 +251,7 @@ class EnhancedErrorDialog(wx.Dialog):
 		except Exception as e:
 			logger.error("Failed to open URL %s: %s", url, e)
 			wx.MessageBox(
-				_("Failed to open URL in browser: ") + str(e),
+				_("Failed to open URL in browser: %s") % str(e),
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 				self,
