@@ -145,10 +145,10 @@ class OCRHandler:
 			self._display_ocr_result(data)
 		else:  # error case
 			show_enhanced_error_dialog(
-				parent=self.conversation_tab,
+				parent=self.parent,
 				message=str(data),
 				title=_("OCR Error"),
-				is_completion_error=True,
+				is_completion_error=False,
 			)
 
 	def _display_ocr_result(self, data: Any) -> None:
