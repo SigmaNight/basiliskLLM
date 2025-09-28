@@ -767,8 +767,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception as e:
 			show_enhanced_error_dialog(
 				parent=self,
-				message=_("An error occurred while saving the conversation: %s")
-				% str(e),
+				message=_("An error occurred while saving the conversation: %s") % e,
 				title=_("Save Error"),
 				is_completion_error=False,
 			)
