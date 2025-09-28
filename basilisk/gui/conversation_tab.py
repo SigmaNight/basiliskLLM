@@ -39,6 +39,7 @@ from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
+from .enhanced_error_dialog import show_enhanced_error_dialog
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
 from .ocr_handler import OCRHandler
 from .prompt_attachments_panel import PromptAttachmentsPanel
@@ -529,10 +530,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		stop_sound()
 		self.SetStatusText(_("Ready"))
-		wx.MessageBox(
-			_("An error occurred during transcription: ") + str(error),
-			_("Error"),
-			wx.OK | wx.ICON_ERROR,
+		show_enhanced_error_dialog(
+			parent=self,
+			message=_("An error occurred during transcription: ") + str(error),
+			title=_("Transcription Error"),
+			is_completion_error=False,
 		)
 
 	def toggle_recording(self, event: wx.CommandEvent):
@@ -736,10 +738,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			return new_block.response.content
 		except Exception as e:
-			wx.MessageBox(
-				_("An error occurred during title generation:") + f" {e}",
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			show_enhanced_error_dialog(
+				parent=self,
+				message=_("An error occurred during title generation:")
+				+ f" {e}",
+				title=_("Title Generation Error"),
+				is_completion_error=True,
 			)
 			return
 		finally:
@@ -761,10 +765,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.save(file_path)
 			return True
 		except Exception as e:
-			wx.MessageBox(
-				_("An error occurred while saving the conversation: ") + str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			show_enhanced_error_dialog(
+				parent=self,
+				message=_("An error occurred while saving the conversation: ")
+				+ str(e),
+				title=_("Save Error"),
+				is_completion_error=False,
 			)
 			return False
 
@@ -887,8 +893,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._restore_prompt_content()
 		self._clear_stored_content()
 
-		wx.MessageBox(
-			_("An error occurred during completion: ") + error_message,
-			_("Error"),
-			wx.OK | wx.ICON_ERROR,
+		show_enhanced_error_dialog(
+			parent=self,
+			message=_("An error occurred during completion: ") + error_message,
+			title=_("Completion Error"),
+			is_completion_error=True,
 		)

@@ -18,6 +18,7 @@ import basilisk.global_vars as global_vars
 from basilisk.process_helper import run_task
 from basilisk.provider_capability import ProviderCapability
 
+from .enhanced_error_dialog import show_enhanced_error_dialog
 from .progress_bar_dialog import ProgressBarDialog
 
 if TYPE_CHECKING:
@@ -143,7 +144,12 @@ class OCRHandler:
 		if message_type == "result":
 			self._display_ocr_result(data)
 		else:  # error case
-			wx.MessageBox(str(data), _("Error"), wx.OK | wx.ICON_ERROR)
+			show_enhanced_error_dialog(
+				parent=self.conversation_tab,
+				message=str(data),
+				title=_("OCR Error"),
+				is_completion_error=True,
+			)
 
 	def _display_ocr_result(self, data: Any) -> None:
 		"""Display the result of OCR processing.

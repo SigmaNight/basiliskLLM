@@ -24,6 +24,7 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.decorators import ensure_no_task_running
+from basilisk.gui.enhanced_error_dialog import show_enhanced_error_dialog
 from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
@@ -295,10 +296,12 @@ class CompletionHandler:
 		if self.on_error:
 			self.on_error(error_message)
 		else:
-			wx.MessageBox(
-				_("An error occurred during completion: ") + error_message,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			show_enhanced_error_dialog(
+				parent=None,
+				message=_("An error occurred during completion: ")
+				+ error_message,
+				title=_("Completion Error"),
+				is_completion_error=True,
 			)
 
 		if self.on_completion_end:
