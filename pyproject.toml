@@ -28,7 +28,7 @@ dependencies = [
     "pydantic (>=2.11.9,<2.12)",
     "pydantic-settings (>=2.11.0,<2.12)",
     "pywin32 (>=311,<312) ; sys_platform == 'win32'",
-    "pyyaml (>=6.0.2,<6.1)",
+    "pyyaml (>=6.0.3,<6.1)",
     "sounddevice (>=0.5.2,<0.6)",
     "truststore (>=0.10.4,<0.11)",
     "universal-pathlib (>=0.2.6,<0.3)",
