@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-23 17:06+0000\n"
-"PO-Revision-Date: 2025-08-30 13:25\n"
+"POT-Creation-Date: 2025-09-20 14:35+0000\n"
+"PO-Revision-Date: 2025-09-27 13:23\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -111,7 +111,7 @@ msgstr "Де об’єднуються великі мовні моделі"
 
 #: basilisk/gui/about_dialog.py:42
 msgid "GPLV2"
-msgstr ""
+msgstr "GPLV2"
 
 #. Translators: A label in account dialog
 #: basilisk/gui/account_dialog.py:65 basilisk/gui/account_dialog.py:456
@@ -240,7 +240,7 @@ msgstr "Особистий"
 #: basilisk/gui/account_dialog.py:663
 #, python-brace-format
 msgid "Custom &base URL (default: {})"
-msgstr "Користувацький &URL (початково.)"
+msgstr "Користувацький &URL (початково: {})"
 
 #. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:705
@@ -662,13 +662,13 @@ msgstr "Блок повідомлень оновлено"
 #: basilisk/gui/history_msg_text_ctrl.py:597
 #, python-brace-format
 msgid "C.{start} .. {end}"
-msgstr ""
+msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
 #: basilisk/gui/history_msg_text_ctrl.py:604
 #, python-brace-format
 msgid "P.{start} .. {end}"
-msgstr ""
+msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
 #: basilisk/gui/history_msg_text_ctrl.py:609
@@ -678,7 +678,7 @@ msgstr "Невідоме місце"
 #: basilisk/gui/history_msg_text_ctrl.py:614
 #, python-brace-format
 msgid "{document_title} / {location_text}"
-msgstr ""
+msgstr "{document_title} / {location_text}"
 
 #: basilisk/gui/history_msg_text_ctrl.py:621
 #, python-brace-format
@@ -689,7 +689,7 @@ msgstr "Документ {document_index} / {location_text}"
 #: basilisk/gui/history_msg_text_ctrl.py:629
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
-msgstr ""
+msgstr "{location_text}: “{cited_text}”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
@@ -785,7 +785,7 @@ msgstr "&репозиторій GitHub"
 
 #: basilisk/gui/main_frame.py:220
 msgid "Roko's Basilisk"
-msgstr ""
+msgstr "Roko's Basilisk"
 
 #: basilisk/gui/main_frame.py:224
 msgid "View &log"
@@ -1193,7 +1193,7 @@ msgstr "Розміри"
 #: basilisk/gui/prompt_attachments_panel.py:498
 #, python-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s: %s"
 
 #: basilisk/gui/prompt_attachments_panel.py:502
 msgid "Attachment details"
@@ -1464,16 +1464,16 @@ msgstr "Потужна та ефективна модель для мов Бли
 #: basilisk/provider_engine/openai_engine.py:113
 #: basilisk/provider_engine/openai_engine.py:135
 msgid "Fastest, most cost-efficient version of GPT-5"
-msgstr ""
+msgstr "Найшвидша та найекономічніша версія GPT-5"
 
 #: basilisk/provider_engine/openai_engine.py:124
 msgid "A faster, more cost-efficient version of GPT-5 for well-defined tasks"
-msgstr ""
+msgstr "Більш швидка та економічна версія GPT-5 для чітко визначених завдань"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:145
 msgid "GPT-5 model used in ChatGPT"
-msgstr ""
+msgstr "Модель GPT-5, що використовується в ChatGPT"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:155
@@ -1559,36 +1559,36 @@ msgstr "Більш потужний, ніж будь-яка модель GPT-3.5
 
 #: basilisk/provider_engine/xai_engine.py:47
 msgid "The most intelligent model from xAI, featuring native tool use, real-time search integration, and a context window of 256,000 tokens."
-msgstr ""
+msgstr "Найрозумніша модель від xAI, що відрізняється використанням власних інструментів, інтеграцією пошуку в режимі реального часу та контекстним вікном з 256 000 токенів."
 
 #: basilisk/provider_engine/xai_engine.py:58
 msgid "The most powerful version of Grok 4, utilizing parallel test-time compute for multiple hypotheses, setting new standards in performance and reliability."
-msgstr ""
+msgstr "Найпотужніша версія Grok 4, що використовує паралельні обчислення під час тестування для декількох гіпотез, встановлює нові стандарти продуктивності та надійності."
 
 #: basilisk/provider_engine/xai_engine.py:69
 msgid "A flagship model from xAI, offering advanced reasoning and a context window of 131,072 tokens."
-msgstr ""
+msgstr "Флагманська модель від xAI, що пропонує розширені можливості міркування та контекстне вікно з 131 072 токенами."
 
 #: basilisk/provider_engine/xai_engine.py:79
 msgid "A compact version of Grok 3, optimized for efficiency with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Компактна версія Grok 3, оптимізована для ефективності з контекстним вікном 131 072 токенів."
 
 #: basilisk/provider_engine/xai_engine.py:89
 msgid "A high-speed variant of Grok 3, designed for rapid text generation with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Високошвидкісний варіант Grok 3, призначений для швидкого генерування тексту з контекстним вікном розміром 131 072 токени."
 
 #: basilisk/provider_engine/xai_engine.py:99
 msgid "A fast and compact version of Grok 3, balancing speed and efficiency with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Швидка та компактна версія Grok 3, що поєднує швидкість та ефективність із контекстним вікном розміром 131 072 токени."
 
 #: basilisk/provider_engine/xai_engine.py:109
 msgid "Grok 2 model (Dec 2024), offering robust text generation capabilities with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Модель Grok 2 (грудень 2024 р.), яка пропонує потужні можливості генерації тексту з контекстним вікном у 131 072 токени."
 
 #: basilisk/provider_engine/xai_engine.py:119
 msgid "Grok 2 vision model (Dec 2024), supporting image and text processing with a context window of 32,768 tokens."
-msgstr ""
+msgstr "Модель зору Grok 2 (грудень 2024 р.), яка підтримує обробку зображень і тексту з контекстним вікном розміром 32 768 токенів."
 
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
-msgstr ""
+msgstr "Оригінальна модель Grok, що забезпечує базові можливості штучного інтелекту з контекстним вікном у 8192 токени."

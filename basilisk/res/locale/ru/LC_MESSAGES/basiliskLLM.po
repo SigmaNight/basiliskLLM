@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-08-23 17:06+0000\n"
-"PO-Revision-Date: 2025-08-30 13:25\n"
+"POT-Creation-Date: 2025-09-20 14:35+0000\n"
+"PO-Revision-Date: 2025-09-27 13:23\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -1559,36 +1559,36 @@ msgstr "Более мощная, чем любая модель GPT-3.5, спо�
 
 #: basilisk/provider_engine/xai_engine.py:47
 msgid "The most intelligent model from xAI, featuring native tool use, real-time search integration, and a context window of 256,000 tokens."
-msgstr ""
+msgstr "Самая интеллектуальная модель от xAI с встроенной поддержкой инструментов, интеграцией поиска в реальном времени и контекстным окном в 256 000 токенов."
 
 #: basilisk/provider_engine/xai_engine.py:58
 msgid "The most powerful version of Grok 4, utilizing parallel test-time compute for multiple hypotheses, setting new standards in performance and reliability."
-msgstr ""
+msgstr "Самая мощная версия Grok 4 с использованием параллельных вычислений во время тестирования для множественных гипотез, устанавливающая новые стандарты производительности и надежности."
 
 #: basilisk/provider_engine/xai_engine.py:69
 msgid "A flagship model from xAI, offering advanced reasoning and a context window of 131,072 tokens."
-msgstr ""
+msgstr "Флагманская модель от xAI с продвинутыми возможностями рассуждения и контекстным окном в 131 072 токена."
 
 #: basilisk/provider_engine/xai_engine.py:79
 msgid "A compact version of Grok 3, optimized for efficiency with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Компактная версия Grok 3, оптимизированная для эффективности с контекстным окном в 131 072 токена."
 
 #: basilisk/provider_engine/xai_engine.py:89
 msgid "A high-speed variant of Grok 3, designed for rapid text generation with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Высокоскоростная версия Grok 3, разработанная для быстрой генерации текста с контекстным окном в 131 072 токена."
 
 #: basilisk/provider_engine/xai_engine.py:99
 msgid "A fast and compact version of Grok 3, balancing speed and efficiency with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Быстрая и компактная версия Grok 3, сочетающая скорость и эффективность с контекстным окном 131 072 токена."
 
 #: basilisk/provider_engine/xai_engine.py:109
 msgid "Grok 2 model (Dec 2024), offering robust text generation capabilities with a context window of 131,072 tokens."
-msgstr ""
+msgstr "Модель Grok 2 (декабрь 2024 г.) с мощными возможностями генерации текста и контекстным окном 131 072 токена."
 
 #: basilisk/provider_engine/xai_engine.py:119
 msgid "Grok 2 vision model (Dec 2024), supporting image and text processing with a context window of 32,768 tokens."
-msgstr ""
+msgstr "Модель Grok 2 с функцией зрения (декабрь 2024), поддерживающая обработку изображений и текста с контекстным окном в 32 768 токенов."
 
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
-msgstr ""
+msgstr "Оригинальная модель Grok, обеспечивающая базовые возможности ИИ с контекстным окном в 8 192 токена."
