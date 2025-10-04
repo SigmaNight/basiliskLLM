@@ -388,16 +388,25 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		"""Insert the last user message from the conversation history into the prompt text control.
 
-		This method retrieves the content of the most recent user message from the conversation
-		and sets it as the current value of the prompt input field. If no messages exist in
+		This method retrieves the content and attachments of the most recent user message from the conversation
+		and sets them as the current values in the prompt input field and attachments list. If no messages exist in
 		the conversation, no action is taken.
 
 		Args:
 			event: The wxPython event that triggered this method. Defaults to None and is not used in the method's logic.
 		"""
 		if self.conversation.messages:
-			last_user_message = self.conversation.messages[-1].request.content
-			self.prompt_panel.prompt_text = last_user_message
+			last_user_message = self.conversation.messages[-1].request
+			self.prompt_panel.prompt_text = last_user_message.content
+
+			# Restore attachments if any, otherwise clear existing attachments
+			if last_user_message.attachments:
+				self.prompt_panel.attachment_files = (
+					last_user_message.attachments.copy()
+				)
+			else:
+				self.prompt_panel.attachment_files = []
+			self.prompt_panel.refresh_attachments_list()
 
 	def extract_text_from_message(self, content: str) -> str:
 		"""Extracts the text content from a message.
