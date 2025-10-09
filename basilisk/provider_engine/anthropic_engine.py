@@ -92,6 +92,52 @@ class AnthropicEngine(BaseEngine):
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
+				id="claude-sonnet-4-5",
+				name="Claude Sonnet 4.5",
+				# Translators: This is a model description
+				description=_(
+					"Best model for complex agents and coding with highest intelligence"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-sonnet-4-5_reasoning",
+				name="Claude Sonnet 4.5 (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"Best model for complex agents and coding with highest intelligence"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-1",
+				name="Claude Opus 4.1",
+				# Translators: This is a model description
+				description=_(
+					"Exceptional model for specialized complex tasks"
+				),
+				context_window=200000,
+				max_output_tokens=32000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-1_reasoning",
+				name="Claude Opus 4.1 (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"Exceptional model for specialized complex tasks"
+				),
+				context_window=200000,
+				max_output_tokens=32000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
 				id="claude-sonnet-4-0",
 				name="Claude Sonnet 4",
 				# Translators: This is a model description
@@ -305,9 +351,12 @@ class AnthropicEngine(BaseEngine):
 			),
 			"temperature": new_block.temperature,
 			"max_tokens": new_block.max_tokens or model.max_output_tokens,
-			"top_p": new_block.top_p,
 			"stream": new_block.stream,
 		}
+		# Only include top_p if it's not the default value (1.0)
+		# New Claude 4 models don't allow both temperature and top_p
+		if new_block.top_p != 1.0:
+			params["top_p"] = new_block.top_p
 		if system_message:
 			params["system"] = system_message.content
 		if tools:
