@@ -115,7 +115,7 @@ def parse_supported_attachment_formats(
 	return wildcard
 
 
-def get_mime_type(path: str) -> str | None:
+def get_mime_type(path: UPath | str) -> str | None:
 	"""Get the MIME type of a file.
 
 	Args:
@@ -124,6 +124,8 @@ def get_mime_type(path: str) -> str | None:
 	Returns:
 		The MIME type of the file, or None if the type cannot be determined.
 	"""
+	if isinstance(path, UPath):
+		return mimetypes.guess_type(path.as_uri())[0]
 	return mimetypes.guess_type(path)[0]
 
 
