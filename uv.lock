@@ -152,7 +152,7 @@ requires-dist = [
     { name = "more-itertools", specifier = ">=10.8.0,<10.8.1" },
     { name = "numpy", specifier = ">=2.3.3,<2.4" },
     { name = "ollama", specifier = ">=0.6.0,<0.7" },
-    { name = "openai", specifier = ">=2.1.0,<2.2" },
+    { name = "openai", specifier = ">=2.3.0,<2.4" },
     { name = "ordered-set", specifier = ">=4.1,<4.2" },
     { name = "pillow", specifier = ">=11.3,<11.4" },
     { name = "platformdirs", specifier = ">=4.5.0,<4.6" },
@@ -810,7 +810,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "2.1.0"
+version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -822,9 +822,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/dd/4d4d46a06943e37c95b6e388237e1e38d1e9aab264ff070f86345d60b7a4/openai-2.1.0.tar.gz", hash = "sha256:47f3463a5047340a989b4c0cd5378054acfca966ff61a96553b22f098e3270a2", size = 572998, upload-time = "2025-10-02T20:43:15.385Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/90/8f26554d24d63ed4f94d33c24271559863223a67e624f4d2e65ba8e48dca/openai-2.3.0.tar.gz", hash = "sha256:8d213ee5aaf91737faea2d7fc1cd608657a5367a18966372a3756ceaabfbd812", size = 589616, upload-time = "2025-10-10T01:12:50.851Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/68/83/88f64fc8f037885efa8a629d1215f5bc1f037453bab4d4f823b5533319eb/openai-2.1.0-py3-none-any.whl", hash = "sha256:33172e8c06a4576144ba4137a493807a9ca427421dcabc54ad3aa656daf757d3", size = 964939, upload-time = "2025-10-02T20:43:13.568Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/5b/4be258ff072ed8ee15f6bfd8d5a1a4618aa4704b127c0c5959212ad177d6/openai-2.3.0-py3-none-any.whl", hash = "sha256:a7aa83be6f7b0ab2e4d4d7bcaf36e3d790874c0167380c5d0afd0ed99a86bd7b", size = 999768, upload-time = "2025-10-10T01:12:48.647Z" },
 ]
 
 [[package]]
