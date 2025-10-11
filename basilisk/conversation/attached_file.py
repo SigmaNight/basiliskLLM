@@ -274,6 +274,7 @@ class AttachmentFile(BaseModel):
 
 		Args:
 			value: The location value to validate, which can be a string or UPath.
+			wrap_handler: The default validation handler.
 			info: Validation context containing additional information.
 
 		Returns:
