@@ -237,5 +237,47 @@ def migrate_from_bskc_v1_to_v2(
 	return value
 
 
+def migrate_from_bskc_v2_to_v3(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v2 to v3 format.
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+
+	Returns:
+		The migrated value in v3 format
+	"""
+	value["version"] = 3
+	messages = value.get("messages", [])
+	for msg in messages:
+		if not isinstance(msg, dict):
+			continue
+		request = msg.get("request", {})
+		if not isinstance(request, dict):
+			continue
+		attachments = request.get("attachments", [])
+		if not isinstance(attachments, list):
+			continue
+		for attachment in attachments:
+			if not isinstance(attachment, dict):
+				continue
+			location = attachment["location"]
+			if "://" in location:
+				continue
+			location_dict = {
+				"protocol": "zip",
+				"path": location,
+				"storage_options": {},
+			}
+			attachment["location"] = location_dict
+	return value
+
+
 # Migration steps for different versions of the Basilisk Conversation file format
-migration_steps = [migrate_from_bskc_v0_to_v1, migrate_from_bskc_v1_to_v2]
+migration_steps = [
+	migrate_from_bskc_v0_to_v1,
+	migrate_from_bskc_v1_to_v2,
+	migrate_from_bskc_v2_to_v3,
+]

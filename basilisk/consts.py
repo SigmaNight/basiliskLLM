@@ -47,7 +47,7 @@ FOCUS_FILE = os.path.join(TMP_DIR, "focus_file")
 OPEN_BSKC_FILE = os.path.join(TMP_DIR, "open_bskc_file")
 
 # current version number of the bskc file format
-BSKC_VERSION = 2
+BSKC_VERSION = 3
 
 
 class HotkeyAction(IntEnum):
