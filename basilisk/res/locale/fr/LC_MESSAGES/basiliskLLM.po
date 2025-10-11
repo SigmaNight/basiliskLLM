@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-04 13:17+0000\n"
-"PO-Revision-Date: 2025-10-04 13:23\n"
+"POT-Creation-Date: 2025-10-11 13:06+0000\n"
+"PO-Revision-Date: 2025-10-11 13:23\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Crowdin-File-ID: 2\n"
 "Language: fr_FR\n"
 
-#: basilisk/completion_handler.py:299 basilisk/gui/conversation_tab.py:882
+#: basilisk/completion_handler.py:299 basilisk/gui/conversation_tab.py:891
 msgid "An error occurred during completion: "
 msgstr "Une erreur s’est produite durant la génération : "
 
@@ -31,10 +31,10 @@ msgstr "Une erreur s’est produite durant la génération : "
 #: basilisk/gui/account_dialog.py:139 basilisk/gui/account_dialog.py:144
 #: basilisk/gui/account_dialog.py:149 basilisk/gui/account_dialog.py:684
 #: basilisk/gui/account_dialog.py:1071 basilisk/gui/account_dialog.py:1121
-#: basilisk/gui/conversation_tab.py:464 basilisk/gui/conversation_tab.py:525
-#: basilisk/gui/conversation_tab.py:546 basilisk/gui/conversation_tab.py:695
-#: basilisk/gui/conversation_tab.py:732 basilisk/gui/conversation_tab.py:757
-#: basilisk/gui/conversation_tab.py:883 basilisk/gui/main_frame.py:341
+#: basilisk/gui/conversation_tab.py:473 basilisk/gui/conversation_tab.py:534
+#: basilisk/gui/conversation_tab.py:555 basilisk/gui/conversation_tab.py:704
+#: basilisk/gui/conversation_tab.py:741 basilisk/gui/conversation_tab.py:766
+#: basilisk/gui/conversation_tab.py:892 basilisk/gui/main_frame.py:341
 #: basilisk/gui/main_frame.py:347 basilisk/gui/main_frame.py:506
 #: basilisk/gui/main_frame.py:554 basilisk/gui/main_frame.py:650
 #: basilisk/gui/main_frame.py:670 basilisk/gui/main_frame.py:795
@@ -492,7 +492,7 @@ msgid "Stop completio&n"
 msgstr "Stopper la génératio&n"
 
 #. Translators: This is a label for record button in the main window
-#: basilisk/gui/conversation_tab.py:255 basilisk/gui/conversation_tab.py:557
+#: basilisk/gui/conversation_tab.py:255 basilisk/gui/conversation_tab.py:566
 msgid "Record"
 msgstr "Enregistrer"
 
@@ -501,53 +501,53 @@ msgstr "Enregistrer"
 msgid "Apply profile"
 msgstr "Appliquer le profil"
 
-#: basilisk/gui/conversation_tab.py:463 basilisk/gui/conversation_tab.py:545
+#: basilisk/gui/conversation_tab.py:472 basilisk/gui/conversation_tab.py:554
 msgid "The selected provider does not support speech-to-text"
 msgstr "Le fournisseur sélectionné ne prend pas en charge la reconnaissance vocale"
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/gui/conversation_tab.py:471
+#: basilisk/gui/conversation_tab.py:480
 msgid "Select an audio file to transcribe"
 msgstr "Sélectionner un fichier audio à transcrire"
 
-#: basilisk/gui/conversation_tab.py:473
+#: basilisk/gui/conversation_tab.py:482
 msgid "Audio files"
 msgstr "Fichiers audio"
 
-#: basilisk/gui/conversation_tab.py:486
+#: basilisk/gui/conversation_tab.py:495
 msgid "Recording..."
 msgstr "Enregistrement..."
 
-#: basilisk/gui/conversation_tab.py:491
+#: basilisk/gui/conversation_tab.py:500
 msgid "Recording stopped"
 msgstr "Enregistrement arrêté"
 
-#: basilisk/gui/conversation_tab.py:496
+#: basilisk/gui/conversation_tab.py:505
 msgid "Transcribing..."
 msgstr "Transcription..."
 
-#: basilisk/gui/conversation_tab.py:505 basilisk/gui/conversation_tab.py:522
+#: basilisk/gui/conversation_tab.py:514 basilisk/gui/conversation_tab.py:531
 #: basilisk/gui/main_frame.py:246
 msgid "Ready"
 msgstr "Prêt"
 
-#: basilisk/gui/conversation_tab.py:524
+#: basilisk/gui/conversation_tab.py:533
 msgid "An error occurred during transcription: "
 msgstr "Une erreur s’est produite lors de la transcription : "
 
-#: basilisk/gui/conversation_tab.py:550
+#: basilisk/gui/conversation_tab.py:559
 msgid "Stop recording"
 msgstr "Arrêter l’enregistrement"
 
-#: basilisk/gui/conversation_tab.py:693
+#: basilisk/gui/conversation_tab.py:702
 msgid "A completion is already in progress. Please wait until it finishes."
 msgstr ""
 
-#: basilisk/gui/conversation_tab.py:731
+#: basilisk/gui/conversation_tab.py:740
 msgid "An error occurred during title generation:"
 msgstr "Une erreur s’est produite durant la génération :"
 
-#: basilisk/gui/conversation_tab.py:756
+#: basilisk/gui/conversation_tab.py:765
 msgid "An error occurred while saving the conversation: "
 msgstr "Une erreur s'est produite lors de la sauvegarde de la conversation : "
 
@@ -1382,39 +1382,49 @@ msgstr "Vous utilisez déjà la dernière version de basiliskLLM"
 msgid "Error checking for updates: %s"
 msgstr "Erreur durant la recherche des mises à jour : %s"
 
+#: basilisk/provider_engine/anthropic_engine.py:99
+#: basilisk/provider_engine/anthropic_engine.py:110
+msgid "Best model for complex agents and coding with highest intelligence"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:122
+#: basilisk/provider_engine/anthropic_engine.py:133
+msgid "Exceptional model for specialized complex tasks"
+msgstr ""
+
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:98
-#: basilisk/provider_engine/anthropic_engine.py:107
+#: basilisk/provider_engine/anthropic_engine.py:144
+#: basilisk/provider_engine/anthropic_engine.py:153
 msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:117
-#: basilisk/provider_engine/anthropic_engine.py:126
+#: basilisk/provider_engine/anthropic_engine.py:163
+#: basilisk/provider_engine/anthropic_engine.py:172
 msgid "Our most capable model"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:137
-#: basilisk/provider_engine/anthropic_engine.py:148
+#: basilisk/provider_engine/anthropic_engine.py:183
+#: basilisk/provider_engine/anthropic_engine.py:194
 msgid "High-performance model with early extended thinking"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:159
+#: basilisk/provider_engine/anthropic_engine.py:205
 msgid "Our previous intelligent model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:168
+#: basilisk/provider_engine/anthropic_engine.py:214
 msgid "Our fastest model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:177
+#: basilisk/provider_engine/anthropic_engine.py:223
 msgid "Powerful model for complex tasks"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:187
+#: basilisk/provider_engine/anthropic_engine.py:233
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Modèle le plus rapide et le plus compact pour une réactivité quasi instantanée"
 
@@ -1591,3 +1601,4 @@ msgstr ""
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr ""
+
