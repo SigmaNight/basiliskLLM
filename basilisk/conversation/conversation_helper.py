@@ -52,7 +52,7 @@ def save_attachments(
 		with attachment.location.open(mode="rb") as attachment_file:
 			with fs.open(new_location, mode="wb") as new_file:
 				shutil.copyfileobj(attachment_file, new_file)
-		attachment_mapping[attachment.location] = new_location
+		attachment_mapping[attachment.location] = UPath(f"zip://{new_location}")
 	return attachment_mapping
 
 

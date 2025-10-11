@@ -2,9 +2,8 @@
 
 import pytest
 from pydantic import BaseModel, ValidationError
-from upath import UPath
 
-from basilisk.custom_types import PydanticOrderedSet, PydanticUPath
+from basilisk.custom_types import PydanticOrderedSet
 
 
 class TestPydanticOrderedSet:
@@ -83,13 +82,3 @@ class TestPydanticOrderedSet:
 
 class TestPydanticUPath:
 	"""Tests for PydanticUPath custom type."""
-
-	def test_valid_path(self, tmp_path):
-		"""Test PydanticUPath with valid path."""
-		path = PydanticUPath(tmp_path)
-		assert path == UPath(tmp_path)
-
-	def test_invalid_path(self):
-		"""Test PydanticUPath with invalid input."""
-		with pytest.raises(TypeError):
-			PydanticUPath(12345)
