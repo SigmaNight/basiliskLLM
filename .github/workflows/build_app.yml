@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: 'cpython-3.12-windows-${{ matrix.arch }}'
       - name: Install dependencies

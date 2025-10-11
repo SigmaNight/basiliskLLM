@@ -30,6 +30,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       - name: install dev dependencies
         run: uv sync --frozen --compile --dev
