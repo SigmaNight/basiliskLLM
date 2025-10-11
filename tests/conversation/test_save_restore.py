@@ -222,7 +222,7 @@ class TestAttachmentSaveRestore:
 	@pytest.fixture
 	def bskc_path(self, tmp_path):
 		"""Return a test conversation file path."""
-		return f"{tmp_path}{os.sep}test_conversation.bskc"
+		return tmp_path / "test_conversation.bskc"
 
 	@pytest.fixture
 	def text_content(self):

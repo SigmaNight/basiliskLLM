@@ -11,6 +11,7 @@ from basilisk.conversation import Conversation
 from basilisk.conversation.conversation_helper import (
 	migrate_from_bskc_v0_to_v1,
 	migrate_from_bskc_v1_to_v2,
+	migrate_from_bskc_v2_to_v3,
 )
 
 
@@ -118,6 +119,239 @@ class TestMigrationFunctions:
 
 		# Check that messages is still empty
 		assert len(v2_data["messages"]) == 0
+
+	def test_migrate_from_bskc_v2_to_v3_with_attachments(self):
+		"""Test migrating from v2 to v3 format with attachments."""
+		# Create v2 format data with attachments that need migration
+		v2_data = {
+			"version": 2,
+			"messages": [
+				{
+					"request": {
+						"role": "user",
+						"content": "Test message",
+						"attachments": [
+							{
+								"type": "image",
+								"location": "attachments/image1.png",
+								"name": "image1.png",
+							},
+							{
+								"type": "file",
+								"location": "attachments/document.pdf",
+								"name": "document.pdf",
+							},
+						],
+					},
+					"response": {
+						"role": "assistant",
+						"content": "Test response",
+					},
+					"model": {"provider_id": "test", "model_id": "model1"},
+					"system_index": 0,
+				}
+			],
+			"systems": [{"role": "system", "content": "System instructions"}],
+			"title": "Test Conversation",
+		}
+
+		# Call migration function
+		validation_info = {"context": None}
+		v3_data = migrate_from_bskc_v2_to_v3(v2_data, validation_info)
+
+		# Assert that version was updated
+		assert v3_data["version"] == 3
+
+		# Check that attachment locations were converted to dict format
+		attachments = v3_data["messages"][0]["request"]["attachments"]
+		assert len(attachments) == 2
+
+		# First attachment
+		assert attachments[0]["location"]["protocol"] == "zip"
+		assert attachments[0]["location"]["path"] == "attachments/image1.png"
+		assert attachments[0]["location"]["storage_options"] == {}
+
+		# Second attachment
+		assert attachments[1]["location"]["protocol"] == "zip"
+		assert attachments[1]["location"]["path"] == "attachments/document.pdf"
+		assert attachments[1]["location"]["storage_options"] == {}
+
+	def test_migrate_from_bskc_v2_to_v3_with_url_attachments(self):
+		"""Test migrating from v2 to v3 format with URL attachments (should not be changed)."""
+		# Create v2 format data with URL attachments
+		v2_data = {
+			"version": 2,
+			"messages": [
+				{
+					"request": {
+						"role": "user",
+						"content": "Test message",
+						"attachments": [
+							{
+								"type": "url",
+								"location": "https://example.com/image.png",
+								"name": "image.png",
+							},
+							{
+								"type": "file",
+								"location": "zip://attachments/file.txt",
+								"name": "file.txt",
+							},
+						],
+					},
+					"response": {
+						"role": "assistant",
+						"content": "Test response",
+					},
+					"model": {"provider_id": "test", "model_id": "model1"},
+				}
+			],
+			"systems": [],
+			"title": "Test Conversation",
+		}
+
+		# Call migration function
+		validation_info = {"context": None}
+		v3_data = migrate_from_bskc_v2_to_v3(v2_data, validation_info)
+
+		# Assert that version was updated
+		assert v3_data["version"] == 3
+
+		# Check that URL attachment location was NOT converted (already has ://)
+		attachments = v3_data["messages"][0]["request"]["attachments"]
+		assert len(attachments) == 2
+		assert attachments[0]["location"] == "https://example.com/image.png"
+		assert attachments[1]["location"] == "zip://attachments/file.txt"
+
+	def test_migrate_from_bskc_v2_to_v3_without_attachments(self):
+		"""Test migrating from v2 to v3 format without attachments."""
+		# Create v2 format data without attachments
+		v2_data = {
+			"version": 2,
+			"messages": [
+				{
+					"request": {"role": "user", "content": "Test message"},
+					"response": {
+						"role": "assistant",
+						"content": "Test response",
+					},
+					"model": {"provider_id": "test", "model_id": "model1"},
+				}
+			],
+			"systems": [],
+			"title": "Test Conversation",
+		}
+
+		# Call migration function
+		validation_info = {"context": None}
+		v3_data = migrate_from_bskc_v2_to_v3(v2_data, validation_info)
+
+		# Assert that version was updated
+		assert v3_data["version"] == 3
+
+		# Check that structure was preserved
+		assert len(v3_data["messages"]) == 1
+		assert v3_data["messages"][0]["request"]["content"] == "Test message"
+
+	def test_migrate_from_bskc_v2_to_v3_empty_messages(self):
+		"""Test migrating from v2 to v3 format with empty messages."""
+		# Create v2 format data with empty messages
+		v2_data = {
+			"version": 2,
+			"messages": [],
+			"systems": [],
+			"title": "Test Conversation",
+		}
+
+		# Call migration function
+		validation_info = {"context": None}
+		v3_data = migrate_from_bskc_v2_to_v3(v2_data, validation_info)
+
+		# Assert that version was updated
+		assert v3_data["version"] == 3
+
+		# Check that messages is still empty
+		assert len(v3_data["messages"]) == 0
+
+	def test_migrate_from_bskc_v2_to_v3_multiple_messages_mixed_attachments(
+		self,
+	):
+		"""Test migrating from v2 to v3 format with multiple messages having mixed attachments."""
+		# Create v2 format data with multiple messages
+		v2_data = {
+			"version": 2,
+			"messages": [
+				{
+					"request": {
+						"role": "user",
+						"content": "First message",
+						"attachments": [
+							{
+								"type": "image",
+								"location": "attachments/img1.png",
+								"name": "img1.png",
+							}
+						],
+					},
+					"response": {"role": "assistant", "content": "Response 1"},
+					"model": {"provider_id": "test", "model_id": "model1"},
+				},
+				{
+					"request": {
+						"role": "user",
+						"content": "Second message",
+						"attachments": [
+							{
+								"type": "url",
+								"location": "https://example.com/img2.png",
+								"name": "img2.png",
+							}
+						],
+					},
+					"response": {"role": "assistant", "content": "Response 2"},
+					"model": {"provider_id": "test", "model_id": "model1"},
+				},
+				{
+					"request": {"role": "user", "content": "Third message"},
+					"response": {"role": "assistant", "content": "Response 3"},
+					"model": {"provider_id": "test", "model_id": "model1"},
+				},
+			],
+			"systems": [],
+			"title": "Test Conversation",
+		}
+
+		# Call migration function
+		validation_info = {"context": None}
+		v3_data = migrate_from_bskc_v2_to_v3(v2_data, validation_info)
+
+		# Assert that version was updated
+		assert v3_data["version"] == 3
+
+		# Check first message - should be converted
+		assert len(v3_data["messages"][0]["request"]["attachments"]) == 1
+		assert (
+			v3_data["messages"][0]["request"]["attachments"][0]["location"][
+				"protocol"
+			]
+			== "zip"
+		)
+		assert (
+			v3_data["messages"][0]["request"]["attachments"][0]["location"][
+				"path"
+			]
+			== "attachments/img1.png"
+		)
+
+		# Check second message - URL should not be converted
+		assert len(v3_data["messages"][1]["request"]["attachments"]) == 1
+		assert (
+			v3_data["messages"][1]["request"]["attachments"][0]["location"]
+			== "https://example.com/img2.png"
+		)
+
+		# Check third message - no attachments
+		assert "attachments" not in v3_data["messages"][2]["request"]
 
 
 class TestBSKCFileMigration:
@@ -244,10 +478,10 @@ class TestBSKCFileMigration:
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(v2_data))
 
-		# Open and verify no migration needed
+		# Open and verify migration to latest version
 		conversation = Conversation.open(bskc_path, storage_path)
 
-		# Check that it's already at the latest version
+		# Check that it was migrated to the latest version
 		assert conversation.version == BSKC_VERSION
 		assert conversation.title == "Test V2 Conversation"
 		assert len(conversation.messages) == 1
@@ -258,6 +492,78 @@ class TestBSKCFileMigration:
 		assert len(conversation.systems) == 1
 		assert conversation.systems[0].content == "System instructions"
 		assert conversation.messages[0].system_index == 0
+
+	def test_open_bskc_v2_file_with_attachments(
+		self, ai_model, bskc_path, storage_path
+	):
+		"""Test opening a v2 format BSKC file with attachments that need migration."""
+		# Create v2 format conversation file with old-style attachment paths
+		v2_data = {
+			"version": 2,
+			"messages": [
+				{
+					"request": {
+						"role": "user",
+						"content": "Test message",
+						"attachments": [
+							{
+								"type": "image",
+								"location": "attachments/test_image.png",
+								"name": "test_image.png",
+								"width": 100,
+								"height": 100,
+							}
+						],
+					},
+					"response": {
+						"role": "assistant",
+						"content": "Test response",
+					},
+					"model": {
+						"provider_id": ai_model.provider_id,
+						"model_id": ai_model.model_id,
+					},
+					"system_index": 0,
+				}
+			],
+			"systems": [{"role": "system", "content": "System instructions"}],
+			"title": "Test V2 Conversation with Attachments",
+		}
+
+		# Create a simple test image for the attachment
+		import io
+
+		from PIL import Image
+
+		# Create a simple 100x100 red image
+		img = Image.new('RGB', (100, 100), color='red')
+		img_bytes = io.BytesIO()
+		img.save(img_bytes, format='PNG')
+		img_bytes.seek(0)
+
+		# Save as BSKC file with attachment
+		with open(bskc_path, 'w+b') as f:
+			with zipfile.ZipFile(
+				f, mode='w', compression=zipfile.ZIP_STORED
+			) as zipf:
+				zipf.writestr("conversation.json", json.dumps(v2_data))
+				zipf.writestr("attachments/test_image.png", img_bytes.read())
+
+		# Open and verify migration to latest version
+		conversation = Conversation.open(bskc_path, storage_path)
+
+		# Check that it was migrated to the latest version
+		assert conversation.version == BSKC_VERSION
+		assert conversation.title == "Test V2 Conversation with Attachments"
+		assert len(conversation.messages) == 1
+		assert conversation.messages[0].request.content == "Test message"
+
+		# Check that attachments were properly migrated
+		assert len(conversation.messages[0].request.attachments) == 1
+		attachment = conversation.messages[0].request.attachments[0]
+		assert attachment.name == "test_image.png"
+		# The location should be migrated to the storage path
+		assert attachment.location.exists()
 
 	def test_open_invalid_version_bskc_file(self, bskc_path, storage_path):
 		"""Test opening a BSKC file with invalid version."""

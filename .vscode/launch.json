@@ -14,7 +14,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
-            "justMyCode": true,
+            "justMyCode": false,
             "purpose": ["debug-test"]
         },
     ],

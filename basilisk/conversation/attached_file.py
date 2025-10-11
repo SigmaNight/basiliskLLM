@@ -18,13 +18,14 @@ from pydantic import (
 	SerializationInfo,
 	SerializerFunctionWrapHandler,
 	ValidationInfo,
+	ValidatorFunctionWrapHandler,
 	field_serializer,
 	field_validator,
 	model_validator,
 )
 from upath import UPath
+from upath.implementations.http import HTTPPath
 
-from basilisk.custom_types import PydanticUPath
 from basilisk.decorators import measure_time
 
 log = logging.getLogger(__name__)
@@ -115,7 +116,7 @@ def parse_supported_attachment_formats(
 	return wildcard
 
 
-def get_mime_type(path: str) -> str | None:
+def get_mime_type(path: UPath | str) -> str | None:
 	"""Get the MIME type of a file.
 
 	Args:
@@ -124,6 +125,8 @@ def get_mime_type(path: str) -> str | None:
 	Returns:
 		The MIME type of the file, or None if the type cannot be determined.
 	"""
+	if isinstance(path, UPath):
+		return mimetypes.guess_type(path.as_uri())[0]
 	return mimetypes.guess_type(path)[0]
 
 
@@ -218,7 +221,7 @@ class NotImageError(ValueError):
 class AttachmentFile(BaseModel):
 	"""Represents an attached file in a conversation."""
 
-	location: PydanticUPath
+	location: UPath
 	name: str | None = None
 	description: str | None = None
 	size: int | None = None
@@ -228,10 +231,10 @@ class AttachmentFile(BaseModel):
 	@classmethod
 	def change_location(
 		cls,
-		value: PydanticUPath,
+		value: UPath,
 		wrap_handler: SerializerFunctionWrapHandler,
 		info: SerializationInfo,
-	) -> PydanticUPath:
+	) -> UPath | str:
 		"""Serialize the location field with optional context-based mapping.
 
 		This method is a field serializer for the `location` attribute that allows dynamic
@@ -244,8 +247,10 @@ class AttachmentFile(BaseModel):
 			info: Serialization context information.
 
 		Returns:
-			PydanticUPath: The serialized location path, potentially remapped based on context.
+			The serialized location path, potentially remapped based on context.
 		"""
+		if isinstance(value, HTTPPath):
+			return str(value)
 		if not info.context:
 			return wrap_handler(value)
 		mapping = info.context.get("attachment_mapping")
@@ -253,11 +258,14 @@ class AttachmentFile(BaseModel):
 			return wrap_handler(value)
 		return mapping.get(value, wrap_handler(value))
 
-	@field_validator("location", mode="before")
+	@field_validator("location", mode="wrap")
 	@classmethod
 	def validate_location(
-		cls, value: Any, info: ValidationInfo
-	) -> str | PydanticUPath:
+		cls,
+		value: Any,
+		wrap_handler: ValidatorFunctionWrapHandler,
+		info: ValidationInfo,
+	) -> str | UPath:
 		"""Validates and transforms the location of an image file.
 
 		This method ensures that the location is either a valid string or a UPath instance.
@@ -266,6 +274,7 @@ class AttachmentFile(BaseModel):
 
 		Args:
 			value: The location value to validate, which can be a string or UPath.
+			wrap_handler: The default validation handler.
 			info: Validation context containing additional information.
 
 		Returns:
@@ -275,10 +284,18 @@ class AttachmentFile(BaseModel):
 			ValueError: If the location is not a string or UPath instance.
 		"""
 		if isinstance(value, str):
+			if URL_PATTERN.match(value):
+				return wrap_handler(value)
 			if info.context:
 				root_path = info.context.get("root_path")
-				if root_path and "://" not in value:
-					return root_path / value
+				if root_path:
+					value = root_path / value
+			return value
+		if isinstance(value, dict):
+			if info.context:
+				root_path = info.context.get("root_path")
+				value = wrap_handler(value)
+				return root_path / value
 			return value
 		if not isinstance(value, UPath):
 			raise ValueError("Invalid location")
@@ -479,7 +496,7 @@ class ImageFile(AttachmentFile):
 	"""Represents an image file in a conversation."""
 
 	dimensions: tuple[int, int] | None = None
-	resize_location: PydanticUPath | None = Field(default=None, exclude=True)
+	resize_location: UPath | None = Field(default=None, exclude=True)
 
 	def __init__(self, /, **kwargs: Any) -> None:
 		"""Initialize an ImageFile instance with optional data.
