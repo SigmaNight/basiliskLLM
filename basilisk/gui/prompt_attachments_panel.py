@@ -604,7 +604,7 @@ class PromptAttachmentsPanel(wx.Panel):
 					continue
 
 				if mime_type.startswith("image/"):
-					file = ImageFile(location=path)
+					file = ImageFile(location=UPath(path))
 				else:
 					file = AttachmentFile(location=path)
 
