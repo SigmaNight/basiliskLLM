@@ -92,6 +92,29 @@ class AnthropicEngine(BaseEngine):
 		# See <https://docs.anthropic.com/en/docs/about-claude/models>
 		return [
 			ProviderAIModel(
+				id="claude-haiku-4-5",
+				name="Claude Haiku 4.5",
+				# Translators: This is a model description
+				description=_(
+					"Our fastest model with near-frontier intelligenceBest model for complex agents and coding with highest intelligence"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-haiku-4-5_reasoning",
+				name="Claude Haiku 4.5 (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"Our fastest model with near-frontier intelligence"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
 				id="claude-sonnet-4-5",
 				name="Claude Sonnet 4.5",
 				# Translators: This is a model description
