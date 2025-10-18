@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-11 13:06+0000\n"
-"PO-Revision-Date: 2025-10-11 13:23\n"
+"POT-Creation-Date: 2025-10-14 06:33+0000\n"
+"PO-Revision-Date: 2025-10-18 13:25\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -1602,3 +1602,4 @@ msgstr "Модель зору Grok 2 (грудень 2024 р.), яка підт�
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr "Оригінальна модель Grok, що забезпечує базові можливості штучного інтелекту з контекстним вікном у 8192 токени."
+
