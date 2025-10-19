@@ -149,6 +149,18 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 			ProviderAIModel(
+				id="gpt-5-pro",
+				name="GPT-5 Pro",
+				# Translators: This is a model description
+				description=_(
+					"Version of GPT-5 that produces smarter and more precise responses"
+				),
+				context_window=400000,
+				max_output_tokens=272000,
+				vision=True,
+				max_temperature=2.0,
+			),
+			ProviderAIModel(
 				id="gpt-4.1",
 				name="GPT-4.1",
 				# Translators: This is a model description
@@ -281,95 +293,6 @@ class OpenAIEngine(BaseEngine):
 					"Points to one of the most recent iterations of gpt-3.5 model"
 				),
 				context_window=16385,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-2024-08-06",
-				name="GPT 4o (2024-08-06)",
-				# Translators: This is a model description
-				description=_(
-					"Latest snapshot that supports Structured Outputs"
-				),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-2024-05-13",
-				name="GPT 4o (2024-05-13)",
-				# Translators: This is a model description
-				description=_(
-					"Our high-intelligence flagship model for complex, multi-step tasks"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-mini-2024-07-18",
-				name="GPT 4o Mini (2024-07-18)",
-				# Translators: This is a model description
-				description=_(
-					"Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
-				),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo-0125",
-				name="GPT 3.5 Turbo (0125)",
-				# Translators: This is a model description
-				description=_(
-					"The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
-				),
-				context_window=16385,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-turbo-preview",
-				name="GPT 4 Turbo Preview",
-				# Translators: This is a model description
-				description=_(
-					"Points to one of the most recent iterations of gpt-4 model"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-0125-preview",
-				name="GPT 4 (0125) Preview",
-				# Translators: This is a model description
-				description=_(
-					"The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-1106-preview",
-				name="GPT 4 (1106) Preview",
-				# Translators: This is a model description
-				description=_(
-					"GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-0613",
-				name="GPT 4 (0613)",
-				# Translators: This is a model description
-				description=_(
-					"More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
-				),
-				max_output_tokens=8192,
 				max_temperature=2.0,
 			),
 		]
