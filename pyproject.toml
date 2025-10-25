@@ -38,7 +38,7 @@ dependencies = [
 [dependency-groups]
 build = [
     "setuptools",
-    "setuptools-scm (>=9.2.1)",
+    "setuptools-scm (>=9.2.2)",
     "cx_freeze (>=8.4.1)",
 ]
 test = [
