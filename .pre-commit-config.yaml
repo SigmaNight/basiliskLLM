@@ -32,7 +32,7 @@ repos:
       - id: check-yaml
       - id: check-ast
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.2
+    rev: 0.9.4
     hooks:
       - id: uv-lock
         files: "^(pyproject.toml|uv.lock)$"
@@ -44,13 +44,13 @@ repos:
         stages:
           - "commit-msg"
 -   repo: https://github.com/executablebooks/mdformat
-    rev: "0.7.22"
+    rev: "1.0.0"
     hooks:
       - id: mdformat
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.14.0"
+    rev: "v0.14.1"
     hooks:
       - id: ruff-check
         args: ["--fix", "--ignore", "D"]
