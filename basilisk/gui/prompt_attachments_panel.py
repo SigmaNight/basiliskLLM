@@ -606,7 +606,7 @@ class PromptAttachmentsPanel(wx.Panel):
 				if mime_type.startswith("image/"):
 					file = ImageFile(location=UPath(path))
 				else:
-					file = AttachmentFile(location=path)
+					file = AttachmentFile(location=UPath(path))
 
 				self.attachment_files.append(file)
 
