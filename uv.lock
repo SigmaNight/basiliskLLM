@@ -163,7 +163,7 @@ requires-dist = [
     { name = "sounddevice", specifier = ">=0.5.3,<0.6" },
     { name = "truststore", specifier = ">=0.10.4,<0.11" },
     { name = "universal-pathlib", specifier = ">=0.3.4,<0.4" },
-    { name = "wxpython", specifier = ">=4.2.3,<4.3" },
+    { name = "wxpython", specifier = ">=4.2.4,<4.3" },
 ]
 
 [package.metadata.requires-dev]
@@ -3708,13 +3708,13 @@ wheels = [
 
 [[package]]
 name = "wxpython"
-version = "4.2.3"
+version = "4.2.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4c/d9/4451392d3d6ba45aa23aa77a6f1a9970b43351b956bf61e10fd513a1dc38/wxPython-4.2.3.tar.gz", hash = "sha256:20d6e0c927e27ced85643719bd63e9f7fd501df6e9a8aab1489b039897fd7c01", size = 58861286, upload-time = "2025-04-10T02:49:43.557Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/6e/b70e6dbdd7cb4f154b7ca424b4c7799f7b067f7a9f4204b8d16d6464648f/wxpython-4.2.4.tar.gz", hash = "sha256:2eb123979c87bcb329e8a2452269d60ff8f9f651e9bf25c67579e53c4ebbae3c", size = 58583054, upload-time = "2025-10-29T13:22:37.726Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/2f/550022808bcf4cfafc94021d3f77fec2ceccfc21d37cc2ce465027802f87/wxpython-4.2.3-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:c007b153ebf74a8429789a5dcb93c76b3901c531b1413695fdb96f222ec207fc", size = 18792609, upload-time = "2025-04-10T02:49:02.473Z" },
-    { url = "https://files.pythonhosted.org/packages/da/aa/86bf3300c921d81f59ccebcb919ca7516ca7ea2b560eab36ac45e1b9931d/wxpython-4.2.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a7c95c385895b94b4784a78c06a1626329c3552fcc47a78ab88f0a02ffe1e2db", size = 17851857, upload-time = "2025-04-10T02:49:05.941Z" },
-    { url = "https://files.pythonhosted.org/packages/e7/63/40700ad4a43962e31adf754d420d6b2a5e2d50fa5e1041a01ed73b2b0e90/wxpython-4.2.3-cp312-cp312-win32.whl", hash = "sha256:361db46442376ba1cae4ce9f8fab4081b4d085458f973b4c10b68e04492067ad", size = 14505417, upload-time = "2025-04-10T02:49:08.993Z" },
-    { url = "https://files.pythonhosted.org/packages/1a/25/ca90e9dc793c328fb97cc011ae92d48337c1a8ef8c54576979840d74226f/wxpython-4.2.3-cp312-cp312-win_amd64.whl", hash = "sha256:9231853d8a15b0610a6153cbef65f392164c17f234c65916df499619f7e75bd9", size = 16567404, upload-time = "2025-04-10T02:49:12.146Z" },
-    { url = "https://files.pythonhosted.org/packages/8c/60/a04d74c72799a90a4f0297c4b0ffa953073f8b1e9a97ae9d9006333792fc/wxpython-4.2.3-cp312-cp312-win_arm64.whl", hash = "sha256:e5c413a592b355bf3a6705a73051977c8c2558fd4a3d38a6a8b428bdccbabc77", size = 15535831, upload-time = "2025-09-07T15:12:03.675Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/83/4359885c6f390235fefffb01bec0c1aa24a61cdcdbba0e857a5dcfbd5042/wxpython-4.2.4-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:a42807f84d504554a78bf7c4d0b8b18ec72de098b578bd4276bf5144b5a698ef", size = 18773068, upload-time = "2025-10-29T04:02:17.416Z" },
+    { url = "https://files.pythonhosted.org/packages/90/d8/9d55ef72e004d70a395402391aa5f9bd362253dd560f4c934efb02abe4f6/wxpython-4.2.4-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8b1c5f5c173a90c861f4f3453f2e066e29f258472c76d40f8e2ec16b0389971f", size = 17836963, upload-time = "2025-10-29T04:02:19.646Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/1f/ddbb597c3d821d4206f85234736a4f19ef1b8875eefbf8d072ffcc01c1a4/wxpython-4.2.4-cp312-cp312-win32.whl", hash = "sha256:83e45e4d5d139638260c2f23108a94cb8d40bd5eb714d41b1009452e4ec4229a", size = 14507902, upload-time = "2025-10-29T04:02:22.309Z" },
+    { url = "https://files.pythonhosted.org/packages/90/c3/dfe74d7eb046612a3e475dce8ffda70341516129a7cb17fd60c8ae143304/wxpython-4.2.4-cp312-cp312-win_amd64.whl", hash = "sha256:c333113be1fcb4e4252890b3e66af016f03432b2fe15b370f38f2a505f5daa74", size = 16549996, upload-time = "2025-10-29T04:02:24.792Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/29/5286f960de8079264e7a89ca4b4beae86844520b9521a1497c4908a8cae6/wxpython-4.2.4-cp312-cp312-win_arm64.whl", hash = "sha256:88b7e8cbdb141ebb4e361cd6f3d5595160764f0c05d2d7e03506b53860eb01ab", size = 15534326, upload-time = "2025-10-29T04:02:27.421Z" },
 ]
