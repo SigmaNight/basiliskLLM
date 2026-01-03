@@ -1582,4 +1582,3 @@ msgstr "Модель зору Grok 2 (грудень 2024 р.), яка підт�
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr "Оригінальна модель Grok, що забезпечує базові можливості штучного інтелекту з контекстним вікном у 8192 токени."
-
