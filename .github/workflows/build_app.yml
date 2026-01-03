@@ -58,14 +58,14 @@ jobs:
           echo "  log_level: info" >> dist\user_data\config.yml
 
       - name: create and upload portable zip
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: output_setup/*
