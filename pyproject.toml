@@ -39,7 +39,7 @@ dependencies = [
 build = [
     "setuptools",
     "setuptools-scm (>=9.2.2)",
-    "cx_freeze (>=8.4.1)",
+    "cx_freeze (>=8.5.3)",
 ]
 test = [
     "pytest (>=8.4.2,<8.5)",
