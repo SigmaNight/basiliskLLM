@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-10-11 13:06+0000\n"
-"PO-Revision-Date: 2025-10-11 13:23\n"
+"POT-Creation-Date: 2026-01-24 12:48+0000\n"
+"PO-Revision-Date: 2026-01-24 13:34\n"
 "Last-Translator: \n"
 "Language-Team: Turkish\n"
 "MIME-Version: 1.0\n"
@@ -1383,48 +1383,56 @@ msgid "Error checking for updates: %s"
 msgstr "Güncellemeler denetlenirken hata oluştu: %s"
 
 #: basilisk/provider_engine/anthropic_engine.py:99
+msgid "Our fastest model with near-frontier intelligenceBest model for complex agents and coding with highest intelligence"
+msgstr ""
+
 #: basilisk/provider_engine/anthropic_engine.py:110
-msgid "Best model for complex agents and coding with highest intelligence"
+msgid "Our fastest model with near-frontier intelligence"
 msgstr ""
 
 #: basilisk/provider_engine/anthropic_engine.py:122
 #: basilisk/provider_engine/anthropic_engine.py:133
+msgid "Best model for complex agents and coding with highest intelligence"
+msgstr ""
+
+#: basilisk/provider_engine/anthropic_engine.py:145
+#: basilisk/provider_engine/anthropic_engine.py:156
 msgid "Exceptional model for specialized complex tasks"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:144
-#: basilisk/provider_engine/anthropic_engine.py:153
+#: basilisk/provider_engine/anthropic_engine.py:167
+#: basilisk/provider_engine/anthropic_engine.py:176
 msgid "High-performance model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:163
-#: basilisk/provider_engine/anthropic_engine.py:172
+#: basilisk/provider_engine/anthropic_engine.py:186
+#: basilisk/provider_engine/anthropic_engine.py:195
 msgid "Our most capable model"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:183
-#: basilisk/provider_engine/anthropic_engine.py:194
+#: basilisk/provider_engine/anthropic_engine.py:206
+#: basilisk/provider_engine/anthropic_engine.py:217
 msgid "High-performance model with early extended thinking"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:205
+#: basilisk/provider_engine/anthropic_engine.py:228
 msgid "Our previous intelligent model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:214
+#: basilisk/provider_engine/anthropic_engine.py:237
 msgid "Our fastest model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:223
+#: basilisk/provider_engine/anthropic_engine.py:246
 msgid "Powerful model for complex tasks"
 msgstr ""
 
-#: basilisk/provider_engine/anthropic_engine.py:233
+#: basilisk/provider_engine/anthropic_engine.py:256
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Anında tepki süresi için en hızlı ve en kompakt model"
 
@@ -1484,86 +1492,58 @@ msgstr ""
 msgid "GPT-5 model used in ChatGPT"
 msgstr ""
 
+#: basilisk/provider_engine/openai_engine.py:156
+msgid "Version of GPT-5 that produces smarter and more precise responses"
+msgstr ""
+
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:155
+#: basilisk/provider_engine/openai_engine.py:167
 msgid "Flagship GPT model for complex tasks"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:165
+#: basilisk/provider_engine/openai_engine.py:177
 msgid "Balanced for intelligence, speed, and cost"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:175
+#: basilisk/provider_engine/openai_engine.py:187
 msgid "Fastest, most cost-effective GPT-4.1 model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:185
+#: basilisk/provider_engine/openai_engine.py:197
 msgid "Faster, more affordable reasoning model"
 msgstr ""
 
 #. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:195
+#: basilisk/provider_engine/openai_engine.py:207
 msgid "Our most powerful reasoning model"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:207
-#: basilisk/provider_engine/openai_engine.py:231
+#: basilisk/provider_engine/openai_engine.py:219
+#: basilisk/provider_engine/openai_engine.py:243
 msgid "Points to one of the most recent iterations of gpt-4o-mini model"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:219
+#: basilisk/provider_engine/openai_engine.py:231
 msgid "Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:243
+#: basilisk/provider_engine/openai_engine.py:255
 msgid "Our most recent small reasoning model, providing high intelligence at the same cost and latency targets of o1-mini. o3-mini also supports key developer features, like Structured Outputs, function calling, Batch API, and more. Like other models in the o-series, it is designed to excel at science, math, and coding tasks."
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:256
+#: basilisk/provider_engine/openai_engine.py:268
 msgid "Points to the most recent snapshot of the o1 model"
 msgstr ""
 
-#: basilisk/provider_engine/openai_engine.py:269
+#: basilisk/provider_engine/openai_engine.py:281
 msgid "The latest GPT-4 Turbo model with vision capabilities"
 msgstr "Görüş yeteneklerine sahip en yeni GPT-4 Turbo modeli"
 
-#: basilisk/provider_engine/openai_engine.py:281
+#: basilisk/provider_engine/openai_engine.py:293
 msgid "Points to one of the most recent iterations of gpt-3.5 model"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:291
-msgid "Latest snapshot that supports Structured Outputs"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:303
-msgid "Our high-intelligence flagship model for complex, multi-step tasks"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:315
-msgid "Our affordable and intelligent small model for fast, lightweight tasks. GPT-4o mini is cheaper and more capable than GPT-3.5 Turbo"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:327
-msgid "The latest GPT-3.5 Turbo model with higher accuracy at responding in requested formats and a fix for a bug which caused a text encoding issue for non-English language function calls"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:337
-msgid "Points to one of the most recent iterations of gpt-4 model"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:348
-msgid "The latest GPT-4 model intended to reduce cases of “laziness” where the model doesn’t complete a task"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:359
-msgid "GPT-4 Turbo model featuring improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more"
-msgstr ""
-
-#: basilisk/provider_engine/openai_engine.py:370
-msgid "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat"
 msgstr ""
 
 #: basilisk/provider_engine/xai_engine.py:47
@@ -1601,3 +1581,4 @@ msgstr ""
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr ""
+
