@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 license = "GPL-2.0-only"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
     "anthropic>=0.72.0,<0.77",
@@ -89,7 +89,7 @@ src = ["src"]
 respect-gitignore = true
 line-length = 80
 unsafe-fixes = false
-target-version = "py312"
+target-version = "py314"
 builtins = ["_", "gettext", "ngettext", "npgettext", "pgettext"]
 
 [tool.ruff.format]
