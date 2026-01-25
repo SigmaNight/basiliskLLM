@@ -22,7 +22,7 @@ jobs:
       - name: setup uv
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: 'cpython-3.14-windows-${{ matrix.arch }}'
+          python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
       - name: Install dependencies
         run: uv sync --frozen --no-dev --group build --group test
       - name: run tests
