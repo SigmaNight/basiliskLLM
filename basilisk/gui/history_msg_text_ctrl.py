@@ -161,27 +161,23 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				self, new_block_ref, absolute_length
 			)
 		absolute_length = self.append_prefix(
-			self,
 			new_block_ref,
 			absolute_length,
 			self.role_labels[MessageRoleEnum.USER],
 		)
 		absolute_length = self.append_content(
-			self, new_block_ref, absolute_length, new_block.request.content
+			new_block_ref, absolute_length, new_block.request.content
 		)
-		absolute_length = self.append_suffix(
-			self, new_block_ref, absolute_length
-		)
+		absolute_length = self.append_suffix(new_block_ref, absolute_length)
 		pos = self.GetInsertionPoint()
 		if new_block.response:
 			absolute_length = self.append_prefix(
-				self,
 				new_block_ref,
 				absolute_length,
 				self.role_labels[MessageRoleEnum.ASSISTANT],
 			)
 			absolute_length = self.append_content(
-				self, new_block_ref, absolute_length, new_block.response.content
+				new_block_ref, absolute_length, new_block.response.content
 			)
 		self.SetInsertionPoint(pos)
 
