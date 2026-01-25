@@ -46,7 +46,7 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v5
       - name: download translations template artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: basiliskLLM.pot
           path: ./translations
