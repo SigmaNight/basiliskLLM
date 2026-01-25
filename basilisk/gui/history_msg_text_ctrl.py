@@ -9,7 +9,7 @@ import logging
 import os
 import weakref
 from collections import namedtuple
-from functools import partial
+from functools import partialmethod
 from typing import TYPE_CHECKING, Any
 
 import wx
@@ -125,15 +125,15 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		)
 		return last_pos
 
-	append_prefix = partial(
+	append_prefix = partialmethod(
 		append_text_and_segment, segment_type=MessageSegmentType.PREFIX
 	)
 
-	append_content = partial(
+	append_content = partialmethod(
 		append_text_and_segment, segment_type=MessageSegmentType.CONTENT
 	)
 
-	append_suffix = partial(
+	append_suffix = partialmethod(
 		append_text_and_segment,
 		text=os.linesep,
 		segment_type=MessageSegmentType.SUFFIX,
