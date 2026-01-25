@@ -134,16 +134,9 @@ You have four update modes available:
 
 ## 🛠 Setting Up Your Dev Palace 🏰
 
-Requirements: Python 3.12
+Requirements: Python 3.14
 
 The project requires uv. To install it visit the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
-For short reference:
-
-```shell
-pip3.12 install pipx
-pipx ensurepath
-pipx install uv
-```
 
 In the root of what may soon become your favorite project, install dependencies with uv. It will create a special virtual environment for the project.
 
