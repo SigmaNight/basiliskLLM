@@ -49,8 +49,8 @@ test = [
 
 style = [
     "ruff (>=0.14.10,<0.15)",
-    "commitizen>=4.9.1,<4.13",
-    "pre-commit>=4.3.0,<4.6",
+    "commitizen (>=4.9.1,<4.13)",
+    "prek (>=0.3.0)",
 ]
 
 dev = [
