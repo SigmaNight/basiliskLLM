@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-24 12:48+0000\n"
-"PO-Revision-Date: 2026-01-24 13:34\n"
+"POT-Creation-Date: 2026-01-25 21:06+0000\n"
+"PO-Revision-Date: 2026-01-31 13:43\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -565,147 +565,147 @@ msgstr "&Відповідь помічника:"
 msgid "&Regenerate Response"
 msgstr "&Відновити відповідь"
 
-#: basilisk/gui/history_msg_text_ctrl.py:221
+#: basilisk/gui/history_msg_text_ctrl.py:217
 msgid "Read current message"
 msgstr "Прочитати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:227
+#: basilisk/gui/history_msg_text_ctrl.py:223
 msgid "Speak response"
 msgstr "Промовляти відповідь"
 
-#: basilisk/gui/history_msg_text_ctrl.py:233
+#: basilisk/gui/history_msg_text_ctrl.py:229
 msgid "Show as HTML (from Markdown)"
 msgstr "Показати як HTML (з Markdown)"
 
-#: basilisk/gui/history_msg_text_ctrl.py:238
+#: basilisk/gui/history_msg_text_ctrl.py:234
 msgid "Show citations"
 msgstr "Показати цитати"
 
-#: basilisk/gui/history_msg_text_ctrl.py:240
+#: basilisk/gui/history_msg_text_ctrl.py:236
 msgid "Copy current message"
 msgstr "Копіювати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:243
+#: basilisk/gui/history_msg_text_ctrl.py:239
 msgid "Select current message"
 msgstr "Вибрати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:249
+#: basilisk/gui/history_msg_text_ctrl.py:245
 msgid "Go to previous message"
 msgstr "Перейти до попереднього повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:255
+#: basilisk/gui/history_msg_text_ctrl.py:251
 msgid "Go to next message"
 msgstr "Перейти до наступного повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:258
+#: basilisk/gui/history_msg_text_ctrl.py:254
 msgid "Move to start of message"
 msgstr "Перейти на початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:264
+#: basilisk/gui/history_msg_text_ctrl.py:260
 msgid "Move to end of message"
 msgstr "Перейти в кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:270
+#: basilisk/gui/history_msg_text_ctrl.py:266
 msgid "Edit message block"
 msgstr "Редагувати блок повідомлень"
 
-#: basilisk/gui/history_msg_text_ctrl.py:273
+#: basilisk/gui/history_msg_text_ctrl.py:269
 msgid "Remove message block"
 msgstr "Видалити блок повідомлень"
 
-#: basilisk/gui/history_msg_text_ctrl.py:278
+#: basilisk/gui/history_msg_text_ctrl.py:274
 msgid "Find..."
 msgstr "Знайти..."
 
-#: basilisk/gui/history_msg_text_ctrl.py:279
+#: basilisk/gui/history_msg_text_ctrl.py:275
 msgid "Find Next"
 msgstr "Знайти далі"
 
-#: basilisk/gui/history_msg_text_ctrl.py:281
+#: basilisk/gui/history_msg_text_ctrl.py:277
 msgid "Find Previous"
 msgstr "Знайти попереднє"
 
-#: basilisk/gui/history_msg_text_ctrl.py:424
+#: basilisk/gui/history_msg_text_ctrl.py:420
 msgid "Message copied to clipboard"
 msgstr "Повідомлення скопійовано в буфер обміну"
 
-#: basilisk/gui/history_msg_text_ctrl.py:435
+#: basilisk/gui/history_msg_text_ctrl.py:431
 msgid "Start of message"
 msgstr "Початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:443
+#: basilisk/gui/history_msg_text_ctrl.py:439
 msgid "End of message"
 msgstr "Кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:485
+#: basilisk/gui/history_msg_text_ctrl.py:481
 #, python-format
 msgid "Response speaking %s"
 msgstr "Відповідь промовляється %s"
 
-#: basilisk/gui/history_msg_text_ctrl.py:486
+#: basilisk/gui/history_msg_text_ctrl.py:482
 msgid "enabled"
 msgstr "увімкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:486
+#: basilisk/gui/history_msg_text_ctrl.py:482
 msgid "disabled"
 msgstr "вимкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:550
+#: basilisk/gui/history_msg_text_ctrl.py:546
 msgid "Message block removed"
 msgstr "Повідомлення видалено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:573
+#: basilisk/gui/history_msg_text_ctrl.py:569
 msgid "Message block updated"
 msgstr "Блок повідомлень оновлено"
 
 #. Translators: This is a citation format for character locations
-#: basilisk/gui/history_msg_text_ctrl.py:597
+#: basilisk/gui/history_msg_text_ctrl.py:593
 #, python-brace-format
 msgid "C.{start} .. {end}"
 msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
-#: basilisk/gui/history_msg_text_ctrl.py:604
+#: basilisk/gui/history_msg_text_ctrl.py:600
 #, python-brace-format
 msgid "P.{start} .. {end}"
 msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
-#: basilisk/gui/history_msg_text_ctrl.py:609
+#: basilisk/gui/history_msg_text_ctrl.py:605
 msgid "Unknown location"
 msgstr "Невідоме місце"
 
-#: basilisk/gui/history_msg_text_ctrl.py:614
+#: basilisk/gui/history_msg_text_ctrl.py:610
 #, python-brace-format
 msgid "{document_title} / {location_text}"
 msgstr "{document_title} / {location_text}"
 
-#: basilisk/gui/history_msg_text_ctrl.py:621
+#: basilisk/gui/history_msg_text_ctrl.py:617
 #, python-brace-format
 msgid "Document {document_index} / {location_text}"
 msgstr "Документ {document_index} / {location_text}"
 
 #. Translators: This is a citation format for a cited text
-#: basilisk/gui/history_msg_text_ctrl.py:629
+#: basilisk/gui/history_msg_text_ctrl.py:625
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
 msgstr "{location_text}: “{cited_text}”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
-#: basilisk/gui/history_msg_text_ctrl.py:644
+#: basilisk/gui/history_msg_text_ctrl.py:640
 #, python-format
 msgid "%d citations in the current message"
 msgstr "%d цитат в поточному повідомленні"
 
 #. Translators: This message is emitted when there are no citations for the
 #. current message.
-#: basilisk/gui/history_msg_text_ctrl.py:658
+#: basilisk/gui/history_msg_text_ctrl.py:654
 msgid "No citations for this message"
 msgstr "Цитати для цього повідомлення відсутні"
 
 #. Translators: This is a title for message citations dialog
-#: basilisk/gui/history_msg_text_ctrl.py:670
+#: basilisk/gui/history_msg_text_ctrl.py:666
 msgid "Message citations"
 msgstr "Цитати з повідомлення"
 
@@ -1582,3 +1582,4 @@ msgstr "Модель зору Grok 2 (грудень 2024 р.), яка підт�
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr "Оригінальна модель Grok, що забезпечує базові можливості штучного інтелекту з контекстним вікном у 8192 токени."
+
