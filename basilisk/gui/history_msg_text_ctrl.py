@@ -157,9 +157,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
 		if not self.IsEmpty():
-			absolute_length = self.append_suffix(
-				self, new_block_ref, absolute_length
-			)
+			absolute_length = self.append_suffix(new_block_ref, absolute_length)
 		absolute_length = self.append_prefix(
 			new_block_ref,
 			absolute_length,
