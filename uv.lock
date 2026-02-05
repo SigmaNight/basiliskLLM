@@ -146,7 +146,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "keyring", specifier = ">=25.7.0,<25.8" },
     { name = "markdown2", specifier = ">=2.5.4,<2.6" },
-    { name = "mistralai", specifier = ">=1.10.1,<1.10.2" },
+    { name = "mistralai", specifier = ">=1.10.1,<1.11.2" },
     { name = "more-itertools", specifier = ">=10.8.0,<10.8.1" },
     { name = "numpy", specifier = ">=2.4.0,<2.5" },
     { name = "ollama", specifier = ">=0.6.1,<0.7" },
@@ -810,7 +810,7 @@ wheels = [
 
 [[package]]
 name = "mistralai"
-version = "1.10.1"
+version = "1.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
@@ -825,9 +825,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/11/1b/1b5276136413856425a69f2aa72d84d261724877fe4cbab40c4dad079302/mistralai-1.10.1.tar.gz", hash = "sha256:2162c56840dc325bddac4d36877c4d97765ee0cf4db5f2825f469c14511063e9", size = 227097, upload-time = "2026-01-16T09:20:27.563Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/65/79f7b19645745fd93f26dcaa1f4e1191ad12d60974c756d5af630b98056b/mistralai-1.11.1.tar.gz", hash = "sha256:0731e8204ab0ff7571a29f722b6547f2ca72541685e3ad426cd2946dba8b84fa", size = 234988, upload-time = "2026-01-29T13:04:28.494Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/50/b9c0d514e699a7775ff70303113a9441ce9f1250c60057f322282a53f03d/mistralai-1.10.1-py3-none-any.whl", hash = "sha256:f9526ec1a42b950f1cec019626b9c1a0f5fb7fbac904a844b1d038286c8ee5f0", size = 478250, upload-time = "2026-01-16T09:20:26.159Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/26/71cca7ceb9d5956511a560c98ba48562bf45ab6dd4dc0a026d2298ee60cf/mistralai-1.11.1-py3-none-any.whl", hash = "sha256:c362ccd8840448bf3dba7c88ebd9683d076f0288298dd87a51e4cbdee6eafac1", size = 487293, upload-time = "2026-01-29T13:04:27.217Z" },
 ]
 
 [[package]]
