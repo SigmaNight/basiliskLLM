@@ -90,13 +90,14 @@ class OCRHandler:
 				)
 		except Exception as e:
 			log.error("Error handling message: %s", e, exc_info=True)
-			wx.MessageBox(
-				_(
+			show_enhanced_error_dialog(
+				parent=self.parent,
+				message=_(
 					"An error occurred while processing OCR results. Details: \n%s"
 				)
 				% e,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+				title=_("OCR Error"),
+				is_completion_error=False,
 			)
 
 	def _handle_ocr_info_message(
@@ -223,7 +224,7 @@ class OCRHandler:
 					log.warning("Process did not terminate, killing it")
 					self.process.kill()
 			except Exception as e:
-				log.error("Error terminating process: %", e, exc_info=True)
+				log.error("Error terminating process: %s", e, exc_info=True)
 
 		try:
 			if dialog and dialog.IsShown():

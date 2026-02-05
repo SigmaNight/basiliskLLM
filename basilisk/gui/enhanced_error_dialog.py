@@ -17,10 +17,7 @@ import wx
 logger = logging.getLogger(__name__)
 
 # URL detection pattern that matches http/https URLs
-URL_PATTERN = re.compile(
-	r"https?://(?:[-\w.])+(?:\:[0-9]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?)?",
-	re.IGNORECASE,
-)
+URL_PATTERN = re.compile(r"https?://[^\s<>()\"']+", re.IGNORECASE)
 
 
 def find_urls_in_text(text: str) -> list[str]:
@@ -38,7 +35,7 @@ def find_urls_in_text(text: str) -> list[str]:
 def show_enhanced_error_dialog(
 	parent: Optional[wx.Window],
 	message: str,
-	title: str = None,
+	title: Optional[str] = None,
 	is_completion_error: bool = False,
 ) -> int:
 	"""Show an enhanced error dialog that can handle URLs.
@@ -98,6 +95,8 @@ class EnhancedErrorDialog(wx.Dialog):
 		self._create_ui()
 		self._bind_events()
 		self.CenterOnParent()
+		# Focus OK button when dialog is shown
+		self.Bind(wx.EVT_SHOW, self._on_show)
 
 	def _create_ui(self):
 		"""Create the dialog UI."""
@@ -167,9 +166,9 @@ class EnhancedErrorDialog(wx.Dialog):
 		button_sizer.AddStretchSpacer()
 
 		# OK button (right side)
-		ok_btn = wx.Button(self, wx.ID_OK, _("OK"))
-		ok_btn.SetDefault()
-		button_sizer.Add(ok_btn, 0, wx.ALL, 5)
+		self.ok_btn = wx.Button(self, wx.ID_OK, _("OK"))
+		self.ok_btn.SetDefault()
+		button_sizer.Add(self.ok_btn, 0, wx.ALL, 5)
 
 		main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.ALL, 10)
 
@@ -183,9 +182,19 @@ class EnhancedErrorDialog(wx.Dialog):
 
 	def _bind_events(self):
 		"""Bind event handlers."""
-		if hasattr(self, 'open_url_btn'):
-			self.open_url_btn.Bind(wx.EVT_BUTTON, self.on_open_url)
-		self.copy_btn.Bind(wx.EVT_BUTTON, self.on_copy_error)
+		if hasattr(self, "open_url_btn"):
+			self.Bind(wx.EVT_BUTTON, self.on_open_url, self.open_url_btn)
+		self.Bind(wx.EVT_BUTTON, self.on_copy_error, self.copy_btn)
+
+	def _on_show(self, event: wx.ShowEvent):
+		"""Handle dialog show event to focus OK button.
+
+		Args:
+			event: The show event
+		"""
+		if event.IsShown() and hasattr(self, "ok_btn"):
+			self.ok_btn.SetFocus()
+		event.Skip()
 
 	def on_copy_error(self, event: wx.CommandEvent):
 		"""Handle copying error message to clipboard.
@@ -193,33 +202,34 @@ class EnhancedErrorDialog(wx.Dialog):
 		Args:
 			event: Button click event
 		"""
+		original_label = self.copy_btn.GetLabel()
 		try:
-			if wx.TheClipboard.Open():
-				wx.TheClipboard.SetData(wx.TextDataObject(self.message))
-				wx.TheClipboard.Close()
-
-				# Change button label to show confirmation
-				original_label = self.copy_btn.GetLabel()
-				self.copy_btn.SetLabel(_("Copied!"))
-				self.copy_btn.Disable()
-
-				# Reset button label after 2 seconds
-				wx.CallLater(2000, self._reset_copy_button, original_label)
-			else:
-				wx.MessageBox(
-					_("Failed to access clipboard"),
-					_("Error"),
-					wx.OK | wx.ICON_ERROR,
-					self,
-				)
+			opened = wx.TheClipboard.Open()
+			try:
+				if opened:
+					if not wx.TheClipboard.SetData(
+						wx.TextDataObject(self.message)
+					):
+						raise RuntimeError("SetData returned False")
+					# Success feedback
+					self.copy_btn.SetLabel(_("Copied!"))
+					self.copy_btn.Disable()
+					wx.CallLater(2000, self._reset_copy_button, original_label)
+				else:
+					logger.warning("Failed to access clipboard")
+					wx.Bell()
+					self.copy_btn.SetLabel(_("Copy failed"))
+					self.copy_btn.Disable()
+					wx.CallLater(2000, self._reset_copy_button, original_label)
+			finally:
+				if opened:
+					wx.TheClipboard.Close()
 		except Exception as e:
 			logger.error("Failed to copy to clipboard: %s", e)
-			wx.MessageBox(
-				_("Failed to copy to clipboard: %s") % str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-				self,
-			)
+			wx.Bell()
+			self.copy_btn.SetLabel(_("Copy failed: %s") % e)
+			self.copy_btn.Disable()
+			wx.CallLater(2000, self._reset_copy_button, original_label)
 
 	def _reset_copy_button(self, original_label: str):
 		"""Reset the copy button to its original state.
@@ -237,7 +247,7 @@ class EnhancedErrorDialog(wx.Dialog):
 		Args:
 			event: Button click event
 		"""
-		if not hasattr(self, 'url_choice'):
+		if not hasattr(self, "url_choice"):
 			return
 
 		selection = self.url_choice.GetSelection()
@@ -250,9 +260,8 @@ class EnhancedErrorDialog(wx.Dialog):
 			webbrowser.open(url)
 		except Exception as e:
 			logger.error("Failed to open URL %s: %s", url, e)
-			wx.MessageBox(
-				_("Failed to open URL in browser: %s") % str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-				self,
-			)
+			wx.Bell()
+			if hasattr(self, "open_url_btn"):
+				orig = self.open_url_btn.GetLabel()
+				self.open_url_btn.SetLabel(_("Open failed"))
+				wx.CallLater(2000, self.open_url_btn.SetLabel, orig)
