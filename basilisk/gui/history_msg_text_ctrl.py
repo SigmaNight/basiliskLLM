@@ -185,16 +185,39 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				absolute_length = self.append_content(
 					new_block_ref, absolute_length, new_block.response.content
 				)
+				# Don't add suffix here - next block will add one when it starts
+			else:
+				# Create an empty content segment for streaming response
+				# This will be updated as chunks are appended
+				# Don't add suffix here - next block will add one when it starts
+				absolute_length = self.append_content(
+					new_block_ref, absolute_length, ""
+				)
 		self.SetInsertionPoint(pos)
 
 	def update_last_segment_length(self):
-		"""Update the length of the last message segment to match the current text control position."""
+		"""Update the length of the last content segment to match the current text control position."""
 		if not self.segment_manager.segments:
 			return
 		last_position = self.GetLastPosition()
-		self.segment_manager.absolute_position = last_position
-		last_segment = self.segment_manager.segments[-1]
-		last_segment.length += last_position - self.segment_manager.end
+		# Find the last content segment (before any suffix)
+		last_content_index = len(self.segment_manager.segments) - 1
+		while (
+			last_content_index >= 0
+			and self.segment_manager.segments[last_content_index].kind
+			!= MessageSegmentType.CONTENT
+		):
+			last_content_index -= 1
+		if last_content_index < 0:
+			return
+		# Calculate the expected end position based on current segments
+		expected_end = sum(seg.length for seg in self.segment_manager.segments)
+		# The difference is the additional content that was streamed
+		additional_length = last_position - expected_end
+		if additional_length > 0:
+			# Update the content segment length
+			content_segment = self.segment_manager.segments[last_content_index]
+			content_segment.length += additional_length
 
 	def menu_msg_info(self) -> list[MenuItemInfo]:
 		"""Initialize the message operations menu items.
