@@ -39,6 +39,7 @@ from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
+from .enhanced_error_dialog import show_enhanced_error_dialog
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
 from .ocr_handler import OCRHandler
 from .prompt_attachments_panel import PromptAttachmentsPanel
@@ -236,7 +237,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			# Translators: This is a label for submit button in the main window
 			label=_("Submit") + " (Ctrl+Enter)",
 		)
-		self.submit_btn.Bind(wx.EVT_BUTTON, self.on_submit)
+		self.Bind(wx.EVT_BUTTON, self.on_submit, self.submit_btn)
 		self.submit_btn.SetDefault()
 		btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
 
@@ -245,7 +246,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			# Translators: This is a label for stop completion button in the main window
 			label=_("Stop completio&n"),
 		)
-		self.stop_completion_btn.Bind(wx.EVT_BUTTON, self.on_stop_completion)
+		self.Bind(
+			wx.EVT_BUTTON, self.on_stop_completion, self.stop_completion_btn
+		)
 		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
 		self.stop_completion_btn.Hide()
 
@@ -255,14 +258,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 			label=_("Record") + " (Ctrl+R)",
 		)
 		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
-		self.toggle_record_btn.Bind(wx.EVT_BUTTON, self.toggle_recording)
+		self.Bind(wx.EVT_BUTTON, self.toggle_recording, self.toggle_record_btn)
 
 		self.apply_profile_btn = wx.Button(
 			self,
 			# Translators: This is a label for apply profile button in the main window
 			label=_("Apply profile") + " (Ctrl+P)",
 		)
-		self.apply_profile_btn.Bind(wx.EVT_BUTTON, self.on_choose_profile)
+		self.Bind(wx.EVT_BUTTON, self.on_choose_profile, self.apply_profile_btn)
 		btn_sizer.Add(self.apply_profile_btn, proportion=0, flag=wx.EXPAND)
 
 		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
@@ -305,9 +308,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			event: The keyboard event
 		"""
 		shortcut = (event.GetModifiers(), event.GetKeyCode())
-		actions = {(wx.MOD_CONTROL, ord('P')): self.on_choose_profile}
-		action = actions.get(shortcut, wx.KeyEvent.Skip)
-		action(event)
+		actions = {(wx.MOD_CONTROL, ord("P")): self.on_choose_profile}
+		action = actions.get(shortcut)
+		if action:
+			action(event)
+		else:
+			event.Skip()
 
 	def on_account_change(self, event: wx.CommandEvent | None):
 		"""Handle account selection changes in the conversation tab.
@@ -383,7 +389,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
-		menu.Destroy()
+		# Caller is responsible for menu lifetime.
 
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
 		"""Insert the last user message from the conversation history into the prompt text control.
@@ -529,10 +535,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		stop_sound()
 		self.SetStatusText(_("Ready"))
-		wx.MessageBox(
-			_("An error occurred during transcription: ") + str(error),
-			_("Error"),
-			wx.OK | wx.ICON_ERROR,
+		show_enhanced_error_dialog(
+			parent=self,
+			message=_("An error occurred during transcription: %s") % error,
+			title=_("Transcription Error"),
+			is_completion_error=False,
 		)
 
 	def toggle_recording(self, event: wx.CommandEvent):
@@ -736,10 +743,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			)
 			return new_block.response.content
 		except Exception as e:
-			wx.MessageBox(
-				_("An error occurred during title generation:") + f" {e}",
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			show_enhanced_error_dialog(
+				parent=self,
+				message=_("An error occurred during title generation: %s") % e,
+				title=_("Title Generation Error"),
+				is_completion_error=True,
 			)
 			return
 		finally:
@@ -761,10 +769,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.conversation.save(file_path)
 			return True
 		except Exception as e:
-			wx.MessageBox(
-				_("An error occurred while saving the conversation: ") + str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			show_enhanced_error_dialog(
+				parent=self,
+				message=_("An error occurred while saving the conversation: %s")
+				% e,
+				title=_("Save Error"),
+				is_completion_error=False,
 			)
 			return False
 
@@ -887,8 +897,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._restore_prompt_content()
 		self._clear_stored_content()
 
-		wx.MessageBox(
-			_("An error occurred during completion: ") + error_message,
-			_("Error"),
-			wx.OK | wx.ICON_ERROR,
+		show_enhanced_error_dialog(
+			parent=self,
+			message=_("An error occurred during completion: %s")
+			% error_message,
+			title=_("Completion Error"),
+			is_completion_error=True,
 		)
