@@ -139,7 +139,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		segment_type=MessageSegmentType.SUFFIX,
 	)
 
-	def display_new_block(self, new_block: MessageBlock):
+	def display_new_block(
+		self, new_block: MessageBlock, streaming: bool = False
+	):
 		"""Displays a new message block in the conversation text control.
 
 		This method appends a new message block to the existing conversation, handling both request and response messages. It manages the formatting and segmentation of messages, including role labels and content.
@@ -150,9 +152,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Uses weak references to track message blocks
 		- Preserves the original insertion point after displaying the block
 		- Supports both request and optional response messages
+		- In streaming mode, only displays the assistant label, not the content
 
 		Args:
 			new_block: The message block to be displayed in the conversation.
+			streaming: If True, indicates that the response content will be streamed
+				and should not be displayed here. Defaults to False.
 		"""
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
@@ -174,9 +179,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				absolute_length,
 				self.role_labels[MessageRoleEnum.ASSISTANT],
 			)
-			absolute_length = self.append_content(
-				new_block_ref, absolute_length, new_block.response.content
-			)
+			# Only display response content if not streaming (streaming content
+			# is displayed incrementally via append_stream_chunk)
+			if not streaming:
+				absolute_length = self.append_content(
+					new_block_ref, absolute_length, new_block.response.content
+				)
 		self.SetInsertionPoint(pos)
 
 	def update_last_segment_length(self):
