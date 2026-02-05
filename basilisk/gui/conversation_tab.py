@@ -832,7 +832,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			system_message: Optional system message
 		"""
 		self.conversation.add_block(new_block, system_message)
-		self.messages.display_new_block(new_block)
+		self.messages.display_new_block(new_block, streaming=True)
 		self.messages.SetInsertionPointEnd()
 
 	def _on_stream_finish(self, new_block: MessageBlock):
