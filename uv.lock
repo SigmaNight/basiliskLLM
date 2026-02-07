@@ -171,7 +171,7 @@ build = [
     { name = "setuptools-scm", specifier = ">=9.2.2" },
 ]
 dev = [
-    { name = "commitizen", specifier = ">=4.9.1,<4.13" },
+    { name = "commitizen", specifier = ">=4.9.1,<4.14" },
     { name = "cx-freeze", specifier = ">=8.5.3" },
     { name = "prek", specifier = ">=0.3.0" },
     { name = "pytest", specifier = ">=9.0" },
@@ -182,7 +182,7 @@ dev = [
     { name = "setuptools-scm", specifier = ">=9.2.2" },
 ]
 style = [
-    { name = "commitizen", specifier = ">=4.9.1,<4.13" },
+    { name = "commitizen", specifier = ">=4.9.1,<4.14" },
     { name = "prek", specifier = ">=0.3.0" },
     { name = "ruff", specifier = ">=0.14.10,<0.15" },
 ]
@@ -279,7 +279,7 @@ wheels = [
 
 [[package]]
 name = "commitizen"
-version = "4.12.1"
+version = "4.13.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "argcomplete" },
@@ -295,9 +295,9 @@ dependencies = [
     { name = "termcolor" },
     { name = "tomlkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e8/dd/644715d1dc0ef5e78797202c22b3f17a0d0e6e6a0f3d0d73ab1946b10025/commitizen-4.12.1.tar.gz", hash = "sha256:3bf952793cf19466116e23802df56ca019c5d34aaaa4785bba718b556b3732c1", size = 63066, upload-time = "2026-01-22T11:35:15.67Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/96/d3f4adff7517daec18ba50749c286e189283132db407e40a9fd1557088dd/commitizen-4.13.6.tar.gz", hash = "sha256:4134e67d7f3c0ba77becd423c157a34a131f4c81f60e6b5468ce3ad056eb8a9b", size = 64077, upload-time = "2026-02-07T01:52:15.372Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/18/af1de0276f816ec691d7abba976c7011abbace17d3cd435c8cd4a403f8cf/commitizen-4.12.1-py3-none-any.whl", hash = "sha256:779438b4881803433342b32aab55485ece9c1f05be60add6399570811b03f9f0", size = 84185, upload-time = "2026-01-22T11:35:14.383Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/f5/82421a407c8da2a2b623d137b4e95fb0eefe36b19b7358445dc986912d40/commitizen-4.13.6-py3-none-any.whl", hash = "sha256:cc932795656ebe05fbbbfe2a7ac5308c7acaa7c7661c6f5443a913e13e9470a7", size = 85256, upload-time = "2026-02-07T01:52:14.251Z" },
 ]
 
 [[package]]
