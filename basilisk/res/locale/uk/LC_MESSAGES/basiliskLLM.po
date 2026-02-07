@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-01-25 21:06+0000\n"
-"PO-Revision-Date: 2026-01-31 13:43\n"
+"POT-Creation-Date: 2026-02-05 12:06+0000\n"
+"PO-Revision-Date: 2026-02-07 13:48\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -18,31 +18,37 @@ msgstr ""
 "X-Crowdin-File-ID: 2\n"
 "Language: uk_UA\n"
 
-#: basilisk/completion_handler.py:299 basilisk/gui/conversation_tab.py:891
-msgid "An error occurred during completion: "
-msgstr "Під час завершення сталася помилка: "
+#: basilisk/completion_handler.py:301 basilisk/gui/conversation_tab.py:902
+#, python-format
+msgid "An error occurred during completion: %s"
+msgstr ""
+
+#: basilisk/completion_handler.py:303 basilisk/gui/conversation_tab.py:904
+msgid "Completion Error"
+msgstr ""
+
+#: basilisk/decorators.py:35
+msgid "A task is already running. Please wait for it to complete."
+msgstr "Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
 
 #. Translators: Error title
 #. Translators: A title for the error message in account dialog
 #. Translators: An error message title
 #. Translators: A message box title.
 #. Translators: Search dialog error title
-#: basilisk/completion_handler.py:300 basilisk/decorators.py:36
-#: basilisk/gui/account_dialog.py:139 basilisk/gui/account_dialog.py:144
-#: basilisk/gui/account_dialog.py:149 basilisk/gui/account_dialog.py:684
-#: basilisk/gui/account_dialog.py:1071 basilisk/gui/account_dialog.py:1121
-#: basilisk/gui/conversation_tab.py:473 basilisk/gui/conversation_tab.py:534
-#: basilisk/gui/conversation_tab.py:555 basilisk/gui/conversation_tab.py:704
-#: basilisk/gui/conversation_tab.py:741 basilisk/gui/conversation_tab.py:766
-#: basilisk/gui/conversation_tab.py:892 basilisk/gui/main_frame.py:341
+#: basilisk/decorators.py:36 basilisk/gui/account_dialog.py:139
+#: basilisk/gui/account_dialog.py:144 basilisk/gui/account_dialog.py:149
+#: basilisk/gui/account_dialog.py:684 basilisk/gui/account_dialog.py:1071
+#: basilisk/gui/account_dialog.py:1121 basilisk/gui/conversation_tab.py:479
+#: basilisk/gui/conversation_tab.py:562 basilisk/gui/conversation_tab.py:711
+#: basilisk/gui/enhanced_error_dialog.py:53 basilisk/gui/main_frame.py:341
 #: basilisk/gui/main_frame.py:347 basilisk/gui/main_frame.py:506
 #: basilisk/gui/main_frame.py:554 basilisk/gui/main_frame.py:650
 #: basilisk/gui/main_frame.py:670 basilisk/gui/main_frame.py:795
 #: basilisk/gui/main_frame.py:847 basilisk/gui/main_frame.py:1039
 #: basilisk/gui/main_frame.py:1061 basilisk/gui/name_conversation_dialog.py:95
-#: basilisk/gui/ocr_handler.py:97 basilisk/gui/ocr_handler.py:146
-#: basilisk/gui/ocr_handler.py:274 basilisk/gui/ocr_handler.py:283
-#: basilisk/gui/ocr_handler.py:296 basilisk/gui/prompt_attachments_panel.py:366
+#: basilisk/gui/ocr_handler.py:281 basilisk/gui/ocr_handler.py:290
+#: basilisk/gui/ocr_handler.py:303 basilisk/gui/prompt_attachments_panel.py:366
 #: basilisk/gui/prompt_attachments_panel.py:378
 #: basilisk/gui/prompt_attachments_panel.py:423
 #: basilisk/gui/prompt_attachments_panel.py:443
@@ -55,10 +61,6 @@ msgstr "Під час завершення сталася помилка: "
 #: basilisk/gui/search_dialog.py:301 basilisk/main_app.py:191
 msgid "Error"
 msgstr "Помилка"
-
-#: basilisk/decorators.py:35
-msgid "A task is already running. Please wait for it to complete."
-msgstr "Завдання вже виконується. Будь ласка, зачекайте, поки воно завершиться."
 
 #. Translators: Error message
 #: basilisk/main_app.py:189
@@ -470,86 +472,101 @@ msgstr "Режим потоку:"
 msgid "System prompt:"
 msgstr "Системна підказка:"
 
-#: basilisk/gui/conversation_tab.py:124
+#: basilisk/gui/conversation_tab.py:125
 msgid "Untitled conversation"
 msgstr "Розмова без назви"
 
 #. Translators: This is a label for user prompt in the main window
-#: basilisk/gui/conversation_tab.py:203
+#: basilisk/gui/conversation_tab.py:204
 msgid "&Messages:"
 msgstr "&Повідомлення:"
 
 #. Translators: This is a label for submit button in the main window
-#: basilisk/gui/conversation_tab.py:237
+#: basilisk/gui/conversation_tab.py:238
 #: basilisk/gui/prompt_attachments_panel.py:197
 msgid "Submit"
 msgstr "Надіслати"
 
 #. Translators: This is a label for stop completion button in the main window
 #. Translators: This is a label for stop regeneration button
-#: basilisk/gui/conversation_tab.py:246 basilisk/gui/edit_block_dialog.py:220
+#: basilisk/gui/conversation_tab.py:247 basilisk/gui/edit_block_dialog.py:220
 msgid "Stop completio&n"
 msgstr "Зупинити &виконання"
 
 #. Translators: This is a label for record button in the main window
-#: basilisk/gui/conversation_tab.py:255 basilisk/gui/conversation_tab.py:566
+#: basilisk/gui/conversation_tab.py:258 basilisk/gui/conversation_tab.py:573
 msgid "Record"
 msgstr "Запис"
 
 #. Translators: This is a label for apply profile button in the main window
-#: basilisk/gui/conversation_tab.py:263
+#: basilisk/gui/conversation_tab.py:266
 msgid "Apply profile"
 msgstr "Вибрати профіль"
 
-#: basilisk/gui/conversation_tab.py:472 basilisk/gui/conversation_tab.py:554
+#: basilisk/gui/conversation_tab.py:478 basilisk/gui/conversation_tab.py:561
 msgid "The selected provider does not support speech-to-text"
 msgstr "Вибраний постачальник не підтримує перетворення мовлення в текст"
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/gui/conversation_tab.py:480
+#: basilisk/gui/conversation_tab.py:486
 msgid "Select an audio file to transcribe"
 msgstr "Виберіть аудіофайл для транскрибування"
 
-#: basilisk/gui/conversation_tab.py:482
+#: basilisk/gui/conversation_tab.py:488
 msgid "Audio files"
 msgstr "Аудіофайли"
 
-#: basilisk/gui/conversation_tab.py:495
+#: basilisk/gui/conversation_tab.py:501
 msgid "Recording..."
 msgstr "Запис..."
 
-#: basilisk/gui/conversation_tab.py:500
+#: basilisk/gui/conversation_tab.py:506
 msgid "Recording stopped"
 msgstr "Запис зупинено"
 
-#: basilisk/gui/conversation_tab.py:505
+#: basilisk/gui/conversation_tab.py:511
 msgid "Transcribing..."
 msgstr "Транскрибування..."
 
-#: basilisk/gui/conversation_tab.py:514 basilisk/gui/conversation_tab.py:531
+#: basilisk/gui/conversation_tab.py:520 basilisk/gui/conversation_tab.py:537
 #: basilisk/gui/main_frame.py:246
 msgid "Ready"
 msgstr "Готово"
 
-#: basilisk/gui/conversation_tab.py:533
-msgid "An error occurred during transcription: "
-msgstr "Під час транскрибування сталася помилка: "
+#: basilisk/gui/conversation_tab.py:540
+#, python-format
+msgid "An error occurred during transcription: %s"
+msgstr ""
 
-#: basilisk/gui/conversation_tab.py:559
+#: basilisk/gui/conversation_tab.py:541
+msgid "Transcription Error"
+msgstr ""
+
+#: basilisk/gui/conversation_tab.py:566
 msgid "Stop recording"
 msgstr "Зупинити запис"
 
-#: basilisk/gui/conversation_tab.py:702
+#: basilisk/gui/conversation_tab.py:709
 msgid "A completion is already in progress. Please wait until it finishes."
 msgstr "Завершення вже триває. Будь ласка, зачекайте, поки воно закінчиться."
 
-#: basilisk/gui/conversation_tab.py:740
-msgid "An error occurred during title generation:"
-msgstr "Під час створення назви сталася помилка:"
+#: basilisk/gui/conversation_tab.py:748
+#, python-format
+msgid "An error occurred during title generation: %s"
+msgstr ""
 
-#: basilisk/gui/conversation_tab.py:765
-msgid "An error occurred while saving the conversation: "
-msgstr "Під час збереження розмови сталася помилка: "
+#: basilisk/gui/conversation_tab.py:749
+msgid "Title Generation Error"
+msgstr ""
+
+#: basilisk/gui/conversation_tab.py:774
+#, python-format
+msgid "An error occurred while saving the conversation: %s"
+msgstr ""
+
+#: basilisk/gui/conversation_tab.py:776
+msgid "Save Error"
+msgstr ""
 
 #: basilisk/gui/edit_block_dialog.py:54
 msgid "Edit Message Block"
@@ -565,147 +582,184 @@ msgstr "&Відповідь помічника:"
 msgid "&Regenerate Response"
 msgstr "&Відновити відповідь"
 
-#: basilisk/gui/history_msg_text_ctrl.py:217
+#: basilisk/gui/enhanced_error_dialog.py:132
+msgid "This completion error contains a URL that might provide more information about the issue:"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:136
+msgid "This error message contains a URL that might provide more information:"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:153
+msgid "Open in Browser"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:162
+msgid "Copy Error"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:169
+msgid "OK"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:215
+msgid "Copied!"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:221
+msgid "Copy failed"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:230
+#, python-format
+msgid "Copy failed: %s"
+msgstr ""
+
+#: basilisk/gui/enhanced_error_dialog.py:266
+msgid "Open failed"
+msgstr ""
+
+#: basilisk/gui/history_msg_text_ctrl.py:246
 msgid "Read current message"
 msgstr "Прочитати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:223
+#: basilisk/gui/history_msg_text_ctrl.py:252
 msgid "Speak response"
 msgstr "Промовляти відповідь"
 
-#: basilisk/gui/history_msg_text_ctrl.py:229
+#: basilisk/gui/history_msg_text_ctrl.py:258
 msgid "Show as HTML (from Markdown)"
 msgstr "Показати як HTML (з Markdown)"
 
-#: basilisk/gui/history_msg_text_ctrl.py:234
+#: basilisk/gui/history_msg_text_ctrl.py:263
 msgid "Show citations"
 msgstr "Показати цитати"
 
-#: basilisk/gui/history_msg_text_ctrl.py:236
+#: basilisk/gui/history_msg_text_ctrl.py:265
 msgid "Copy current message"
 msgstr "Копіювати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:239
+#: basilisk/gui/history_msg_text_ctrl.py:268
 msgid "Select current message"
 msgstr "Вибрати поточне повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:245
+#: basilisk/gui/history_msg_text_ctrl.py:274
 msgid "Go to previous message"
 msgstr "Перейти до попереднього повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:251
+#: basilisk/gui/history_msg_text_ctrl.py:280
 msgid "Go to next message"
 msgstr "Перейти до наступного повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:254
+#: basilisk/gui/history_msg_text_ctrl.py:283
 msgid "Move to start of message"
 msgstr "Перейти на початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:260
+#: basilisk/gui/history_msg_text_ctrl.py:289
 msgid "Move to end of message"
 msgstr "Перейти в кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:266
+#: basilisk/gui/history_msg_text_ctrl.py:295
 msgid "Edit message block"
 msgstr "Редагувати блок повідомлень"
 
-#: basilisk/gui/history_msg_text_ctrl.py:269
+#: basilisk/gui/history_msg_text_ctrl.py:298
 msgid "Remove message block"
 msgstr "Видалити блок повідомлень"
 
-#: basilisk/gui/history_msg_text_ctrl.py:274
+#: basilisk/gui/history_msg_text_ctrl.py:303
 msgid "Find..."
 msgstr "Знайти..."
 
-#: basilisk/gui/history_msg_text_ctrl.py:275
+#: basilisk/gui/history_msg_text_ctrl.py:304
 msgid "Find Next"
 msgstr "Знайти далі"
 
-#: basilisk/gui/history_msg_text_ctrl.py:277
+#: basilisk/gui/history_msg_text_ctrl.py:306
 msgid "Find Previous"
 msgstr "Знайти попереднє"
 
-#: basilisk/gui/history_msg_text_ctrl.py:420
+#: basilisk/gui/history_msg_text_ctrl.py:449
 msgid "Message copied to clipboard"
 msgstr "Повідомлення скопійовано в буфер обміну"
 
-#: basilisk/gui/history_msg_text_ctrl.py:431
+#: basilisk/gui/history_msg_text_ctrl.py:460
 msgid "Start of message"
 msgstr "Початок повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:439
+#: basilisk/gui/history_msg_text_ctrl.py:468
 msgid "End of message"
 msgstr "Кінець повідомлення"
 
-#: basilisk/gui/history_msg_text_ctrl.py:481
+#: basilisk/gui/history_msg_text_ctrl.py:510
 #, python-format
 msgid "Response speaking %s"
 msgstr "Відповідь промовляється %s"
 
-#: basilisk/gui/history_msg_text_ctrl.py:482
+#: basilisk/gui/history_msg_text_ctrl.py:511
 msgid "enabled"
 msgstr "увімкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:482
+#: basilisk/gui/history_msg_text_ctrl.py:511
 msgid "disabled"
 msgstr "вимкнено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:546
+#: basilisk/gui/history_msg_text_ctrl.py:575
 msgid "Message block removed"
 msgstr "Повідомлення видалено"
 
-#: basilisk/gui/history_msg_text_ctrl.py:569
+#: basilisk/gui/history_msg_text_ctrl.py:598
 msgid "Message block updated"
 msgstr "Блок повідомлень оновлено"
 
 #. Translators: This is a citation format for character locations
-#: basilisk/gui/history_msg_text_ctrl.py:593
+#: basilisk/gui/history_msg_text_ctrl.py:622
 #, python-brace-format
 msgid "C.{start} .. {end}"
 msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
-#: basilisk/gui/history_msg_text_ctrl.py:600
+#: basilisk/gui/history_msg_text_ctrl.py:629
 #, python-brace-format
 msgid "P.{start} .. {end}"
 msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
-#: basilisk/gui/history_msg_text_ctrl.py:605
+#: basilisk/gui/history_msg_text_ctrl.py:634
 msgid "Unknown location"
 msgstr "Невідоме місце"
 
-#: basilisk/gui/history_msg_text_ctrl.py:610
+#: basilisk/gui/history_msg_text_ctrl.py:639
 #, python-brace-format
 msgid "{document_title} / {location_text}"
 msgstr "{document_title} / {location_text}"
 
-#: basilisk/gui/history_msg_text_ctrl.py:617
+#: basilisk/gui/history_msg_text_ctrl.py:646
 #, python-brace-format
 msgid "Document {document_index} / {location_text}"
 msgstr "Документ {document_index} / {location_text}"
 
 #. Translators: This is a citation format for a cited text
-#: basilisk/gui/history_msg_text_ctrl.py:625
+#: basilisk/gui/history_msg_text_ctrl.py:654
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
 msgstr "{location_text}: “{cited_text}”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
-#: basilisk/gui/history_msg_text_ctrl.py:640
+#: basilisk/gui/history_msg_text_ctrl.py:669
 #, python-format
 msgid "%d citations in the current message"
 msgstr "%d цитат в поточному повідомленні"
 
 #. Translators: This message is emitted when there are no citations for the
 #. current message.
-#: basilisk/gui/history_msg_text_ctrl.py:654
+#: basilisk/gui/history_msg_text_ctrl.py:683
 msgid "No citations for this message"
 msgstr "Цитати для цього повідомлення відсутні"
 
 #. Translators: This is a title for message citations dialog
-#: basilisk/gui/history_msg_text_ctrl.py:666
+#: basilisk/gui/history_msg_text_ctrl.py:695
 msgid "Message citations"
 msgstr "Цитати з повідомлення"
 
@@ -915,57 +969,61 @@ msgid "An error occurred while generating the name: %s"
 msgstr "Під час створення назви сталася помилка: %s"
 
 #. Translators: This is a label for perform OCR button in the conversation tab
-#: basilisk/gui/ocr_handler.py:64
+#: basilisk/gui/ocr_handler.py:65
 msgid "Perform OCR on Attachments"
 msgstr "Виконати розпізнавання на вкладеннях"
 
-#: basilisk/gui/ocr_handler.py:94
+#: basilisk/gui/ocr_handler.py:96
 #, python-format
 msgid "An error occurred while processing OCR results. Details: \n"
 "%s"
 msgstr "Під час обробки результатів розпізнавання сталася помилка. Деталі: \n"
 "%s"
 
-#: basilisk/gui/ocr_handler.py:156
+#: basilisk/gui/ocr_handler.py:99 basilisk/gui/ocr_handler.py:151
+msgid "OCR Error"
+msgstr ""
+
+#: basilisk/gui/ocr_handler.py:163
 msgid "OCR completed successfully. Text extracted to:"
 msgstr "Розпізнавання успішно завершено. Текст вилучено до:"
 
-#: basilisk/gui/ocr_handler.py:160
+#: basilisk/gui/ocr_handler.py:167
 msgid "Do you want to open the files?"
 msgstr "Ви хочете відкрити файли?"
 
-#: basilisk/gui/ocr_handler.py:163 basilisk/gui/ocr_handler.py:169
-#: basilisk/gui/ocr_handler.py:178
+#: basilisk/gui/ocr_handler.py:170 basilisk/gui/ocr_handler.py:176
+#: basilisk/gui/ocr_handler.py:185
 msgid "Result"
 msgstr "Результат"
 
-#: basilisk/gui/ocr_handler.py:177
+#: basilisk/gui/ocr_handler.py:184
 msgid "OCR completed, but no text was extracted."
 msgstr "Розпізнавання завершено, але текст не було вилучено."
 
 #. Translators: This message is displayed when the current provider does not
 #. support OCR.
-#: basilisk/gui/ocr_handler.py:273
+#: basilisk/gui/ocr_handler.py:280
 msgid "The selected provider does not support OCR."
 msgstr "Вибраний постачальник не підтримує розпізнавання."
 
 #. Translators: This message is displayed when there are no attachments to
 #. perform OCR on.
-#: basilisk/gui/ocr_handler.py:282
+#: basilisk/gui/ocr_handler.py:289
 msgid "No attachments to perform OCR on."
 msgstr "Немає вкладень для виконання розпізнавання."
 
 #. Translators: This message is displayed when the current provider does not
 #. have a client.
-#: basilisk/gui/ocr_handler.py:295
+#: basilisk/gui/ocr_handler.py:302
 msgid "The selected provider does not have a client."
 msgstr "Вибраний постачальник не має клієнта."
 
-#: basilisk/gui/ocr_handler.py:308
+#: basilisk/gui/ocr_handler.py:315
 msgid "Performing OCR..."
 msgstr "Виконується розпізнавання..."
 
-#: basilisk/gui/ocr_handler.py:309
+#: basilisk/gui/ocr_handler.py:316
 msgid "Performing OCR on attachments..."
 msgstr "Виконання розпізнавання вкладень..."
 
