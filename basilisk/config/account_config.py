@@ -430,8 +430,10 @@ class AccountManager(BasiliskBaseSettings):
 			index = next(
 				locate(
 					self.accounts,
-					lambda x: x.provider.name == provider_name
-					and x.source == AccountSource.ENV_VAR,
+					lambda x: (
+						x.provider.name == provider_name
+						and x.source == AccountSource.ENV_VAR
+					),
 				),
 				None,
 			)
