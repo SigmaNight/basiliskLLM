@@ -44,7 +44,7 @@ def _display_error_msg_macos(message: str):
 			],
 			check=True,
 		)
-	except (subprocess.CalledProcessError, FileNotFoundError):
+	except subprocess.CalledProcessError, FileNotFoundError:
 		# Fallback to logging
 		logger.error("ERROR: %s", message)
 
@@ -72,13 +72,13 @@ def _display_error_msg_linux(message: str):
 			],
 			check=True,
 		)
-	except (subprocess.CalledProcessError, FileNotFoundError):
+	except subprocess.CalledProcessError, FileNotFoundError:
 		try:
 			# Try to use kdialog (KDE)
 			subprocess.run(
 				["kdialog", "--error", message, "--title", APP_NAME], check=True
 			)
-		except (subprocess.CalledProcessError, FileNotFoundError):
+		except subprocess.CalledProcessError, FileNotFoundError:
 			# Fallback to logging
 			logger.error("ERROR: %s", message)
 

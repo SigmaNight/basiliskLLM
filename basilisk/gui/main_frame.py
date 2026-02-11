@@ -744,8 +744,9 @@ class MainFrame(wx.Frame):
 			item_index = next(
 				locate(
 					menu.GetMenuItems(),
-					lambda x: x.GetId()
-					== self.new_conversation_profile_item.GetId(),
+					lambda x: (
+						x.GetId() == self.new_conversation_profile_item.GetId()
+					),
 				)
 			)
 			menu.Remove(self.new_conversation_profile_item.GetId())

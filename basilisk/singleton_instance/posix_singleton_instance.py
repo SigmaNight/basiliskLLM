@@ -103,7 +103,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			self.register_release_on_exit()
 			return True
 
-		except (IOError, OSError):
+		except IOError, OSError:
 			# Lock is already held by another process or other I/O error
 			self._cleanup_failed_lock_attempt()
 			return False
@@ -123,7 +123,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 				pid_str = f.read().strip()
 				if pid_str:
 					return int(pid_str)
-		except (IOError, OSError, ValueError):
+		except IOError, OSError, ValueError:
 			pass
 		return None
 
