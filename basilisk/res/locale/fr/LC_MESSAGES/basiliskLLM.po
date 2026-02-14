@@ -2,14 +2,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-05 12:06+0000\n"
-"PO-Revision-Date: 2026-02-07 13:48\n"
+"POT-Creation-Date: 2026-02-11 19:33+0000\n"
+"PO-Revision-Date: 2026-02-14 13:48\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Crowdin-Project: basiliskllm\n"
 "X-Crowdin-Project-ID: 724543\n"
@@ -44,9 +44,9 @@ msgstr "Une tâche est en cours d’exécution. Veuillez attendre la fin de cett
 #: basilisk/gui/enhanced_error_dialog.py:53 basilisk/gui/main_frame.py:341
 #: basilisk/gui/main_frame.py:347 basilisk/gui/main_frame.py:506
 #: basilisk/gui/main_frame.py:554 basilisk/gui/main_frame.py:650
-#: basilisk/gui/main_frame.py:670 basilisk/gui/main_frame.py:795
-#: basilisk/gui/main_frame.py:847 basilisk/gui/main_frame.py:1039
-#: basilisk/gui/main_frame.py:1061 basilisk/gui/name_conversation_dialog.py:95
+#: basilisk/gui/main_frame.py:670 basilisk/gui/main_frame.py:796
+#: basilisk/gui/main_frame.py:848 basilisk/gui/main_frame.py:1040
+#: basilisk/gui/main_frame.py:1062 basilisk/gui/name_conversation_dialog.py:95
 #: basilisk/gui/ocr_handler.py:281 basilisk/gui/ocr_handler.py:290
 #: basilisk/gui/ocr_handler.py:303 basilisk/gui/prompt_attachments_panel.py:366
 #: basilisk/gui/prompt_attachments_panel.py:378
@@ -249,14 +249,17 @@ msgstr "URL de &base personalisée (default: {})"
 msgid "Please select a provider"
 msgstr "Veuillez sélectioner un fournisseur"
 
+#. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:711
 msgid "Please select an API key storage method"
 msgstr "Veuillez sélectionner une méthode de stockage de la clé API"
 
+#. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:717
 msgid "Please enter an API key. It is required for this provider"
 msgstr "Veuillez entrer une clé API. Cela est requis par le fournisseur"
 
+#. Translators: An error message in account dialog
 #: basilisk/gui/account_dialog.py:730
 msgid "Please enter a valid custom base URL"
 msgstr "Entrer une URL de base personalisée valide"
@@ -776,19 +779,19 @@ msgstr "Nouvelle conversation à partir d’un profil"
 
 #. Translators: A label for a menu item to open a conversation
 #. Translators: A title for the open conversation dialog
-#: basilisk/gui/main_frame.py:112 basilisk/gui/main_frame.py:1120
+#: basilisk/gui/main_frame.py:112 basilisk/gui/main_frame.py:1121
 msgid "Open conversation"
 msgstr "Ouvrir une conversation"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:120 basilisk/gui/main_frame.py:981
+#: basilisk/gui/main_frame.py:120 basilisk/gui/main_frame.py:982
 #: basilisk/gui/name_conversation_dialog.py:27
 msgid "Name conversation"
 msgstr "Nommer la conversation"
 
 #. Translators: A label for a menu item to save a conversation
 #. Translators: A title for the save conversation dialog
-#: basilisk/gui/main_frame.py:125 basilisk/gui/main_frame.py:1067
+#: basilisk/gui/main_frame.py:125 basilisk/gui/main_frame.py:1068
 msgid "Save conversation"
 msgstr "Sauvegarder une conversation"
 
@@ -798,7 +801,7 @@ msgid "Save conversation as"
 msgstr "Sauvegarder une conversation sous"
 
 #. Translators: A label for a menu item to close a conversation
-#: basilisk/gui/main_frame.py:139 basilisk/gui/main_frame.py:986
+#: basilisk/gui/main_frame.py:139 basilisk/gui/main_frame.py:987
 msgid "Close conversation"
 msgstr "Fermer la conversation"
 
@@ -829,7 +832,7 @@ msgstr "Gérer les &comptes"
 msgid "Install NVDA addon"
 msgstr "Installer le module complémentaire NVDA"
 
-#: basilisk/gui/main_frame.py:212 basilisk/gui/main_frame.py:834
+#: basilisk/gui/main_frame.py:212 basilisk/gui/main_frame.py:835
 msgid "Check updates"
 msgstr "Vérifier les mises à jour"
 
@@ -863,7 +866,7 @@ msgstr "Réduire dans la zone de notification"
 
 #: basilisk/gui/main_frame.py:341 basilisk/gui/main_frame.py:554
 #: basilisk/gui/main_frame.py:650 basilisk/gui/main_frame.py:670
-#: basilisk/gui/main_frame.py:1039 basilisk/gui/main_frame.py:1061
+#: basilisk/gui/main_frame.py:1040 basilisk/gui/main_frame.py:1062
 msgid "No conversation selected"
 msgstr "Aucune conversation sélectionnée"
 
@@ -895,58 +898,60 @@ msgstr "Réglages"
 msgid "Manage conversation profiles"
 msgstr "Gérer les profils de conversation"
 
-#: basilisk/gui/main_frame.py:794
+#: basilisk/gui/main_frame.py:795
 msgid "Failed to create NVDA addon"
 msgstr "Échec de la création de l’extension NVDA"
 
-#: basilisk/gui/main_frame.py:847
+#: basilisk/gui/main_frame.py:848
 msgid "Failed to open log file"
 msgstr "Échec de l’ouverture du fichier journal"
 
-#: basilisk/gui/main_frame.py:879
+#: basilisk/gui/main_frame.py:880
 msgid "New version available"
 msgstr "Une nouvelle version est disponible"
 
-#: basilisk/gui/main_frame.py:896 basilisk/gui/update_dialog.py:365
+#: basilisk/gui/main_frame.py:897 basilisk/gui/update_dialog.py:365
 msgid "Downloading update"
 msgstr "Téléchargement de la mise à jour"
 
 #. Translators: A label for a menu item to manage conversation profiles
-#: basilisk/gui/main_frame.py:912
+#: basilisk/gui/main_frame.py:913
 msgid "Manage conversation &profiles"
 msgstr "Gérer les &profils de conversation"
 
 #. Translators: A label for a menu item to name a conversation
-#: basilisk/gui/main_frame.py:948
+#: basilisk/gui/main_frame.py:949
 msgid "Manual name conversation"
 msgstr "Nommer manuellement une conversation"
 
 #. Translators: A label for a menu item to automatically name a conversation
-#: basilisk/gui/main_frame.py:959
+#: basilisk/gui/main_frame.py:960
 msgid "&Auto name conversation"
 msgstr "Nommer &automatiquement une conversation"
 
 #. Translators: A label for a menu item to apply a conversation profile to the
 #. current conversation
-#: basilisk/gui/main_frame.py:976
+#: basilisk/gui/main_frame.py:977
 msgid "Apply conversation profile"
 msgstr "Appliquer un profil de conversation"
 
-#: basilisk/gui/main_frame.py:1017
+#. translators: This message is displayed when no account is configured and the
+#. user tries to use the conversation tab.
+#: basilisk/gui/main_frame.py:1018
 msgid "Please add an account first. Do you want to add an account now?"
 msgstr "Veuillez d’abord ajouter un compte. Voulez-vous en ajouter un maintenant ?"
 
 #. translators: This is a title for the message box
-#: basilisk/gui/main_frame.py:1020
+#: basilisk/gui/main_frame.py:1021
 msgid "No account configured"
 msgstr "Aucun compte configuré"
 
-#: basilisk/gui/main_frame.py:1068 basilisk/gui/main_frame.py:1121
+#: basilisk/gui/main_frame.py:1069 basilisk/gui/main_frame.py:1122
 msgid "Basilisk conversation files"
 msgstr "Fichier de conversation basilisk"
 
 #. Translators: An error message when a conversation file cannot be opened
-#: basilisk/gui/main_frame.py:1097
+#: basilisk/gui/main_frame.py:1098
 #, python-format
 msgid "Failed to open conversation file: '%s', error: %s"
 msgstr "Échec d'overture fu fichier de conversation : '%s', erreur : %s"
@@ -1081,6 +1086,7 @@ msgstr "Sélection du message lors de la navigation précédente/suivante"
 msgid "Send message with Enter, insert newline with Shift+Enter"
 msgstr "Envoyer un message avec Entrée, insérer une nouvelle ligne avec Maj+Entrée"
 
+#. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:187
 msgid "Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
 msgstr "Activer &Accessible Output pour vocaliser et afficher en braille les actions et messages"
@@ -1098,14 +1104,17 @@ msgstr "Images"
 msgid "Resize images before uploading"
 msgstr "Redimentioner l’image avant l’envoi"
 
+#. Translators: A label in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:221
 msgid "Maximum &height (0 to resize proportionally to the width):"
 msgstr "&Hauteur maximale (0 to redimentionner porportionnellement)"
 
+#. Translators: A label in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:237
 msgid "Maximum &width (0 to resize proportionally to the height):"
 msgstr "&Largeur maximale (0 to redimentionner porportionnellement)"
 
+#. Translators: A label in the preferences dialog
 #: basilisk/gui/preferences_dialog.py:253
 msgid "&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be avoided):"
 msgstr "&Qualité des images JPEG (0 [mauvaise] à 95 [meilleure], une valeur au dessus de 95 doit-être éviter) :"
@@ -1256,6 +1265,8 @@ msgstr "%s : %s"
 msgid "Attachment details"
 msgstr "Détailles de la pièce jointe"
 
+#. Translators: This message is displayed when there are no supported
+#. attachment formats.
 #: basilisk/gui/prompt_attachments_panel.py:598
 msgid "This attachment format is not supported by the current provider. Source:"
 msgstr "Le format de la pièce jointe n'est pas supporté par le fournisseur sélectionné. Source :"
@@ -1440,19 +1451,23 @@ msgstr "Vous utilisez déjà la dernière version de basiliskLLM"
 msgid "Error checking for updates: %s"
 msgstr "Erreur durant la recherche des mises à jour : %s"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:99
 msgid "Our fastest model with near-frontier intelligenceBest model for complex agents and coding with highest intelligence"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:110
 msgid "Our fastest model with near-frontier intelligence"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:122
 #: basilisk/provider_engine/anthropic_engine.py:133
 msgid "Best model for complex agents and coding with highest intelligence"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:145
 #: basilisk/provider_engine/anthropic_engine.py:156
 msgid "Exceptional model for specialized complex tasks"
@@ -1470,6 +1485,7 @@ msgstr ""
 msgid "Our most capable model"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:206
 #: basilisk/provider_engine/anthropic_engine.py:217
 msgid "High-performance model with early extended thinking"
@@ -1490,6 +1506,7 @@ msgstr ""
 msgid "Powerful model for complex tasks"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:256
 msgid "Fastest and most compact model for near-instant responsiveness"
 msgstr "Modèle le plus rapide et le plus compact pour une réactivité quasi instantanée"
@@ -1499,38 +1516,47 @@ msgstr "Modèle le plus rapide et le plus compact pour une réactivité quasi in
 msgid "World's best edge model"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:105
 msgid "Powerful edge model with extremely high performance/price ratio"
 msgstr "Modèle de pointe puissant avec un rapport performance/prix extrêmement élevé"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:116
 msgid "Our top-tier reasoning model for high-complexity tasks with the latest version v2 released July 2024"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:127
 msgid "Our frontier-class multimodal model released November 2024"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:139
 msgid "Our latest enterprise-grade small model with the lastest version v2 released September 2024"
 msgstr "Notre dernier modèle de petite taille de niveau entreprise avec la version v2 la plus récente, sorti en septembre 2024"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:150
 msgid "A 24B text model, open source model that excels at using tools to explore codebases, editing multiple files and power software engineering agents."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:161
 msgid "Our cutting-edge language model for coding released May 2024"
 msgstr "Notre modèle de langage à la pointe de la technologie pour la programmation, publié en mai 2024"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:172
 msgid "A 12B model with image understanding capabilities in addition to text"
 msgstr "Un modèle de 12 milliards de paramètres avec des capacités de compréhension d'images en plus du texte"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:184
 msgid "A 12B model built with the partnership with Nvidia. It is easy to use and a drop-in replacement in any system using Mistral 7B that it supersedes"
 msgstr "Un modèle de 12 milliards de paramètres construit en partenariat avec Nvidia. Facile à utiliser, il peut remplacer sans problème le modèle Mistral 7B qu'il supplante"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:195
 msgid "A powerful and efficient model for languages from the Middle East and South Asia. "
 msgstr ""
@@ -1541,6 +1567,7 @@ msgstr ""
 msgid "Fastest, most cost-efficient version of GPT-5"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:124
 msgid "A faster, more cost-efficient version of GPT-5 for well-defined tasks"
 msgstr ""
@@ -1550,6 +1577,7 @@ msgstr ""
 msgid "GPT-5 model used in ChatGPT"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:156
 msgid "Version of GPT-5 that produces smarter and more precise responses"
 msgstr ""
@@ -1579,63 +1607,79 @@ msgstr ""
 msgid "Our most powerful reasoning model"
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:219
 #: basilisk/provider_engine/openai_engine.py:243
 msgid "Points to one of the most recent iterations of gpt-4o-mini model"
 msgstr "Pointe vers l'une des itérations les plus récentes du modèle gpt-4o-mini"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:231
 msgid "Dynamic model continuously updated to the current version of GPT-4o in ChatGPT"
 msgstr "Modèle dynamique mis à jour en continu avec la version actuelle de GPT-4 dans ChatGPT"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:255
 msgid "Our most recent small reasoning model, providing high intelligence at the same cost and latency targets of o1-mini. o3-mini also supports key developer features, like Structured Outputs, function calling, Batch API, and more. Like other models in the o-series, it is designed to excel at science, math, and coding tasks."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:268
 msgid "Points to the most recent snapshot of the o1 model"
 msgstr "Pointe vers l'instantané le plus récent du modèle o1"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:281
 msgid "The latest GPT-4 Turbo model with vision capabilities"
 msgstr "Le dernier modèle GPT-4 Turbo avec des capacités de vision"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:293
 msgid "Points to one of the most recent iterations of gpt-3.5 model"
 msgstr "Pointe vers l'une des itérations les plus récentes du modèle gpt-3.5"
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:47
 msgid "The most intelligent model from xAI, featuring native tool use, real-time search integration, and a context window of 256,000 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:58
 msgid "The most powerful version of Grok 4, utilizing parallel test-time compute for multiple hypotheses, setting new standards in performance and reliability."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:69
 msgid "A flagship model from xAI, offering advanced reasoning and a context window of 131,072 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:79
 msgid "A compact version of Grok 3, optimized for efficiency with a context window of 131,072 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:89
 msgid "A high-speed variant of Grok 3, designed for rapid text generation with a context window of 131,072 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:99
 msgid "A fast and compact version of Grok 3, balancing speed and efficiency with a context window of 131,072 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:109
 msgid "Grok 2 model (Dec 2024), offering robust text generation capabilities with a context window of 131,072 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:119
 msgid "Grok 2 vision model (Dec 2024), supporting image and text processing with a context window of 32,768 tokens."
 msgstr ""
 
+#. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr ""
+
