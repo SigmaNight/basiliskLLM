@@ -87,6 +87,9 @@ class SoundManager:
 
 		Returns:
 			Tuple of (audio_data, samplerate)
+
+		Raises:
+			ValueError: for incompatible sample width
 		"""
 		with wave.open(str(file_path), "rb") as wav:
 			channels = wav.getnchannels()
@@ -123,7 +126,14 @@ class SoundManager:
 
 		return data, samplerate
 
-	def _stream_callback(self, outdata, frames, time_info, status):
+	def _stream_callback(
+		self,
+		outdata: np.ndarray,
+		frames: int,
+		time_info: dict,
+		status: sd.CallbackFlags,
+	) -> None:
+		+"""Sounddevice output stream callback for playback."""
 		if status:
 			log.warning("Audio stream status: %s", status)
 		if self._stop_event.is_set() or self._current_data is None:
