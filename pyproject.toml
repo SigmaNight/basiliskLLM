@@ -10,7 +10,7 @@ license = "GPL-2.0-only"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
-    "anthropic>=0.72.0,<0.79",
+    "anthropic>=0.72.0,<0.80",
     "babel>=2.17,<2.19",
     "fsspec>=2025.9.0,<2026.3",
     "google-genai>=1.47.0,<1.64",
