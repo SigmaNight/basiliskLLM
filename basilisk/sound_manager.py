@@ -12,6 +12,7 @@ Playback is implemented with sounddevice.
 import logging
 import threading
 import time
+import wave
 from pathlib import Path
 
 import numpy as np
@@ -87,8 +88,6 @@ class SoundManager:
 		Returns:
 			Tuple of (audio_data, samplerate)
 		"""
-		import wave
-
 		with wave.open(str(file_path), "rb") as wav:
 			channels = wav.getnchannels()
 			samplerate = wav.getframerate()
