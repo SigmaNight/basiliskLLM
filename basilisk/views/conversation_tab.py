@@ -26,7 +26,6 @@ from upath import UPath
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
-	PROMPT_TITLE,
 	AttachmentFile,
 	Conversation,
 	ImageFile,
@@ -37,6 +36,7 @@ from basilisk.conversation import (
 )
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
+from basilisk.services.conversation_service import ConversationService
 from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
@@ -79,6 +79,24 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if cls._conv_db is None:
 			cls._conv_db = wx.GetApp().conv_db
 		return cls._conv_db
+
+	@property
+	def db_conv_id(self) -> Optional[int]:
+		"""Database conversation ID, proxied from service."""
+		return self.service.db_conv_id
+
+	@db_conv_id.setter
+	def db_conv_id(self, value: Optional[int]):
+		self.service.db_conv_id = value
+
+	@property
+	def private(self) -> bool:
+		"""Private mode flag, proxied from service."""
+		return self.service.private
+
+	@private.setter
+	def private(self, value: bool):
+		self.service.private = value
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
@@ -167,8 +185,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.recording_thread: Optional[RecordingThread] = None
-		self.db_conv_id: Optional[int] = None
-		self.private: bool = False
+		self.service = ConversationService(conv_db_getter=self._get_conv_db)
 
 		# Initialize variables for error recovery
 		self._stored_prompt_text: Optional[str] = None
@@ -717,12 +734,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.completion_handler.stop_completion()
 
 	def generate_conversation_title(self):
-		"""Generate a title for the conversation tab by using the AI model to analyze the conversation content.
-
-		This method attempts to create a concise title by sending a predefined title generation prompt to the current AI model. It handles the title generation process, including error management and sound feedback.
+		"""Generate a title for the conversation using the AI model.
 
 		Returns:
-			A generated conversation title if successful, or None if title generation fails.
+			A generated conversation title if successful, or None on failure.
 		"""
 		if self.completion_handler.is_running():
 			wx.MessageBox(
@@ -738,48 +753,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		model = self.current_model
 		if not model:
 			return
-		play_sound("progress", loop=True)
-		try:
-			new_block = MessageBlock(
-				request=Message(
-					role=MessageRoleEnum.USER, content=PROMPT_TITLE
-				),
-				provider_id=self.current_account.provider.id,
-				model_id=model.id,
-				temperature=self.temperature_spinner.GetValue(),
-				top_p=self.top_p_spinner.GetValue(),
-				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-				stream=self.stream_mode.GetValue(),
-			)
-			engine = self.current_engine
-			completion_kw = {
-				"system_message": None,
-				"conversation": self.conversation,
-				"new_block": new_block,
-				"stream": False,
-			}
-			response = engine.completion(**completion_kw)
-			new_block = engine.completion_response_without_stream(
-				response=response, **completion_kw
-			)
-			return new_block.response.content
-		except Exception as e:
+		title = self.service.generate_title(
+			engine=self.current_engine,
+			conversation=self.conversation,
+			provider_id=self.current_account.provider.id,
+			model_id=model.id,
+			temperature=self.temperature_spinner.GetValue(),
+			top_p=self.top_p_spinner.GetValue(),
+			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
+			stream=self.stream_mode.GetValue(),
+		)
+		if title is None and self.conversation.messages:
 			show_enhanced_error_dialog(
 				parent=self,
-				message=_("An error occurred during title generation: %s") % e,
+				message=_("An error occurred during title generation"),
 				title=_("Title Generation Error"),
 				is_completion_error=True,
 			)
-			return
-		finally:
-			stop_sound()
+		return title
 
 	def save_conversation(self, file_path: str) -> bool:
 		"""Save the current conversation to a specified file path.
-
-		This method saves the current conversation to a file in JSON format.
-		If a draft is present in the prompt, it is temporarily appended as the
-		last block before saving, then removed.
 
 		Args:
 			file_path: The target file path where the conversation will be saved.
@@ -787,25 +781,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			True if the conversation was successfully saved, False otherwise.
 		"""
-		log.debug("Saving conversation to %s", file_path)
 		draft_block = self._build_draft_block()
-		if draft_block is not None:
-			self.conversation.messages.append(draft_block)
-		try:
-			self.conversation.save(file_path)
-			return True
-		except Exception as e:
+		success, error = self.service.save_conversation(
+			self.conversation, file_path, draft_block
+		)
+		if not success and error is not None:
 			show_enhanced_error_dialog(
 				parent=self,
 				message=_("An error occurred while saving the conversation: %s")
-				% e,
+				% error,
 				title=_("Save Error"),
 				is_completion_error=False,
 			)
-			return False
-		finally:
-			if draft_block is not None:
-				self.conversation.messages.pop()
+		return success
 
 	def remove_message_block(self, message_block: MessageBlock):
 		"""Remove a message block from the conversation.
@@ -942,29 +930,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			new_block: The newly completed message block to save.
 		"""
-		if not config.conf().conversation.auto_save_to_db:
-			return
-		if self.private:
-			return
-		try:
-			if self.db_conv_id is None:
-				self.db_conv_id = self._get_conv_db().save_conversation(
-					self.conversation
-				)
-			else:
-				block_index = self.conversation.messages.index(new_block)
-				system_msg = None
-				if new_block.system_index is not None:
-					system_msg = self.conversation.systems[
-						new_block.system_index
-					]
-				self._get_conv_db().save_message_block(
-					self.db_conv_id, block_index, new_block, system_msg
-				)
-		except Exception:
-			log.error(
-				"Failed to auto-save conversation to database", exc_info=True
-			)
+		self.service.auto_save_to_db(self.conversation, new_block)
 
 	def update_db_title(self, title: str | None):
 		"""Update the conversation title in the database.
@@ -972,16 +938,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			title: The new title for the conversation.
 		"""
-		if self.db_conv_id is None:
-			return
-		try:
-			self._get_conv_db().update_conversation_title(
-				self.db_conv_id, title
-			)
-		except Exception:
-			log.error(
-				"Failed to update conversation title in database", exc_info=True
-			)
+		self.service.update_db_title(title)
 
 	def set_private(self, private: bool):
 		"""Set the private flag. If enabling, delete conversation from DB.
@@ -989,16 +946,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			private: Whether the conversation should be private.
 		"""
-		self.private = private
-		if private and self.db_conv_id is not None:
+		if self.service.set_private(private):
 			self._draft_timer.Stop()
-			try:
-				self._get_conv_db().delete_conversation(self.db_conv_id)
-			except Exception:
-				log.error(
-					"Failed to delete conversation from DB", exc_info=True
-				)
-			self.db_conv_id = None
 
 	def _on_prompt_text_changed(self, event):
 		"""Handle prompt text changes for draft auto-save debouncing."""
@@ -1059,29 +1008,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _save_draft_to_db(self):
 		"""Save the current draft to the database."""
-		prompt_text = self.prompt_panel.prompt_text
-		attachments = self.prompt_panel.attachment_files
-		if not prompt_text and not attachments:
-			try:
-				self._get_conv_db().delete_draft_block(
-					self.db_conv_id, len(self.conversation.messages)
-				)
-			except Exception:
-				log.error("Failed to delete draft", exc_info=True)
-			return
-		try:
-			draft_block = self._build_draft_block()
-			if draft_block is None:
-				return
-			system_msg = self.get_system_message()
-			self._get_conv_db().save_draft_block(
-				self.db_conv_id,
-				len(self.conversation.messages),
-				draft_block,
-				system_msg,
-			)
-		except Exception:
-			log.error("Failed to save draft", exc_info=True)
+		draft_block = self._build_draft_block()
+		system_msg = self.get_system_message()
+		self.service.save_draft_to_db(
+			self.conversation, draft_block, system_msg
+		)
 
 	def _restore_draft_block(self, draft_block: MessageBlock):
 		"""Restore a draft block's content and settings to UI controls.
