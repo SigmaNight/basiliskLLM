@@ -26,6 +26,7 @@ class ConversationHistoryDialog(wx.Dialog):
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 			size=(600, 400),
 		)
+		self.conv_db = wx.GetApp().conv_db
 		self.selected_conv_id: int | None = None
 		self._search_timer = wx.Timer(self)
 		self._conversations: list[dict] = []
@@ -176,9 +177,7 @@ class ConversationHistoryDialog(wx.Dialog):
 			return
 
 		try:
-			from basilisk.conversation.database import get_db
-
-			get_db().delete_conversation(conv["id"])
+			self.conv_db.delete_conversation(conv["id"])
 			self._refresh_list()
 		except Exception:
 			log.error("Failed to delete conversation", exc_info=True)
@@ -195,10 +194,8 @@ class ConversationHistoryDialog(wx.Dialog):
 		self._conversations = []
 
 		try:
-			from basilisk.conversation.database import get_db
-
 			search = self.search_ctrl.GetValue().strip() or None
-			self._conversations = get_db().list_conversations(
+			self._conversations = self.conv_db.list_conversations(
 				search=search, limit=200
 			)
 		except Exception:

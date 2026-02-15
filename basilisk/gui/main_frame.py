@@ -1191,7 +1191,7 @@ class MainFrame(wx.Frame):
 		if file_dialog.ShowModal() == wx.ID_OK:
 			file_path = file_dialog.GetPath()
 			self.open_conversation(file_path)
-			file_dialog.Destroy()
+		file_dialog.Destroy()
 
 	def on_conversation_history(self, event: wx.Event | None):
 		"""Open the conversation history dialog to browse saved conversations.

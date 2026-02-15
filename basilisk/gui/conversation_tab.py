@@ -72,6 +72,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachment_files: List of attachment files
 	"""
 
+	conv_db = wx.GetApp().conv_db
+
 	@staticmethod
 	def conv_storage_path() -> UPath:
 		"""Generate a unique storage path for a conversation based on the current timestamp.
@@ -939,11 +941,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if self.private:
 			return
 		try:
-			from basilisk.conversation.database import get_db
-
-			db = get_db()
 			if self.db_conv_id is None:
-				self.db_conv_id = db.save_conversation(self.conversation)
+				self.db_conv_id = self.conv_db.save_conversation(
+					self.conversation
+				)
 			else:
 				block_index = self.conversation.messages.index(new_block)
 				system_msg = None
@@ -951,7 +952,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 					system_msg = self.conversation.systems[
 						new_block.system_index
 					]
-				db.save_message_block(
+				self.conv_db.save_message_block(
 					self.db_conv_id, block_index, new_block, system_msg
 				)
 		except Exception:
@@ -968,9 +969,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if self.db_conv_id is None:
 			return
 		try:
-			from basilisk.conversation.database import get_db
-
-			get_db().update_conversation_title(self.db_conv_id, title)
+			self.conv_db.update_conversation_title(self.db_conv_id, title)
 		except Exception:
 			log.error(
 				"Failed to update conversation title in database", exc_info=True
@@ -985,9 +984,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.private = private
 		if private and self.db_conv_id is not None:
 			try:
-				from basilisk.conversation.database import get_db
-
-				get_db().delete_conversation(self.db_conv_id)
+				self.conv_db.delete_conversation(self.db_conv_id)
 			except Exception:
 				log.error(
 					"Failed to delete conversation from DB", exc_info=True
@@ -1057,22 +1054,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachments = self.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			try:
-				from basilisk.conversation.database import get_db
-
-				get_db().delete_draft_block(
+				self.conv_db.delete_draft_block(
 					self.db_conv_id, len(self.conversation.messages)
 				)
 			except Exception:
 				log.error("Failed to delete draft", exc_info=True)
 			return
 		try:
-			from basilisk.conversation.database import get_db
-
 			draft_block = self._build_draft_block()
 			if draft_block is None:
 				return
 			system_msg = self.get_system_message()
-			get_db().save_draft_block(
+			self.conv_db.save_draft_block(
 				self.db_conv_id,
 				len(self.conversation.messages),
 				draft_block,
@@ -1145,10 +1138,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			A new ConversationTab with the loaded conversation.
 		"""
-		from basilisk.conversation.database import get_db
-
-		db = get_db()
-		conversation = db.load_conversation(conv_id)
+		conversation = cls.conv_db.load_conversation(conv_id)
 		title = conversation.title or default_title
 		storage_path = cls.conv_storage_path()
 
