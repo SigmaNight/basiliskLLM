@@ -146,7 +146,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "keyring", specifier = ">=25.7.0,<25.8" },
     { name = "markdown2", specifier = ">=2.5.4,<2.6" },
-    { name = "mistralai", specifier = ">=1.10.1,<1.12.1" },
+    { name = "mistralai", specifier = ">=1.10.1,<1.12.3" },
     { name = "more-itertools", specifier = ">=10.8.0,<10.8.1" },
     { name = "numpy", specifier = ">=2.4.0,<2.5" },
     { name = "ollama", specifier = ">=0.6.1,<0.7" },
@@ -810,7 +810,7 @@ wheels = [
 
 [[package]]
 name = "mistralai"
-version = "1.12.0"
+version = "1.12.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
@@ -819,15 +819,14 @@ dependencies = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
-    { name = "opentelemetry-semantic-conventions" },
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pyyaml" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/35/7c/4c2404f49a9b0a3dcf7ce9e05b4749cf3d53f203e5724b430fa07bfebb48/mistralai-1.12.0.tar.gz", hash = "sha256:38149a598eab7ed4b876c92e6e1c89d31fe01935bbf19314549fd32b21a1135f", size = 242013, upload-time = "2026-02-04T14:50:04.166Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/87/f3c4451c51462a00b09f65c5064a0baa91e4c20837dda9d9cd5e5a53d2be/mistralai-1.12.2.tar.gz", hash = "sha256:2ef7c584052e0a62ec7fefdb9a49f58f4a68c78b4f8694f67d1f2b1153c6fd39", size = 242479, upload-time = "2026-02-13T10:05:46.764Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/c5/f188efddb2b6debf73f2b2fea70eb119d1935ee33a92947d0756e22476ba/mistralai-1.12.0-py3-none-any.whl", hash = "sha256:a5873d456b7920782f716d60593d4db32c9510b13fc98908081b9f36427e0e5a", size = 500154, upload-time = "2026-02-04T14:50:05.628Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/75/e19d300c515fece9b3e469d4f7ad00e4092ba688f0afb4aea73be677920a/mistralai-1.12.2-py3-none-any.whl", hash = "sha256:d5b2aea764d2e8065f166c1e10dccd3d9063ba1d8f57a1ece292b1a39b2c9099", size = 500576, upload-time = "2026-02-13T10:05:45.611Z" },
 ]
 
 [[package]]
