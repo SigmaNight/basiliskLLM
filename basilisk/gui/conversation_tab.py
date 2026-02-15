@@ -152,6 +152,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.recording_thread: Optional[RecordingThread] = None
+		self.db_conv_id: Optional[int] = None
 
 		# Initialize variables for error recovery
 		self._stored_prompt_text: Optional[str] = None
@@ -853,6 +854,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.messages.a_output.handle_stream_buffer()
 		self.messages.update_last_segment_length()
+		self._auto_save_to_db(new_block)
 
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
@@ -867,6 +869,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages.display_new_block(new_block)
 		if self.messages.should_speak_response:
 			self.messages.a_output.handle(new_block.response.content)
+		self._auto_save_to_db(new_block)
 
 	def _store_prompt_content(self):
 		"""Store current prompt content and attachments for error recovery."""
@@ -904,3 +907,76 @@ class ConversationTab(wx.Panel, BaseConversation):
 			title=_("Completion Error"),
 			is_completion_error=True,
 		)
+
+	def _auto_save_to_db(self, new_block: MessageBlock):
+		"""Auto-save the conversation or new block to the database.
+
+		Args:
+			new_block: The newly completed message block to save.
+		"""
+		try:
+			from basilisk.conversation.database import get_db
+
+			db = get_db()
+			if self.db_conv_id is None:
+				self.db_conv_id = db.save_conversation(self.conversation)
+			else:
+				block_index = self.conversation.messages.index(new_block)
+				system_msg = None
+				if new_block.system_index is not None:
+					system_msg = self.conversation.systems[
+						new_block.system_index
+					]
+				db.save_message_block(
+					self.db_conv_id, block_index, new_block, system_msg
+				)
+		except Exception:
+			log.error(
+				"Failed to auto-save conversation to database", exc_info=True
+			)
+
+	def update_db_title(self, title: str | None):
+		"""Update the conversation title in the database.
+
+		Args:
+			title: The new title for the conversation.
+		"""
+		if self.db_conv_id is None:
+			return
+		try:
+			from basilisk.conversation.database import get_db
+
+			get_db().update_conversation_title(self.db_conv_id, title)
+		except Exception:
+			log.error(
+				"Failed to update conversation title in database", exc_info=True
+			)
+
+	@classmethod
+	def open_from_db(
+		cls, parent: wx.Window, conv_id: int, default_title: str
+	) -> ConversationTab:
+		"""Open a conversation from the database.
+
+		Args:
+			parent: The parent window for the conversation tab.
+			conv_id: The database conversation ID.
+			default_title: A fallback title if the conversation has no title.
+
+		Returns:
+			A new ConversationTab with the loaded conversation.
+		"""
+		from basilisk.conversation.database import get_db
+
+		db = get_db()
+		conversation = db.load_conversation(conv_id)
+		title = conversation.title or default_title
+		storage_path = cls.conv_storage_path()
+		tab = cls(
+			parent,
+			conversation=conversation,
+			title=title,
+			conv_storage_path=storage_path,
+		)
+		tab.db_conv_id = conv_id
+		return tab

@@ -18,6 +18,7 @@ import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
+from basilisk.conversation.database import get_db
 from basilisk.ipc import BasiliskIpc, FocusSignal, OpenBskcSignal
 from basilisk.localization import init_translation
 from basilisk.logger import (
@@ -72,6 +73,8 @@ class MainApp(wx.App):
 		log.info("translation initialized")
 		initialize_sound_manager()
 		log.info("sound manager initialized")
+		get_db()
+		log.info("conversation database initialized")
 		self.init_main_frame()
 		log.info("main frame initialized")
 		self.init_system_cert_store()
@@ -163,6 +166,10 @@ class MainApp(wx.App):
 			log.debug("Stopping IPC receiver")
 			self.ipc.stop_receiver()
 			log.info("IPC receiver stopped")
+		from basilisk.conversation.database import close_db
+
+		close_db()
+		log.debug("conversation database closed")
 		log.info("Application exited")
 		return 0
 

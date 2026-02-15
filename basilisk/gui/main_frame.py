@@ -114,6 +114,12 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_open_conversation, open_conversation_item
 		)
+		history_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to browse conversation history
+			_("Conversation &history") + "...\tCtrl+H",
+		)
+		self.Bind(wx.EVT_MENU, self.on_conversation_history, history_item)
 		conversation_menu.AppendSubMenu(
 			self.build_name_conversation_menu(),
 			# Translators: A label for a menu item to name a conversation
@@ -566,6 +572,7 @@ class MainFrame(wx.Frame):
 			return
 
 		current_tab.conversation.title = dialog.get_name()
+		current_tab.update_db_title(dialog.get_name())
 		self.refresh_tab_title(True)
 		dialog.Destroy()
 
@@ -1126,3 +1133,33 @@ class MainFrame(wx.Frame):
 			file_path = file_dialog.GetPath()
 			self.open_conversation(file_path)
 			file_dialog.Destroy()
+
+	def on_conversation_history(self, event: wx.Event | None):
+		"""Open the conversation history dialog to browse saved conversations.
+
+		Args:
+			event: The event that triggered the method.
+		"""
+		from .conversation_history_dialog import ConversationHistoryDialog
+
+		dlg = ConversationHistoryDialog(self)
+		if dlg.ShowModal() == wx.ID_OK and dlg.selected_conv_id is not None:
+			try:
+				tab = ConversationTab.open_from_db(
+					self.notebook,
+					dlg.selected_conv_id,
+					self.get_default_conv_title(),
+				)
+				self.add_conversation_tab(tab)
+			except Exception as e:
+				log.error(
+					"Failed to open conversation from database: %s",
+					e,
+					exc_info=True,
+				)
+				wx.MessageBox(
+					_("Failed to open conversation: %s") % str(e),
+					_("Error"),
+					wx.OK | wx.ICON_ERROR,
+				)
+		dlg.Destroy()
