@@ -144,7 +144,6 @@ class DBMessage(Base):
 	__table_args__ = (
 		UniqueConstraint("message_block_id", "role"),
 		Index("ix_messages_block", "message_block_id"),
-		Index("ix_messages_content", "content"),
 	)
 
 

@@ -179,27 +179,11 @@ class ConversationDatabase:
 		if block.system_index is not None and block.system_index in csp_map:
 			csp_id = csp_map[block.system_index].id
 
-		db_block = DBMessageBlock(
-			conversation_id=conv_id,
-			position=position,
-			conversation_system_prompt_id=csp_id,
-			model_provider=block.model.provider_id,
-			model_id=block.model.model_id,
-			temperature=block.temperature,
-			max_tokens=block.max_tokens,
-			top_p=block.top_p,
-			stream=block.stream,
-			created_at=block.created_at,
-			updated_at=block.updated_at,
+		db_block = self._create_db_block(
+			session, conv_id, position, block, csp_id
 		)
-		session.add(db_block)
-		session.flush()
-		block.db_id = db_block.id
 
-		# Save request message
 		self._save_message(session, db_block.id, "user", block.request)
-
-		# Save response message if present
 		if block.response:
 			self._save_message(
 				session, db_block.id, "assistant", block.response
@@ -305,6 +289,76 @@ class ConversationDatabase:
 		)
 		session.add(db_ma)
 
+	def _delete_block_at(
+		self, session: Session, conv_id: int, block_index: int
+	):
+		"""Delete any existing block at the given position."""
+		existing = session.execute(
+			select(DBMessageBlock).where(
+				DBMessageBlock.conversation_id == conv_id,
+				DBMessageBlock.position == block_index,
+			)
+		).scalar_one_or_none()
+		if existing is not None:
+			session.delete(existing)
+			session.flush()
+
+	def _resolve_csp_id(
+		self,
+		session: Session,
+		conv_id: int,
+		block: MessageBlock,
+		system_message: SystemMessage | None,
+	) -> int | None:
+		"""Resolve the conversation-system-prompt link ID for a block."""
+		if system_message is None or block.system_index is None:
+			return None
+
+		sp_id = self._get_or_create_system_prompt(session, system_message)
+
+		db_csp = session.execute(
+			select(DBConversationSystemPrompt).where(
+				DBConversationSystemPrompt.conversation_id == conv_id,
+				DBConversationSystemPrompt.position == block.system_index,
+			)
+		).scalar_one_or_none()
+		if db_csp is None:
+			db_csp = DBConversationSystemPrompt(
+				conversation_id=conv_id,
+				system_prompt_id=sp_id,
+				position=block.system_index,
+			)
+			session.add(db_csp)
+			session.flush()
+		return db_csp.id
+
+	def _create_db_block(
+		self,
+		session: Session,
+		conv_id: int,
+		block_index: int,
+		block: MessageBlock,
+		csp_id: int | None,
+	) -> DBMessageBlock:
+		"""Create and flush a DBMessageBlock, updating block.db_id."""
+		db_block = DBMessageBlock(
+			conversation_id=conv_id,
+			position=block_index,
+			conversation_system_prompt_id=csp_id,
+			model_provider=block.model.provider_id,
+			model_id=block.model.model_id,
+			temperature=block.temperature,
+			max_tokens=block.max_tokens,
+			top_p=block.top_p,
+			stream=block.stream,
+			created_at=block.created_at,
+			updated_at=block.updated_at,
+		)
+		session.add(db_block)
+		session.flush()
+		block.db_id = db_block.id
+		return db_block
+
 	def save_message_block(
 		self,
 		conv_id: int,
@@ -325,61 +379,13 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			with session.begin():
-				# Delete any existing block at this position (e.g. draft)
-				existing = session.execute(
-					select(DBMessageBlock).where(
-						DBMessageBlock.conversation_id == conv_id,
-						DBMessageBlock.position == block_index,
-					)
-				).scalar_one_or_none()
-				if existing is not None:
-					session.delete(existing)
-					session.flush()
-
-				csp_id = None
-				if (
-					system_message is not None
-					and block.system_index is not None
-				):
-					sp_id = self._get_or_create_system_prompt(
-						session, system_message
-					)
-
-					# Check if CSP link exists for this conversation
-					db_csp = session.execute(
-						select(DBConversationSystemPrompt).where(
-							DBConversationSystemPrompt.conversation_id
-							== conv_id,
-							DBConversationSystemPrompt.position
-							== block.system_index,
-						)
-					).scalar_one_or_none()
-					if db_csp is None:
-						db_csp = DBConversationSystemPrompt(
-							conversation_id=conv_id,
-							system_prompt_id=sp_id,
-							position=block.system_index,
-						)
-						session.add(db_csp)
-						session.flush()
-					csp_id = db_csp.id
-
-				db_block = DBMessageBlock(
-					conversation_id=conv_id,
-					position=block_index,
-					conversation_system_prompt_id=csp_id,
-					model_provider=block.model.provider_id,
-					model_id=block.model.model_id,
-					temperature=block.temperature,
-					max_tokens=block.max_tokens,
-					top_p=block.top_p,
-					stream=block.stream,
-					created_at=block.created_at,
-					updated_at=block.updated_at,
+				self._delete_block_at(session, conv_id, block_index)
+				csp_id = self._resolve_csp_id(
+					session, conv_id, block, system_message
 				)
-				session.add(db_block)
-				session.flush()
-				block.db_id = db_block.id
+				db_block = self._create_db_block(
+					session, conv_id, block_index, block, csp_id
+				)
 
 				self._save_message(session, db_block.id, "user", block.request)
 				if block.response:
@@ -416,62 +422,14 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			with session.begin():
-				# Delete any existing block at this position
-				existing = session.execute(
-					select(DBMessageBlock).where(
-						DBMessageBlock.conversation_id == conv_id,
-						DBMessageBlock.position == block_index,
-					)
-				).scalar_one_or_none()
-				if existing is not None:
-					session.delete(existing)
-					session.flush()
-
-				csp_id = None
-				if (
-					system_message is not None
-					and block.system_index is not None
-				):
-					sp_id = self._get_or_create_system_prompt(
-						session, system_message
-					)
-					db_csp = session.execute(
-						select(DBConversationSystemPrompt).where(
-							DBConversationSystemPrompt.conversation_id
-							== conv_id,
-							DBConversationSystemPrompt.position
-							== block.system_index,
-						)
-					).scalar_one_or_none()
-					if db_csp is None:
-						db_csp = DBConversationSystemPrompt(
-							conversation_id=conv_id,
-							system_prompt_id=sp_id,
-							position=block.system_index,
-						)
-						session.add(db_csp)
-						session.flush()
-					csp_id = db_csp.id
-
-				db_block = DBMessageBlock(
-					conversation_id=conv_id,
-					position=block_index,
-					conversation_system_prompt_id=csp_id,
-					model_provider=block.model.provider_id,
-					model_id=block.model.model_id,
-					temperature=block.temperature,
-					max_tokens=block.max_tokens,
-					top_p=block.top_p,
-					stream=block.stream,
-					created_at=block.created_at,
-					updated_at=block.updated_at,
+				self._delete_block_at(session, conv_id, block_index)
+				csp_id = self._resolve_csp_id(
+					session, conv_id, block, system_message
 				)
-				session.add(db_block)
-				session.flush()
-				block.db_id = db_block.id
-
+				db_block = self._create_db_block(
+					session, conv_id, block_index, block, csp_id
+				)
 				self._save_message(session, db_block.id, "user", block.request)
-				# Draft blocks have no response
 
 		log.debug(
 			"Saved draft block %d for conversation %d", block_index, conv_id
@@ -536,6 +494,24 @@ class ConversationDatabase:
 
 	# --- Read operations ---
 
+	@staticmethod
+	def _apply_search_filter(query, search: str | None):
+		"""Apply search filtering to a conversation query."""
+		if not search:
+			return query
+		search_term = f"%{search}%"
+		msg_conv_ids = (
+			select(DBMessageBlock.conversation_id)
+			.join(DBMessage)
+			.where(DBMessage.content.like(search_term))
+			.distinct()
+			.subquery()
+		)
+		return query.where(
+			DBConversation.title.like(search_term)
+			| DBConversation.id.in_(select(msg_conv_ids.c.conversation_id))
+		)
+
 	def list_conversations(
 		self, search: str | None = None, limit: int = 100, offset: int = 0
 	) -> list[dict]:
@@ -550,7 +526,6 @@ class ConversationDatabase:
 			List of dicts with id, title, message_count, updated_at.
 		"""
 		with self._get_session() as session:
-			# Build subquery for message count
 			block_count = (
 				select(
 					DBMessageBlock.conversation_id,
@@ -576,23 +551,7 @@ class ConversationDatabase:
 				.order_by(DBConversation.updated_at.desc())
 			)
 
-			if search:
-				search_term = f"%{search}%"
-				# Search in title and message content
-				msg_conv_ids = (
-					select(DBMessageBlock.conversation_id)
-					.join(DBMessage)
-					.where(DBMessage.content.like(search_term))
-					.distinct()
-					.subquery()
-				)
-				query = query.where(
-					DBConversation.title.like(search_term)
-					| DBConversation.id.in_(
-						select(msg_conv_ids.c.conversation_id)
-					)
-				)
-
+			query = self._apply_search_filter(query, search)
 			query = query.limit(limit).offset(offset)
 			rows = session.execute(query).all()
 
@@ -617,23 +576,7 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			query = select(func.count(DBConversation.id))
-
-			if search:
-				search_term = f"%{search}%"
-				msg_conv_ids = (
-					select(DBMessageBlock.conversation_id)
-					.join(DBMessage)
-					.where(DBMessage.content.like(search_term))
-					.distinct()
-					.subquery()
-				)
-				query = query.where(
-					DBConversation.title.like(search_term)
-					| DBConversation.id.in_(
-						select(msg_conv_ids.c.conversation_id)
-					)
-				)
-
+			query = self._apply_search_filter(query, search)
 			return session.execute(query).scalar_one()
 
 	def load_conversation(self, conv_id: int) -> Conversation:
@@ -761,6 +704,33 @@ class ConversationDatabase:
 			citations=citations or None,
 		)
 
+	@staticmethod
+	def _make_attachment(
+		db_att: DBAttachment, location, description: str | None
+	) -> AttachmentFile | ImageFile:
+		"""Build an AttachmentFile or ImageFile from a DB record."""
+		if db_att.is_image:
+			return ImageFile(
+				location=location,
+				name=db_att.name,
+				description=description,
+				size=db_att.size,
+				mime_type=db_att.mime_type,
+				dimensions=(
+					(db_att.image_width, db_att.image_height)
+					if db_att.image_width is not None
+					and db_att.image_height is not None
+					else None
+				),
+			)
+		return AttachmentFile(
+			location=location,
+			name=db_att.name,
+			description=description,
+			size=db_att.size,
+			mime_type=db_att.mime_type,
+		)
+
 	def _load_attachment(
 		self, db_att: DBAttachment, description: str | None
 	) -> AttachmentFile | ImageFile | None:
@@ -768,29 +738,7 @@ class ConversationDatabase:
 		from upath import UPath
 
 		if db_att.location_type == AttachmentFileTypes.URL.value:
-			# URL attachment
-			location = UPath(db_att.url)
-			if db_att.is_image:
-				return ImageFile(
-					location=location,
-					name=db_att.name,
-					description=description,
-					size=db_att.size,
-					mime_type=db_att.mime_type,
-					dimensions=(
-						(db_att.image_width, db_att.image_height)
-						if db_att.image_width is not None
-						and db_att.image_height is not None
-						else None
-					),
-				)
-			return AttachmentFile(
-				location=location,
-				name=db_att.name,
-				description=description,
-				size=db_att.size,
-				mime_type=db_att.mime_type,
-			)
+			return self._make_attachment(db_att, UPath(db_att.url), description)
 
 		# BLOB attachment - write to memory filesystem
 		if db_att.blob_data is None:
@@ -804,24 +752,4 @@ class ConversationDatabase:
 		with mem_path.open("wb") as f:
 			f.write(db_att.blob_data)
 
-		if db_att.is_image:
-			return ImageFile(
-				location=mem_path,
-				name=db_att.name,
-				description=description,
-				size=db_att.size,
-				mime_type=db_att.mime_type,
-				dimensions=(
-					(db_att.image_width, db_att.image_height)
-					if db_att.image_width is not None
-					and db_att.image_height is not None
-					else None
-				),
-			)
-		return AttachmentFile(
-			location=mem_path,
-			name=db_att.name,
-			description=description,
-			size=db_att.size,
-			mime_type=db_att.mime_type,
-		)
+		return self._make_attachment(db_att, mem_path, description)

@@ -30,7 +30,7 @@ def upgrade() -> None:
 	op.create_index(
 		"ix_conversations_updated",
 		"conversations",
-		[sa.text("updated_at DESC")],
+		[sa.column("updated_at").desc()],
 	)
 
 	# system_prompts
@@ -107,7 +107,6 @@ def upgrade() -> None:
 		sa.UniqueConstraint("message_block_id", "role"),
 	)
 	op.create_index("ix_messages_block", "messages", ["message_block_id"])
-	op.create_index("ix_messages_content", "messages", ["content"])
 
 	# attachments
 	op.create_table(
