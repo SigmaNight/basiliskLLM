@@ -133,7 +133,7 @@ class SoundManager:
 		time_info: dict,
 		status: sd.CallbackFlags,
 	) -> None:
-		+"""Sounddevice output stream callback for playback."""
+		"""Sounddevice output stream callback for playback."""
 		if status:
 			log.warning("Audio stream status: %s", status)
 		if self._stop_event.is_set() or self._current_data is None:
