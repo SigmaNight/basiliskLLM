@@ -10,7 +10,7 @@ ci:
       - "ruff-check"
       - "uv-lock"
 default_language_version:
-  python: python3.12
+  python: python3.14
 default_stages:
   - "pre-commit"
 default_install_hook_types:
