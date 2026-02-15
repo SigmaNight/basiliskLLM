@@ -347,3 +347,124 @@ class TestGetConversationCount:
 		db_manager.save_conversation(conv2)
 
 		assert db_manager.get_conversation_count(search="Alpha") == 1
+
+
+class TestDraftBlock:
+	"""Tests for draft block save/delete operations."""
+
+	def test_save_draft_block(self, db_manager, test_ai_model):
+		"""Test saving a draft block (request only, no response)."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+
+		req = Message(role=MessageRoleEnum.USER, content="draft text")
+		block = MessageBlock(request=req, model=test_ai_model)
+
+		db_manager.save_draft_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 1
+		assert loaded.messages[0].request.content == "draft text"
+		assert loaded.messages[0].response is None
+
+	def test_save_draft_replaces_existing(self, db_manager, test_ai_model):
+		"""Test that saving a draft at the same position replaces it."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+
+		req1 = Message(role=MessageRoleEnum.USER, content="draft v1")
+		block1 = MessageBlock(request=req1, model=test_ai_model)
+		db_manager.save_draft_block(conv_id, 0, block1)
+
+		req2 = Message(role=MessageRoleEnum.USER, content="draft v2")
+		block2 = MessageBlock(request=req2, model=test_ai_model)
+		db_manager.save_draft_block(conv_id, 0, block2)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 1
+		assert loaded.messages[0].request.content == "draft v2"
+
+	def test_delete_draft_block(self, db_manager, test_ai_model):
+		"""Test deleting a draft block."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+
+		req = Message(role=MessageRoleEnum.USER, content="draft")
+		block = MessageBlock(request=req, model=test_ai_model)
+		db_manager.save_draft_block(conv_id, 0, block)
+
+		db_manager.delete_draft_block(conv_id, 0)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 0
+
+	def test_delete_draft_does_not_delete_completed(
+		self, db_manager, test_ai_model
+	):
+		"""Test that delete_draft_block does not remove a block with response."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+
+		req = Message(role=MessageRoleEnum.USER, content="question")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="answer")
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		db_manager.delete_draft_block(conv_id, 0)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 1
+		assert loaded.messages[0].response is not None
+
+	def test_save_message_block_replaces_draft(self, db_manager, test_ai_model):
+		"""Test that save_message_block replaces an existing draft."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+
+		# Save a draft first
+		draft_req = Message(role=MessageRoleEnum.USER, content="draft")
+		draft_block = MessageBlock(request=draft_req, model=test_ai_model)
+		db_manager.save_draft_block(conv_id, 0, draft_block)
+
+		# Now save a completed block at the same position
+		req = Message(role=MessageRoleEnum.USER, content="final question")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="final answer")
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 1
+		assert loaded.messages[0].request.content == "final question"
+		assert loaded.messages[0].response.content == "final answer"
+
+	def test_draft_with_attachments_roundtrip(
+		self, db_manager, test_ai_model, tmp_path
+	):
+		"""Test draft block with attachments round-trip."""
+		from upath import UPath
+
+		from basilisk.conversation import AttachmentFile
+
+		text_path = UPath(tmp_path) / "draft_file.txt"
+		with text_path.open("w") as f:
+			f.write("draft attachment content")
+
+		attachment = AttachmentFile(location=text_path)
+		req = Message(
+			role=MessageRoleEnum.USER,
+			content="draft with file",
+			attachments=[attachment],
+		)
+		block = MessageBlock(request=req, model=test_ai_model)
+
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		db_manager.save_draft_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 1
+		assert loaded.messages[0].response is None
+		atts = loaded.messages[0].request.attachments
+		assert atts is not None
+		assert len(atts) == 1
+		assert atts[0].read_as_plain_text() == "draft attachment content"

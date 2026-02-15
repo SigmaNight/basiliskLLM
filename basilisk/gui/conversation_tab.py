@@ -35,6 +35,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -101,23 +102,29 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		Raises:
 			IOError: If the conversation file cannot be read or parsed.
-
-		Example:
-			conversation_tab = ConversationTab.open_conversation(
-				parent_window, "/path/to/conversation.json", "My Conversation"
-			)
 		"""
 		log.debug("Opening conversation from %s", file_path)
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
-		return cls(
+
+		# Extract draft block if present (last block with no response)
+		draft_block = None
+		if conversation.messages and conversation.messages[-1].response is None:
+			draft_block = conversation.messages.pop()
+
+		tab = cls(
 			parent,
 			conversation=conversation,
 			title=title,
 			conv_storage_path=storage_path,
 			bskc_path=file_path,
 		)
+
+		if draft_block is not None:
+			tab._restore_draft_block(draft_block)
+
+		return tab
 
 	def __init__(
 		self,
@@ -153,6 +160,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conversation = conversation or Conversation()
 		self.recording_thread: Optional[RecordingThread] = None
 		self.db_conv_id: Optional[int] = None
+		self.private: bool = False
 
 		# Initialize variables for error recovery
 		self._stored_prompt_text: Optional[str] = None
@@ -172,6 +180,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_handler = OCRHandler(self)
+		self._draft_timer = wx.Timer(self)
+		self.Bind(wx.EVT_TIMER, self._on_draft_timer, self._draft_timer)
 
 		self.init_ui()
 		self.init_data(profile)
@@ -211,6 +221,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self, self.conv_storage_path, self.on_submit
 		)
 		sizer.Add(self.prompt_panel, proportion=1, flag=wx.EXPAND)
+		self.prompt_panel.prompt.Bind(wx.EVT_TEXT, self._on_prompt_text_changed)
 		self.prompt_panel.set_prompt_focus()
 		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
 		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
@@ -643,6 +654,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			event: The event that triggered the submission action
 		"""
+		self._draft_timer.Stop()
 		if not self.submit_btn.IsEnabled():
 			return
 		if (
@@ -757,15 +769,20 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def save_conversation(self, file_path: str) -> bool:
 		"""Save the current conversation to a specified file path.
 
-		This method saves the current conversation to a file in JSON format. It handles the saving process, including error management and user feedback.
+		This method saves the current conversation to a file in JSON format.
+		If a draft is present in the prompt, it is temporarily appended as the
+		last block before saving, then removed.
 
 		Args:
 			file_path: The target file path where the conversation will be saved.
 
 		Returns:
-		True if the conversation was successfully saved, False otherwise.
+			True if the conversation was successfully saved, False otherwise.
 		"""
 		log.debug("Saving conversation to %s", file_path)
+		draft_block = self._build_draft_block()
+		if draft_block is not None:
+			self.conversation.messages.append(draft_block)
 		try:
 			self.conversation.save(file_path)
 			return True
@@ -778,6 +795,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 				is_completion_error=False,
 			)
 			return False
+		finally:
+			if draft_block is not None:
+				self.conversation.messages.pop()
 
 	def remove_message_block(self, message_block: MessageBlock):
 		"""Remove a message block from the conversation.
@@ -914,6 +934,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			new_block: The newly completed message block to save.
 		"""
+		if not config.conf().conversation.auto_save_to_db:
+			return
+		if self.private:
+			return
 		try:
 			from basilisk.conversation.database import get_db
 
@@ -952,6 +976,161 @@ class ConversationTab(wx.Panel, BaseConversation):
 				"Failed to update conversation title in database", exc_info=True
 			)
 
+	def set_private(self, private: bool):
+		"""Set the private flag. If enabling, delete conversation from DB.
+
+		Args:
+			private: Whether the conversation should be private.
+		"""
+		self.private = private
+		if private and self.db_conv_id is not None:
+			try:
+				from basilisk.conversation.database import get_db
+
+				get_db().delete_conversation(self.db_conv_id)
+			except Exception:
+				log.error(
+					"Failed to delete conversation from DB", exc_info=True
+				)
+			self.db_conv_id = None
+
+	def _on_prompt_text_changed(self, event):
+		"""Handle prompt text changes for draft auto-save debouncing."""
+		event.Skip()
+		conf = config.conf()
+		if (
+			not conf.conversation.auto_save_to_db
+			or not conf.conversation.auto_save_draft
+		):
+			return
+		if self.private or self.db_conv_id is None:
+			return
+		self._draft_timer.StartOnce(2000)
+
+	def _on_draft_timer(self, event):
+		"""Handle draft timer expiration to save draft to DB."""
+		if self.db_conv_id is None:
+			return
+		self._save_draft_to_db()
+
+	def _build_draft_block(self) -> MessageBlock | None:
+		"""Build a draft MessageBlock from current prompt state.
+
+		Returns:
+			A MessageBlock with no response, or None if prompt is empty.
+		"""
+		prompt_text = self.prompt_panel.prompt_text
+		attachments = self.prompt_panel.attachment_files
+		if not prompt_text and not attachments:
+			return None
+		block = MessageBlock(
+			request=Message(
+				role=MessageRoleEnum.USER,
+				content=prompt_text or "",
+				attachments=attachments or None,
+			),
+			model=AIModelInfo(
+				provider_id=(
+					self.current_account.provider.id
+					if self.current_account
+					else "unknown"
+				),
+				model_id=(
+					self.current_model.id if self.current_model else "unknown"
+				),
+			),
+			temperature=self.temperature_spinner.GetValue(),
+			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
+			top_p=self.top_p_spinner.GetValue(),
+			stream=self.stream_mode.GetValue(),
+		)
+		system_msg = self.get_system_message()
+		if system_msg and system_msg in self.conversation.systems:
+			block.system_index = list(self.conversation.systems).index(
+				system_msg
+			)
+		return block
+
+	def _save_draft_to_db(self):
+		"""Save the current draft to the database."""
+		prompt_text = self.prompt_panel.prompt_text
+		attachments = self.prompt_panel.attachment_files
+		if not prompt_text and not attachments:
+			try:
+				from basilisk.conversation.database import get_db
+
+				get_db().delete_draft_block(
+					self.db_conv_id, len(self.conversation.messages)
+				)
+			except Exception:
+				log.error("Failed to delete draft", exc_info=True)
+			return
+		try:
+			from basilisk.conversation.database import get_db
+
+			draft_block = self._build_draft_block()
+			if draft_block is None:
+				return
+			system_msg = self.get_system_message()
+			get_db().save_draft_block(
+				self.db_conv_id,
+				len(self.conversation.messages),
+				draft_block,
+				system_msg,
+			)
+		except Exception:
+			log.error("Failed to save draft", exc_info=True)
+
+	def _restore_draft_block(self, draft_block: MessageBlock):
+		"""Restore a draft block's content and settings to UI controls.
+
+		Args:
+			draft_block: The draft MessageBlock to restore.
+		"""
+		# Restore prompt text
+		self.prompt_panel.prompt_text = draft_block.request.content
+
+		# Restore attachments
+		if draft_block.request.attachments:
+			self.prompt_panel.attachment_files = draft_block.request.attachments
+			self.prompt_panel.refresh_attachments_list()
+
+		# Restore model settings
+		self.temperature_spinner.SetValue(draft_block.temperature)
+		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
+		self.top_p_spinner.SetValue(draft_block.top_p)
+		self.stream_mode.SetValue(draft_block.stream)
+
+		# Restore model selection if possible
+		try:
+			provider_id = draft_block.model.provider_id
+			model_id = draft_block.model.model_id
+			account = next(
+				config.accounts().get_accounts_by_provider(provider_id), None
+			)
+			if account:
+				self.set_account_combo(account)
+			engine = self.current_engine
+			if engine:
+				model = engine.get_model(model_id)
+				if model:
+					self.set_model_list(model)
+		except Exception:
+			log.debug("Could not restore draft model selection", exc_info=True)
+
+	def flush_draft(self):
+		"""Immediately save any pending draft to the database."""
+		self._draft_timer.Stop()
+		if self.db_conv_id is None or self.private:
+			return
+		conf = config.conf()
+		if (
+			not conf.conversation.auto_save_to_db
+			or not conf.conversation.auto_save_draft
+		):
+			return
+		self._save_draft_to_db()
+
 	@classmethod
 	def open_from_db(
 		cls, parent: wx.Window, conv_id: int, default_title: str
@@ -972,6 +1151,12 @@ class ConversationTab(wx.Panel, BaseConversation):
 		conversation = db.load_conversation(conv_id)
 		title = conversation.title or default_title
 		storage_path = cls.conv_storage_path()
+
+		# Extract draft block if present (last block with no response)
+		draft_block = None
+		if conversation.messages and conversation.messages[-1].response is None:
+			draft_block = conversation.messages.pop()
+
 		tab = cls(
 			parent,
 			conversation=conversation,
@@ -979,4 +1164,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			conv_storage_path=storage_path,
 		)
 		tab.db_conv_id = conv_id
+
+		if draft_block is not None:
+			tab._restore_draft_block(draft_block)
+
 		return tab

@@ -200,6 +200,34 @@ class PreferencesDialog(wx.Dialog):
 		)
 		conversation_group_sizer.Add(self.focus_history_checkbox, 0, wx.ALL, 5)
 
+		self.auto_save_to_db = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Automatically save conversations to &database"),
+		)
+		self.auto_save_to_db.SetValue(self.conf.conversation.auto_save_to_db)
+		conversation_group_sizer.Add(self.auto_save_to_db, 0, wx.ALL, 5)
+
+		self.auto_save_draft = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Auto-save &draft prompt text"),
+		)
+		self.auto_save_draft.SetValue(self.conf.conversation.auto_save_draft)
+		conversation_group_sizer.Add(self.auto_save_draft, 0, wx.ALL, 5)
+
+		self.reopen_last_conversation = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("&Reopen last conversation on startup"),
+		)
+		self.reopen_last_conversation.SetValue(
+			self.conf.conversation.reopen_last_conversation
+		)
+		conversation_group_sizer.Add(
+			self.reopen_last_conversation, 0, wx.ALL, 5
+		)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))
@@ -363,6 +391,11 @@ class PreferencesDialog(wx.Dialog):
 		)
 		self.conf.conversation.focus_history_after_send = (
 			self.focus_history_checkbox.GetValue()
+		)
+		self.conf.conversation.auto_save_to_db = self.auto_save_to_db.GetValue()
+		self.conf.conversation.auto_save_draft = self.auto_save_draft.GetValue()
+		self.conf.conversation.reopen_last_conversation = (
+			self.reopen_last_conversation.GetValue()
 		)
 
 		self.conf.images.resize = self.image_resize.GetValue()

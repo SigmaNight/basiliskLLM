@@ -64,8 +64,35 @@ class MainFrame(wx.Frame):
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
 		if open_file:
 			self.open_conversation(open_file)
+		elif self._try_reopen_last_conversation():
+			pass
 		else:
 			self.on_new_default_conversation(None)
+
+	def _try_reopen_last_conversation(self) -> bool:
+		"""Try to reopen the last active conversation from the database.
+
+		Returns:
+			True if the conversation was successfully reopened.
+		"""
+		if not self.conf.conversation.reopen_last_conversation:
+			return False
+		conv_id = self.conf.conversation.last_active_conversation_id
+		if conv_id is None:
+			return False
+		try:
+			tab = ConversationTab.open_from_db(
+				self.notebook, conv_id, self.get_default_conv_title()
+			)
+			self.add_conversation_tab(tab)
+			return True
+		except Exception:
+			log.warning(
+				"Failed to reopen last conversation %d", conv_id, exc_info=True
+			)
+			self.conf.conversation.last_active_conversation_id = None
+			self.conf.save()
+			return False
 
 	def init_ui(self):
 		"""Initialize the user interface for the main application frame.
@@ -436,6 +463,20 @@ class MainFrame(wx.Frame):
 		"""
 		log.info("Closing application")
 		global_vars.app_should_exit = True
+		# Flush drafts before closing
+		for tab in self.tabs_panels:
+			tab.flush_draft()
+		# Save last active conversation ID
+		conf = config.conf()
+		if conf.conversation.reopen_last_conversation:
+			current = self.current_tab
+			if current and current.db_conv_id is not None:
+				conf.conversation.last_active_conversation_id = (
+					current.db_conv_id
+				)
+			else:
+				conf.conversation.last_active_conversation_id = None
+			conf.save()
 		# ensure all conversation tasks are stopped
 		for tab in self.tabs_panels:
 			tab.completion_handler.stop_completion()
@@ -988,6 +1029,13 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to name a conversation
 			_("Name conversation"),
 		)
+		privacy_item = menu.AppendCheckItem(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to mark conversation as private (not saved to database)
+			_("&Private conversation"),
+		)
+		privacy_item.Check(self.current_tab.private)
+		self.Bind(wx.EVT_MENU, self.on_toggle_privacy, privacy_item)
 		close_conversation_item = menu.Append(
 			wx.ID_CLOSE,
 			# Translators: A label for a menu item to close a conversation
@@ -998,6 +1046,17 @@ class MainFrame(wx.Frame):
 		)
 		self.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_toggle_privacy(self, event: wx.Event):
+		"""Toggle the private flag on the current conversation tab.
+
+		Args:
+			event: The event that triggered the toggle.
+		"""
+		tab = self.current_tab
+		if not tab:
+			return
+		tab.set_private(not tab.private)
 
 	def on_apply_conversation_profile(self, event: wx.Event):
 		"""Apply the selected conversation profile to the current conversation.

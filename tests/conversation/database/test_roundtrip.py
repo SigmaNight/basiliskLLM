@@ -248,3 +248,63 @@ class TestPydanticToDBRoundtrip:
 		assert len(loaded.messages) == 1
 		assert loaded.messages[0].request.content == "No reply"
 		assert loaded.messages[0].response is None
+
+	def test_draft_block_roundtrip(self, db_manager, test_ai_model, tmp_path):
+		"""Test saving a conversation with completed blocks + draft, then reload."""
+		from upath import UPath
+
+		from basilisk.conversation import AttachmentFile
+
+		conv = Conversation()
+		system = SystemMessage(content="System instructions")
+
+		# Add a completed block
+		req = Message(role=MessageRoleEnum.USER, content="Hello")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="Hi there")
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		conv.add_block(block, system)
+		conv_id = db_manager.save_conversation(conv)
+
+		# Add a draft block at position 1
+		text_path = UPath(tmp_path) / "draft.txt"
+		with text_path.open("w") as f:
+			f.write("draft file content")
+
+		attachment = AttachmentFile(location=text_path)
+		draft_req = Message(
+			role=MessageRoleEnum.USER,
+			content="work in progress",
+			attachments=[attachment],
+		)
+		draft_block = MessageBlock(
+			request=draft_req,
+			model=test_ai_model,
+			temperature=0.5,
+			max_tokens=1024,
+			top_p=0.8,
+			stream=True,
+		)
+		db_manager.save_draft_block(conv_id, 1, draft_block, system)
+
+		# Reload and verify
+		loaded = db_manager.load_conversation(conv_id)
+		assert len(loaded.messages) == 2
+
+		# First block is completed
+		assert loaded.messages[0].response is not None
+		assert loaded.messages[0].response.content == "Hi there"
+
+		# Second block is the draft
+		draft = loaded.messages[1]
+		assert draft.response is None
+		assert draft.request.content == "work in progress"
+		assert draft.temperature == 0.5
+		assert draft.max_tokens == 1024
+		assert draft.top_p == 0.8
+		assert draft.stream is True
+		assert draft.request.attachments is not None
+		assert len(draft.request.attachments) == 1
+		assert (
+			draft.request.attachments[0].read_as_plain_text()
+			== "draft file content"
+		)

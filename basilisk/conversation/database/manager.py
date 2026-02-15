@@ -314,6 +314,9 @@ class ConversationDatabase:
 	):
 		"""Save a single new message block to an existing conversation.
 
+		If a block already exists at the given position (e.g. a draft),
+		it is deleted first.
+
 		Args:
 			conv_id: The database conversation ID.
 			block_index: The position index of the block.
@@ -322,6 +325,17 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			with session.begin():
+				# Delete any existing block at this position (e.g. draft)
+				existing = session.execute(
+					select(DBMessageBlock).where(
+						DBMessageBlock.conversation_id == conv_id,
+						DBMessageBlock.position == block_index,
+					)
+				).scalar_one_or_none()
+				if existing is not None:
+					session.delete(existing)
+					session.flush()
+
 				csp_id = None
 				if (
 					system_message is not None
@@ -381,6 +395,118 @@ class ConversationDatabase:
 				)
 
 		log.debug("Saved block %d for conversation %d", block_index, conv_id)
+
+	def save_draft_block(
+		self,
+		conv_id: int,
+		block_index: int,
+		block: MessageBlock,
+		system_message: SystemMessage | None = None,
+	):
+		"""Save or replace a draft block (request only, no response).
+
+		If a block already exists at the given position, it is deleted
+		first and replaced with the new draft.
+
+		Args:
+			conv_id: The database conversation ID.
+			block_index: The position index of the draft block.
+			block: The draft MessageBlock (response should be None).
+			system_message: Optional system message associated with the block.
+		"""
+		with self._get_session() as session:
+			with session.begin():
+				# Delete any existing block at this position
+				existing = session.execute(
+					select(DBMessageBlock).where(
+						DBMessageBlock.conversation_id == conv_id,
+						DBMessageBlock.position == block_index,
+					)
+				).scalar_one_or_none()
+				if existing is not None:
+					session.delete(existing)
+					session.flush()
+
+				csp_id = None
+				if (
+					system_message is not None
+					and block.system_index is not None
+				):
+					sp_id = self._get_or_create_system_prompt(
+						session, system_message
+					)
+					db_csp = session.execute(
+						select(DBConversationSystemPrompt).where(
+							DBConversationSystemPrompt.conversation_id
+							== conv_id,
+							DBConversationSystemPrompt.position
+							== block.system_index,
+						)
+					).scalar_one_or_none()
+					if db_csp is None:
+						db_csp = DBConversationSystemPrompt(
+							conversation_id=conv_id,
+							system_prompt_id=sp_id,
+							position=block.system_index,
+						)
+						session.add(db_csp)
+						session.flush()
+					csp_id = db_csp.id
+
+				db_block = DBMessageBlock(
+					conversation_id=conv_id,
+					position=block_index,
+					conversation_system_prompt_id=csp_id,
+					model_provider=block.model.provider_id,
+					model_id=block.model.model_id,
+					temperature=block.temperature,
+					max_tokens=block.max_tokens,
+					top_p=block.top_p,
+					stream=block.stream,
+					created_at=block.created_at,
+					updated_at=block.updated_at,
+				)
+				session.add(db_block)
+				session.flush()
+				block.db_id = db_block.id
+
+				self._save_message(session, db_block.id, "user", block.request)
+				# Draft blocks have no response
+
+		log.debug(
+			"Saved draft block %d for conversation %d", block_index, conv_id
+		)
+
+	def delete_draft_block(self, conv_id: int, block_index: int):
+		"""Delete the draft block at the given position if it has no response.
+
+		Only deletes blocks that have no assistant message (i.e. drafts).
+
+		Args:
+			conv_id: The database conversation ID.
+			block_index: The position index of the draft block.
+		"""
+		with self._get_session() as session:
+			with session.begin():
+				db_block = session.execute(
+					select(DBMessageBlock).where(
+						DBMessageBlock.conversation_id == conv_id,
+						DBMessageBlock.position == block_index,
+					)
+				).scalar_one_or_none()
+				if db_block is None:
+					return
+				# Check if it has an assistant message
+				has_response = any(
+					msg.role == "assistant" for msg in db_block.messages
+				)
+				if has_response:
+					return
+				session.delete(db_block)
+
+		log.debug(
+			"Deleted draft block %d for conversation %d", block_index, conv_id
+		)
 
 	def update_conversation_title(self, conv_id: int, title: str | None):
 		"""Update the title of a conversation.
