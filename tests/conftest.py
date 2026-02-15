@@ -1,5 +1,6 @@
 """Common test fixtures for basiliskLLM."""
 
+import builtins
 from unittest import mock
 
 import pytest
@@ -22,6 +23,19 @@ from basilisk.message_segment_manager import (
 	MessageSegmentType,
 )
 from basilisk.provider_ai_model import AIModelInfo
+
+# Install translation builtins as passthrough for tests (normally done by
+# basilisk.localization during app startup).
+if not hasattr(builtins, "_"):
+	builtins._ = lambda s: s
+if not hasattr(builtins, "gettext"):
+	builtins.gettext = lambda s: s
+if not hasattr(builtins, "ngettext"):
+	builtins.ngettext = lambda s, p, n: s if n == 1 else p
+if not hasattr(builtins, "npgettext"):
+	builtins.npgettext = lambda c, s, p, n: s if n == 1 else p
+if not hasattr(builtins, "pgettext"):
+	builtins.pgettext = lambda c, s: s
 
 
 @pytest.fixture
