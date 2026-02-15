@@ -17,22 +17,17 @@ from pathlib import Path
 import numpy as np
 import sounddevice as sd
 
-from .global_vars import resource_path
+from .global_vars import sounds_path
 
 log = logging.getLogger(__name__)
 
 ALIASES = {
-	"chat_request_sent": resource_path
-	/ Path("sounds", "chat_request_sent.wav"),
-	"chat_response_pending": resource_path
-	/ Path("sounds", "chat_response_pending.wav"),
-	"chat_response_received": resource_path
-	/ Path("sounds", "chat_response_received.wav"),
-	"progress": resource_path / Path("sounds", "progress.wav"),
-	"recording_started": resource_path
-	/ Path("sounds", "recording_started.wav"),
-	"recording_stopped": resource_path
-	/ Path("sounds", "recording_stopped.wav"),
+	"chat_request_sent": sounds_path / "chat_request_sent.wav",
+	"chat_response_pending": sounds_path / "chat_response_pending.wav",
+	"chat_response_received": sounds_path / "chat_response_received.wav",
+	"progress": sounds_path / "progress.wav",
+	"recording_started": sounds_path / "recording_started.wav",
+	"recording_stopped": sounds_path / "recording_stopped.wav",
 }
 
 
@@ -238,17 +233,22 @@ class SoundManager:
 		self._stop_event.clear()
 
 
+sound_manager: SoundManager | None = None
+
+
 def initialize_sound_manager():
-	"""Initialize the global sound manager."""
+	"""Initialize the global soundo manager."""
 	global sound_manager
 	sound_manager = SoundManager()
 
 
 def play_sound(file_path: str, loop: bool = False):
 	"""Play a sound using the global sound manager. If loop is True, the sound will be played in a loop."""
+	global sound_manager
 	sound_manager.play_sound(file_path, loop)
 
 
 def stop_sound():
 	"""Stop the currently playing sound effect using the global sound manager."""
+	global sound_manager
 	sound_manager.stop_sound()
