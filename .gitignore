@@ -32,3 +32,4 @@ basilisk_config.yml
 *.mo
 user_data/
 coverage.xml
+.claude/settings.local.json
