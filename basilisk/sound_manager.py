@@ -247,18 +247,16 @@ sound_manager: SoundManager | None = None
 
 
 def initialize_sound_manager():
-	"""Initialize the global soundo manager."""
+	"""Initialize the global sound manager."""
 	global sound_manager
 	sound_manager = SoundManager()
 
 
 def play_sound(file_path: str, loop: bool = False):
 	"""Play a sound using the global sound manager. If loop is True, the sound will be played in a loop."""
-	global sound_manager
 	sound_manager.play_sound(file_path, loop)
 
 
 def stop_sound():
 	"""Stop the currently playing sound effect using the global sound manager."""
-	global sound_manager
 	sound_manager.stop_sound()
