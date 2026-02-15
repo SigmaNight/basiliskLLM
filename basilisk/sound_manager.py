@@ -6,7 +6,7 @@ This module provides a centralized sound management system that handles:
 - Looped playback functionality
 - Global sound management through singleton pattern
 
-Supported formats are determined by the wx.adv.Sound capabilities.
+Playback is implemented with sounddevice.
 """
 
 import logging
@@ -14,8 +14,8 @@ import threading
 import time
 from pathlib import Path
 
-import wx
-import wx.adv
+import numpy as np
+import sounddevice as sd
 
 from .global_vars import resource_path
 
@@ -49,48 +49,152 @@ class SoundManager:
 		Sets up:
 		- Sound cache for efficient playback
 		- Threading support for looped playback
-		- wx.adv.Sound player
+		- sounddevice OutputStream
 		"""
 		self.current_sound = None
 		self.loop = False
 		self.loop_thread = None
-		self.sound_player = wx.adv.Sound()
+		self._stop_event = threading.Event()
+		self._current_data: np.ndarray | None = None
+		self._current_rate: int | None = None
+		self._current_channels: int | None = None
+		self._play_pos = 0
 		self.thread_lock = threading.Lock()
-		self.sound_cache: dict[Path, wx.adv.Sound] = {}
+		self.sound_cache: dict[Path, tuple[np.ndarray, int]] = {}
 
-	def _ensure_sound_loaded(self, file_path: Path) -> wx.adv.Sound:
+	def _ensure_sound_loaded(self, file_path: Path) -> tuple[np.ndarray, int]:
 		"""Ensure that the sound file is loaded and cached.
 
 		Args:
 			file_path: Path to the sound file
 
 		Returns:
-			Loaded wx.adv.Sound object
+			Loaded audio buffer and samplerate
 
 		Raises:
 			IOError: If the sound file could not be loaded
 		"""
 		if file_path in self.sound_cache:
 			return self.sound_cache[file_path]
-		sound = wx.adv.Sound()
-		if sound.Create(str(file_path)):
-			self.sound_cache[file_path] = sound
-		else:
-			raise IOError(f"Failed to load sound: {file_path}")
-		return sound
+		try:
+			data, samplerate = self._load_wav(file_path)
+		except Exception as exc:
+			raise IOError(f"Failed to load sound: {file_path}") from exc
+		self.sound_cache[file_path] = (data, samplerate)
+		return data, samplerate
 
-	def _play_sound_loop(self, sound: wx.adv.Sound, delay: float = 0.1):
-		"""Play a sound in a loop until the loop flag is set to False.
+	def _load_wav(self, file_path: Path) -> tuple[np.ndarray, int]:
+		"""Load a WAV file into a float32 numpy array.
 
 		Args:
-			sound: wx.adv.Sound object to play
-			delay: Delay in seconds between sound repetitions to prevent CPU overload (default: 0.1)
+			file_path: Path to the WAV file.
+
+		Returns:
+			Tuple of (audio_data, samplerate)
 		"""
-		while self.loop:
-			sound.Play(wx.adv.SOUND_ASYNC | wx.adv.SOUND_LOOP)
-			while self.loop:
-				time.sleep(delay)
-			sound.Stop()
+		import wave
+
+		with wave.open(str(file_path), "rb") as wav:
+			channels = wav.getnchannels()
+			samplerate = wav.getframerate()
+			sampwidth = wav.getsampwidth()
+			frames = wav.readframes(wav.getnframes())
+
+		if sampwidth == 1:
+			data = np.frombuffer(frames, dtype=np.uint8)
+			data = (data.astype(np.float32) - 128.0) / 128.0
+		elif sampwidth == 2:
+			data = np.frombuffer(frames, dtype=np.int16).astype(np.float32)
+			data /= 32768.0
+		elif sampwidth == 3:
+			raw = np.frombuffer(frames, dtype=np.uint8).reshape(-1, 3)
+			signed = (
+				raw[:, 0].astype(np.int32)
+				| (raw[:, 1].astype(np.int32) << 8)
+				| (raw[:, 2].astype(np.int32) << 16)
+			)
+			mask = signed & 0x800000
+			signed = signed - (mask << 1)
+			data = signed.astype(np.float32) / 8388608.0
+		elif sampwidth == 4:
+			data = np.frombuffer(frames, dtype=np.int32).astype(np.float32)
+			data /= 2147483648.0
+		else:
+			raise ValueError(f"Unsupported sample width: {sampwidth}")
+
+		if channels > 1:
+			data = data.reshape(-1, channels)
+		else:
+			data = data.reshape(-1, 1)
+
+		return data, samplerate
+
+	def _stream_callback(self, outdata, frames, time_info, status):
+		if status:
+			log.warning("Audio stream status: %s", status)
+		if self._stop_event.is_set() or self._current_data is None:
+			outdata[:] = 0
+			raise sd.CallbackStop
+
+		data = self._current_data
+		total_frames = data.shape[0]
+		start = self._play_pos
+		end = start + frames
+
+		if self.loop:
+			# Loop with wrap-around
+			if end <= total_frames:
+				outdata[:] = data[start:end]
+				self._play_pos = end % total_frames
+			else:
+				first = data[start:total_frames]
+				remaining = frames - first.shape[0]
+				outdata[: first.shape[0]] = first
+				loops = remaining // total_frames
+				offset = first.shape[0]
+				for _ in range(loops):
+					outdata[offset : offset + total_frames] = data
+					offset += total_frames
+				tail = remaining % total_frames
+				if tail:
+					outdata[offset : offset + tail] = data[:tail]
+				self._play_pos = tail
+		else:
+			if end <= total_frames:
+				outdata[:] = data[start:end]
+				self._play_pos = end
+			else:
+				available = max(total_frames - start, 0)
+				if available:
+					outdata[:available] = data[start:total_frames]
+				if available < frames:
+					outdata[available:] = 0
+				self._play_pos = total_frames
+				raise sd.CallbackStop
+
+	def _play_sound_loop(self, data: np.ndarray, samplerate: int):
+		"""Play a sound (looped or one-shot) using OutputStream."""
+		self._current_data = data
+		self._current_rate = samplerate
+		self._current_channels = data.shape[1]
+		self._play_pos = 0
+		self._stop_event.clear()
+		try:
+			with sd.OutputStream(
+				samplerate=samplerate,
+				channels=data.shape[1],
+				dtype="float32",
+				callback=self._stream_callback,
+			):
+				while not self._stop_event.is_set():
+					time.sleep(0.05)
+		except Exception as exc:
+			log.error("Failed to play sound: %s", exc)
+		finally:
+			self._current_data = None
+			self._current_rate = None
+			self._current_channels = None
+			self._play_pos = 0
 
 	def play_sound(self, file_path: str, loop: bool = False):
 		"""Play a sound effect. If loop is True, the sound will be played in a loop.
@@ -105,24 +209,33 @@ class SoundManager:
 
 			self.stop_sound()
 
-			sound = self._ensure_sound_loaded(file_path)
+			try:
+				data, samplerate = self._ensure_sound_loaded(file_path)
+			except IOError as exc:
+				log.error("%s", exc)
+				return
 
 			self.loop = loop
 
-			if loop:
-				self.loop_thread = threading.Thread(
-					target=self._play_sound_loop, args=(sound,), daemon=True
-				)
-				self.loop_thread.start()
-			else:
-				sound.Play(wx.adv.SOUND_ASYNC)
+			self.loop_thread = threading.Thread(
+				target=self._play_sound_loop,
+				args=(data, samplerate),
+				daemon=True,
+			)
+			self.loop_thread.start()
 
 	def stop_sound(self):
 		"""Stop the currently playing sound effect."""
 		self.loop = False
+		self._stop_event.set()
+		try:
+			sd.stop()
+		except Exception:
+			pass
 		if self.loop_thread is not None:
 			self.loop_thread.join(timeout=1)
 			self.loop_thread = None
+		self._stop_event.clear()
 
 
 def initialize_sound_manager():
