@@ -93,6 +93,7 @@ class ConversationHistoryDialog(wx.Dialog):
 			_("&Open"),
 		)
 		self.open_btn.SetDefault()
+		self.open_btn.Enable(False)
 		btn_sizer.Add(self.open_btn, flag=wx.RIGHT, border=5)
 
 		self.delete_btn = wx.Button(
@@ -135,7 +136,9 @@ class ConversationHistoryDialog(wx.Dialog):
 
 	def _on_item_selected(self, event):
 		"""Enable delete button when an item is selected."""
-		self.delete_btn.Enable(True)
+		enable_btn = self.list_ctrl.GetSelectedItemCount() >= 1
+		self.open_btn.Enable(enable_btn)
+		self.delete_btn.Enable(enable_btn)
 
 	def _on_item_deselected(self, event):
 		"""Disable delete button when no item is selected."""

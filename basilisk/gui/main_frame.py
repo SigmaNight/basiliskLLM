@@ -64,9 +64,7 @@ class MainFrame(wx.Frame):
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
 		if open_file:
 			self.open_conversation(open_file)
-		elif self._try_reopen_last_conversation():
-			pass
-		else:
+		elif not self._try_reopen_last_conversation():
 			self.on_new_default_conversation(None)
 
 	def _try_reopen_last_conversation(self) -> bool:
@@ -465,21 +463,19 @@ class MainFrame(wx.Frame):
 		global_vars.app_should_exit = True
 		# Flush drafts before closing
 		for tab in self.tabs_panels:
+			# ensure all conversation tasks are stopped
+			tab.completion_handler.stop_completion()
 			tab.flush_draft()
 		# Save last active conversation ID
-		conf = config.conf()
-		if conf.conversation.reopen_last_conversation:
+		if self.conf.conversation.reopen_last_conversation:
 			current = self.current_tab
 			if current and current.db_conv_id is not None:
-				conf.conversation.last_active_conversation_id = (
+				self.conf.conversation.last_active_conversation_id = (
 					current.db_conv_id
 				)
 			else:
-				conf.conversation.last_active_conversation_id = None
-			conf.save()
-		# ensure all conversation tasks are stopped
-		for tab in self.tabs_panels:
-			tab.completion_handler.stop_completion()
+				self.conf.conversation.last_active_conversation_id = None
+			self.conf.save()
 		if sys.platform == "win32":
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)

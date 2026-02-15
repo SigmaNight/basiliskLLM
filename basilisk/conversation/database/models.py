@@ -164,8 +164,6 @@ class DBAttachment(Base):
 	image_width: Mapped[int | None] = mapped_column(default=None)
 	image_height: Mapped[int | None] = mapped_column(default=None)
 
-	__table_args__ = (Index("ix_attachments_hash", "content_hash"),)
-
 
 class DBMessageAttachment(Base):
 	"""Links a message to an attachment at a specific position."""

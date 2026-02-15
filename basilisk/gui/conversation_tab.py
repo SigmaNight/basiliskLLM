@@ -72,7 +72,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachment_files: List of attachment files
 	"""
 
-	conv_db = wx.GetApp().conv_db
+	_conv_db = None
+
+	@classmethod
+	def _get_conv_db(cls):
+		if cls._conv_db is None:
+			cls._conv_db = wx.getApp().conv_db
+		return cls._conv_db
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
@@ -942,7 +948,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		try:
 			if self.db_conv_id is None:
-				self.db_conv_id = self.conv_db.save_conversation(
+				self.db_conv_id = self._get_conv_db().save_conversation(
 					self.conversation
 				)
 			else:
@@ -952,7 +958,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 					system_msg = self.conversation.systems[
 						new_block.system_index
 					]
-				self.conv_db.save_message_block(
+				self._get_conv_db().save_message_block(
 					self.db_conv_id, block_index, new_block, system_msg
 				)
 		except Exception:
@@ -969,7 +975,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if self.db_conv_id is None:
 			return
 		try:
-			self.conv_db.update_conversation_title(self.db_conv_id, title)
+			self._get_conv_db().update_conversation_title(
+				self.db_conv_id, title
+			)
 		except Exception:
 			log.error(
 				"Failed to update conversation title in database", exc_info=True
@@ -983,8 +991,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.private = private
 		if private and self.db_conv_id is not None:
+			self._draft_timer.Stop()
 			try:
-				self.conv_db.delete_conversation(self.db_conv_id)
+				self._get_conv_db().delete_conversation(self.db_conv_id)
 			except Exception:
 				log.error(
 					"Failed to delete conversation from DB", exc_info=True
@@ -1054,7 +1063,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachments = self.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			try:
-				self.conv_db.delete_draft_block(
+				self._get_conv_db().delete_draft_block(
 					self.db_conv_id, len(self.conversation.messages)
 				)
 			except Exception:
@@ -1065,7 +1074,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			if draft_block is None:
 				return
 			system_msg = self.get_system_message()
-			self.conv_db.save_draft_block(
+			self._get_conv_db().save_draft_block(
 				self.db_conv_id,
 				len(self.conversation.messages),
 				draft_block,
@@ -1138,7 +1147,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			A new ConversationTab with the loaded conversation.
 		"""
-		conversation = cls.conv_db.load_conversation(conv_id)
+		conversation = cls._get_conv_db().load_conversation(conv_id)
 		title = conversation.title or default_title
 		storage_path = cls.conv_storage_path()
 

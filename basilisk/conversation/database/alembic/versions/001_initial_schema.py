@@ -123,7 +123,6 @@ def upgrade() -> None:
 		sa.Column("image_width", sa.Integer(), nullable=True),
 		sa.Column("image_height", sa.Integer(), nullable=True),
 	)
-	op.create_index("ix_attachments_hash", "attachments", ["content_hash"])
 
 	# message_attachments
 	op.create_table(
