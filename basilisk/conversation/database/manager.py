@@ -122,27 +122,12 @@ class ConversationDatabase:
 		"""Save system prompts and return a mapping of position to CSP."""
 		csp_map: dict[int, DBConversationSystemPrompt] = {}
 		for position, system_msg in enumerate(systems):
-			content_hash = hashlib.sha256(
-				system_msg.content.encode("utf-8")
-			).hexdigest()
-
-			# Get or create the system prompt
-			db_sp = session.execute(
-				select(DBSystemPrompt).where(
-					DBSystemPrompt.content_hash == content_hash
-				)
-			).scalar_one_or_none()
-			if db_sp is None:
-				db_sp = DBSystemPrompt(
-					content_hash=content_hash, content=system_msg.content
-				)
-				session.add(db_sp)
-				session.flush()
+			sp_id = self._get_or_create_system_prompt(session, system_msg)
 
 			# Create conversation-system_prompt link
 			db_csp = DBConversationSystemPrompt(
 				conversation_id=db_conv.id,
-				system_prompt_id=db_sp.id,
+				system_prompt_id=sp_id,
 				position=position,
 			)
 			session.add(db_csp)
@@ -150,6 +135,36 @@ class ConversationDatabase:
 			csp_map[position] = db_csp
 
 		return csp_map
+
+	def _get_or_create_system_prompt(
+		self, session: Session, system_msg: SystemMessage
+	) -> int:
+		"""Get or create a system prompt, using cached db_id if available.
+
+		Returns:
+			The database ID of the system prompt.
+		"""
+		if system_msg.db_id is not None:
+			return system_msg.db_id
+
+		content_hash = hashlib.sha256(
+			system_msg.content.encode("utf-8")
+		).hexdigest()
+
+		db_sp = session.execute(
+			select(DBSystemPrompt).where(
+				DBSystemPrompt.content_hash == content_hash
+			)
+		).scalar_one_or_none()
+		if db_sp is None:
+			db_sp = DBSystemPrompt(
+				content_hash=content_hash, content=system_msg.content
+			)
+			session.add(db_sp)
+			session.flush()
+
+		system_msg.db_id = db_sp.id
+		return db_sp.id
 
 	def _save_block(
 		self,
@@ -179,6 +194,7 @@ class ConversationDatabase:
 		)
 		session.add(db_block)
 		session.flush()
+		block.db_id = db_block.id
 
 		# Save request message
 		self._save_message(session, db_block.id, "user", block.request)
@@ -226,58 +242,64 @@ class ConversationDatabase:
 		attachment: AttachmentFile | ImageFile,
 	):
 		"""Save an attachment, deduplicating by content hash."""
-		# Compute content hash
-		is_url = attachment.type == AttachmentFileTypes.URL
-		if is_url:
-			content_bytes = str(attachment.location).encode("utf-8")
-		else:
-			try:
-				content_bytes = attachment.read_as_bytes()
-			except Exception:
-				log.warning(
-					"Could not read attachment %s, skipping", attachment.name
+		att_id = attachment.db_id
+
+		if att_id is None:
+			# Need to compute hash and get or create attachment
+			is_url = attachment.type == AttachmentFileTypes.URL
+			if is_url:
+				content_bytes = str(attachment.location).encode("utf-8")
+			else:
+				try:
+					content_bytes = attachment.read_as_bytes()
+				except Exception:
+					log.warning(
+						"Could not read attachment %s, skipping",
+						attachment.name,
+					)
+					return
+
+			content_hash = hashlib.sha256(content_bytes).hexdigest()
+
+			db_att = session.execute(
+				select(DBAttachment).where(
+					DBAttachment.content_hash == content_hash
 				)
-				return
+			).scalar_one_or_none()
 
-		content_hash = hashlib.sha256(content_bytes).hexdigest()
+			if db_att is None:
+				is_image = isinstance(attachment, ImageFile)
 
-		# Get or create attachment
-		db_att = session.execute(
-			select(DBAttachment).where(
-				DBAttachment.content_hash == content_hash
-			)
-		).scalar_one_or_none()
+				db_att = DBAttachment(
+					content_hash=content_hash,
+					name=attachment.name,
+					mime_type=attachment.mime_type,
+					size=attachment.size,
+					location_type=attachment.type.value,
+					url=str(attachment.location) if is_url else None,
+					blob_data=None if is_url else content_bytes,
+					is_image=is_image,
+					image_width=(
+						attachment.dimensions[0]
+						if is_image and attachment.dimensions
+						else None
+					),
+					image_height=(
+						attachment.dimensions[1]
+						if is_image and attachment.dimensions
+						else None
+					),
+				)
+				session.add(db_att)
+				session.flush()
 
-		if db_att is None:
-			is_image = isinstance(attachment, ImageFile)
-
-			db_att = DBAttachment(
-				content_hash=content_hash,
-				name=attachment.name,
-				mime_type=attachment.mime_type,
-				size=attachment.size,
-				location_type=attachment.type.value,
-				url=str(attachment.location) if is_url else None,
-				blob_data=None if is_url else content_bytes,
-				is_image=is_image,
-				image_width=(
-					attachment.dimensions[0]
-					if is_image and attachment.dimensions
-					else None
-				),
-				image_height=(
-					attachment.dimensions[1]
-					if is_image and attachment.dimensions
-					else None
-				),
-			)
-			session.add(db_att)
-			session.flush()
+			attachment.db_id = db_att.id
+			att_id = db_att.id
 
 		# Create message-attachment link
 		db_ma = DBMessageAttachment(
 			message_id=message_id,
-			attachment_id=db_att.id,
+			attachment_id=att_id,
 			position=position,
 			description=attachment.description,
 		)
@@ -305,23 +327,9 @@ class ConversationDatabase:
 					system_message is not None
 					and block.system_index is not None
 				):
-					# Ensure the system prompt exists
-					content_hash = hashlib.sha256(
-						system_message.content.encode("utf-8")
-					).hexdigest()
-
-					db_sp = session.execute(
-						select(DBSystemPrompt).where(
-							DBSystemPrompt.content_hash == content_hash
-						)
-					).scalar_one_or_none()
-					if db_sp is None:
-						db_sp = DBSystemPrompt(
-							content_hash=content_hash,
-							content=system_message.content,
-						)
-						session.add(db_sp)
-						session.flush()
+					sp_id = self._get_or_create_system_prompt(
+						session, system_message
+					)
 
 					# Check if CSP link exists for this conversation
 					db_csp = session.execute(
@@ -335,7 +343,7 @@ class ConversationDatabase:
 					if db_csp is None:
 						db_csp = DBConversationSystemPrompt(
 							conversation_id=conv_id,
-							system_prompt_id=db_sp.id,
+							system_prompt_id=sp_id,
 							position=block.system_index,
 						)
 						session.add(db_csp)
@@ -357,6 +365,7 @@ class ConversationDatabase:
 				)
 				session.add(db_block)
 				session.flush()
+				block.db_id = db_block.id
 
 				self._save_message(session, db_block.id, "user", block.request)
 				if block.response:
@@ -524,7 +533,9 @@ class ConversationDatabase:
 				db_conv.system_prompt_links, key=lambda x: x.position
 			)
 			for csp in csp_links:
-				systems.add(SystemMessage(content=csp.system_prompt.content))
+				sys_msg = SystemMessage(content=csp.system_prompt.content)
+				sys_msg.db_id = csp.system_prompt.id
+				systems.add(sys_msg)
 
 			# Rebuild message blocks
 			blocks = []
@@ -565,6 +576,7 @@ class ConversationDatabase:
 					created_at=db_block.created_at,
 					updated_at=db_block.updated_at,
 				)
+				block.db_id = db_block.id
 				blocks.append(block)
 
 			from basilisk.consts import BSKC_VERSION
