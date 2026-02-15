@@ -174,13 +174,14 @@ class SoundManager:
 		self._play_pos = 0
 		self._stop_event.clear()
 		try:
-			with sd.OutputStream(
+			stream = sd.OutputStream(
 				samplerate=samplerate,
 				channels=data.shape[1],
 				dtype="float32",
 				callback=self._stream_callback,
-			):
-				while not self._stop_event.is_set():
+			)
+			with stream:
+				while stream.active and not self._stop_event.is_set():
 					time.sleep(0.05)
 		except Exception as exc:
 			log.error("Failed to play sound: %s", exc)
