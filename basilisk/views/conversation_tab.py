@@ -1,16 +1,9 @@
-"""Implements the conversation tab interface for the BasiliskLLM chat application.
+"""Implements the conversation tab view for the BasiliskLLM chat application.
 
-This module provides the ConversationTab class, which handles all UI and logic for individual
-chat conversations. It manages message display, user input, audio recording, image attachments,
-and interaction with AI providers.
-
-Features:
-- Text input/output with markdown support
-- attachment handling
-- Audio recording and transcription
-- Message navigation and searching
-- Accessible output integration
-- Streaming message support
+This module provides the ConversationTab class — the view layer of the MVP
+pattern. It creates widgets, handles pure-UI events, and delegates all
+orchestration and persistence logic to ConversationPresenter and
+ConversationService respectively.
 """
 
 from __future__ import annotations
@@ -24,23 +17,12 @@ from more_itertools import first, locate
 from upath import UPath
 
 import basilisk.config as config
-from basilisk.completion_handler import CompletionHandler
-from basilisk.conversation import (
-	AttachmentFile,
-	Conversation,
-	ImageFile,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-	SystemMessage,
-)
-from basilisk.provider_ai_model import AIModelInfo
+from basilisk.conversation import Conversation, MessageBlock, SystemMessage
+from basilisk.presenters.conversation_presenter import ConversationPresenter
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
-from basilisk.sound_manager import play_sound, stop_sound
 
 from .base_conversation import BaseConversation
-from .enhanced_error_dialog import show_enhanced_error_dialog
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
 from .ocr_handler import OCRHandler
 from .prompt_attachments_panel import PromptAttachmentsPanel
@@ -58,18 +40,14 @@ CHECK_TASK_DELAY = 100  # ms
 class ConversationTab(wx.Panel, BaseConversation):
 	"""A tab panel that manages a single conversation with an AI assistant.
 
-	This class provides a complete interface for interacting with AI models, including:
-	- Text input and output
-	- attachment handling
-	- Audio recording and transcription
-	- Message history navigation
-	- Accessible output integration
-	- Stream mode for real-time responses
+	This is the *view* layer: it creates widgets, handles pure-UI events,
+	and delegates orchestration to the ConversationPresenter and persistence
+	to the ConversationService.
 
 	Attributes:
-		title: The title of the conversation
-		conversation: The conversation object
-		attachment_files: List of attachment files
+		title: The title of the conversation.
+		presenter: The ConversationPresenter instance.
+		service: The ConversationService instance.
 	"""
 
 	_conv_db = None
@@ -79,6 +57,40 @@ class ConversationTab(wx.Panel, BaseConversation):
 		if cls._conv_db is None:
 			cls._conv_db = wx.GetApp().conv_db
 		return cls._conv_db
+
+	# -- Properties proxying to presenter / service --
+
+	@property
+	def conversation(self) -> Conversation:
+		"""The active conversation model, owned by the presenter."""
+		return self.presenter.conversation
+
+	@conversation.setter
+	def conversation(self, value: Conversation):
+		self.presenter.conversation = value
+
+	@property
+	def bskc_path(self) -> Optional[str]:
+		"""Path to the .bskc file, owned by the presenter."""
+		return self.presenter.bskc_path
+
+	@bskc_path.setter
+	def bskc_path(self, value: Optional[str]):
+		self.presenter.bskc_path = value
+
+	@property
+	def recording_thread(self) -> Optional[RecordingThread]:
+		"""Active recording thread, owned by the presenter."""
+		return self.presenter.recording_thread
+
+	@recording_thread.setter
+	def recording_thread(self, value):
+		self.presenter.recording_thread = value
+
+	@property
+	def completion_handler(self):
+		"""CompletionHandler instance, owned by the presenter."""
+		return self.presenter.completion_handler
 
 	@property
 	def db_conv_id(self) -> Optional[int]:
@@ -98,12 +110,14 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def private(self, value: bool):
 		self.service.private = value
 
+	# -- Factory methods --
+
 	@staticmethod
 	def conv_storage_path() -> UPath:
-		"""Generate a unique storage path for a conversation based on the current timestamp.
+		"""Generate a unique storage path for a conversation.
 
 		Returns:
-			A memory-based URL path with a timestamp-specific identifier for storing conversation attachments.
+			A memory-based URL path with a timestamp identifier.
 		"""
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
@@ -113,28 +127,21 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def open_conversation(
 		cls, parent: wx.Window, file_path: str, default_title: str
 	) -> ConversationTab:
-		"""Open a conversation from a file and create a new ConversationTab instance.
-
-		This class method loads a conversation from a specified file path, generates a unique storage path,
-		and initializes a new ConversationTab with the loaded conversation details.
+		"""Open a conversation from a file.
 
 		Args:
 			parent: The parent window for the conversation tab.
-			file_path: The path to the conversation file to be opened.
-			default_title: A fallback title to use if the conversation has no title.
+			file_path: The path to the conversation file.
+			default_title: Fallback title if the conversation has none.
 
 		Returns:
-			A new ConversationTab instance with the loaded conversation.
-
-		Raises:
-			IOError: If the conversation file cannot be read or parsed.
+			A new ConversationTab with the loaded conversation.
 		"""
 		log.debug("Opening conversation from %s", file_path)
 		storage_path = cls.conv_storage_path()
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
 
-		# Extract draft block if present (last block with no response)
 		draft_block = None
 		if conversation.messages and conversation.messages[-1].response is None:
 			draft_block = conversation.messages.pop()
@@ -152,6 +159,43 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 		return tab
 
+	@classmethod
+	def open_from_db(
+		cls, parent: wx.Window, conv_id: int, default_title: str
+	) -> ConversationTab:
+		"""Open a conversation from the database.
+
+		Args:
+			parent: The parent window for the conversation tab.
+			conv_id: The database conversation ID.
+			default_title: Fallback title if the conversation has none.
+
+		Returns:
+			A new ConversationTab with the loaded conversation.
+		"""
+		conversation = cls._get_conv_db().load_conversation(conv_id)
+		title = conversation.title or default_title
+		storage_path = cls.conv_storage_path()
+
+		draft_block = None
+		if conversation.messages and conversation.messages[-1].response is None:
+			draft_block = conversation.messages.pop()
+
+		tab = cls(
+			parent,
+			conversation=conversation,
+			title=title,
+			conv_storage_path=storage_path,
+		)
+		tab.db_conv_id = conv_id
+
+		if draft_block is not None:
+			tab._restore_draft_block(draft_block)
+
+		return tab
+
+	# -- Initialization --
+
 	def __init__(
 		self,
 		parent: wx.Window,
@@ -161,46 +205,31 @@ class ConversationTab(wx.Panel, BaseConversation):
 		conv_storage_path: Optional[UPath] = None,
 		bskc_path: Optional[str] = None,
 	):
-		"""Initialize a new conversation tab in the chat application.
-
-		Initializes the conversation tab by:
-		- Setting up the wx.Panel and BaseConversation base classes
-		- Configuring conversation metadata and storage
-		- Preparing UI components and data structures
-		- Initializing recording and message management resources
+		"""Initialize a new conversation tab.
 
 		Args:
-			parent: The parent window containing this conversation tab.
-			title: The title of the conversation. Defaults to "Untitled conversation".
-			profile: The conversation profile to apply. Defaults to None.
-			conversation: An existing conversation to load. Defaults to a new Conversation.
-			conv_storage_path: Unique storage path for the conversation. Defaults to a generated path.
-			bskc_path: Path to a specific configuration file. Defaults to None.
+			parent: The parent window.
+			title: The conversation title.
+			profile: Conversation profile to apply.
+			conversation: Existing conversation to load.
+			conv_storage_path: Storage path for attachments.
+			bskc_path: Path to a .bskc file.
 		"""
 		wx.Panel.__init__(self, parent)
 		BaseConversation.__init__(self)
 		self.title = title
 		self.SetStatusText = self.TopLevelParent.SetStatusText
-		self.bskc_path = bskc_path
-		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
-		self.conversation = conversation or Conversation()
-		self.recording_thread: Optional[RecordingThread] = None
+
+		resolved_storage = conv_storage_path or self.conv_storage_path()
+		resolved_conversation = conversation or Conversation()
+
 		self.service = ConversationService(conv_db_getter=self._get_conv_db)
-
-		# Initialize variables for error recovery
-		self._stored_prompt_text: Optional[str] = None
-		self._stored_attachments: Optional[list[AttachmentFile | ImageFile]] = (
-			None
-		)
-
-		self.completion_handler = CompletionHandler(
-			on_completion_start=self._on_completion_start,
-			on_completion_end=self._on_completion_end,
-			on_stream_chunk=self._on_stream_chunk,
-			on_stream_start=self._on_stream_start,
-			on_stream_finish=self._on_stream_finish,
-			on_non_stream_finish=self._on_non_stream_finish,
-			on_error=self._on_completion_error,
+		self.presenter = ConversationPresenter(
+			view=self,
+			service=self.service,
+			conversation=resolved_conversation,
+			conv_storage_path=resolved_storage,
+			bskc_path=bskc_path,
 		)
 
 		self.process: Optional[Any] = None  # multiprocessing.Process
@@ -213,18 +242,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.adjust_advanced_mode_setting()
 
 	def init_ui(self):
-		"""Initialize and layout all UI components of the conversation tab.
-
-		Creates and configures:
-		- Account selection combo box
-		- System prompt input
-		- Message history display
-		- User prompt input
-		- Attachment list display
-		- Model selection
-		- Generation parameters
-		- Control buttons
-		"""
+		"""Initialize and layout all UI components."""
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -243,7 +261,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.messages = HistoryMsgTextCtrl(self, size=(800, 400))
 		sizer.Add(self.messages, proportion=1, flag=wx.EXPAND)
 		self.prompt_panel = PromptAttachmentsPanel(
-			self, self.conv_storage_path, self.on_submit
+			self, self.presenter.conv_storage_path, self.on_submit
 		)
 		sizer.Add(self.prompt_panel, proportion=1, flag=wx.EXPAND)
 		self.prompt_panel.prompt.Bind(wx.EVT_TEXT, self._on_prompt_text_changed)
@@ -315,21 +333,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Initialize the conversation data with an optional profile.
 
 		Args:
-			profile: Configuration profile to apply
+			profile: Configuration profile to apply.
 		"""
 		self.prompt_panel.refresh_attachments_list()
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
 
-	def on_choose_profile(self, event: wx.KeyEvent | None):
-		"""Displays a context menu for selecting a conversation profile.
+	# -- Pure UI event handlers --
 
-		This method triggers the creation of a profile selection menu from the main application frame
-		and shows it as a popup menu at the current cursor position. After the user makes a selection,
-		the menu is automatically destroyed.
+	def on_choose_profile(self, event: wx.KeyEvent | None):
+		"""Display profile selection menu.
 
 		Args:
-			event: The event that triggered the profile selection menu.
+			event: The event that triggered profile selection.
 		"""
 		main_frame: MainFrame = wx.GetTopLevelParent(self)
 		menu = main_frame.build_profile_menu(
@@ -339,10 +355,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 		menu.Destroy()
 
 	def on_char_hook(self, event: wx.KeyEvent):
-		"""Handle keyboard shortcuts for the conversation tab.
+		"""Handle keyboard shortcuts.
 
 		Args:
-			event: The keyboard event
+			event: The keyboard event.
 		"""
 		shortcut = (event.GetModifiers(), event.GetKeyCode())
 		actions = {(wx.MOD_CONTROL, ord("P")): self.on_choose_profile}
@@ -352,14 +368,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			event.Skip()
 
-	def on_account_change(self, event: wx.CommandEvent | None):
-		"""Handle account selection changes in the conversation tab.
+	# -- Widget update handlers --
 
-		Updates the model list based on the selected account's.
-		Enables/disables the record button based on the selected account's capabilities.
+	def on_account_change(self, event: wx.CommandEvent | None):
+		"""Handle account selection changes.
 
 		Args:
-			event: The account selection event
+			event: The account selection event.
 		"""
 		account = super().on_account_change(event)
 		if not account:
@@ -378,10 +393,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.prompt_panel.set_engine(self.current_engine)
 
 	def refresh_accounts(self):
-		"""Update the account selection combo box with current accounts.
-
-		Preserves the current selection if possible, otherwise selects the first account.
-		"""
+		"""Update the account combo box with current accounts."""
 		account_index = self.account_combo.GetSelection()
 		account_id = None
 		if account_index != wx.NOT_FOUND:
@@ -400,14 +412,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.Layout()
 
 	def on_config_change(self):
-		"""Handle configuration changes in the conversation tab.
-
-		Update account, model list and advanced mode settings.
-		"""
+		"""Handle configuration changes."""
 		self.refresh_accounts()
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.adjust_advanced_mode_setting()
+
+	# -- Display helpers --
 
 	def add_standard_context_menu_items(
 		self, menu: wx.Menu, include_paste: bool = True
@@ -415,8 +426,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""Add standard context menu items to a menu.
 
 		Args:
-			menu: The menu to add items to
-			include_paste: Whether to include the paste item
+			menu: The menu to add items to.
+			include_paste: Whether to include the paste item.
 		"""
 		menu.Append(wx.ID_UNDO)
 		menu.Append(wx.ID_REDO)
@@ -426,23 +437,15 @@ class ConversationTab(wx.Panel, BaseConversation):
 			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
-		# Caller is responsible for menu lifetime.
-
 	def insert_previous_prompt(self, event: wx.CommandEvent = None):
-		"""Insert the last user message from the conversation history into the prompt text control.
-
-		This method retrieves the content and attachments of the most recent user message from the conversation
-		and sets them as the current values in the prompt input field and attachments list. If no messages exist in
-		the conversation, no action is taken.
+		"""Insert the last user message into the prompt.
 
 		Args:
-			event: The wxPython event that triggered this method. Defaults to None and is not used in the method's logic.
+			event: The triggering event (unused).
 		"""
 		if self.conversation.messages:
 			last_user_message = self.conversation.messages[-1].request
 			self.prompt_panel.prompt_text = last_user_message.content
-
-			# Restore attachments if any, otherwise clear existing attachments
 			if last_user_message.attachments:
 				self.prompt_panel.attachment_files = (
 					last_user_message.attachments.copy()
@@ -452,13 +455,13 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self.prompt_panel.refresh_attachments_list()
 
 	def extract_text_from_message(self, content: str) -> str:
-		"""Extracts the text content from a message.
+		"""Extract text content from a message.
 
 		Args:
-		content: The message content to extract text from.
+			content: The message content.
 
 		Returns:
-		The extracted text content of the message.
+			The extracted text content.
 		"""
 		if isinstance(content, str):
 			return content
@@ -466,17 +469,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def refresh_messages(
 		self, need_clear: bool = True, preserve_prompt: bool = False
 	):
-		"""Refreshes the messages displayed in the conversation tab.
-
-		This method updates the conversation display by optionally clearing existing content and then
-		re-displaying all messages from the current conversation. It performs the following steps:
-		- Optionally clears the messages list, message segment manager, and attachment files
-		- Refreshes the attachments list display
-		- Iterates through all message blocks in the conversation and displays them
+		"""Refresh the messages displayed.
 
 		Args:
-			need_clear: If True, clears existing messages, message segments, and attachments. Defaults to True.
-			preserve_prompt: If True, preserves the current prompt and attachments even when need_clear is True. Defaults to False.
+			need_clear: Whether to clear existing messages.
+			preserve_prompt: Whether to preserve the current prompt.
 		"""
 		if need_clear:
 			self.messages.Clear()
@@ -486,555 +483,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		for block in self.conversation.messages:
 			self.messages.display_new_block(block)
 
-	def transcribe_audio_file(self, audio_file: str = None):
-		"""Transcribe an audio file using the current provider's STT capabilities.
-
-		Args:
-			audio_file: Path to audio file. If None, starts recording. Defaults to None.
-		"""
-		if not self.recording_thread:
-			module = __import__(
-				"basilisk.recording_thread", fromlist=["RecordingThread"]
-			)
-			recording_thread_cls = getattr(module, "RecordingThread")
-		else:
-			recording_thread_cls = self.recording_thread.__class__
-		self.recording_thread = recording_thread_cls(
-			provider_engine=self.current_engine,
-			recordings_settings=config.conf().recordings,
-			conversation_tab=self,
-			audio_file_path=audio_file,
-		)
-		self.recording_thread.start()
-
-	def on_transcribe_audio_file(self):
-		"""Transcribe an audio file using the current provider's STT capabilities."""
-		cur_provider = self.current_engine
-		if ProviderCapability.STT not in cur_provider.capabilities:
-			wx.MessageBox(
-				_("The selected provider does not support speech-to-text"),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		dlg = wx.FileDialog(
-			self,
-			# Translators: This is a label for audio file in the main window
-			message=_("Select an audio file to transcribe"),
-			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-			wildcard=_("Audio files")
-			+ " (*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm)|*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm",
-		)
-		if dlg.ShowModal() == wx.ID_OK:
-			audio_file = dlg.GetPath()
-			dlg.Destroy()
-			self.transcribe_audio_file(audio_file)
-		else:
-			dlg.Destroy()
-
-	def on_recording_started(self):
-		"""Handle the start of audio recording."""
-		play_sound("recording_started")
-		self.SetStatusText(_("Recording..."))
-
-	def on_recording_stopped(self):
-		"""Handle the end of audio recording."""
-		play_sound("recording_stopped")
-		self.SetStatusText(_("Recording stopped"))
-
-	def on_transcription_started(self):
-		"""Handle the start of audio transcription."""
-		play_sound("progress", loop=True)
-		self.SetStatusText(_("Transcribing..."))
-
-	def on_transcription_received(self, transcription):
-		"""Handle the receipt of a transcription result.
-
-		Args:
-			transcription: The transcription result
-		"""
-		stop_sound()
-		self.SetStatusText(_("Ready"))
-		self.prompt_panel.prompt.AppendText(transcription.text)
-		if (
-			self.prompt_panel.prompt.HasFocus()
-			and self.GetTopLevelParent().IsShown()
-		):
-			self._handle_accessible_output(transcription.text)
-		self.prompt_panel.prompt.SetInsertionPointEnd()
-		self.prompt_panel.set_prompt_focus()
-
-	def on_transcription_error(self, error):
-		"""Handle an error during audio transcription.
-
-		Args:
-			error: The error that occurred
-		"""
-		stop_sound()
-		self.SetStatusText(_("Ready"))
-		show_enhanced_error_dialog(
-			parent=self,
-			message=_("An error occurred during transcription: %s") % error,
-			title=_("Transcription Error"),
-			is_completion_error=False,
-		)
-
-	def toggle_recording(self, event: wx.CommandEvent):
-		"""Toggle audio recording on/off.
-
-		Args:
-			event: The button event
-		"""
-		if self.recording_thread and self.recording_thread.is_alive():
-			self.stop_recording()
-		else:
-			self.start_recording()
-
-	def start_recording(self):
-		"""Start audio recording."""
-		cur_provider = self.current_engine
-		if ProviderCapability.STT not in cur_provider.capabilities:
-			wx.MessageBox(
-				_("The selected provider does not support speech-to-text"),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		self.toggle_record_btn.SetLabel(_("Stop recording") + " (Ctrl+R)")
-		self.submit_btn.Disable()
-		self.transcribe_audio_file()
-
-	def stop_recording(self):
-		"""Stop audio recording."""
-		self.recording_thread.stop()
-		self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
-		self.submit_btn.Enable()
-
-	def get_system_message(self) -> SystemMessage | None:
-		"""Get the system message from the system prompt input.
-
-		Returns:
-			System message if set, None otherwise
-		"""
-		system_prompt = self.system_prompt_txt.GetValue()
-		if not system_prompt:
-			return None
-		return SystemMessage(content=system_prompt)
-
-	def get_new_message_block(self) -> MessageBlock | None:
-		"""Constructs a new message block for the conversation based on current UI settings.
-
-		Prepares a message block with user input, selected model, and generation parameters. If image resizing is enabled in configuration, it resizes attached images before creating the message block.
-
-		Returns:
-			A configured message block containing user prompt, images, model details, and generation parameters.
-		If no compatible model is available or no user input is provided, returns None.
-		"""
-		model = self.prompt_panel.ensure_model_compatibility(self.current_model)
-		if not model:
-			return None
-		self.prompt_panel.resize_all_attachments()
-		return MessageBlock(
-			request=Message(
-				role=MessageRoleEnum.USER,
-				content=self.prompt_panel.prompt_text,
-				attachments=self.prompt_panel.attachment_files,
-			),
-			model_id=model.id,
-			provider_id=self.current_account.provider.id,
-			temperature=self.temperature_spinner.GetValue(),
-			top_p=self.top_p_spinner.GetValue(),
-			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-			stream=self.stream_mode.GetValue(),
-		)
-
-	def get_completion_args(self) -> dict[str, Any] | None:
-		"""Get the arguments for the completion request.
-
-		Returns:
-			A dictionary containing the arguments for the completion request.
-		If no new message block is available, returns None.
-		"""
-		new_block = self.get_new_message_block()
-		if not new_block:
-			return None
-		completion_args = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in self.current_account.provider.engine_cls.capabilities
-		):
-			completion_args["web_search_mode"] = self.web_search_mode.GetValue()
-
-		return completion_args | {
-			"engine": self.current_engine,
-			"system_message": self.get_system_message(),
-			"conversation": self.conversation,
-			"new_block": new_block,
-			"stream": new_block.stream,
-		}
-
-	def on_submit(self, event: wx.CommandEvent):
-		"""Handle the submission of a new message block for completion.
-
-		Args:
-			event: The event that triggered the submission action
-		"""
-		self._draft_timer.Stop()
-		if not self.submit_btn.IsEnabled():
-			return
-		if (
-			not self.prompt_panel.prompt_text
-			and not self.prompt_panel.attachment_files
-		):
-			self.prompt_panel.set_prompt_focus()
-			return
-
-		if not self.prompt_panel.check_attachments_valid():
-			self.prompt_panel.set_attachments_focus()
-			return
-
-		# Get new message block and check compatibility
-		new_block = self.get_new_message_block()
-		if not new_block:
-			return
-
-		# Store current prompt content and attachments for potential error recovery
-		self._store_prompt_content()
-
-		# Clear the prompt panel immediately after successful validation
-		# This ensures attachments are cleared even if completion fails
-		self.prompt_panel.clear(refresh=True)
-
-		# Prepare completion arguments for web search if available
-		completion_kwargs = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in self.current_account.provider.engine_cls.capabilities
-		):
-			completion_kwargs["web_search_mode"] = (
-				self.web_search_mode.GetValue()
-			)
-
-		# Start completion using the handler
-		self.completion_handler.start_completion(
-			engine=self.current_engine,
-			system_message=self.get_system_message(),
-			conversation=self.conversation,
-			new_block=new_block,
-			stream=new_block.stream,
-			**completion_kwargs,
-		)
-
-	def on_stop_completion(self, event: wx.CommandEvent):
-		"""Handle the stopping of the current completion task.
-
-		Args:
-			event: The event that triggered the stop action
-		"""
-		self.completion_handler.stop_completion()
-
-	def generate_conversation_title(self):
-		"""Generate a title for the conversation using the AI model.
-
-		Returns:
-			A generated conversation title if successful, or None on failure.
-		"""
-		if self.completion_handler.is_running():
-			wx.MessageBox(
-				_(
-					"A completion is already in progress. Please wait until it finishes."
-				),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		if not self.conversation.messages:
-			return
-		model = self.current_model
-		if not model:
-			return
-		title = self.service.generate_title(
-			engine=self.current_engine,
-			conversation=self.conversation,
-			provider_id=self.current_account.provider.id,
-			model_id=model.id,
-			temperature=self.temperature_spinner.GetValue(),
-			top_p=self.top_p_spinner.GetValue(),
-			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-			stream=self.stream_mode.GetValue(),
-		)
-		if title is None and self.conversation.messages:
-			show_enhanced_error_dialog(
-				parent=self,
-				message=_("An error occurred during title generation"),
-				title=_("Title Generation Error"),
-				is_completion_error=True,
-			)
-		return title
-
-	def save_conversation(self, file_path: str) -> bool:
-		"""Save the current conversation to a specified file path.
-
-		Args:
-			file_path: The target file path where the conversation will be saved.
-
-		Returns:
-			True if the conversation was successfully saved, False otherwise.
-		"""
-		draft_block = self._build_draft_block()
-		success, error = self.service.save_conversation(
-			self.conversation, file_path, draft_block
-		)
-		if not success and error is not None:
-			show_enhanced_error_dialog(
-				parent=self,
-				message=_("An error occurred while saving the conversation: %s")
-				% error,
-				title=_("Save Error"),
-				is_completion_error=False,
-			)
-		return success
-
-	def remove_message_block(self, message_block: MessageBlock):
-		"""Remove a message block from the conversation.
-
-		Args:
-			message_block: The message block to remove
-		"""
-		self.conversation.remove_block(message_block)
-		self.refresh_messages(preserve_prompt=True)
-
-	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
-		"""Get the index of a message block in the conversation.
-
-		Args:
-			block: The message block to find
-
-		Returns:
-			The index of the message block in the conversation, or None if not found
-		"""
-		try:
-			return self.conversation.messages.index(block)
-		except ValueError:
-			return None
-
-	def _on_completion_start(self):
-		"""Called when completion starts."""
-		self.submit_btn.Disable()
-		self.stop_completion_btn.Show()
-		if config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
-
-	def _on_completion_end(self, success: bool):
-		"""Called when completion ends.
-
-		Args:
-			success: Whether the completion was successful
-		"""
-		self.stop_completion_btn.Hide()
-		self.submit_btn.Enable()
-
-		# Clear stored variables after successful completion
-		if success:
-			self._clear_stored_content()
-
-		if success and config.conf().conversation.focus_history_after_send:
-			self.messages.SetFocus()
-
-	def _on_stream_chunk(self, chunk: str):
-		"""Called for each streaming chunk.
-
-		Args:
-			chunk: The streaming chunk content
-		"""
-		self.messages.append_stream_chunk(chunk)
-
-	def _on_stream_start(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
-	):
-		"""Called when streaming starts.
-
-		Args:
-			new_block: The message block being completed
-			system_message: Optional system message
-		"""
-		self.conversation.add_block(new_block, system_message)
-		self.messages.display_new_block(new_block, streaming=True)
-		self.messages.SetInsertionPointEnd()
-
-	def _on_stream_finish(self, new_block: MessageBlock):
-		"""Called when streaming finishes.
-
-		Args:
-			new_block: The completed message block
-		"""
-		self.messages.a_output.handle_stream_buffer()
-		self.messages.update_last_segment_length()
-		self._auto_save_to_db(new_block)
-
-	def _on_non_stream_finish(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
-	):
-		"""Called when non-streaming completion finishes.
-
-		Args:
-			new_block: The completed message block
-			system_message: Optional system message
-		"""
-		self.conversation.add_block(new_block, system_message)
-		self.messages.display_new_block(new_block)
-		if self.messages.should_speak_response:
-			self.messages.a_output.handle(new_block.response.content)
-		self._auto_save_to_db(new_block)
-
-	def _store_prompt_content(self):
-		"""Store current prompt content and attachments for error recovery."""
-		self._stored_prompt_text = self.prompt_panel.prompt_text
-		self._stored_attachments = self.prompt_panel.attachment_files.copy()
-
-	def _restore_prompt_content(self):
-		"""Restore previously stored prompt content and attachments."""
-		if (
-			self._stored_prompt_text is not None
-			and self._stored_attachments is not None
-		):
-			self.prompt_panel.prompt_text = self._stored_prompt_text
-			self.prompt_panel.attachment_files = self._stored_attachments
-			self.prompt_panel.refresh_attachments_list()
-
-	def _clear_stored_content(self):
-		"""Clear stored prompt content and attachments."""
-		self._stored_prompt_text = None
-		self._stored_attachments = None
-
-	def _on_completion_error(self, error_message: str):
-		"""Called when a completion error occurs.
-
-		Args:
-			error_message: The error message
-		"""
-		self._restore_prompt_content()
-		self._clear_stored_content()
-
-		show_enhanced_error_dialog(
-			parent=self,
-			message=_("An error occurred during completion: %s")
-			% error_message,
-			title=_("Completion Error"),
-			is_completion_error=True,
-		)
-
-	def _auto_save_to_db(self, new_block: MessageBlock):
-		"""Auto-save the conversation or new block to the database.
-
-		Args:
-			new_block: The newly completed message block to save.
-		"""
-		self.service.auto_save_to_db(self.conversation, new_block)
-
-	def update_db_title(self, title: str | None):
-		"""Update the conversation title in the database.
-
-		Args:
-			title: The new title for the conversation.
-		"""
-		self.service.update_db_title(title)
-
-	def set_private(self, private: bool):
-		"""Set the private flag. If enabling, delete conversation from DB.
-
-		Args:
-			private: Whether the conversation should be private.
-		"""
-		if self.service.set_private(private):
-			self._draft_timer.Stop()
-
-	def _on_prompt_text_changed(self, event):
-		"""Handle prompt text changes for draft auto-save debouncing."""
-		event.Skip()
-		conf = config.conf()
-		if (
-			not conf.conversation.auto_save_to_db
-			or not conf.conversation.auto_save_draft
-		):
-			return
-		if self.private or self.db_conv_id is None:
-			return
-		self._draft_timer.StartOnce(2000)
-
-	def _on_draft_timer(self, event):
-		"""Handle draft timer expiration to save draft to DB."""
-		if self.db_conv_id is None:
-			return
-		self._save_draft_to_db()
-
-	def _build_draft_block(self) -> MessageBlock | None:
-		"""Build a draft MessageBlock from current prompt state.
-
-		Returns:
-			A MessageBlock with no response, or None if prompt is empty.
-		"""
-		prompt_text = self.prompt_panel.prompt_text
-		attachments = self.prompt_panel.attachment_files
-		if not prompt_text and not attachments:
-			return None
-		block = MessageBlock(
-			request=Message(
-				role=MessageRoleEnum.USER,
-				content=prompt_text or "",
-				attachments=attachments or None,
-			),
-			model=AIModelInfo(
-				provider_id=(
-					self.current_account.provider.id
-					if self.current_account
-					else "unknown"
-				),
-				model_id=(
-					self.current_model.id if self.current_model else "unknown"
-				),
-			),
-			temperature=self.temperature_spinner.GetValue(),
-			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-			top_p=self.top_p_spinner.GetValue(),
-			stream=self.stream_mode.GetValue(),
-		)
-		system_msg = self.get_system_message()
-		if system_msg and system_msg in self.conversation.systems:
-			block.system_index = list(self.conversation.systems).index(
-				system_msg
-			)
-		return block
-
-	def _save_draft_to_db(self):
-		"""Save the current draft to the database."""
-		draft_block = self._build_draft_block()
-		system_msg = self.get_system_message()
-		self.service.save_draft_to_db(
-			self.conversation, draft_block, system_msg
-		)
-
 	def _restore_draft_block(self, draft_block: MessageBlock):
-		"""Restore a draft block's content and settings to UI controls.
+		"""Restore a draft block's content to UI controls.
 
 		Args:
 			draft_block: The draft MessageBlock to restore.
 		"""
-		# Restore prompt text
 		self.prompt_panel.prompt_text = draft_block.request.content
-
-		# Restore attachments
 		if draft_block.request.attachments:
 			self.prompt_panel.attachment_files = draft_block.request.attachments
 			self.prompt_panel.refresh_attachments_list()
 
-		# Restore model settings
 		self.temperature_spinner.SetValue(draft_block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
 
-		# Restore model selection if possible
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
@@ -1051,51 +515,121 @@ class ConversationTab(wx.Panel, BaseConversation):
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 
-	def flush_draft(self):
-		"""Immediately save any pending draft to the database."""
-		self._draft_timer.Stop()
-		if self.db_conv_id is None or self.private:
-			return
-		conf = config.conf()
-		if (
-			not conf.conversation.auto_save_to_db
-			or not conf.conversation.auto_save_draft
-		):
-			return
-		self._save_draft_to_db()
-
-	@classmethod
-	def open_from_db(
-		cls, parent: wx.Window, conv_id: int, default_title: str
-	) -> ConversationTab:
-		"""Open a conversation from the database.
+	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
+		"""Get the index of a message block in the conversation.
 
 		Args:
-			parent: The parent window for the conversation tab.
-			conv_id: The database conversation ID.
-			default_title: A fallback title if the conversation has no title.
+			block: The message block to find.
 
 		Returns:
-			A new ConversationTab with the loaded conversation.
+			The index, or None if not found.
 		"""
-		conversation = cls._get_conv_db().load_conversation(conv_id)
-		title = conversation.title or default_title
-		storage_path = cls.conv_storage_path()
+		try:
+			return self.conversation.messages.index(block)
+		except ValueError:
+			return None
 
-		# Extract draft block if present (last block with no response)
-		draft_block = None
-		if conversation.messages and conversation.messages[-1].response is None:
-			draft_block = conversation.messages.pop()
+	# -- Delegating event handlers (one-line delegations to presenter) --
 
-		tab = cls(
-			parent,
-			conversation=conversation,
-			title=title,
-			conv_storage_path=storage_path,
-		)
-		tab.db_conv_id = conv_id
+	def on_submit(self, event: wx.CommandEvent):
+		"""Handle submission of a new message.
 
-		if draft_block is not None:
-			tab._restore_draft_block(draft_block)
+		Args:
+			event: The triggering event.
+		"""
+		self.presenter.on_submit()
 
-		return tab
+	def on_stop_completion(self, event: wx.CommandEvent):
+		"""Handle stopping the current completion.
+
+		Args:
+			event: The triggering event.
+		"""
+		self.presenter.on_stop_completion()
+
+	def toggle_recording(self, event: wx.CommandEvent):
+		"""Toggle audio recording on/off.
+
+		Args:
+			event: The button event.
+		"""
+		self.presenter.toggle_recording()
+
+	def _on_prompt_text_changed(self, event):
+		"""Handle prompt text changes for draft auto-save debouncing."""
+		event.Skip()
+		self.presenter.on_prompt_text_changed()
+
+	def _on_draft_timer(self, event):
+		"""Handle draft timer expiration."""
+		self.presenter.on_draft_timer()
+
+	# -- Delegating methods for external callers --
+
+	def get_system_message(self) -> SystemMessage | None:
+		"""Get the system message from the system prompt input."""
+		return self.presenter.get_system_message()
+
+	def get_new_message_block(self) -> MessageBlock | None:
+		"""Construct a new message block from current UI state."""
+		return self.presenter.get_new_message_block()
+
+	def get_completion_args(self) -> dict[str, Any] | None:
+		"""Get the arguments for the completion request."""
+		return self.presenter.get_completion_args()
+
+	def generate_conversation_title(self):
+		"""Generate a conversation title using the AI model."""
+		return self.presenter.generate_conversation_title()
+
+	def save_conversation(self, file_path: str) -> bool:
+		"""Save the current conversation to a file.
+
+		Args:
+			file_path: The target file path.
+
+		Returns:
+			True if saved successfully.
+		"""
+		return self.presenter.save_conversation(file_path)
+
+	def remove_message_block(self, message_block: MessageBlock):
+		"""Remove a message block from the conversation.
+
+		Args:
+			message_block: The message block to remove.
+		"""
+		self.presenter.remove_message_block(message_block)
+
+	def update_db_title(self, title: str | None):
+		"""Update the conversation title in the database.
+
+		Args:
+			title: The new title.
+		"""
+		self.service.update_db_title(title)
+
+	def set_private(self, private: bool):
+		"""Set the private flag.
+
+		Args:
+			private: Whether the conversation should be private.
+		"""
+		if self.service.set_private(private):
+			self._draft_timer.Stop()
+
+	def flush_draft(self):
+		"""Immediately save any pending draft to the database."""
+		self.presenter.flush_draft()
+
+	def transcribe_audio_file(self, audio_file: str = None):
+		"""Transcribe an audio file.
+
+		Args:
+			audio_file: Path to audio file, or None to record.
+		"""
+		self.presenter.transcribe_audio_file(audio_file)
+
+	def on_transcribe_audio_file(self):
+		"""Open file dialog and transcribe selected audio file."""
+		self.presenter.on_transcribe_audio_file()

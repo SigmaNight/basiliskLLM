@@ -20,7 +20,7 @@ from numpy import array as np_array
 
 if TYPE_CHECKING:
 	from basilisk.config.main_config import RecordingsSettings
-	from basilisk.views.conversation_tab import ConversationTab
+	from basilisk.presenters.conversation_presenter import ConversationPresenter
 
 	from .provider_engine.base_engine import BaseEngine
 
@@ -38,18 +38,21 @@ class RecordingThread(threading.Thread):
 		self,
 		provider_engine: BaseEngine,
 		recordings_settings: RecordingsSettings,
-		conversation_tab: ConversationTab,
+		callbacks: ConversationPresenter,
 		audio_file_path=None,
 		response_format: str = "json",
+		# Legacy alias for backwards compatibility
+		conversation_tab=None,
 	):
 		"""Initialize the recording thread.
 
 		Args:
 			provider_engine: Engine to handle audio transcription.
 			recordings_settings: Configuration for audio recording.
-			conversation_tab: GUI tab managing the conversation.
+			callbacks: Object providing recording callback methods.
 			audio_file_path: Path to existing audio file. Defaults to None.
 			response_format: Format for transcription response. Defaults to "json".
+			conversation_tab: Deprecated alias for callbacks.
 
 		Raises:
 			ValueError: If provider_engine or recordings_settings are not provided.
@@ -63,7 +66,7 @@ class RecordingThread(threading.Thread):
 		self.audio_file_path = audio_file_path
 		self.recordings_settings = recordings_settings
 		self.response_format = response_format
-		self.conversation_tab = conversation_tab
+		self.callbacks = callbacks or conversation_tab
 		self.daemon = True
 		self._recording = False
 		self._stop_record = False
@@ -79,9 +82,9 @@ class RecordingThread(threading.Thread):
 			self.audio_file_path = self.get_filename()
 			self.audio_data = np_array([], dtype=self.recordings_settings.dtype)
 			log.debug("Recording started")
-			wx.CallAfter(self.conversation_tab.on_recording_started)
+			wx.CallAfter(self.callbacks.on_recording_started)
 			self.record_audio(self.recordings_settings.sample_rate)
-			wx.CallAfter(self.conversation_tab.on_recording_stopped)
+			wx.CallAfter(self.callbacks.on_recording_stopped)
 			log.debug("Recording stopped")
 
 			if self._want_abort:
@@ -92,7 +95,7 @@ class RecordingThread(threading.Thread):
 				self.recordings_settings.sample_rate,
 			)
 			log.debug("Audio file saved to %s", self.audio_file_path)
-		wx.CallAfter(self.conversation_tab.on_transcription_started)
+		wx.CallAfter(self.callbacks.on_transcription_started)
 		self.process_transcription(self.audio_file_path)
 
 	def record_audio(self, sampleRate: int):
@@ -164,11 +167,11 @@ class RecordingThread(threading.Thread):
 			if self._want_abort:
 				return
 			wx.CallAfter(
-				self.conversation_tab.on_transcription_received, transcription
+				self.callbacks.on_transcription_received, transcription
 			)
 		except BaseException as err:
 			log.error("Error getting transcription: %s", err)
-			wx.CallAfter(self.conversation_tab.on_transcription_error, str(err))
+			wx.CallAfter(self.callbacks.on_transcription_error, str(err))
 
 	def abort(self):
 		"""Abort the recording and transcription process."""
