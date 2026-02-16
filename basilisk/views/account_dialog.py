@@ -1,19 +1,22 @@
 """Account dialog for managing accounts and organizations in the basiliskLLM application."""
 
 import logging
-import re
 
 import wx
 from more_itertools import first, locate
-from pydantic import SecretStr
 
 from basilisk.config import (
-	CUSTOM_BASE_URL_PATTERN,
 	Account,
 	AccountOrganization,
 	AccountSource,
 	KeyStorageMethodEnum,
 	accounts,
+)
+from basilisk.presenters.account_presenter import (
+	AccountOrganizationPresenter,
+	AccountPresenter,
+	EditAccountOrganizationPresenter,
+	EditAccountPresenter,
 )
 from basilisk.provider import Provider, get_provider, providers
 
@@ -42,13 +45,18 @@ class EditAccountOrganizationDialog(wx.Dialog):
 		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
-		self.organization = organization
+		self.presenter = EditAccountOrganizationPresenter(self, organization)
 		self.init_ui()
 		self.init_data()
 		self.update_data()
 		self.Centre()
 		self.Show()
 		self.name.SetFocus()
+
+	@property
+	def organization(self) -> AccountOrganization | None:
+		"""Get the organization from the presenter."""
+		return self.presenter.organization
 
 	def init_ui(self):
 		"""Initialize the user interface of the dialog.
@@ -110,20 +118,21 @@ class EditAccountOrganizationDialog(wx.Dialog):
 
 		If an organization is provided, the organization's name, key storage method, and key are set in the dialog.
 		"""
-		if not self.organization:
+		organization = self.presenter.organization
+		if not organization:
 			self.key_storage_method.SetSelection(0)
 			return
 
-		self.name.SetValue(self.organization.name)
+		self.name.SetValue(organization.name)
 		index = first(
 			locate(
 				key_storage_methods.keys(),
-				lambda x: x == self.organization.key_storage_method,
+				lambda x: x == organization.key_storage_method,
 			),
 			-1,
 		)
 		self.key_storage_method.SetSelection(index)
-		self.key.SetValue(self.organization.key.get_secret_value())
+		self.key.SetValue(organization.key.get_secret_value())
 
 	def update_data(self):
 		"""Update the data in the dialog."""
@@ -134,34 +143,12 @@ class EditAccountOrganizationDialog(wx.Dialog):
 
 		Validate the organization name, key storage method, and key. If the organization is valid, set the organization data and close the dialog.
 		"""
-		if not self.name.GetValue():
-			msg = _("Please enter a name")
+		result, error = self.presenter.validate_and_build()
+		if error:
+			msg, field_name = error
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			self.name.SetFocus()
+			getattr(self, field_name).SetFocus()
 			return
-		if self.key_storage_method.GetSelection() == -1:
-			msg = _("Please select a key storage method")
-			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			self.key_storage_method.SetFocus()
-			return
-		if not self.key.GetValue():
-			msg = _("Please enter a key")
-			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-			self.key.SetFocus()
-			return
-		key_storage_method = list(key_storage_methods.keys())[
-			self.key_storage_method.GetSelection()
-		]
-		if self.organization:
-			self.organization.name = self.name.GetValue()
-			self.organization.key_storage_method = key_storage_method
-			self.organization.key = SecretStr(self.key.GetValue())
-		else:
-			self.organization = AccountOrganization(
-				name=self.name.GetValue(),
-				key_storage_method=key_storage_method,
-				key=SecretStr(self.key.GetValue()),
-			)
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event: wx.Event | None):
@@ -263,14 +250,14 @@ class AccountOrganizationDialog(wx.Dialog):
 
 		The organizations for the account are set in the dialog.
 		"""
-		self.organizations = self.account.organizations or []
+		self.presenter = AccountOrganizationPresenter(self.account)
 
 	def update_data(self):
 		"""Update the data in the dialog.
 
 		Add the organisations data to the list control.
 		"""
-		for organization in self.organizations:
+		for organization in self.presenter.organizations:
 			self.organization_list.Append(
 				(
 					organization.name,
@@ -281,7 +268,7 @@ class AccountOrganizationDialog(wx.Dialog):
 				)
 			)
 
-	def update_ui(self, event: wx.Event | None):
+	def update_ui(self, event: wx.Event | None = None):
 		"""Update the user interface of the dialog.
 
 		Enable or disable the edit and remove buttons based on the selected organization.
@@ -294,13 +281,9 @@ class AccountOrganizationDialog(wx.Dialog):
 			self.edit_btn.Disable()
 			self.remove_btn.Disable()
 			return
-		organization = self.organizations[selected_item]
-		if organization.source == AccountSource.ENV_VAR:
-			self.edit_btn.Disable()
-			self.remove_btn.Disable()
-			return
-		self.edit_btn.Enable()
-		self.remove_btn.Enable()
+		editable = self.presenter.is_editable(selected_item)
+		self.edit_btn.Enable(editable)
+		self.remove_btn.Enable(editable)
 
 	def on_add(self, event: wx.Event | None):
 		"""Handle the Add button click event.
@@ -310,7 +293,7 @@ class AccountOrganizationDialog(wx.Dialog):
 		dialog = EditAccountOrganizationDialog(self, _("Add organization"))
 		if dialog.ShowModal() == wx.ID_OK:
 			organization = dialog.organization
-			self.organizations.append(organization)
+			self.presenter.add_organization(organization)
 			self.organization_list.Append(
 				(
 					organization.name,
@@ -336,13 +319,13 @@ class AccountOrganizationDialog(wx.Dialog):
 		Open the EditAccountOrganizationDialog to edit the selected organization.
 		"""
 		selected_item = self.organization_list.GetFirstSelected()
-		organization = self.organizations[selected_item]
+		organization = self.presenter.organizations[selected_item]
 		dialog = EditAccountOrganizationDialog(
 			self, _("Edit organization"), organization
 		)
 		if dialog.ShowModal() == wx.ID_OK:
 			organization = dialog.organization
-			self.organizations[selected_item] = organization
+			self.presenter.edit_organization(selected_item, organization)
 			self.organization_list.SetItem(selected_item, 0, organization.name)
 			self.organization_list.SetItem(
 				selected_item, 1, organization.key.get_secret_value()
@@ -368,19 +351,16 @@ class AccountOrganizationDialog(wx.Dialog):
 		Remove the selected organization from the account.
 		"""
 		index = self.organization_list.GetFirstSelected()
-		organization = self.organizations[index]
+		organization = self.presenter.organizations[index]
 		# Translators: A confirmation message in account dialog for removing organization
 		msg = _("Are you sure you want to remove the organization {}?").format(
 			organization.name
 		)
 		if wx.MessageBox(msg, _("Confirmation"), wx.YES_NO) != wx.YES:
 			return
-		organization.delete_keyring_password()
+		self.presenter.remove_organization(index)
 		self.organization_list.Select(index - 1)
 		self.organization_list.DeleteItem(index)
-		if self.account.active_organization_id == organization.id:
-			self.account.active_organization_id = None
-		self.organizations.pop(index)
 		self.update_ui()
 
 	def on_ok(self, event: wx.Event | None):
@@ -388,7 +368,7 @@ class AccountOrganizationDialog(wx.Dialog):
 
 		Save the organizations to the account and close the dialog.
 		"""
-		self.account.organizations = self.organizations
+		self.presenter.save_to_account()
 		self.EndModal(wx.ID_OK)
 
 	def on_cancel(self, event: wx.Event | None):
@@ -431,7 +411,7 @@ class EditAccountDialog(wx.Dialog):
 		"""
 		super().__init__(parent, title=title, size=size)
 		self.parent = parent
-		self.account = account
+		self.presenter = EditAccountPresenter(self, account)
 		self.init_ui()
 		if account:
 			self.init_data()
@@ -439,6 +419,11 @@ class EditAccountDialog(wx.Dialog):
 		self.Centre()
 		self.Show()
 		self.name.SetFocus()
+
+	@property
+	def account(self) -> Account | None:
+		"""Get the account from the presenter."""
+		return self.presenter.account
 
 	def init_ui(self):
 		"""Initialize the user interface of the dialog.
@@ -537,59 +522,59 @@ class EditAccountDialog(wx.Dialog):
 		If an account is provided, the account's name, provider, API key,
 		and organization settings are set in the dialog.
 		"""
-		if not self.account:
+		account = self.presenter.account
+		if not account:
 			self.api_key_storage_method_combo.SetSelection(0)
 			return
 
-		self.name.SetValue(self.account.name)
+		self.name.SetValue(account.name)
 		index = first(
-			locate(providers, lambda x: x.name == self.account.provider.name),
-			-1,
+			locate(providers, lambda x: x.name == account.provider.name), -1
 		)
 		self.provider_combo.SetSelection(index)
 
-		if self.account.api_key and self.account.api_key_storage_method:
+		if account.api_key and account.api_key_storage_method:
 			self._set_api_key_data()
 
 		self._init_organization_data()
 
-		if self.account.custom_base_url:
-			self.custom_base_url_text_ctrl.SetValue(
-				self.account.custom_base_url
-			)
+		if account.custom_base_url:
+			self.custom_base_url_text_ctrl.SetValue(account.custom_base_url)
 
 	def _set_api_key_data(self) -> None:
 		"""Set API key related fields from account data."""
+		account = self.presenter.account
 		index = first(
 			locate(
 				key_storage_methods.keys(),
-				lambda x: x == self.account.api_key_storage_method,
+				lambda x: x == account.api_key_storage_method,
 			),
 			-1,
 		)
 		self.api_key_storage_method_combo.SetSelection(index)
-		self.api_key_text_ctrl.SetValue(self.account.api_key.get_secret_value())
+		self.api_key_text_ctrl.SetValue(account.api_key.get_secret_value())
 
 	def _init_organization_data(self) -> None:
 		"""Initialize organization related fields."""
+		account = self.presenter.account
 		self.organization_text_ctrl.Enable(
-			self.account.provider.organization_mode_available
+			account.provider.organization_mode_available
 		)
-		if not self.account.provider.organization_mode_available:
+		if not account.provider.organization_mode_available:
 			return
 
-		if self.account.organizations:
+		if account.organizations:
 			choices = [_("Personal")] + [
-				organization.name for organization in self.account.organizations
+				organization.name for organization in account.organizations
 			]
 			self.organization_text_ctrl.SetItems(choices)
 
-		if self.account.active_organization_id:
+		if account.active_organization_id:
 			index = (
 				first(
 					locate(
-						self.account.organizations,
-						lambda x: x.id == self.account.active_organization_id,
+						account.organizations,
+						lambda x: x.id == account.active_organization_id,
 					),
 					-1,
 				)
@@ -675,140 +660,20 @@ class EditAccountDialog(wx.Dialog):
 		Args:
 			event: The event that triggered the OK button click. If None, the OK button was not clicked.
 		"""
-		error_message = self._validate_form()
-		if error_message:
-			msg, field = error_message
+		error = self.presenter.validate_form()
+		if error:
+			msg, field_name = error
 			wx.MessageBox(
 				msg,
 				# Translators: A title for the error message in account dialog
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
-			field.SetFocus()
+			getattr(self, field_name).SetFocus()
 			return
 
-		self._save_account_data()
+		self.presenter.build_account()
 		self.EndModal(wx.ID_OK)
-
-	def _validate_form(self) -> tuple[str, wx.Window] | None:
-		"""Validate form data and return a tuple of error message and field to focus on if any.
-
-		Returns None if form data is valid.
-		"""
-		if not self.name.GetValue():
-			# Translators: An error message in account dialog
-			return _("Please enter a name"), self.name
-
-		provider = self.provider
-		if not provider:
-			# Translators: An error message in account dialog
-			return _("Please select a provider"), self.provider_combo
-
-		if provider.require_api_key:
-			if self.api_key_storage_method_combo.GetSelection() == wx.NOT_FOUND:
-				# Translators: An error message in account dialog
-				return _(
-					"Please select an API key storage method"
-				), self.api_key_storage_method_combo
-
-			if not self.api_key_text_ctrl.GetValue():
-				# Translators: An error message in account dialog
-				return _(
-					"Please enter an API key. It is required for this provider"
-				), self.api_key_text_ctrl
-
-		if (
-			self.provider.allow_custom_base_url
-			and self.custom_base_url_text_ctrl.GetValue()
-		):
-			if not re.match(
-				CUSTOM_BASE_URL_PATTERN,
-				self.custom_base_url_text_ctrl.GetValue(),
-			):
-				# Translators: An error message in account dialog
-				return _(
-					"Please enter a valid custom base URL"
-				), self.custom_base_url_text_ctrl
-
-		return None
-
-	def _save_account_data(self) -> None:
-		"""Save form data to account object."""
-		provider = self.provider
-		organization_index = self.organization_text_ctrl.GetSelection()
-		active_organization = None
-		if (
-			organization_index > 0
-			and self.account
-			and self.account.organizations
-		):
-			active_organization = self.account.organizations[
-				organization_index - 1
-			].id
-
-		api_key_storage_method = None
-		api_key = None
-		if provider.require_api_key:
-			api_key_storage_method = list(key_storage_methods.keys())[
-				self.api_key_storage_method_combo.GetSelection()
-			]
-			api_key = SecretStr(self.api_key_text_ctrl.GetValue())
-
-		custom_base_url = self.custom_base_url_text_ctrl.GetValue()
-		if not provider.allow_custom_base_url or not custom_base_url.strip():
-			custom_base_url = None
-
-		if self.account:
-			self._update_existing_account(
-				provider,
-				active_organization,
-				api_key_storage_method,
-				api_key,
-				custom_base_url,
-			)
-		else:
-			self._create_new_account(
-				provider,
-				active_organization,
-				api_key_storage_method,
-				api_key,
-				custom_base_url,
-			)
-
-	def _update_existing_account(
-		self,
-		provider: Provider,
-		active_organization: str | None,
-		api_key_storage_method: KeyStorageMethodEnum | None,
-		api_key: SecretStr | None,
-		custom_base_url: str | None,
-	) -> None:
-		"""Update existing account with form data."""
-		self.account.name = self.name.GetValue()
-		self.account.provider = provider
-		self.account.api_key_storage_method = api_key_storage_method
-		self.account.api_key = api_key
-		self.account.active_organization_id = active_organization
-		self.account.custom_base_url = custom_base_url
-
-	def _create_new_account(
-		self,
-		provider: Provider,
-		active_organization: str | None,
-		api_key_storage_method: KeyStorageMethodEnum | None,
-		api_key: SecretStr | None,
-		custom_base_url: str | None,
-	) -> None:
-		"""Create new account from form data."""
-		self.account = Account(
-			name=self.name.GetValue(),
-			provider=provider,
-			api_key_storage_method=api_key_storage_method,
-			api_key=api_key,
-			active_organization_id=active_organization,
-			source=AccountSource.CONFIG,
-			custom_base_url=custom_base_url,
-		)
 
 	def on_cancel(self, event: wx.CommandEvent) -> None:
 		"""Handle the Cancel button click event.
@@ -924,22 +789,10 @@ class AccountDialog(wx.Dialog):
 	def init_data(self):
 		"""Initialize the data for the dialog.
 
-		Get the singleton account manager instance.
+		Get the singleton account manager instance and create the presenter.
 		"""
 		self.account_manager = accounts()
-
-	def _get_organization_name(self, account: Account) -> str:
-		"""Get a display name for the active organization of an account.
-
-		Args:
-			account: The account to get the organization name for.
-
-		Returns:
-			A string containing either the organization name or "No (personal)" if no organization is active.
-		"""
-		if not account.active_organization:
-			return _("No (personal)")
-		return account.active_organization.name
+		self.presenter = AccountPresenter(self.account_manager)
 
 	def add_account_to_list_ctrl(self, account: Account):
 		"""Add an account to the list control.
@@ -951,7 +804,7 @@ class AccountDialog(wx.Dialog):
 			(
 				account.name,
 				account.provider.name,
-				self._get_organization_name(account),
+				self.presenter.get_organization_display_name(account),
 				self.account_source_labels.get(account.source, _("Unknown")),
 			)
 		)
@@ -973,18 +826,17 @@ class AccountDialog(wx.Dialog):
 		Args:
 			event: The event that triggered the update. If None, the update was not triggered by an event.
 		"""
-		account = self.account_manager[self.account_list.GetFirstSelected()]
+		index = self.account_list.GetFirstSelected()
+		account = self.account_manager[index]
 		log.debug("Selected account: %s", account)
-		editable = account.source != AccountSource.ENV_VAR
+		editable = self.presenter.is_editable(index)
 		self.edit_btn.Enable(editable)
 		self.remove_btn.Enable(editable)
 		self.manage_organizations.Enable(
 			editable and account.provider.organization_mode_available
 		)
 		self.default_account_btn.Enable()
-		self.default_account_btn.SetValue(
-			self.account_manager.default_account == account
-		)
+		self.default_account_btn.SetValue(self.presenter.is_default(index))
 
 	def on_account_list_key_down(self, event: wx.KeyEvent):
 		"""Handle the key down event on the account list.
@@ -1015,11 +867,11 @@ class AccountDialog(wx.Dialog):
 			self, _("Manage organizations"), account.model_copy(deep=True)
 		)
 		if dialog.ShowModal() == wx.ID_OK:
-			dialog.account.reset_active_organization()
-			self.account_manager[index] = dialog.account
-			self.account_manager.save()
+			self.presenter.save_organizations(index, dialog.account)
 			self.account_list.SetItem(
-				index, 2, self._get_organization_name(dialog.account)
+				index,
+				2,
+				self.presenter.get_organization_display_name(dialog.account),
 			)
 		dialog.Destroy()
 		self.account_list.SetItemState(
@@ -1040,8 +892,7 @@ class AccountDialog(wx.Dialog):
 		dialog = EditAccountDialog(self, _("Add account"))
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
-			self.account_manager.add(account)
-			self.account_manager.save()
+			self.presenter.add_account(account)
 			self.add_account_to_list_ctrl(account)
 		dialog.Destroy()
 		for i in range(self.account_list.GetItemCount()):
@@ -1075,13 +926,11 @@ class AccountDialog(wx.Dialog):
 		)
 		if dialog.ShowModal() == wx.ID_OK:
 			account = dialog.account
-			account.reset_active_organization()
-			self.account_manager[index] = account
-			self.account_manager.save()
+			self.presenter.edit_account(index, account)
 			self.account_list.SetItem(index, 0, account.name)
 			self.account_list.SetItem(index, 1, account.provider.name)
 			self.account_list.SetItem(
-				index, 2, self._get_organization_name(account)
+				index, 2, self.presenter.get_organization_display_name(account)
 			)
 			self.account_list.SetItem(
 				index,
@@ -1120,8 +969,7 @@ class AccountDialog(wx.Dialog):
 			msg = _("Cannot remove account from environment variable")
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 			return
-		self.account_manager.remove(account)
-		self.account_manager.save()
+		self.presenter.remove_account(index)
 		self.account_list.DeleteItem(index)
 
 	def on_default_account(self, event: wx.Event | None):
@@ -1135,14 +983,7 @@ class AccountDialog(wx.Dialog):
 		index = self.account_list.GetFirstSelected()
 		if index == -1:
 			return
-		account = self.account_manager[index]
-		if self.account_manager.default_account == account:
-			return
-		if self.default_account_btn.GetValue():
-			self.account_manager.set_default_account(account)
-		else:
-			self.account_manager.set_default_account(None)
-		self.account_manager.save()
+		self.presenter.set_default_account(index)
 		self.update_ui()
 
 	def on_close(self, event: wx.Event | None):
