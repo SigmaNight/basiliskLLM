@@ -55,7 +55,9 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			size=(800, 600),
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
-		BaseConversation.__init__(self)
+		BaseConversation.__init__(
+			self, account_model_service=parent.account_model_service
+		)
 		self.conversation: Conversation = parent.conversation
 		self.a_output = parent.messages.a_output
 		self.block_index = message_block_index
@@ -66,7 +68,6 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 				self.block.system_index
 			]
 
-		self.accounts_engines = parent.accounts_engines
 		# Initialize completion handler with all necessary callbacks for streaming
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_regenerate_start,

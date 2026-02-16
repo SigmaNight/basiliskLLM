@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Optional
-from uuid import UUID
 
 import wx
 from more_itertools import locate
@@ -12,6 +11,7 @@ from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -56,9 +56,19 @@ class BaseConversation:
 	- Parameter controls (temperature, tokens, etc)
 	"""
 
-	def __init__(self):
-		"""Initialize the BaseConversation instance."""
-		self.accounts_engines: dict[UUID, BaseEngine] = {}
+	def __init__(
+		self, account_model_service: AccountModelService | None = None
+	):
+		"""Initialize the BaseConversation instance.
+
+		Args:
+			account_model_service: Service for engine cache and
+				account/model resolution. A new instance is created
+				if not provided.
+		"""
+		self.account_model_service = (
+			account_model_service or AccountModelService()
+		)
 
 	@property
 	def current_engine(self) -> Optional[BaseEngine]:
@@ -70,7 +80,7 @@ class BaseConversation:
 		account = self.current_account
 		if not account:
 			return None
-		return self.accounts_engines[account.id]
+		return self.account_model_service.get_engine(account)
 
 	def create_account_widget(self) -> wx.StaticText:
 		"""Create and configure the account selection combo box.
@@ -154,9 +164,7 @@ class BaseConversation:
 		account = self.current_account
 		if not account:
 			return None
-		self.accounts_engines.setdefault(
-			account.id, account.provider.engine_cls(account)
-		)
+		self.account_model_service.get_engine(account)
 		self.update_model_list()
 		return account
 
@@ -271,42 +279,36 @@ class BaseConversation:
 		self.max_tokens_spin_ctrl.SetValue(0)
 
 	def set_account_and_model_from_profile(
-		self, profile: config.Profile, fall_back_default_account: bool = False
+		self,
+		profile: config.ConversationProfile,
+		fall_back_default_account: bool = False,
 	):
 		"""Configure account and model selection from a profile.
+
+		Delegates account/model resolution to the AccountModelService,
+		then updates the UI widgets accordingly.
 
 		Args:
 			profile: Profile containing account or model settings
 			fall_back_default_account: Whether to use default account as fallback
 		"""
-		if (
-			not profile.account
-			and not profile.ai_model_info
-			and fall_back_default_account
-		):
-			log.debug("no account or model in profile, select default account")
+		account, model_id = (
+			self.account_model_service.resolve_account_and_model(
+				profile, fall_back_default_account
+			)
+		)
+		if account is None and model_id is None and fall_back_default_account:
 			self.select_default_account()
 			return
-		if profile.account:
-			self.set_account_combo(profile.account)
-		if profile.ai_model_info and not profile.account:
-			log.debug(
-				"no account in profile, trying to find account by provider"
-			)
-			account = next(
-				config.accounts().get_accounts_by_provider(
-					profile.ai_provider.name
-				),
-				None,
-			)
-			if account:
-				self.set_account_combo(account)
+		if account:
+			self.set_account_combo(account)
 		engine = self.current_engine
 		if not engine:
 			return
-		model = engine.get_model(profile.ai_model_id)
-		if model:
-			self.set_model_list(model)
+		if model_id:
+			model = engine.get_model(model_id)
+			if model:
+				self.set_model_list(model)
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.

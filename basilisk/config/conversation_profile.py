@@ -171,6 +171,38 @@ class ConversationProfile(BaseModel):
 			provider_id=provider_id, model_id=model_id
 		)
 
+	def to_summary_text(self) -> str:
+		"""Build a human-readable summary of this profile.
+
+		Returns:
+			A formatted string containing the profile's settings.
+		"""
+		# translators: Summary of a conversation profile
+		summary = _("Name:") + f" {self.name}\n"
+		if self.account:
+			# translators: Summary of a conversation profile
+			summary += _("Account name:") + f" {self.account.name}\n"
+		if self.ai_model_info:
+			# translators: Summary of a conversation profile
+			summary += _("Model:") + f" {self.ai_model_info}\n"
+		if self.max_tokens:
+			# translators: Summary of a conversation profile
+			summary += _("Max output tokens:") + f" {self.max_tokens}\n"
+		if self.temperature:
+			# translators: Summary of a conversation profile
+			summary += _("Temperature:") + f" {self.temperature}\n"
+		if self.top_p:
+			# translators: Summary of a conversation profile
+			summary += _("Top P:") + f" {self.top_p}\n"
+		# translators: Summary of a conversation profile
+		stream_mode_value = _("yes") if self.stream_mode else _("no")
+		# translators: Summary of a conversation profile
+		summary += _("Stream mode:") + f" {stream_mode_value}\n"
+		if self.system_prompt:
+			# translators: Summary of a conversation profile
+			summary += _("System prompt:") + f"\n{self.system_prompt}"
+		return summary
+
 	def __eq__(self, value: ConversationProfile | None) -> bool:
 		"""Compare two conversation profiles for equality based on their unique identifier.
 

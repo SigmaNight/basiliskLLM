@@ -20,6 +20,7 @@ import basilisk.config as config
 from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 from basilisk.presenters.conversation_presenter import ConversationPresenter
 from basilisk.provider_capability import ProviderCapability
+from basilisk.services.account_model_service import AccountModelService
 from basilisk.services.conversation_service import ConversationService
 
 from .base_conversation import BaseConversation
@@ -216,7 +217,10 @@ class ConversationTab(wx.Panel, BaseConversation):
 			bskc_path: Path to a .bskc file.
 		"""
 		wx.Panel.__init__(self, parent)
-		BaseConversation.__init__(self)
+		self.account_model_service = AccountModelService()
+		BaseConversation.__init__(
+			self, account_model_service=self.account_model_service
+		)
 		self.title = title
 		self.SetStatusText = self.TopLevelParent.SetStatusText
 

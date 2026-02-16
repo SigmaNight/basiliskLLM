@@ -348,6 +348,33 @@ class TestConversationProfile:
 				name="Test", ai_model_info="invalid_format_no_slash"
 			)
 
+	def test_to_summary_text_minimal(self):
+		"""Test to_summary_text with minimal profile."""
+		profile = ConversationProfile(name="Test")
+		summary = profile.to_summary_text()
+		assert "Name:" in summary
+		assert "Test" in summary
+		assert "Stream mode:" in summary
+
+	def test_to_summary_text_with_all_fields(self):
+		"""Test to_summary_text includes all set fields."""
+		profile = ConversationProfile(
+			name="Full",
+			ai_model_info="openai/gpt-4",
+			max_tokens=100,
+			temperature=0.7,
+			top_p=0.9,
+			stream_mode=False,
+			system_prompt="Be helpful",
+		)
+		summary = profile.to_summary_text()
+		assert "Full" in summary
+		assert "100" in summary
+		assert "0.7" in summary
+		assert "0.9" in summary
+		assert "Be helpful" in summary
+		assert "Model:" in summary
+
 
 class TestConversationProfileManagerCollectionOperations:
 	"""Tests for ConversationProfileManager collection-like operations."""
