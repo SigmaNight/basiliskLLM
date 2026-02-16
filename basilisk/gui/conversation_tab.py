@@ -77,7 +77,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 	@classmethod
 	def _get_conv_db(cls):
 		if cls._conv_db is None:
-			cls._conv_db = wx.getApp().conv_db
+			cls._conv_db = wx.GetApp().conv_db
 		return cls._conv_db
 
 	@staticmethod
