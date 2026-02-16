@@ -142,6 +142,7 @@ class ConversationHistoryDialog(wx.Dialog):
 
 	def _on_item_deselected(self, event):
 		"""Disable delete button when no item is selected."""
+		self.open_btn.Enable(False)
 		self.delete_btn.Enable(False)
 
 	def _on_list_key(self, event):
@@ -215,7 +216,7 @@ class ConversationHistoryDialog(wx.Dialog):
 				self.list_ctrl.SetItem(
 					index, 2, updated.strftime("%Y-%m-%d %H:%M")
 				)
-
+		self.open_btn.Enable(False)
 		self.delete_btn.Enable(False)
 
 	def Destroy(self):
