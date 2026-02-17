@@ -4,6 +4,7 @@ dynamic = ["version"]
 description = "Where LLMs Unite"
 authors = [
     {name = "André-Abush Clause", email ="dev@andreabc.net"},
+    {name = "Clément Boussiron", email ="clement.boussiron@gmail.com"},
 ]
 readme = "README.md"
 license = "GPL-2.0-only"
@@ -144,9 +145,9 @@ excludes = [
     "wint32gui", "win32ui", "win32uiold", "winreg",
 ]
 include_files = ["basilisk/res"]
-includes = ["numpy", "win32timezone", "multiprocessing", "multiprocessing.spawn", "multiprocessing.util"]
+includes = ["multiprocessing", "multiprocessing.spawn", "multiprocessing.util", "numpy", "win32timezone"]
 include_msvcr = true
-packages = ["numpy", "basilisk.provider_engine", "basilisk.multiprocessing_worker", "keyring", "fsspec.implementations", "upath.implementations", "multiprocessing"]
+packages = ["basilisk.provider_engine", "basilisk.multiprocessing_worker", "fsspec.implementations", "keyring", "multiprocessing", "numpy", "opentelemetry.baggage", "opentelemetry.context", "opentelemetry.trace", "upath.implementations"]
 zip_include_packages = [
     "_pyrepl", "anyio", "annotated_types", "anthropic", "asyncio",
     "backports", "cachetools", "certifi", "cffi", "charset_normalizer", "compression", "concurrent", "collections", "colorama", "ctypes", "curses",

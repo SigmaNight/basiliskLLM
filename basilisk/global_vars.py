@@ -18,8 +18,10 @@ user_data_path = (
 	else None
 )
 
-# resource directory present in the base directory (contains translation, sounds, etc.)
+# resource directory present in the base directory (contains translation, etc.)
 resource_path = base_path / Path("res")
+# sounds directory (contains sound, etc.)
+sounds_path = resource_path / "sounds"
 
 # command-line arguments parsed by the application
 args = None
