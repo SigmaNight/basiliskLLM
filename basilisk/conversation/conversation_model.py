@@ -90,7 +90,6 @@ class SystemMessage(BaseMessage):
 	"""Represents a system message in a conversation. The system message is used to provide instructions or context to the assistant."""
 
 	role: MessageRoleEnum = Field(default=MessageRoleEnum.SYSTEM)
-	db_id: int | None = Field(default=None, exclude=True)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -132,7 +131,6 @@ class MessageBlock(BaseModel):
 	stream: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
-	db_id: int | None = Field(default=None, exclude=True)
 
 	@field_validator("response", mode="after")
 	@classmethod

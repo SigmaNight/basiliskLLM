@@ -102,18 +102,6 @@ def image_attachment(image_file):
 
 
 @pytest.fixture
-def conversation_with_response(ai_model):
-	"""Return a conversation with a single complete block (request + response)."""
-	conv = Conversation()
-	req = Message(role=MessageRoleEnum.USER, content="Hello")
-	resp = Message(role=MessageRoleEnum.ASSISTANT, content="Hi there!")
-	block = MessageBlock(request=req, response=resp, model=ai_model)
-	conv.add_block(block)
-	conv.title = "Test"
-	return conv
-
-
-@pytest.fixture
 def message_segments():
 	"""Return a list of test message segments."""
 	return [
