@@ -45,6 +45,10 @@ class ConversationSettings(BaseModel):
 	shift_enter_mode: bool = Field(default=False)
 	use_accessible_output: bool = Field(default=True)
 	focus_history_after_send: bool = Field(default=False)
+	auto_save_to_db: bool = Field(default=True)
+	auto_save_draft: bool = Field(default=True)
+	reopen_last_conversation: bool = Field(default=False)
+	last_active_conversation_id: int | None = Field(default=None)
 
 
 class ImagesSettings(BaseModel):

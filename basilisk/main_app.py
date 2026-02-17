@@ -18,6 +18,7 @@ import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
+from basilisk.conversation.database import ConversationDatabase, get_db_path
 from basilisk.ipc import BasiliskIpc, FocusSignal, OpenBskcSignal
 from basilisk.localization import init_translation
 from basilisk.logger import (
@@ -70,6 +71,7 @@ class MainApp(wx.App):
 		language = global_vars.args.language or self.conf.general.language
 		self.locale = init_translation(language)
 		log.info("translation initialized")
+		self.init_conversation_db()
 		initialize_sound_manager()
 		log.info("sound manager initialized")
 		self.init_main_frame()
@@ -163,6 +165,7 @@ class MainApp(wx.App):
 			log.debug("Stopping IPC receiver")
 			self.ipc.stop_receiver()
 			log.info("IPC receiver stopped")
+		self.close_conversation_db()
 		log.info("Application exited")
 		return 0
 
@@ -191,6 +194,18 @@ class MainApp(wx.App):
 				_("Error"),
 				style=wx.ICON_ERROR,
 			)
+
+	def init_conversation_db(self) -> None:
+		"""Init the database att application level."""
+		log.debug("Initializing conversation database")
+		db_path = get_db_path()
+		self.conv_db = ConversationDatabase(db_path)
+
+	def close_conversation_db(self):
+		"""Close the databse connection and release the singleton."""
+		log.debug("closing conversation database")
+		self.conv_db.close()
+		log.info("conversation database closed")
 
 	def bring_window_to_focus(self, data: FocusSignal):
 		"""Brings the main application window to the front and gives it focus.
