@@ -4,6 +4,7 @@ dynamic = ["version"]
 description = "Where LLMs Unite"
 authors = [
     {name = "André-Abush Clause", email ="dev@andreabc.net"},
+    {name = "Clément Boussiron", email ="clement.boussiron@gmail.com"},
 ]
 readme = "README.md"
 license = "GPL-2.0-only"
