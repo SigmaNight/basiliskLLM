@@ -63,7 +63,7 @@ class ConversationDatabase:
 
 	@staticmethod
 	def get_db_engine(db_path: Path) -> Engine:
-		"""Get the sqlalchemy database engine"""
+		"""Get the sqlalchemy database engine."""
 		engine = create_engine(f"sqlite:///{db_path}", echo=False)
 		event.listen(engine, "connect", _set_sqlite_pragmas)
 		return engine
