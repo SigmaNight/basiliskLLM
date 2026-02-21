@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-11 19:33+0000\n"
-"PO-Revision-Date: 2026-02-14 13:48\n"
+"POT-Creation-Date: 2026-02-21 12:38+0000\n"
+"PO-Revision-Date: 2026-02-21 13:11\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -21,11 +21,11 @@ msgstr ""
 #: basilisk/completion_handler.py:301 basilisk/gui/conversation_tab.py:902
 #, python-format
 msgid "An error occurred during completion: %s"
-msgstr ""
+msgstr "Під час завершення сталася помилка: %s"
 
 #: basilisk/completion_handler.py:303 basilisk/gui/conversation_tab.py:904
 msgid "Completion Error"
-msgstr ""
+msgstr "Помилка завершення"
 
 #: basilisk/decorators.py:35
 msgid "A task is already running. Please wait for it to complete."
@@ -539,11 +539,11 @@ msgstr "Готово"
 #: basilisk/gui/conversation_tab.py:540
 #, python-format
 msgid "An error occurred during transcription: %s"
-msgstr ""
+msgstr "Під час транскрипції сталася помилка: %s"
 
 #: basilisk/gui/conversation_tab.py:541
 msgid "Transcription Error"
-msgstr ""
+msgstr "Помилка транскрипції"
 
 #: basilisk/gui/conversation_tab.py:566
 msgid "Stop recording"
@@ -556,20 +556,20 @@ msgstr "Завершення вже триває. Будь ласка, заче�
 #: basilisk/gui/conversation_tab.py:748
 #, python-format
 msgid "An error occurred during title generation: %s"
-msgstr ""
+msgstr "Під час створення заголовка сталася помилка: %s"
 
 #: basilisk/gui/conversation_tab.py:749
 msgid "Title Generation Error"
-msgstr ""
+msgstr "Помилка створення заголовка"
 
 #: basilisk/gui/conversation_tab.py:774
 #, python-format
 msgid "An error occurred while saving the conversation: %s"
-msgstr ""
+msgstr "Під час збереження розмови сталася помилка: %s"
 
 #: basilisk/gui/conversation_tab.py:776
 msgid "Save Error"
-msgstr ""
+msgstr "Помилка збереження"
 
 #: basilisk/gui/edit_block_dialog.py:54
 msgid "Edit Message Block"
@@ -587,40 +587,40 @@ msgstr "&Відновити відповідь"
 
 #: basilisk/gui/enhanced_error_dialog.py:132
 msgid "This completion error contains a URL that might provide more information about the issue:"
-msgstr ""
+msgstr "Ця помилка завершення містить URL, за яким можна отримати додаткову інформацію про проблему:"
 
 #: basilisk/gui/enhanced_error_dialog.py:136
 msgid "This error message contains a URL that might provide more information:"
-msgstr ""
+msgstr "Це повідомлення про помилку містить URL, за яким можна отримати додаткову інформацію:"
 
 #: basilisk/gui/enhanced_error_dialog.py:153
 msgid "Open in Browser"
-msgstr ""
+msgstr "Відкрити в браузері"
 
 #: basilisk/gui/enhanced_error_dialog.py:162
 msgid "Copy Error"
-msgstr ""
+msgstr "Помилка копіювання"
 
 #: basilisk/gui/enhanced_error_dialog.py:169
 msgid "OK"
-msgstr ""
+msgstr "OK"
 
 #: basilisk/gui/enhanced_error_dialog.py:215
 msgid "Copied!"
-msgstr ""
+msgstr "Скопійовано!"
 
 #: basilisk/gui/enhanced_error_dialog.py:221
 msgid "Copy failed"
-msgstr ""
+msgstr "Помилка копіювання"
 
 #: basilisk/gui/enhanced_error_dialog.py:230
 #, python-format
 msgid "Copy failed: %s"
-msgstr ""
+msgstr "Помилка копіювання: %s"
 
 #: basilisk/gui/enhanced_error_dialog.py:266
 msgid "Open failed"
-msgstr ""
+msgstr "Не вдалося відкрити"
 
 #: basilisk/gui/history_msg_text_ctrl.py:246
 msgid "Read current message"
@@ -987,7 +987,7 @@ msgstr "Під час обробки результатів розпізнава
 
 #: basilisk/gui/ocr_handler.py:99 basilisk/gui/ocr_handler.py:151
 msgid "OCR Error"
-msgstr ""
+msgstr "Помилка OCR"
 
 #: basilisk/gui/ocr_handler.py:163
 msgid "OCR completed successfully. Text extracted to:"
@@ -1683,3 +1683,4 @@ msgstr "Модель зору Grok 2 (грудень 2024 р.), яка підт�
 #: basilisk/provider_engine/xai_engine.py:130
 msgid "The original Grok model, providing foundational AI capabilities with a context window of 8,192 tokens."
 msgstr "Оригінальна модель Grok, що забезпечує базові можливості штучного інтелекту з контекстним вікном у 8192 токени."
+
