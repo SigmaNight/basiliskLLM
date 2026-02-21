@@ -1047,6 +1047,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			attachments = self.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			return None
+		if not self.current_account or not self.current_model:
+			return None
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -1054,14 +1056,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 				attachments=attachments or None,
 			),
 			model=AIModelInfo(
-				provider_id=(
-					self.current_account.provider.id
-					if self.current_account
-					else "unknown"
-				),
-				model_id=(
-					self.current_model.id if self.current_model else "unknown"
-				),
+				provider_id=self.current_account.provider.id,
+				model_id=self.current_model.id,
 			),
 			temperature=self.temperature_spinner.GetValue(),
 			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
