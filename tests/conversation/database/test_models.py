@@ -83,6 +83,7 @@ class TestDBSystemPrompt:
 		db_session.add(sp2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 
 class TestDBConversationSystemPrompt:
@@ -124,6 +125,7 @@ class TestDBConversationSystemPrompt:
 		db_session.add(csp2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 
 class TestDBMessageBlock:
@@ -184,6 +186,7 @@ class TestDBMessageBlock:
 		db_session.add(block2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 	def test_optional_system_prompt_link(self, db_session):
 		"""Test that conversation_system_prompt_id is nullable."""
@@ -261,6 +264,7 @@ class TestDBMessage:
 		db_session.add(msg2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 	def test_cascade_delete_with_block(self, db_session):
 		"""Test that deleting a block cascades to messages."""
@@ -335,6 +339,7 @@ class TestDBAttachment:
 		db_session.add(att2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 
 class TestDBMessageAttachment:
@@ -393,6 +398,7 @@ class TestDBMessageAttachment:
 		db_session.add(link2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
+		db_session.rollback()
 
 
 class TestDBCitation:

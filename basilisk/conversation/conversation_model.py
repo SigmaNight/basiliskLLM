@@ -118,6 +118,19 @@ class SystemMessage(BaseMessage):
 		"""
 		return hash((self.role, self.content))
 
+	def __eq__(self, other: object) -> bool:
+		"""Compare system messages by role and content, ignoring db_id.
+
+		Args:
+			other: The object to compare against.
+
+		Returns:
+			True if role and content match, False otherwise.
+		"""
+		if not isinstance(other, SystemMessage):
+			return NotImplemented
+		return self.role == other.role and self.content == other.content
+
 
 class MessageBlock(BaseModel):
 	"""Represents a block of messages in a conversation. The block may contain a user message, an AI model request, and an AI model response."""

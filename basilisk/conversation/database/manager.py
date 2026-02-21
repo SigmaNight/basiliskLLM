@@ -11,7 +11,7 @@ from sqlalchemy import Engine, create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from basilisk import global_vars
-from basilisk.consts import APP_AUTHOR, APP_NAME
+from basilisk.consts import APP_AUTHOR, APP_NAME, BSKC_VERSION
 from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
@@ -79,6 +79,25 @@ class ConversationDatabase:
 		self._session_factory = sessionmaker(bind=self._engine)
 		self._run_migrations()
 		log.info("Database initialized at %s", db_path)
+
+	@classmethod
+	def from_engine(cls, engine: Engine) -> "ConversationDatabase":
+		"""Create a ConversationDatabase from an existing engine (no migrations).
+
+		This factory is intended for testing where the schema is created
+		directly via ``Base.metadata.create_all`` rather than Alembic.
+
+		Args:
+			engine: A pre-configured SQLAlchemy engine.
+
+		Returns:
+			A fully initialised ConversationDatabase instance.
+		"""
+		instance = cls.__new__(cls)
+		instance._db_path = engine.url.database
+		instance._engine = engine
+		instance._session_factory = sessionmaker(bind=engine)
+		return instance
 
 	def _run_migrations(self):
 		"""Run Alembic migrations to bring the database up to date."""
@@ -253,10 +272,11 @@ class ConversationDatabase:
 			else:
 				try:
 					content_bytes = attachment.read_as_bytes()
-				except Exception:
-					log.warning(
+				except Exception as e:
+					log.error(
 						"Could not read attachment %s, skipping",
 						attachment.name,
+						exc_info=e,
 					)
 					return
 
@@ -516,16 +536,19 @@ class ConversationDatabase:
 		"""Apply search filtering to a conversation query."""
 		if not search:
 			return query
-		search_term = f"%{search}%"
+		escaped = (
+			search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		)
+		search_term = f"%{escaped}%"
 		msg_conv_ids = (
 			select(DBMessageBlock.conversation_id)
 			.join(DBMessage)
-			.where(DBMessage.content.like(search_term))
+			.where(DBMessage.content.like(search_term, escape="\\"))
 			.distinct()
 			.subquery()
 		)
 		return query.where(
-			DBConversation.title.like(search_term)
+			DBConversation.title.like(search_term, escape="\\")
 			| DBConversation.id.in_(select(msg_conv_ids.c.conversation_id))
 		)
 
@@ -664,9 +687,6 @@ class ConversationDatabase:
 				)
 				block.db_id = db_block.id
 				blocks.append(block)
-
-			from basilisk.consts import BSKC_VERSION
-
 			return Conversation(
 				messages=blocks,
 				systems=systems,
@@ -728,6 +748,7 @@ class ConversationDatabase:
 		"""Build an AttachmentFile or ImageFile from a DB record."""
 		if db_att.is_image:
 			return ImageFile(
+				db_id=db_att.id,
 				location=location,
 				name=db_att.name,
 				description=description,
@@ -741,6 +762,7 @@ class ConversationDatabase:
 				),
 			)
 		return AttachmentFile(
+			db_id=db_att.id,
 			location=location,
 			name=db_att.name,
 			description=description,

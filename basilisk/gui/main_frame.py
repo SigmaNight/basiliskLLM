@@ -468,7 +468,14 @@ class MainFrame(wx.Frame):
 			tab.flush_draft()
 		# Save last active conversation ID
 		if self.conf.conversation.reopen_last_conversation:
-			current = self.current_tab
+			tab_index = self.notebook.GetSelection()
+			current = (
+				self.tabs_panels[tab_index]
+				if self.tabs_panels
+				and tab_index != wx.NOT_FOUND
+				and 0 <= tab_index < len(self.tabs_panels)
+				else None
+			)
 			if current and current.db_conv_id is not None:
 				self.conf.conversation.last_active_conversation_id = (
 					current.db_conv_id

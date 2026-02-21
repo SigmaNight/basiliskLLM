@@ -206,6 +206,9 @@ class PreferencesDialog(wx.Dialog):
 			label=_("Automatically save conversations to &database"),
 		)
 		self.auto_save_to_db.SetValue(self.conf.conversation.auto_save_to_db)
+		self.auto_save_to_db.Bind(
+			wx.EVT_CHECKBOX, self.on_auto_save_to_db_changed
+		)
 		conversation_group_sizer.Add(self.auto_save_to_db, 0, wx.ALL, 5)
 
 		self.auto_save_draft = wx.CheckBox(
@@ -214,6 +217,7 @@ class PreferencesDialog(wx.Dialog):
 			label=_("Auto-save &draft prompt text"),
 		)
 		self.auto_save_draft.SetValue(self.conf.conversation.auto_save_draft)
+		self.auto_save_draft.Enable(self.conf.conversation.auto_save_to_db)
 		conversation_group_sizer.Add(self.auto_save_draft, 0, wx.ALL, 5)
 
 		self.reopen_last_conversation = wx.CheckBox(
@@ -345,6 +349,14 @@ class PreferencesDialog(wx.Dialog):
 
 		panel.Layout()
 		self.Layout()
+
+	def on_auto_save_to_db_changed(self, event: wx.Event | None):
+		"""Enable or disable the auto-save draft option based on auto-save DB.
+
+		Args:
+			event: The checkbox event.
+		"""
+		self.auto_save_draft.Enable(self.auto_save_to_db.GetValue())
 
 	def on_resize(self, event: wx.Event | None):
 		"""Enable or disable the image resizing options.

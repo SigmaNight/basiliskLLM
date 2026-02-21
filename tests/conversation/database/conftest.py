@@ -41,11 +41,7 @@ def db_session(db_engine):
 @pytest.fixture
 def db_manager(db_engine):
 	"""Create a ConversationDatabase with an in-memory DB (no Alembic)."""
-	manager = ConversationDatabase.__new__(ConversationDatabase)
-	manager._db_path = ":memory:"
-	manager._engine = db_engine
-	manager._session_factory = sessionmaker(bind=db_engine)
-	return manager
+	return ConversationDatabase.from_engine(db_engine)
 
 
 @pytest.fixture

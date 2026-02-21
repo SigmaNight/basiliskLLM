@@ -140,6 +140,16 @@ class TestPydanticToDBRoundtrip:
 		assert len(loaded.messages[0].request.attachments) == 1
 		assert len(loaded.messages[1].request.attachments) == 1
 
+		# Verify the restored content matches the original
+		content0 = (
+			loaded.messages[0].request.attachments[0].read_as_plain_text()
+		)
+		content1 = (
+			loaded.messages[1].request.attachments[0].read_as_plain_text()
+		)
+		assert content0 == "shared content"
+		assert content1 == "shared content"
+
 	def test_conversation_model_params_roundtrip(
 		self, db_manager, test_ai_model
 	):

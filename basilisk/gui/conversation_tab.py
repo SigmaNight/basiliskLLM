@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 CHECK_TASK_DELAY = 100  # ms
+DRAFT_SAVE_DELAY_MS = 2000  # ms
 
 
 class ConversationTab(wx.Panel, BaseConversation):
@@ -72,13 +73,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 		attachment_files: List of attachment files
 	"""
 
-	_conv_db = None
-
 	@classmethod
 	def _get_conv_db(cls):
-		if cls._conv_db is None:
-			cls._conv_db = wx.GetApp().conv_db
-		return cls._conv_db
+		return wx.GetApp().conv_db
 
 	@staticmethod
 	def conv_storage_path() -> UPath:
@@ -90,6 +87,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 		return UPath(
 			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
 		)
+
+	@staticmethod
+	def _pop_draft_if_present(
+		conversation: Conversation,
+	) -> MessageBlock | None:
+		"""Pop the last block if it has no response (i.e. it is a draft).
+
+		Args:
+			conversation: The conversation to inspect.
+
+		Returns:
+			The popped draft MessageBlock, or None if no draft is present.
+		"""
+		if conversation.messages and conversation.messages[-1].response is None:
+			return conversation.messages.pop()
+		return None
 
 	@classmethod
 	def open_conversation(
@@ -116,10 +129,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		conversation = Conversation.open(file_path, storage_path)
 		title = conversation.title or default_title
 
-		# Extract draft block if present (last block with no response)
-		draft_block = None
-		if conversation.messages and conversation.messages[-1].response is None:
-			draft_block = conversation.messages.pop()
+		draft_block = cls._pop_draft_if_present(conversation)
 
 		tab = cls(
 			parent,
@@ -994,11 +1004,11 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self._draft_timer.Stop()
 			try:
 				self._get_conv_db().delete_conversation(self.db_conv_id)
+				self.db_conv_id = None
 			except Exception:
 				log.error(
 					"Failed to delete conversation from DB", exc_info=True
 				)
-			self.db_conv_id = None
 
 	def _on_prompt_text_changed(self, event):
 		"""Handle prompt text changes for draft auto-save debouncing."""
@@ -1011,7 +1021,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		if self.private or self.db_conv_id is None:
 			return
-		self._draft_timer.StartOnce(2000)
+		self._draft_timer.StartOnce(DRAFT_SAVE_DELAY_MS)
 
 	def _on_draft_timer(self, event):
 		"""Handle draft timer expiration to save draft to DB."""
@@ -1019,14 +1029,22 @@ class ConversationTab(wx.Panel, BaseConversation):
 			return
 		self._save_draft_to_db()
 
-	def _build_draft_block(self) -> MessageBlock | None:
+	def _build_draft_block(
+		self, prompt_text: str | None = None, attachments: list | None = None
+	) -> MessageBlock | None:
 		"""Build a draft MessageBlock from current prompt state.
+
+		Args:
+			prompt_text: Prompt text to use; reads from panel if None.
+			attachments: Attachment list to use; reads from panel if None.
 
 		Returns:
 			A MessageBlock with no response, or None if prompt is empty.
 		"""
-		prompt_text = self.prompt_panel.prompt_text
-		attachments = self.prompt_panel.attachment_files
+		if prompt_text is None:
+			prompt_text = self.prompt_panel.prompt_text
+		if attachments is None:
+			attachments = self.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			return None
 		block = MessageBlock(
@@ -1070,7 +1088,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 				log.error("Failed to delete draft", exc_info=True)
 			return
 		try:
-			draft_block = self._build_draft_block()
+			draft_block = self._build_draft_block(prompt_text, attachments)
 			if draft_block is None:
 				return
 			system_msg = self.get_system_message()
@@ -1151,10 +1169,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		title = conversation.title or default_title
 		storage_path = cls.conv_storage_path()
 
-		# Extract draft block if present (last block with no response)
-		draft_block = None
-		if conversation.messages and conversation.messages[-1].response is None:
-			draft_block = conversation.messages.pop()
+		draft_block = cls._pop_draft_if_present(conversation)
 
 		tab = cls(
 			parent,
