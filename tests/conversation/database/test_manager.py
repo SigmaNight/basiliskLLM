@@ -481,3 +481,94 @@ class TestDraftBlock:
 		assert atts is not None
 		assert len(atts) == 1
 		assert atts[0].read_as_plain_text() == "draft attachment content"
+
+
+class TestCleanupOrphanAttachments:
+	"""Tests for cleanup_orphan_attachments."""
+
+	def test_no_orphans_returns_zero(
+		self, db_manager, conversation_with_attachments
+	):
+		"""Test that cleanup returns 0 when no orphans exist."""
+		db_manager.save_conversation(conversation_with_attachments)
+		assert db_manager.cleanup_orphan_attachments() == 0
+
+	def test_orphans_removed_after_conversation_delete(
+		self, db_manager, conversation_with_attachments
+	):
+		"""Test that orphaned attachments are removed after conversation delete."""
+		from sqlalchemy import func, select
+
+		from basilisk.conversation.database.models import DBAttachment
+
+		conv_id = db_manager.save_conversation(conversation_with_attachments)
+
+		with db_manager._get_session() as session:
+			count_before = session.execute(
+				select(func.count(DBAttachment.id))
+			).scalar_one()
+		assert count_before > 0
+
+		# delete_conversation calls cleanup internally
+		db_manager.delete_conversation(conv_id)
+
+		with db_manager._get_session() as session:
+			count_after = session.execute(
+				select(func.count(DBAttachment.id))
+			).scalar_one()
+		assert count_after == 0
+
+	def test_shared_attachment_not_removed(
+		self, db_manager, test_ai_model, tmp_path
+	):
+		"""Test that an attachment shared between two conversations is kept."""
+		from sqlalchemy import func, select
+		from upath import UPath
+
+		from basilisk.conversation import AttachmentFile
+		from basilisk.conversation.database.models import DBAttachment
+
+		text_path = UPath(tmp_path) / "shared.txt"
+		text_path.write_text("shared content")
+
+		def _make_conv():
+			att = AttachmentFile(location=text_path)
+			req = Message(
+				role=MessageRoleEnum.USER, content="msg", attachments=[att]
+			)
+			block = MessageBlock(request=req, model=test_ai_model)
+			conv = Conversation()
+			conv.add_block(block)
+			return conv
+
+		id1 = db_manager.save_conversation(_make_conv())
+		id2 = db_manager.save_conversation(_make_conv())
+
+		# Deduplication: only one DBAttachment row
+		with db_manager._get_session() as session:
+			assert (
+				session.execute(
+					select(func.count(DBAttachment.id))
+				).scalar_one()
+				== 1
+			)
+
+		# Delete first — shared row must survive
+		db_manager.delete_conversation(id1)
+		with db_manager._get_session() as session:
+			assert (
+				session.execute(
+					select(func.count(DBAttachment.id))
+				).scalar_one()
+				== 1
+			)
+
+		# Delete second — now orphaned, must be removed
+		db_manager.delete_conversation(id2)
+		with db_manager._get_session() as session:
+			assert (
+				session.execute(
+					select(func.count(DBAttachment.id))
+				).scalar_one()
+				== 0
+			)

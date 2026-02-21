@@ -7,7 +7,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from platformdirs import user_data_path
-from sqlalchemy import Engine, create_engine, event, func, select
+from sqlalchemy import Engine, create_engine, delete, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from basilisk import global_vars
@@ -78,6 +78,7 @@ class ConversationDatabase:
 		self._engine = self.get_db_engine(self._db_path)
 		self._session_factory = sessionmaker(bind=self._engine)
 		self._run_migrations()
+		self.cleanup_orphan_attachments()
 		log.info("Database initialized at %s", db_path)
 
 	@classmethod
@@ -519,6 +520,9 @@ class ConversationDatabase:
 	def delete_conversation(self, conv_id: int):
 		"""Delete a conversation and all related data.
 
+		Also removes any DBAttachment rows that are no longer referenced by
+		any message after the cascade delete completes.
+
 		Args:
 			conv_id: The database conversation ID.
 		"""
@@ -528,6 +532,44 @@ class ConversationDatabase:
 				if db_conv:
 					session.delete(db_conv)
 		log.debug("Deleted conversation %d", conv_id)
+		self.cleanup_orphan_attachments()
+
+	def cleanup_orphan_attachments(self) -> int:
+		"""Delete DBAttachment rows that have no DBMessageAttachment references.
+
+		DBAttachment uses content-hash deduplication, so its rows are not
+		cascade-deleted when their DBMessageAttachment links are removed.
+		This method finds truly unreferenced rows via a LEFT JOIN and deletes
+		them in a single transaction.
+
+		Call this after any bulk delete, or once at startup to reclaim space
+		left by draft-block replacements from previous sessions.
+
+		Returns:
+			Number of orphaned attachment rows deleted.
+		"""
+		with self._get_session() as session:
+			with session.begin():
+				orphan_ids = (
+					session.execute(
+						select(DBAttachment.id)
+						.outerjoin(
+							DBMessageAttachment,
+							DBAttachment.id
+							== DBMessageAttachment.attachment_id,
+						)
+						.where(DBMessageAttachment.id.is_(None))
+					)
+					.scalars()
+					.all()
+				)
+				if not orphan_ids:
+					return 0
+				session.execute(
+					delete(DBAttachment).where(DBAttachment.id.in_(orphan_ids))
+				)
+		log.debug("Cleaned up %d orphaned attachment(s)", len(orphan_ids))
+		return len(orphan_ids)
 
 	# --- Read operations ---
 
