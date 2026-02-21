@@ -8,21 +8,14 @@ from BaseConversation for consistency in the user interface.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import wx
 from more_itertools import locate
 
 import basilisk.config as config
-from basilisk.completion_handler import CompletionHandler
-from basilisk.conversation.conversation_model import (
-	Conversation,
-	Message,
-	MessageBlock,
-	MessageRoleEnum,
-	SystemMessage,
-)
-from basilisk.provider_ai_model import AIModelInfo
+from basilisk.conversation.conversation_model import Conversation, SystemMessage
+from basilisk.presenters.edit_block_presenter import EditBlockPresenter
 
 from .base_conversation import BaseConversation
 from .prompt_attachments_panel import PromptAttachmentsPanel
@@ -61,23 +54,17 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.conversation: Conversation = parent.conversation
 		self.a_output = parent.messages.a_output
 		self.block_index = message_block_index
-		self.block: MessageBlock = self.conversation.messages[self.block_index]
+		self.block = self.conversation.messages[self.block_index]
 		self.system_message: SystemMessage | None = None
 		if self.block.system_index is not None:
 			self.system_message = self.conversation.systems[
 				self.block.system_index
 			]
-
-		# Initialize completion handler with all necessary callbacks for streaming
-		self.completion_handler = CompletionHandler(
-			on_completion_start=self._on_regenerate_start,
-			on_completion_end=self._on_regenerate_end,
-			on_stream_chunk=self.append_stream_chunk,
-			on_stream_start=self._on_stream_start,
-			on_stream_finish=self._on_stream_finish,
-			on_non_stream_finish=self._on_non_stream_finish,
-		)
 		self.speak_response = parent.messages.speak_response
+
+		self.presenter = EditBlockPresenter(
+			self, parent.conversation, message_block_index
+		)
 
 		self.init_ui()
 		self.load_message_block_data()
@@ -303,108 +290,36 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 	def on_ok(self, event: wx.CommandEvent):
 		"""Handle the OK button click.
 
-		Updates the original message block with the edited values.
+		Delegates to the presenter to validate and save the block.
 
 		Args:
 			event: The button event
 		"""
-		model = self.prompt_panel.ensure_model_compatibility(self.current_model)
-		account = self.current_account
-		if not account or not model:
+		if not self.presenter.save_block():
 			event.Skip(False)
 			return
-		# Check if attachments are valid
-		if not self.prompt_panel.check_attachments_valid():
-			event.Skip(False)
-			return
-
-		# Update request content
-		self.block.request.content = self.prompt_panel.prompt_text
-
-		# Update request attachments
-		if self.prompt_panel.attachment_files:
-			self.block.request.attachments = self.prompt_panel.attachment_files
-		else:
-			self.block.request.attachments = None
-
-		# Update system message
-		system_prompt = self.system_prompt_txt.GetValue()
-		if system_prompt:
-			system_message = SystemMessage(content=system_prompt)
-			system_index = self.conversation.systems.add(system_message)
-			self.block.system_index = system_index
-		else:
-			self.block.system_index = None
-
-		# Update model and parameters
-		self.block.model = AIModelInfo(
-			provider_id=account.provider.id, model_id=model.id
-		)
-		self.block.temperature = self.temperature_spinner.GetValue()
-		self.block.max_tokens = self.max_tokens_spin_ctrl.GetValue()
-		self.block.top_p = self.top_p_spinner.GetValue()
-		self.block.stream = self.stream_mode.GetValue()
-
-		# Update response
-		if self.block.response:
-			self.block.response.content = self.response_txt.GetValue()
 		event.Skip()
 
 	def on_cancel(self, event: wx.CommandEvent):
 		"""Handle the Cancel button click.
 
-		Closes the dialog without saving changes.
+		Stops any active completion and closes the dialog.
 
 		Args:
 			event: The button event
 		"""
-		self.completion_handler.stop_completion()
+		self.presenter.stop_regenerate()
 		event.Skip()
 
 	def on_regenerate(self, event: wx.CommandEvent):
 		"""Handle the regenerate button click.
 
-		Starts the regeneration of the response using the current model and parameters.
+		Delegates to the presenter to start a completion.
 
 		Args:
 			event: The button event
 		"""
-		model = self.prompt_panel.ensure_model_compatibility(self.current_model)
-		if not model:
-			return
-		account = self.current_account
-		if not self.prompt_panel.check_attachments_valid():
-			return
-		# Create a temporary message block from current dialog settings
-		temp_block = MessageBlock(
-			request=Message(
-				role=MessageRoleEnum.USER,
-				content=self.prompt_panel.prompt_text,
-				attachments=self.prompt_panel.attachment_files,
-			),
-			model_id=model.id,
-			provider_id=account.provider.id,
-			temperature=self.temperature_spinner.GetValue(),
-			top_p=self.top_p_spinner.GetValue(),
-			max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-			stream=self.stream_mode.GetValue(),
-		)
-
-		# Get system message if available
-		system_message = None
-		system_prompt = self.system_prompt_txt.GetValue()
-		if system_prompt:
-			system_message = SystemMessage(content=system_prompt)
-
-		# Start completion using the handler
-		self.completion_handler.start_completion(
-			engine=self.current_engine,
-			system_message=system_message,
-			conversation=self.conversation,
-			new_block=temp_block,
-			stream=temp_block.stream,
-			stop_block_index=self.block_index,
-		)
+		self.presenter.start_regenerate()
 
 	def on_stop_regenerate(self, event: wx.CommandEvent):
 		"""Handle the stop regeneration button click.
@@ -412,60 +327,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		Args:
 			event: The button event
 		"""
-		self.completion_handler.stop_completion()
-
-	def _on_regenerate_start(self):
-		"""Called when regeneration starts."""
-		self.regenerate_btn.Hide()
-		self.stop_btn.Show()
-		# Clear the response text control and prepare for streaming
-		self.response_txt.SetValue("")
-		self.Layout()
-
-	def _on_regenerate_end(self, success: bool):
-		"""Called when regeneration ends.
-
-		Args:
-			success: True if the regeneration was successful, False otherwise
-		"""
-		self.stop_btn.Hide()
-		self.regenerate_btn.Show()
-		self.Layout()
-		if success and config.conf().conversation.focus_history_after_send:
-			self.response_txt.SetFocus()
-
-	def _on_stream_start(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
-	):
-		"""Called when streaming starts.
-
-		Args:
-			new_block: The message block being completed
-			system_message: Optional system message
-		"""
-		pass
-
-	def _on_stream_finish(self, new_block: MessageBlock):
-		"""Called when streaming finishes.
-
-		Args:
-			new_block: The completed message block
-		"""
-		self.a_output.handle_stream_buffer()
-
-	def _on_non_stream_finish(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
-	):
-		"""Called when non-streaming completion finishes.
-
-		Args:
-			new_block: The completed message block
-			system_message: Optional system message
-		"""
-		# For non-streaming, we handle the accessible output here
-		self.response_txt.SetValue(new_block.response.content)
-		if self.should_speak_response:
-			self.a_output.handle(new_block.response.content)
+		self.presenter.stop_regenerate()
 
 	@property
 	def should_speak_response(self) -> bool:
@@ -484,15 +346,3 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			)
 			and self.GetTopLevelParent().IsShown()
 		)
-
-	def append_stream_chunk(self, text: str):
-		"""Append a chunk of text to the stream buffer and display it.
-
-		Args:
-			text: The text chunk to append
-		"""
-		pos = self.response_txt.GetInsertionPoint()
-		if self.should_speak_response:
-			self.a_output.handle_stream_buffer(new_text=text)
-		self.response_txt.AppendText(text)
-		self.response_txt.SetInsertionPoint(pos)

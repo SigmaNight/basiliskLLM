@@ -1,51 +1,15 @@
 """Search dialog for searching text in a wx.TextCtrl."""
 
-import enum
-import re
 from typing import List
 
 import wx
 
-
-class SearchDirection(enum.IntEnum):
-	"""Enumeration for search directions."""
-
-	BACKWARD = enum.auto(0)
-	FORWARD = enum.auto()
-
-
-class SearchMode(enum.IntEnum):
-	"""Enumeration for search modes."""
-
-	PLAIN_TEXT = enum.auto(0)
-	EXTENDED = enum.auto()
-	REGEX = enum.auto()
-
-
-def adjust_utf16_position(
-	text: str, position: int, reverse: bool = False
-) -> int:
-	"""Adjust the given position in the text to account for characters outside of the Basic Multilingual Plane (BMP).
-
-	Characters outside the BMP are represented by surrogate pairs in UTF-16, taking up two positions instead of one.
-	This function adjusts the given position to account for these surrogate pairs.
-
-	Args:
-		text: The input string.
-		position: The original position in the string.
-		reverse: If True, the function will adjust the position in the reverse direction.
-
-	Returns:
-		The adjusted position reflecting the presence of surrogate pairs.
-	"""
-	relevant_text = text[:position]
-	count_high_surrogates = sum(1 for c in relevant_text if ord(c) >= 0x10000)
-	if reverse:
-		count_high_surrogates -= count_high_surrogates
-	count_line_breaks = sum(1 for c in relevant_text if c == '\n')
-	if reverse:
-		count_line_breaks -= count_line_breaks
-	return position + count_high_surrogates + count_line_breaks
+from basilisk.services.search_service import (
+	SearchDirection,
+	SearchMode,
+	SearchService,
+	adjust_utf16_position,
+)
 
 
 class SearchDialog(wx.Dialog):
@@ -226,53 +190,6 @@ class SearchDialog(wx.Dialog):
 			self._search_dot_all_checkbox.Hide()
 		self.Layout()
 
-	def _compile_search_pattern(self, query_text: str) -> re.Pattern:
-		"""Compile the search pattern based on the search mode.
-
-		Args:
-			query_text: The search text to compile.
-		"""
-		flags = 0 if self._case_sensitive else re.IGNORECASE
-		flags |= re.UNICODE
-		if self._search_dot_all and self._search_mode == SearchMode.REGEX:
-			flags |= re.DOTALL
-		if self._search_mode == SearchMode.EXTENDED:
-			query_text = (
-				query_text.replace(r'\n', '\n')
-				.replace(r'\t', '\t')
-				.replace(r'\r', '\r')
-				.replace(r'\x00', '\x00')
-				.replace(r'\x1F', '\x1f')
-				.replace(r'\x7F', '\x7f')
-			)
-		return re.compile(query_text, flags)
-
-	def _find_matches(self, search_text: str) -> List[re.Match]:
-		"""Find all matches of the search text in the text control.
-
-		Args:
-			search_text: The text to search for.
-
-		Returns:
-			List[re.Match]: A list of regex matches.
-		"""
-		text_content = self._text.GetValue()
-		if not self._case_sensitive:
-			text_content = text_content.lower()
-			search_text = search_text.lower()
-
-		if self._search_mode in {SearchMode.PLAIN_TEXT, SearchMode.EXTENDED}:
-			search_pattern = (
-				re.escape(search_text)
-				if self._search_mode == SearchMode.PLAIN_TEXT
-				else search_text
-			)
-		else:
-			search_pattern = search_text
-
-		pattern = self._compile_search_pattern(search_pattern)
-		return list(pattern.finditer(text_content))
-
 	def _select_text(self, start: int, end: int):
 		"""Select the text in the text control.
 
@@ -325,7 +242,13 @@ class SearchDialog(wx.Dialog):
 			else SearchMode.REGEX
 		)
 
-		matches = self._find_matches(search_text)
+		matches = SearchService.find_all_matches(
+			self._text.GetValue(),
+			search_text,
+			self._search_mode,
+			self._case_sensitive,
+			self._search_dot_all,
+		)
 		if not matches:
 			wx.MessageBox(
 				# Translators: Search dialog error message

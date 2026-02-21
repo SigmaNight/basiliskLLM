@@ -10,11 +10,9 @@ from __future__ import annotations
 import datetime
 import logging
 import re
-import threading
 from typing import TYPE_CHECKING, Callable, Optional
 
 import wx
-from httpx import HTTPError
 from upath import UPath
 
 import basilisk.config as config
@@ -22,11 +20,9 @@ from basilisk.conversation import (
 	URL_PATTERN,
 	AttachmentFile,
 	ImageFile,
-	build_from_url,
-	get_mime_type,
 	parse_supported_attachment_formats,
 )
-from basilisk.decorators import ensure_no_task_running
+from basilisk.services.attachment_service import AttachmentService
 
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
@@ -67,7 +63,10 @@ class PromptAttachmentsPanel(wx.Panel):
 		self.attachment_files: list[AttachmentFile | ImageFile] = []
 		self.conv_storage_path = conv_storage_path
 		self.on_submit_callback = on_submit_callback
-		self.task = None
+		self.attachment_service = AttachmentService(
+			on_download_success=self._on_attachment_downloaded,
+			on_download_error=self._on_attachment_download_error,
+		)
 		self.current_engine = None  # Will be set by the parent component
 		self.init_ui()
 		self.init_prompt_shortcuts()
@@ -331,7 +330,7 @@ class PromptAttachmentsPanel(wx.Panel):
 				text = text_data.GetText()
 				if re.fullmatch(URL_PATTERN, text):
 					log.info("Pasting URL from clipboard, adding attachment")
-					self.add_attachment_url_thread(text)
+					self.attachment_service.download_from_url(text)
 				else:
 					log.info("Pasting text from clipboard")
 					self.prompt.WriteText(text)
@@ -424,53 +423,25 @@ class PromptAttachmentsPanel(wx.Panel):
 			)
 			return
 
-		self.add_attachment_url_thread(url)
+		self.attachment_service.download_from_url(url)
 
-	def add_attachment_from_url(self, url: str):
-		"""Add an attachment from a URL.
-
-		Args:
-			url: The URL of the file to attach
-		"""
-		attachment_file = None
-		try:
-			attachment_file = build_from_url(url)
-		except HTTPError as err:
-			wx.CallAfter(
-				wx.MessageBox,
-				# Translators: This message is displayed when an HTTP error occurs while adding a file from a URL.
-				_("HTTP error %s.") % err,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-		except Exception as err:
-			if isinstance(err, (KeyboardInterrupt, SystemExit)):
-				raise
-			log.error(err, exc_info=True)
-			wx.CallAfter(
-				wx.MessageBox,
-				# Translators: This message is displayed when an error occurs while adding a file from a URL.
-				_("Error adding attachment from URL: %s") % err,
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-
-		wx.CallAfter(self.add_attachments, [attachment_file])
-		self.task = None
-
-	@ensure_no_task_running
-	def add_attachment_url_thread(self, url: str):
-		"""Start a thread to add an attachment from a URL.
+	def _on_attachment_downloaded(
+		self, attachment: AttachmentFile | ImageFile
+	) -> None:
+		"""Handle successful attachment download.
 
 		Args:
-			url: The URL of the file to attach
+			attachment: The downloaded attachment object
 		"""
-		self.task = threading.Thread(
-			target=self.add_attachment_from_url, args=(url,)
-		)
-		self.task.start()
+		self.add_attachments([attachment])
+
+	def _on_attachment_download_error(self, error_msg: str) -> None:
+		"""Handle attachment download error.
+
+		Args:
+			error_msg: Human-readable error description
+		"""
+		wx.MessageBox(error_msg, _("Error"), wx.OK | wx.ICON_ERROR)
 
 	def on_show_attachment_details(self, event: wx.CommandEvent):
 		"""Show details of the selected attachment.
@@ -582,16 +553,20 @@ class PromptAttachmentsPanel(wx.Panel):
 			)
 			return
 
+		supported_attachment_formats = (
+			self.current_engine.supported_attachment_formats
+		)
+
 		for path in paths:
 			if isinstance(path, (AttachmentFile, ImageFile)):
 				self.attachment_files.append(path)
 			else:
-				mime_type = get_mime_type(path)
-				supported_attachment_formats = (
-					self.current_engine.supported_attachment_formats
+				attachment, _mime = (
+					AttachmentService.build_attachment_from_path(
+						str(path), supported_attachment_formats
+					)
 				)
-
-				if mime_type not in supported_attachment_formats:
+				if attachment is None:
 					wx.MessageBox(
 						# Translators: This message is displayed when there are no supported attachment formats.
 						_(
@@ -602,13 +577,7 @@ class PromptAttachmentsPanel(wx.Panel):
 						wx.OK | wx.ICON_ERROR,
 					)
 					continue
-
-				if mime_type.startswith("image/"):
-					file = ImageFile(location=UPath(path))
-				else:
-					file = AttachmentFile(location=UPath(path))
-
-				self.attachment_files.append(file)
+				self.attachment_files.append(attachment)
 
 		self.refresh_attachments_list()
 		self.attachments_list.SetFocus()
@@ -658,7 +627,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			True if there are image attachments, False otherwise
 		"""
 		return any(
-			attachment.mime_type.startswith("image/")
+			attachment.mime_type and attachment.mime_type.startswith("image/")
 			for attachment in self.attachment_files
 		)
 
@@ -675,24 +644,19 @@ class PromptAttachmentsPanel(wx.Panel):
 			self.current_engine.supported_attachment_formats
 		)
 
-		invalid_found = False
-		attachments_copy = self.attachment_files[:]
-
-		for attachment in attachments_copy:
-			if attachment.mime_type not in supported_attachment_formats:
-				msg = (
-					_(
-						"This attachment format is not supported by the current provider. Source: %s"
-					)
-					% attachment.location
-					if attachment.mime_type not in supported_attachment_formats
-					else _("The attachment file does not exist: %s")
-					% attachment.location
+		invalid_locations = AttachmentService.validate_attachments(
+			self.attachment_files, supported_attachment_formats
+		)
+		for location in invalid_locations:
+			msg = (
+				_(
+					"This attachment format is not supported by the current provider. Source: %s"
 				)
-				wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-				invalid_found = True
+				% location
+			)
+			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 
-		return not invalid_found
+		return not invalid_locations
 
 	def set_prompt_focus(self):
 		"""Set focus to the prompt input control."""
@@ -709,24 +673,13 @@ class PromptAttachmentsPanel(wx.Panel):
 		"""Resize all image attachments if configured to do so."""
 		if not config.conf().images.resize:
 			return
-		for attachment in self.attachment_files:
-			if not attachment.mime_type.startswith("image/"):
-				continue
-			try:
-				attachment.resize(
-					self.conv_storage_path,
-					config.conf().images.max_width,
-					config.conf().images.max_height,
-					config.conf().images.quality,
-				)
-			except Exception as e:
-				log.error(
-					"Error resizing image attachment %s: %s",
-					attachment.location,
-					e,
-					exc_info=True,
-				)
-				continue
+		AttachmentService.resize_attachments(
+			self.attachment_files,
+			self.conv_storage_path,
+			config.conf().images.max_width,
+			config.conf().images.max_height,
+			config.conf().images.quality,
+		)
 
 	def ensure_model_compatibility(
 		self, current_model: ProviderAIModel | None
@@ -741,14 +694,16 @@ class PromptAttachmentsPanel(wx.Panel):
 				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
 			)
 			return None
-		if self.has_image_attachments() and not current_model.vision:
-			vision_models = ", ".join(
-				[m.name or m.id for m in self.current_engine.models if m.vision]
+		compatible, vision_models = (
+			AttachmentService.check_model_vision_compatible(
+				self.attachment_files, current_model, self.current_engine
 			)
+		)
+		if not compatible:
 			wx.MessageBox(
 				_(
 					"The selected model does not support images. Please select a vision model instead ({})."
-				).format(vision_models),
+				).format(", ".join(vision_models)),
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 			)
