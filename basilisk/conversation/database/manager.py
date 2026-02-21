@@ -4,9 +4,14 @@ import hashlib
 import logging
 from pathlib import Path
 
-from sqlalchemy import create_engine, event, func, select
+from alembic import command
+from alembic.config import Config
+from platformdirs import user_data_path
+from sqlalchemy import Engine, create_engine, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from basilisk import global_vars
+from basilisk.consts import APP_AUTHOR, APP_NAME
 from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
@@ -47,6 +52,22 @@ def _set_sqlite_pragmas(dbapi_conn, connection_record):
 class ConversationDatabase:
 	"""Manages all database operations for conversation persistence."""
 
+	@staticmethod
+	def get_db_path() -> Path:
+		"""Determine the path for the conversation database file."""
+		if global_vars.user_data_path:
+			db_dir = global_vars.user_data_path
+		else:
+			db_dir = user_data_path(APP_NAME, APP_AUTHOR, ensure_exists=True)
+		return db_dir / "conversations.db"
+
+	@staticmethod
+	def get_db_engine(db_path: Path) -> Engine:
+		"""Get the sqlalchemy database engine"""
+		engine = create_engine(f"sqlite:///{db_path}", echo=False)
+		event.listen(engine, "connect", _set_sqlite_pragmas)
+		return engine
+
 	def __init__(self, db_path: Path):
 		"""Initialize the database manager.
 
@@ -54,21 +75,19 @@ class ConversationDatabase:
 			db_path: Path to the SQLite database file.
 		"""
 		self._db_path = db_path
-		self._engine = create_engine(f"sqlite:///{db_path}", echo=False)
-		event.listen(self._engine, "connect", _set_sqlite_pragmas)
+		self._engine = self.get_db_engine(self._db_path)
 		self._session_factory = sessionmaker(bind=self._engine)
 		self._run_migrations()
 		log.info("Database initialized at %s", db_path)
 
 	def _run_migrations(self):
 		"""Run Alembic migrations to bring the database up to date."""
-		from alembic import command
-		from alembic.config import Config
-
+		alembic_versions = global_vars.resource_path / "alembic_versions"
 		alembic_dir = Path(__file__).parent / "alembic"
 		cfg = Config()
 		cfg.set_main_option("script_location", str(alembic_dir))
 		cfg.set_main_option("sqlalchemy.url", f"sqlite:///{self._db_path}")
+		cfg.set_main_option("version_locations", str(alembic_versions))
 		command.upgrade(cfg, "head")
 		log.debug("Database migrations applied")
 

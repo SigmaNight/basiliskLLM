@@ -18,7 +18,7 @@ import basilisk.global_vars as global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
-from basilisk.conversation.database import ConversationDatabase, get_db_path
+from basilisk.conversation.database import ConversationDatabase
 from basilisk.ipc import BasiliskIpc, FocusSignal, OpenBskcSignal
 from basilisk.localization import init_translation
 from basilisk.logger import (
@@ -114,7 +114,7 @@ class MainApp(wx.App):
 	def start_auto_update_thread(self):
 		"""Starts the automatic update thread.
 
-		Creates a new thread to handle automatic updates based on the configuration settings. The thread is started in the background and runs until the application exits or the thread is stopped.
+		Creates a new thread to handle automatic updates based on the configuration settings. The thread is started er the background and runs until the application exits or the thread is stopped.
 		"""
 		self.stop_auto_update = False
 		target_func = (
@@ -198,7 +198,7 @@ class MainApp(wx.App):
 	def init_conversation_db(self) -> None:
 		"""Init the database att application level."""
 		log.debug("Initializing conversation database")
-		db_path = get_db_path()
+		db_path = ConversationDatabase.get_db_path()
 		self.conv_db = ConversationDatabase(db_path)
 
 	def close_conversation_db(self):

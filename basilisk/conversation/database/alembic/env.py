@@ -1,8 +1,8 @@
 """Alembic environment configuration for conversation database."""
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
 
+from basilisk.conversation.database.manager import ConversationDatabase
 from basilisk.conversation.database.models import Base
 
 target_metadata = Base.metadata
@@ -24,12 +24,8 @@ def run_migrations_offline():
 
 def run_migrations_online():
 	"""Run migrations in 'online' mode."""
-	connectable = engine_from_config(
-		context.config.get_section(context.config.config_ini_section, {}),
-		prefix="sqlalchemy.",
-		poolclass=pool.NullPool,
-	)
-
+	db_path = ConversationDatabase.get_db_path()
+	connectable = ConversationDatabase.get_db_engine(db_path)
 	with connectable.connect() as connection:
 		context.configure(
 			connection=connection, target_metadata=target_metadata

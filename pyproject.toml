@@ -31,7 +31,7 @@ dependencies = [
     "pywin32 (>=311,<312) ; sys_platform == 'win32'",
     "pyyaml (>=6.0.3,<6.1)",
     "sqlalchemy>=2.0,<2.1",
-    "alembic>=1.15,<1.17",
+    "alembic>=1.18,<1.19",
     "sounddevice (>=0.5.3,<0.6)",
     "truststore (>=0.10.4,<0.11)",
     "universal-pathlib (>=0.3.7,<0.4)",
@@ -148,7 +148,7 @@ include_files = ["basilisk/res"]
 includes = ["multiprocessing", "multiprocessing.spawn", "multiprocessing.util", "numpy", "win32timezone"]
 include_msvcr = true
 packages = [
-    "basilisk.provider_engine", "basilisk.multiprocessing_worker",
+    "basilisk.conversation.database.alembic", "basilisk.provider_engine", "basilisk.multiprocessing_worker",
     "fsspec.implementations", "keyring", "multiprocessing", "numpy",
     "opentelemetry.baggage", "opentelemetry.context", "opentelemetry.trace",
     "sqlalchemy.dialects.sqlite", "upath.implementations"]
@@ -167,4 +167,10 @@ zip_include_packages = [
     "uritemplate", "urllib", "urllib3", "upath",
     "websockets", "win32api", "win32com", "win32ctypes", "win32timezone",
     "xml", "xmlrpc", "yaml", "zipfile", "zipp", "zoneinfo",
-    "basilisk"]
+    "basilisk"
+]
+
+
+[tool.alembic]
+script_location = "%(here)s/basilisk/conversation/database/alembic"
+version_locations = ["%(here)s/basilisk/res/alembic_versions"]
