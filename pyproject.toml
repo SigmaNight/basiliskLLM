@@ -148,7 +148,7 @@ include_files = ["basilisk/res"]
 includes = ["multiprocessing", "multiprocessing.spawn", "multiprocessing.util", "numpy", "win32timezone"]
 include_msvcr = true
 packages = [
-    "basilisk.conversation.database.alembic", "basilisk.provider_engine", "basilisk.multiprocessing_worker",
+    "basilisk.provider_engine", "basilisk.multiprocessing_worker",
     "fsspec.implementations", "keyring", "multiprocessing", "numpy",
     "opentelemetry.baggage", "opentelemetry.context", "opentelemetry.trace",
     "sqlalchemy.dialects.sqlite", "upath.implementations"]
@@ -172,5 +172,4 @@ zip_include_packages = [
 
 
 [tool.alembic]
-script_location = "%(here)s/basilisk/conversation/database/alembic"
-version_locations = ["%(here)s/basilisk/res/alembic_versions"]
+script_location = "%(here)s/basilisk/res/alembic"

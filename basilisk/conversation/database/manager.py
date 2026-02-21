@@ -82,12 +82,10 @@ class ConversationDatabase:
 
 	def _run_migrations(self):
 		"""Run Alembic migrations to bring the database up to date."""
-		alembic_versions = global_vars.resource_path / "alembic_versions"
-		alembic_dir = Path(__file__).parent / "alembic"
+		alembic_dir = global_vars.resource_path / "alembic"
 		cfg = Config()
 		cfg.set_main_option("script_location", str(alembic_dir))
 		cfg.set_main_option("sqlalchemy.url", f"sqlite:///{self._db_path}")
-		cfg.set_main_option("version_locations", str(alembic_versions))
 		command.upgrade(cfg, "head")
 		log.debug("Database migrations applied")
 
