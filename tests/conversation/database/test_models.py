@@ -1,7 +1,5 @@
 """Tests for SQLAlchemy database models."""
 
-from datetime import datetime
-
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -22,9 +20,7 @@ class TestDBConversation:
 
 	def test_create_conversation(self, db_session):
 		"""Test basic conversation creation."""
-		conv = DBConversation(
-			title="Test", created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation(title="Test")
 		db_session.add(conv)
 		db_session.flush()
 		assert conv.id is not None
@@ -32,18 +28,14 @@ class TestDBConversation:
 
 	def test_conversation_nullable_title(self, db_session):
 		"""Test that title can be NULL."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation()
 		db_session.add(conv)
 		db_session.flush()
 		assert conv.title is None
 
 	def test_conversation_cascade_delete(self, db_session):
 		"""Test that deleting a conversation cascades to blocks."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation()
 		db_session.add(conv)
 		db_session.flush()
 
@@ -52,8 +44,6 @@ class TestDBConversation:
 			position=0,
 			model_provider="openai",
 			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
 		)
 		db_session.add(block)
 		db_session.flush()
@@ -91,9 +81,7 @@ class TestDBConversationSystemPrompt:
 
 	def test_link_system_to_conversation(self, db_session):
 		"""Test linking a system prompt to a conversation."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation()
 		sp = DBSystemPrompt(content_hash="hash1", content="Content")
 		db_session.add_all([conv, sp])
 		db_session.flush()
@@ -107,9 +95,7 @@ class TestDBConversationSystemPrompt:
 
 	def test_unique_position_per_conversation(self, db_session):
 		"""Test UNIQUE(conversation_id, position) constraint."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation()
 		sp = DBSystemPrompt(content_hash="hash1", content="Content")
 		db_session.add_all([conv, sp])
 		db_session.flush()
@@ -133,9 +119,7 @@ class TestDBMessageBlock:
 
 	def test_create_message_block(self, db_session):
 		"""Test creating a message block with all fields."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
+		conv = DBConversation()
 		db_session.add(conv)
 		db_session.flush()
 
@@ -148,8 +132,6 @@ class TestDBMessageBlock:
 			max_tokens=2048,
 			top_p=0.9,
 			stream=True,
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
 		)
 		db_session.add(block)
 		db_session.flush()
@@ -157,107 +139,59 @@ class TestDBMessageBlock:
 		assert block.temperature == 0.7
 		assert block.stream is True
 
-	def test_unique_position_per_conversation(self, db_session):
+	def test_unique_position_per_conversation(
+		self, db_session, db_message_block
+	):
 		"""Test UNIQUE(conversation_id, position) constraint."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
-		db_session.add(conv)
-		db_session.flush()
-
-		block1 = DBMessageBlock(
-			conversation_id=conv.id,
-			position=0,
-			model_provider="openai",
-			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
-		)
 		block2 = DBMessageBlock(
-			conversation_id=conv.id,
+			conversation_id=db_message_block.conversation_id,
 			position=0,
 			model_provider="openai",
 			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
 		)
-		db_session.add(block1)
-		db_session.flush()
 		db_session.add(block2)
 		with pytest.raises(IntegrityError):
 			db_session.flush()
 		db_session.rollback()
 
-	def test_optional_system_prompt_link(self, db_session):
+	def test_optional_system_prompt_link(self, db_message_block):
 		"""Test that conversation_system_prompt_id is nullable."""
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
-		db_session.add(conv)
-		db_session.flush()
-
-		block = DBMessageBlock(
-			conversation_id=conv.id,
-			position=0,
-			conversation_system_prompt_id=None,
-			model_provider="openai",
-			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
-		)
-		db_session.add(block)
-		db_session.flush()
-		assert block.conversation_system_prompt_id is None
+		assert db_message_block.conversation_system_prompt_id is None
 
 
 class TestDBMessage:
 	"""Tests for the DBMessage model."""
 
-	def _make_block(self, db_session):
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
-		db_session.add(conv)
-		db_session.flush()
-		block = DBMessageBlock(
-			conversation_id=conv.id,
-			position=0,
-			model_provider="openai",
-			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
-		)
-		db_session.add(block)
-		db_session.flush()
-		return block
-
-	def test_create_user_message(self, db_session):
+	def test_create_user_message(self, db_session, db_message_block):
 		"""Test creating a user message."""
-		block = self._make_block(db_session)
-		msg = DBMessage(message_block_id=block.id, role="user", content="Hello")
+		msg = DBMessage(
+			message_block_id=db_message_block.id, role="user", content="Hello"
+		)
 		db_session.add(msg)
 		db_session.flush()
 		assert msg.id is not None
 		assert msg.role == "user"
 
-	def test_create_assistant_message(self, db_session):
+	def test_create_assistant_message(self, db_session, db_message_block):
 		"""Test creating an assistant message."""
-		block = self._make_block(db_session)
 		msg = DBMessage(
-			message_block_id=block.id, role="assistant", content="Hi there"
+			message_block_id=db_message_block.id,
+			role="assistant",
+			content="Hi there",
 		)
 		db_session.add(msg)
 		db_session.flush()
 		assert msg.role == "assistant"
 
-	def test_unique_role_per_block(self, db_session):
+	def test_unique_role_per_block(self, db_session, db_message_block):
 		"""Test UNIQUE(message_block_id, role) constraint."""
-		block = self._make_block(db_session)
 		msg1 = DBMessage(
-			message_block_id=block.id, role="user", content="Hello"
+			message_block_id=db_message_block.id, role="user", content="Hello"
 		)
 		msg2 = DBMessage(
-			message_block_id=block.id, role="user", content="Hello again"
+			message_block_id=db_message_block.id,
+			role="user",
+			content="Hello again",
 		)
 		db_session.add(msg1)
 		db_session.flush()
@@ -266,15 +200,16 @@ class TestDBMessage:
 			db_session.flush()
 		db_session.rollback()
 
-	def test_cascade_delete_with_block(self, db_session):
+	def test_cascade_delete_with_block(self, db_session, db_message_block):
 		"""Test that deleting a block cascades to messages."""
-		block = self._make_block(db_session)
-		msg = DBMessage(message_block_id=block.id, role="user", content="Hello")
+		msg = DBMessage(
+			message_block_id=db_message_block.id, role="user", content="Hello"
+		)
 		db_session.add(msg)
 		db_session.flush()
 		msg_id = msg.id
 
-		db_session.delete(block)
+		db_session.delete(db_message_block)
 		db_session.flush()
 		assert db_session.get(DBMessage, msg_id) is None
 
@@ -345,23 +280,11 @@ class TestDBAttachment:
 class TestDBMessageAttachment:
 	"""Tests for the DBMessageAttachment model."""
 
-	def _make_message_and_attachment(self, db_session):
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
+	def test_link_attachment_to_message(self, db_session, db_message_block):
+		"""Test linking an attachment to a message."""
+		msg = DBMessage(
+			message_block_id=db_message_block.id, role="user", content="Hello"
 		)
-		db_session.add(conv)
-		db_session.flush()
-		block = DBMessageBlock(
-			conversation_id=conv.id,
-			position=0,
-			model_provider="openai",
-			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
-		)
-		db_session.add(block)
-		db_session.flush()
-		msg = DBMessage(message_block_id=block.id, role="user", content="Hello")
 		db_session.add(msg)
 		db_session.flush()
 		att = DBAttachment(
@@ -369,11 +292,7 @@ class TestDBMessageAttachment:
 		)
 		db_session.add(att)
 		db_session.flush()
-		return msg, att
 
-	def test_link_attachment_to_message(self, db_session):
-		"""Test linking an attachment to a message."""
-		msg, att = self._make_message_and_attachment(db_session)
 		link = DBMessageAttachment(
 			message_id=msg.id,
 			attachment_id=att.id,
@@ -384,9 +303,19 @@ class TestDBMessageAttachment:
 		db_session.flush()
 		assert link.id is not None
 
-	def test_unique_position_per_message(self, db_session):
+	def test_unique_position_per_message(self, db_session, db_message_block):
 		"""Test UNIQUE(message_id, position) constraint."""
-		msg, att = self._make_message_and_attachment(db_session)
+		msg = DBMessage(
+			message_block_id=db_message_block.id, role="user", content="Hello"
+		)
+		db_session.add(msg)
+		db_session.flush()
+		att = DBAttachment(
+			content_hash="hash_test", location_type="memory", blob_data=b"data"
+		)
+		db_session.add(att)
+		db_session.flush()
+
 		link1 = DBMessageAttachment(
 			message_id=msg.id, attachment_id=att.id, position=0
 		)
@@ -404,32 +333,16 @@ class TestDBMessageAttachment:
 class TestDBCitation:
 	"""Tests for the DBCitation model."""
 
-	def _make_message(self, db_session):
-		conv = DBConversation(
-			created_at=datetime.now(), updated_at=datetime.now()
-		)
-		db_session.add(conv)
-		db_session.flush()
-		block = DBMessageBlock(
-			conversation_id=conv.id,
-			position=0,
-			model_provider="openai",
-			model_id="gpt-4",
-			created_at=datetime.now(),
-			updated_at=datetime.now(),
-		)
-		db_session.add(block)
-		db_session.flush()
+	def test_create_citation(self, db_session, db_message_block):
+		"""Test creating a citation."""
 		msg = DBMessage(
-			message_block_id=block.id, role="assistant", content="Response"
+			message_block_id=db_message_block.id,
+			role="assistant",
+			content="Response",
 		)
 		db_session.add(msg)
 		db_session.flush()
-		return msg
 
-	def test_create_citation(self, db_session):
-		"""Test creating a citation."""
-		msg = self._make_message(db_session)
 		cit = DBCitation(
 			message_id=msg.id,
 			position=0,
@@ -443,9 +356,16 @@ class TestDBCitation:
 		db_session.flush()
 		assert cit.id is not None
 
-	def test_cascade_delete_with_message(self, db_session):
+	def test_cascade_delete_with_message(self, db_session, db_message_block):
 		"""Test that deleting a message cascades to citations."""
-		msg = self._make_message(db_session)
+		msg = DBMessage(
+			message_block_id=db_message_block.id,
+			role="assistant",
+			content="Response",
+		)
+		db_session.add(msg)
+		db_session.flush()
+
 		cit = DBCitation(message_id=msg.id, position=0, cited_text="text")
 		db_session.add(cit)
 		db_session.flush()
@@ -455,9 +375,16 @@ class TestDBCitation:
 		db_session.flush()
 		assert db_session.get(DBCitation, cit_id) is None
 
-	def test_multiple_citations_ordered(self, db_session):
+	def test_multiple_citations_ordered(self, db_session, db_message_block):
 		"""Test multiple citations maintain position order."""
-		msg = self._make_message(db_session)
+		msg = DBMessage(
+			message_block_id=db_message_block.id,
+			role="assistant",
+			content="Response",
+		)
+		db_session.add(msg)
+		db_session.flush()
+
 		for i in range(3):
 			cit = DBCitation(
 				message_id=msg.id, position=i, cited_text=f"Citation {i}"

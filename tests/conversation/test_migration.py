@@ -1,9 +1,11 @@
 """Tests for conversation migration functions."""
 
+import io
 import json
 import zipfile
 
 import pytest
+from PIL import Image
 from upath import UPath
 
 from basilisk.consts import BSKC_VERSION
@@ -531,10 +533,6 @@ class TestBSKCFileMigration:
 		}
 
 		# Create a simple test image for the attachment
-		import io
-
-		from PIL import Image
-
 		# Create a simple 100x100 red image
 		img = Image.new('RGB', (100, 100), color='red')
 		img_bytes = io.BytesIO()

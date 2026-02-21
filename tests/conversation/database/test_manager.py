@@ -3,14 +3,18 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from sqlalchemy import func, select
+from upath import UPath
 
 from basilisk.conversation import (
+	AttachmentFile,
 	Conversation,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.database.models import DBAttachment
 
 
 class TestSaveConversation:
@@ -67,8 +71,6 @@ class TestSaveConversation:
 			db_manager.save_conversation(conv)
 
 		# Both should reference the same system_prompt row
-		from sqlalchemy import select
-
 		from basilisk.conversation.database.models import DBSystemPrompt
 
 		with db_manager._get_session() as session:
@@ -454,10 +456,6 @@ class TestDraftBlock:
 		self, db_manager, test_ai_model, tmp_path
 	):
 		"""Test draft block with attachments round-trip."""
-		from upath import UPath
-
-		from basilisk.conversation import AttachmentFile
-
 		text_path = UPath(tmp_path) / "draft_file.txt"
 		with text_path.open("w") as f:
 			f.write("draft attachment content")
@@ -486,6 +484,12 @@ class TestDraftBlock:
 class TestCleanupOrphanAttachments:
 	"""Tests for cleanup_orphan_attachments."""
 
+	def _count_attachments(self, db_manager) -> int:
+		with db_manager._get_session() as session:
+			return session.execute(
+				select(func.count(DBAttachment.id))
+			).scalar_one()
+
 	def test_no_orphans_returns_zero(
 		self, db_manager, conversation_with_attachments
 	):
@@ -497,37 +501,19 @@ class TestCleanupOrphanAttachments:
 		self, db_manager, conversation_with_attachments
 	):
 		"""Test that orphaned attachments are removed after conversation delete."""
-		from sqlalchemy import func, select
-
-		from basilisk.conversation.database.models import DBAttachment
-
 		conv_id = db_manager.save_conversation(conversation_with_attachments)
 
-		with db_manager._get_session() as session:
-			count_before = session.execute(
-				select(func.count(DBAttachment.id))
-			).scalar_one()
-		assert count_before > 0
+		assert self._count_attachments(db_manager) > 0
 
 		# delete_conversation calls cleanup internally
 		db_manager.delete_conversation(conv_id)
 
-		with db_manager._get_session() as session:
-			count_after = session.execute(
-				select(func.count(DBAttachment.id))
-			).scalar_one()
-		assert count_after == 0
+		assert self._count_attachments(db_manager) == 0
 
 	def test_shared_attachment_not_removed(
 		self, db_manager, test_ai_model, tmp_path
 	):
 		"""Test that an attachment shared between two conversations is kept."""
-		from sqlalchemy import func, select
-		from upath import UPath
-
-		from basilisk.conversation import AttachmentFile
-		from basilisk.conversation.database.models import DBAttachment
-
 		text_path = UPath(tmp_path) / "shared.txt"
 		text_path.write_text("shared content")
 
@@ -545,30 +531,12 @@ class TestCleanupOrphanAttachments:
 		id2 = db_manager.save_conversation(_make_conv())
 
 		# Deduplication: only one DBAttachment row
-		with db_manager._get_session() as session:
-			assert (
-				session.execute(
-					select(func.count(DBAttachment.id))
-				).scalar_one()
-				== 1
-			)
+		assert self._count_attachments(db_manager) == 1
 
 		# Delete first — shared row must survive
 		db_manager.delete_conversation(id1)
-		with db_manager._get_session() as session:
-			assert (
-				session.execute(
-					select(func.count(DBAttachment.id))
-				).scalar_one()
-				== 1
-			)
+		assert self._count_attachments(db_manager) == 1
 
 		# Delete second — now orphaned, must be removed
 		db_manager.delete_conversation(id2)
-		with db_manager._get_session() as session:
-			assert (
-				session.execute(
-					select(func.count(DBAttachment.id))
-				).scalar_one()
-				== 0
-			)
+		assert self._count_attachments(db_manager) == 0
