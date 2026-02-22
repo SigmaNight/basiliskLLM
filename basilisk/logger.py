@@ -50,12 +50,12 @@ def setup_logging(level: str) -> None:
 	level = level.upper()
 	if level == "OFF":
 		level = "NOTSET"
-	handlers = [logging.FileHandler(get_log_file_path(), mode='w')]
+	handlers = [logging.FileHandler(get_log_file_path(), mode="w")]
 	if not getattr(sys, "frozen", False):
 		handlers.append(logging.StreamHandler())
 	logging.basicConfig(
 		level=level,
-		format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+		format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 		handlers=handlers,
 		force=True,
 	)

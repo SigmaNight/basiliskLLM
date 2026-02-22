@@ -12,7 +12,7 @@ from typing import Callable, Optional
 import wx
 from more_itertools import locate
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
 	import win32con
 import basilisk.config as config
 from basilisk import global_vars
@@ -304,17 +304,17 @@ class MainFrame(wx.Frame):
 		self.RegisterHotKey(
 			HotkeyAction.TOGGLE_VISIBILITY.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('B'),
+			ord("B"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_FULL.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('F'),
+			ord("F"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_WINDOW.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('W'),
+			ord("W"),
 		)
 
 	def on_hotkey(self, event):
@@ -434,6 +434,27 @@ class MainFrame(wx.Frame):
 		self.Show(True)
 		self.Raise()
 
+	def _cleanup_all_tabs(self):
+		"""Clean up resources for all conversation tabs.
+
+		This helper method is used by on_quit to clean up all tabs when
+		closing the application. For closing a single tab, use
+		tab.cleanup_resources() directly.
+
+		Each tab's cleanup is wrapped in try/except to ensure all tabs
+		get cleaned up even if one fails.
+		"""
+		for index, tab in enumerate(self.tabs_panels):
+			try:
+				tab.cleanup_resources()
+			except Exception as e:
+				log.error(
+					"Error cleaning up resources for tab at index %d: %s",
+					index,
+					e,
+					exc_info=True,
+				)
+
 	def on_close(self, event: wx.Event | None):
 		"""Handle the close event for the main application frame.
 
@@ -445,12 +466,22 @@ class MainFrame(wx.Frame):
 		else:
 			self.on_minimize(event)
 
+	def _save_conv_to_reopen(self):
+		if not self.conf.conversation.reopen_last_conversation:
+			return
+		tab = self.current_tab
+		if tab.db_conv_id is None:
+			self.conf.conversation.last_active_conversation_id = tab.db_conv_id
+		else:
+			self.conf.conversation.last_active_conversation_id = None
+		self.conf.save()
+
 	def on_quit(self, event: wx.Event | None):
 		"""Gracefully close the application, stopping all conversation tasks and cleaning up resources.
 
 		This method performs the following actions:
 		- Sets a global flag to indicate the application should exit
-		- Waits for all active conversation tasks to complete
+		- Cleans up all resources for all conversation tabs (completions, recordings, sounds, processes)
 		- Unregisters global hotkeys on Windows platforms
 		- Removes and destroys the system tray icon
 		- Destroys the main application window
@@ -461,34 +492,15 @@ class MainFrame(wx.Frame):
 		"""
 		log.info("Closing application")
 		global_vars.app_should_exit = True
-		# Flush drafts before closing
-		for tab in self.tabs_panels:
-			# ensure all conversation tasks are stopped
-			tab.completion_handler.stop_completion()
-			tab.flush_draft()
-		# Save last active conversation ID
-		if self.conf.conversation.reopen_last_conversation:
-			tab_index = self.notebook.GetSelection()
-			current = (
-				self.tabs_panels[tab_index]
-				if self.tabs_panels
-				and tab_index != wx.NOT_FOUND
-				and 0 <= tab_index < len(self.tabs_panels)
-				else None
-			)
-			if current and current.db_conv_id is not None:
-				self.conf.conversation.last_active_conversation_id = (
-					current.db_conv_id
-				)
-			else:
-				self.conf.conversation.last_active_conversation_id = None
-			self.conf.save()
+		self._save_conv_to_reopen()
+		self._cleanup_all_tabs()
 		if sys.platform == "win32":
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_FULL.value)
 			self.tray_icon.RemoveIcon()
 			self.tray_icon.Destroy()
+
 		self.Destroy()
 		wx.GetApp().ExitMainLoop()
 
@@ -609,7 +621,7 @@ class MainFrame(wx.Frame):
 			title = current_tab.generate_conversation_title()
 			if not title:
 				return
-			title = title.strip().replace('\n', ' ')
+			title = title.strip().replace("\n", " ")
 		dialog = NameConversationDialog(self, title=title, auto=auto)
 		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
 			dialog.Destroy()
@@ -662,14 +674,31 @@ class MainFrame(wx.Frame):
 		This method removes the current tab from the notebook and the tabs_panels list. If no tabs remain,
 		a new default conversation is created. Otherwise, the last tab is selected and the frame title is refreshed.
 
+		Before closing, it cleans up all running resources for this specific tab only
+		(completion tasks, recordings, sounds, processes).
+
 		Args:
 			event: The event that triggered the tab closure. Can be None.
 		"""
 		current_tab_index = self.notebook.GetSelection()
 		if current_tab_index == wx.NOT_FOUND:
 			return
+
+		current_tab = self.tabs_panels[current_tab_index]
+
+		try:
+			current_tab.cleanup_resources()
+		except Exception as e:
+			log.error(
+				"Error cleaning up resources for tab at index %d: %s",
+				current_tab_index,
+				e,
+				exc_info=True,
+			)
+
 		self.notebook.DeletePage(current_tab_index)
 		self.tabs_panels.pop(current_tab_index)
+
 		current_tab_count = self.notebook.GetPageCount()
 		if current_tab_count == 0:
 			self.on_new_default_conversation(None)
@@ -829,7 +858,7 @@ class MainFrame(wx.Frame):
 			)
 			log.debug("Creating NVDA addon: %s", tmp_nvda_addon_path)
 			with zipfile.ZipFile(
-				tmp_nvda_addon_path, 'w', zipfile.ZIP_DEFLATED
+				tmp_nvda_addon_path, "w", zipfile.ZIP_DEFLATED
 			) as zipf:
 				for root, _, files in os.walk(res_nvda_addon_path):
 					for file in files:

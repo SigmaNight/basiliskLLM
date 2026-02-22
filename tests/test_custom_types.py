@@ -53,16 +53,16 @@ class TestPydanticOrderedSet:
 	def test_pydantic_model_integration(self, test_model_class):
 		"""Test integration of PydanticOrderedSet with Pydantic models."""
 		model = test_model_class(
-			numbers=[3, 1, 4, 1, 5], strings=['a', 'b', 'a', 'c']
+			numbers=[3, 1, 4, 1, 5], strings=["a", "b", "a", "c"]
 		)
 		assert list(model.numbers) == [3, 1, 4, 5]
-		assert list(model.strings) == ['a', 'b', 'c']
+		assert list(model.strings) == ["a", "b", "c"]
 
 	def test_json_serialization(self, simple_model_class):
 		"""Test JSON serialization and deserialization of PydanticOrderedSet."""
 		model = simple_model_class(data=[3, 1, 4, 1, 5])
 		json_data = model.model_dump_json()
-		assert json_data == "{\"data\":[3,1,4,5]}"
+		assert json_data == '{"data":[3,1,4,5]}'
 
 		# Test deserialization
 		loaded_model = simple_model_class.model_validate_json(json_data)
@@ -76,8 +76,8 @@ class TestPydanticOrderedSet:
 	def test_pydantic_schema(self, simple_model_class):
 		"""Test Pydantic schema generation for PydanticOrderedSet."""
 		schema = simple_model_class.model_json_schema()
-		assert schema['properties']['data']['type'] == 'array'
-		assert schema['properties']['data']['items']['type'] == 'integer'
+		assert schema["properties"]["data"]["type"] == "array"
+		assert schema["properties"]["data"]["items"]["type"] == "integer"
 
 
 class TestPydanticUPath:

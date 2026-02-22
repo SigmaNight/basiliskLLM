@@ -301,7 +301,7 @@ class AnthropicEngine(BaseEngine):
 			Attachment extra data.
 		"""
 		extras = {}
-		match attachment.mime_type.split('/')[0]:
+		match attachment.mime_type.split("/")[0]:
 			case "image":
 				extras["type"] = "image"
 			case "application" | "text":
@@ -534,7 +534,7 @@ class AnthropicEngine(BaseEngine):
 				for citation in content.citations:
 					citations.append(self._handle_citation(citation))
 			text.append(content.text)
-		final_content = ''.join(text)
+		final_content = "".join(text)
 		if thinking_content:
 			final_content = (
 				f"```think\n{thinking_content}\n```\n\n{final_content}"

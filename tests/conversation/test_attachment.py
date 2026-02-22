@@ -135,7 +135,7 @@ class TestAttachmentFileProperties:
 		"""Test base64 encoding of attachment file."""
 		attachment = AttachmentFile(location=text_file)
 		encoded = attachment.encode_base64()
-		decoded = base64.b64decode(encoded).decode('utf-8')
+		decoded = base64.b64decode(encoded).decode("utf-8")
 		assert decoded == "test content"
 
 	def test_attachment_read_as_bytes(self, text_file):
@@ -371,7 +371,7 @@ class TestImageResizing:
 		"""Create an image file for resize testing."""
 		test_file_path = UPath(tmp_path) / "resize_test.png"
 		with test_file_path.open("wb") as f:
-			img = Image.new('RGB', (200, 100))
+			img = Image.new("RGB", (200, 100))
 			img.save(f)
 		return test_file_path
 
@@ -443,9 +443,9 @@ class TestURLAndFormatting:
 	def test_image_from_url(self, httpx_mock):
 		"""Test creating ImageFile from URL."""
 		test_url = "https://example.com/image.jpg"
-		image = Image.new('RGB', (100, 50))
+		image = Image.new("RGB", (100, 50))
 		image_content = BytesIO()
-		image.save(image_content, format='JPEG')
+		image.save(image_content, format="JPEG")
 		image_content.seek(0)
 
 		# Mock the HTTP response
@@ -475,9 +475,9 @@ class TestURLAndFormatting:
 		# URL attachments should be able to call read methods
 		# (though they may fail at runtime depending on network access)
 		# We're testing that the methods exist and are callable
-		assert hasattr(url_attachment, 'read_as_plain_text')
-		assert hasattr(url_attachment, 'read_as_bytes')
-		assert hasattr(url_attachment, '_read_file')
+		assert hasattr(url_attachment, "read_as_plain_text")
+		assert hasattr(url_attachment, "read_as_bytes")
+		assert hasattr(url_attachment, "_read_file")
 
 	def test_data_url_attachment_properties(self):
 		"""Test attachment created from data URL."""

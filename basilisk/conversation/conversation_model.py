@@ -46,11 +46,11 @@ class MessageRoleEnum(enum.StrEnum):
 		"""
 		return {
 			# Translators: Label indicating that the message is from the user in a conversation
-			cls.USER: _("User:") + ' ',
+			cls.USER: _("User:") + " ",
 			# Translators: Label indicating that the message is from the assistant in a conversation
-			cls.ASSISTANT: _("Assistant:") + ' ',
+			cls.ASSISTANT: _("Assistant:") + " ",
 			# Translators: Label indicating that the message is a system message in a conversation
-			cls.SYSTEM: _("System:") + ' ',
+			cls.SYSTEM: _("System:") + " ",
 		}
 
 

@@ -380,7 +380,7 @@ class BaseConversation:
 			label=_("Max to&kens:"),
 		)
 		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value='0', min=0, max=2000000
+			self, value="0", min=0, max=2000000
 		)
 
 	def create_temperature_widget(self) -> wx.StaticText:

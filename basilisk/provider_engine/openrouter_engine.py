@@ -54,7 +54,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 			return ""
 		out = "\n"
 		for usage_type, price in pricing.items():
-			if price is None or price == '0':
+			if price is None or price == "0":
 				continue
 			if usage_type == "image":
 				price_1k = round(Decimal(price) * Decimal(1000), 3)
@@ -105,7 +105,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						case _:
 							if v is None:
 								continue
-							extra_info[k.replace('_', ' ')] = v
+							extra_info[k.replace("_", " ")] = v
 				models.append(
 					ProviderAIModel(
 						id=model["id"],
@@ -118,7 +118,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						or -1,
 						max_temperature=2.0,
 						vision="text+image->text"
-						in model.get("architecture", {}).get("modality", ''),
+						in model.get("architecture", {}).get("modality", ""),
 						extra_info=extra_info,
 					)
 				)

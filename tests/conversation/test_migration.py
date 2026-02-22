@@ -390,9 +390,9 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, 'w+b') as f:
+		with open(bskc_path, "w+b") as f:
 			with zipfile.ZipFile(
-				f, mode='w', compression=zipfile.ZIP_STORED
+				f, mode="w", compression=zipfile.ZIP_STORED
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(v0_data))
 
@@ -429,9 +429,9 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, 'w+b') as f:
+		with open(bskc_path, "w+b") as f:
 			with zipfile.ZipFile(
-				f, mode='w', compression=zipfile.ZIP_STORED
+				f, mode="w", compression=zipfile.ZIP_STORED
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(v1_data))
 
@@ -474,9 +474,9 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, 'w+b') as f:
+		with open(bskc_path, "w+b") as f:
 			with zipfile.ZipFile(
-				f, mode='w', compression=zipfile.ZIP_STORED
+				f, mode="w", compression=zipfile.ZIP_STORED
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(v2_data))
 
@@ -534,15 +534,15 @@ class TestBSKCFileMigration:
 
 		# Create a simple test image for the attachment
 		# Create a simple 100x100 red image
-		img = Image.new('RGB', (100, 100), color='red')
+		img = Image.new("RGB", (100, 100), color="red")
 		img_bytes = io.BytesIO()
-		img.save(img_bytes, format='PNG')
+		img.save(img_bytes, format="PNG")
 		img_bytes.seek(0)
 
 		# Save as BSKC file with attachment
-		with open(bskc_path, 'w+b') as f:
+		with open(bskc_path, "w+b") as f:
 			with zipfile.ZipFile(
-				f, mode='w', compression=zipfile.ZIP_STORED
+				f, mode="w", compression=zipfile.ZIP_STORED
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(v2_data))
 				zipf.writestr("attachments/test_image.png", img_bytes.read())
@@ -573,9 +573,9 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, 'w+b') as f:
+		with open(bskc_path, "w+b") as f:
 			with zipfile.ZipFile(
-				f, mode='w', compression=zipfile.ZIP_STORED
+				f, mode="w", compression=zipfile.ZIP_STORED
 			) as zipf:
 				zipf.writestr("conversation.json", json.dumps(invalid_data))
 
