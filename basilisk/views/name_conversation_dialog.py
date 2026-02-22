@@ -3,6 +3,10 @@
 The dialog supports both manual name entry and automatic name generation based on conversation content.
 """
 
+from __future__ import annotations
+
+from typing import Callable, Optional
+
 import wx
 
 
@@ -11,29 +15,30 @@ class NameConversationDialog(wx.Dialog):
 
 	Features:
 	- Manual name entry
-	- Automatic name generation
+	- Automatic name generation via an injected callable
 	- Support for both initial naming and renaming
 	"""
 
-	def __init__(self, parent, title="", auto=False):
+	def __init__(
+		self,
+		parent,
+		title: str = "",
+		generate_fn: Optional[Callable[[], Optional[str]]] = None,
+	):
 		"""Create the dialog.
 
 		Args:
 			parent: The parent window.
 			title: The initial title.
-			auto: If True, the dialog will automatically generate a name.
+			generate_fn: Optional callable that returns a generated title string.
 		"""
 		super(NameConversationDialog, self).__init__(
 			parent, title=_("Name conversation"), size=(300, 200)
 		)
 
-		self.parent = parent
-		self.auto = auto
+		self.generate_fn = generate_fn
 		self.title = title
 		self._create_ui()
-
-		if auto:
-			self.on_generate(None)
 
 	def _create_ui(self):
 		"""Create the user interface."""
@@ -84,18 +89,19 @@ class NameConversationDialog(wx.Dialog):
 		Args:
 			event: The event that triggered the generation.
 		"""
+		if not self.generate_fn:
+			return
 		try:
-			title = self.parent.current_tab.generate_conversation_title()
+			title = self.generate_fn()
 			if title:
-				title = title.strip().replace("\n", " ")
-				self.text_ctrl.SetValue(title)
+				self.text_ctrl.SetValue(title.strip().replace("\n", " "))
 		except Exception as e:
 			wx.MessageBox(
+				# Translators: An error message when generating a conversation name fails.
+				_("An error occurred while generating the name: %s") % e,
 				# Translators: A message box title.
 				_("Error"),
-				# Translators: An error message.
-				_("An error occurred while generating the name: %s") % e,
-				style=wx.ICON_ERROR,
+				style=wx.OK | wx.ICON_ERROR,
 			)
 		if self.generate_button.HasFocus():
 			self.text_ctrl.SetFocus()

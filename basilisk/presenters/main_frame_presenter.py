@@ -262,7 +262,7 @@ class MainFramePresenter:
 		Shows a dialog for the user to enter or confirm the title.
 
 		Args:
-			auto: If True, generates a title automatically first.
+			auto: If True, generates a title automatically before showing the dialog.
 		"""
 		from basilisk.views.name_conversation_dialog import (
 			NameConversationDialog,
@@ -276,11 +276,15 @@ class MainFramePresenter:
 			return
 		title = current_tab.conversation.title or current_tab.title
 		if auto:
-			title = current_tab.generate_conversation_title()
-			if not title:
+			generated = current_tab.generate_conversation_title()
+			if not generated:
 				return
-			title = title.strip().replace("\n", " ")
-		dialog = NameConversationDialog(self.view, title=title, auto=auto)
+			title = generated.strip().replace("\n", " ")
+		dialog = NameConversationDialog(
+			self.view,
+			title=title,
+			generate_fn=current_tab.generate_conversation_title,
+		)
 		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
 			dialog.Destroy()
 			return

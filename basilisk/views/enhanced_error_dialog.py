@@ -7,29 +7,11 @@ open them in the system browser.
 
 from __future__ import annotations
 
-import logging
-import re
-import webbrowser
 from typing import Optional
 
 import wx
 
-logger = logging.getLogger(__name__)
-
-# URL detection pattern that matches http/https URLs
-URL_PATTERN = re.compile(r"https?://[^\s<>()\"']+", re.IGNORECASE)
-
-
-def find_urls_in_text(text: str) -> list[str]:
-	"""Find all URLs in the given text.
-
-	Args:
-		text: The text to search for URLs
-
-	Returns:
-		A list of URLs found in the text
-	"""
-	return URL_PATTERN.findall(text)
+from basilisk.presenters.enhanced_error_presenter import EnhancedErrorPresenter
 
 
 def show_enhanced_error_dialog(
@@ -52,7 +34,7 @@ def show_enhanced_error_dialog(
 	if title is None:
 		title = _("Error")
 
-	urls = find_urls_in_text(message)
+	urls = EnhancedErrorPresenter.find_urls_in_text(message)
 
 	dialog = EnhancedErrorDialog(
 		parent, message, title, urls, is_completion_error
@@ -91,6 +73,7 @@ class EnhancedErrorDialog(wx.Dialog):
 		self.message = message
 		self.urls = urls
 		self.is_completion_error = is_completion_error
+		self.presenter = EnhancedErrorPresenter(self)
 
 		self._create_ui()
 		self._bind_events()
@@ -159,7 +142,10 @@ class EnhancedErrorDialog(wx.Dialog):
 		button_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		# Copy button (left side)
-		self.copy_btn = wx.Button(self, label=_("Copy Error"))
+		# Translators: Button to copy the error message to the clipboard
+		copy_label = _("Copy Error")
+		self.copy_btn = wx.Button(self, label=copy_label)
+		self._copy_btn_original_label = copy_label
 		button_sizer.Add(self.copy_btn, 0, wx.ALL, 5)
 
 		# Spacer to push OK button to the right
@@ -196,50 +182,52 @@ class EnhancedErrorDialog(wx.Dialog):
 			self.ok_btn.SetFocus()
 		event.Skip()
 
+	def set_copy_state(self, label: str, enabled: bool) -> None:
+		"""Update the copy button label and enabled state.
+
+		When disabled, schedules a reset to the original label after 2 seconds.
+
+		Args:
+			label: The button label to display.
+			enabled: Whether the button should be enabled.
+		"""
+		self.copy_btn.SetLabel(label)
+		if enabled:
+			self.copy_btn.Enable()
+		else:
+			self.copy_btn.Disable()
+			wx.CallLater(2000, self._reset_copy_button)
+
+	def _reset_copy_button(self):
+		"""Restore the copy button to its original label and enabled state."""
+		if self.copy_btn and not self.copy_btn.IsBeingDeleted():
+			self.copy_btn.SetLabel(self._copy_btn_original_label)
+			self.copy_btn.Enable()
+
+	def set_open_url_state(self, label: str) -> None:
+		"""Temporarily update the open-URL button label.
+
+		Schedules a reset to the original label after 2 seconds.
+
+		Args:
+			label: The temporary button label to display.
+		"""
+		if hasattr(self, "open_url_btn"):
+			orig = self.open_url_btn.GetLabel()
+			self.open_url_btn.SetLabel(label)
+			wx.CallLater(2000, self.open_url_btn.SetLabel, orig)
+
+	def bell(self) -> None:
+		"""Ring the system bell."""
+		wx.Bell()
+
 	def on_copy_error(self, event: wx.CommandEvent):
 		"""Handle copying error message to clipboard.
 
 		Args:
 			event: Button click event
 		"""
-		original_label = self.copy_btn.GetLabel()
-		try:
-			opened = wx.TheClipboard.Open()
-			try:
-				if opened:
-					if not wx.TheClipboard.SetData(
-						wx.TextDataObject(self.message)
-					):
-						raise RuntimeError("SetData returned False")
-					# Success feedback
-					self.copy_btn.SetLabel(_("Copied!"))
-					self.copy_btn.Disable()
-					wx.CallLater(2000, self._reset_copy_button, original_label)
-				else:
-					logger.warning("Failed to access clipboard")
-					wx.Bell()
-					self.copy_btn.SetLabel(_("Copy failed"))
-					self.copy_btn.Disable()
-					wx.CallLater(2000, self._reset_copy_button, original_label)
-			finally:
-				if opened:
-					wx.TheClipboard.Close()
-		except Exception as e:
-			logger.error("Failed to copy to clipboard: %s", e)
-			wx.Bell()
-			self.copy_btn.SetLabel(_("Copy failed: %s") % e)
-			self.copy_btn.Disable()
-			wx.CallLater(2000, self._reset_copy_button, original_label)
-
-	def _reset_copy_button(self, original_label: str):
-		"""Reset the copy button to its original state.
-
-		Args:
-			original_label: The original button label to restore
-		"""
-		if self.copy_btn and not self.copy_btn.IsBeingDeleted():
-			self.copy_btn.SetLabel(original_label)
-			self.copy_btn.Enable()
+		self.presenter.copy_to_clipboard(self.message)
 
 	def on_open_url(self, event: wx.CommandEvent):
 		"""Handle opening URL in browser.
@@ -255,13 +243,4 @@ class EnhancedErrorDialog(wx.Dialog):
 			return
 
 		url = self.urls[selection]
-		try:
-			logger.info("Opening URL in browser: %s", url)
-			webbrowser.open(url)
-		except Exception as e:
-			logger.error("Failed to open URL %s: %s", url, e)
-			wx.Bell()
-			if hasattr(self, "open_url_btn"):
-				orig = self.open_url_btn.GetLabel()
-				self.open_url_btn.SetLabel(_("Open failed"))
-				wx.CallLater(2000, self.open_url_btn.SetLabel, orig)
+		self.presenter.open_url(url)
