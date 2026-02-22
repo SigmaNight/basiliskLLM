@@ -152,7 +152,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self.conv_storage_path = conv_storage_path or self.conv_storage_path()
 		self.conversation = conversation or Conversation()
 		self.recording_thread: Optional[RecordingThread] = None
-		self._is_destroying = False  # Flag to indicate tab is being destroyed
+		self._is_destroying = False
 
 		# Initialize variables for error recovery
 		self._stored_prompt_text: Optional[str] = None
@@ -496,7 +496,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			dlg.Destroy()
 
-	def _is_widget_valid(self, widget_name: str = None) -> bool:
+	def _is_widget_valid(self, widget_name: Optional[str] = None) -> bool:
 		"""Check if the tab and its widgets are still valid.
 
 		This method verifies that the tab object and optionally a specific widget
@@ -510,38 +510,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Returns:
 			True if widgets are valid, False otherwise
 		"""
-		# Check destruction flag first
 		if self._is_destroying:
 			return False
 
-		# Check if specific widget exists
 		if widget_name and not hasattr(self, widget_name):
 			return False
 
-		# Verify the object itself is still valid by trying to access a wx property
-		# Use GetParent() which is available on all wx.Window objects
 		try:
 			_ = self.GetParent()
-			# If widget_name specified, also verify that widget is accessible
 			if widget_name:
-				widget = getattr(self, widget_name)
-				# Try to access a common wx property to verify it's alive
-				# Most wx widgets have GetParent() or at least are accessible
-				if hasattr(widget, 'GetParent'):
-					_ = widget.GetParent()
-				elif hasattr(widget, '__class__'):
-					# Just verify we can access the widget's class
-					_ = widget.__class__
+				getattr(self, widget_name).GetParent()
 			return True
 		except RuntimeError:
 			log.debug(
-				"Widget validation failed: tab or widget is being destroyed"
+				"Widget validation failed: tab or widget is being destroyed",
+				exc_info=True,
 			)
 			return False
 		except AttributeError:
-			# Object doesn't have expected methods (shouldn't happen for wx.Window)
 			log.debug(
-				"Widget validation: object missing expected wx.Window methods"
+				"Widget validation: object missing GetParent method",
+				exc_info=True,
 			)
 			return False
 
@@ -572,7 +561,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			transcription: The transcription result
 		"""
-		if not self._is_widget_valid('prompt_panel'):
+		if not self._is_widget_valid("prompt_panel"):
 			return
 		stop_sound()
 		self.SetStatusText(_("Ready"))
@@ -645,8 +634,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		else:
 			self.recording_thread.stop()
 
-		# Update UI only if widgets still exist
-		if self._is_widget_valid('toggle_record_btn'):
+		if self._is_widget_valid("toggle_record_btn"):
 			self.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 			self.submit_btn.Enable()
 
@@ -880,7 +868,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 
 	def _on_completion_start(self):
 		"""Called when completion starts."""
-		if not self._is_widget_valid('submit_btn'):
+		if not self._is_widget_valid("submit_btn"):
 			return
 		self.submit_btn.Disable()
 		self.stop_completion_btn.Show()
@@ -893,7 +881,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			success: Whether the completion was successful
 		"""
-		if not self._is_widget_valid('stop_completion_btn'):
+		if not self._is_widget_valid("stop_completion_btn"):
 			return
 		self.stop_completion_btn.Hide()
 		self.submit_btn.Enable()
@@ -903,7 +891,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			self._clear_stored_content()
 
 		if success and config.conf().conversation.focus_history_after_send:
-			if self._is_widget_valid('messages'):
+			if self._is_widget_valid("messages"):
 				self.messages.SetFocus()
 
 	def _on_stream_chunk(self, chunk: str):
@@ -912,7 +900,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			chunk: The streaming chunk content
 		"""
-		if not self._is_widget_valid('messages'):
+		if not self._is_widget_valid("messages"):
 			return
 		self.messages.append_stream_chunk(chunk)
 
@@ -925,7 +913,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			new_block: The message block being completed
 			system_message: Optional system message
 		"""
-		if not self._is_widget_valid('messages'):
+		if not self._is_widget_valid("messages"):
 			return
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block, streaming=True)
@@ -937,7 +925,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			new_block: The completed message block
 		"""
-		if not self._is_widget_valid('messages'):
+		if not self._is_widget_valid("messages"):
 			return
 		self.messages.a_output.handle_stream_buffer()
 		self.messages.update_last_segment_length()
@@ -951,7 +939,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			new_block: The completed message block
 			system_message: Optional system message
 		"""
-		if not self._is_widget_valid('messages'):
+		if not self._is_widget_valid("messages"):
 			return
 		self.conversation.add_block(new_block, system_message)
 		self.messages.display_new_block(new_block)
@@ -984,7 +972,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			error_message: The error message
 		"""
-		if not self._is_widget_valid('prompt_panel'):
+		if not self._is_widget_valid("prompt_panel"):
 			log.debug(
 				"Skipping completion error dialog: tab is being destroyed"
 			)
@@ -1009,7 +997,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			process_name: Name of the process for logging purposes
 			timeout: Timeout in seconds to wait for graceful termination
 		"""
-		if not process or not hasattr(process, 'is_alive'):
+		if not process or not hasattr(process, "is_alive"):
 			return
 		if not process.is_alive():
 			return
@@ -1021,6 +1009,8 @@ class ConversationTab(wx.Panel, BaseConversation):
 			if process.is_alive():
 				log.warning("%s did not terminate, killing it", process_name)
 				process.kill()
+				if process.is_alive():
+					process.join(timeout=0.5)
 		except Exception as e:
 			log.error(
 				"Error terminating %s: %s", process_name, e, exc_info=True
@@ -1036,30 +1026,27 @@ class ConversationTab(wx.Panel, BaseConversation):
 		- OCR processes
 		- Any other background processes
 		"""
-		# Set flag to prevent callbacks from accessing destroyed widgets
 		self._is_destroying = True
 
-		# Stop completion if running (skip callbacks to avoid widget access after destruction)
 		if self.completion_handler.is_running():
 			log.debug("Stopping completion handler before closing tab")
 			self.completion_handler.stop_completion(skip_callbacks=True)
 
 		# Abort recording if active (abort prevents transcription callbacks)
-		if self.recording_thread and self.recording_thread.is_alive():
-			log.debug("Aborting recording thread before closing tab")
-			try:
-				self.recording_thread.abort()
-				# Wait briefly for thread to finish, but don't block too long
-				self.recording_thread.join(timeout=0.5)
-			except Exception as e:
-				log.error(
-					"Error aborting recording thread: %s", e, exc_info=True
-				)
+		if self.recording_thread:
+			if self.recording_thread.is_alive():
+				log.debug("Aborting recording thread before closing tab")
+				try:
+					self.recording_thread.abort()
+					self.recording_thread.join(timeout=0.5)
+				except Exception as e:
+					log.error(
+						"Error aborting recording thread: %s", e, exc_info=True
+					)
+			self.recording_thread = None
 
-		# Stop any progress sounds
 		stop_sound()
 
-		# Terminate all processes in parallel (they're independent)
 		self._terminate_process(self.ocr_handler.process, "OCR process")
 		if self.ocr_handler.process:
 			self.ocr_handler.process = None

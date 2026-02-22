@@ -49,6 +49,7 @@ class OCRHandler:
 		self.parent = parent
 		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_button: Optional[wx.Button] = None
+		self._ocr_cleanup_done = False
 
 	def create_ocr_widget(self, parent: wx.Window) -> wx.Button:
 		"""Create and configure the OCR button widget.
@@ -135,21 +136,24 @@ class OCRHandler:
 			dialog: The progress dialog
 		"""
 		if not dialog:
-			# Dialog might have been destroyed already
 			return
 
-		# Destroy dialog safely
+		dialog_destroyed = False
 		try:
 			if dialog.IsShown():
 				dialog.Destroy()
+				dialog_destroyed = True
 		except RuntimeError:
-			log.debug("OCR dialog already destroyed")
+			log.debug("OCR dialog already destroyed", exc_info=True)
+			dialog_destroyed = True
 
-		# Check if parent tab still exists and is valid
+		if dialog_destroyed:
+			self._ocr_cleanup_done = True
+
 		if (
-			not hasattr(self.parent, '_is_destroying')
+			not hasattr(self.parent, "_is_destroying")
 			or self.parent._is_destroying
-			or not hasattr(self.parent, '_is_widget_valid')
+			or not hasattr(self.parent, "_is_widget_valid")
 			or not self.parent._is_widget_valid()
 		):
 			log.debug(
@@ -157,7 +161,7 @@ class OCRHandler:
 			)
 			return
 
-		if hasattr(self, 'ocr_button') and self.ocr_button:
+		if hasattr(self, "ocr_button") and self.ocr_button:
 			self.ocr_button.Enable()
 
 		# Handle based on message type
@@ -223,13 +227,14 @@ class OCRHandler:
 				"Error processing queue messages: %s", str(e), exc_info=True
 			)
 
-	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
-		"""Clean up OCR process resources when task completes or is canceled.
+	def _terminate_ocr_process_if_needed(
+		self, dialog: ProgressBarDialog
+	) -> None:
+		"""Terminate OCR process if cancellation was requested.
 
 		Args:
-			dialog: The progress dialog to manage
+			dialog: The progress dialog containing cancel flag
 		"""
-		# Clean up resources
 		if (
 			self.process
 			and dialog.cancel_flag.value
@@ -238,37 +243,61 @@ class OCRHandler:
 			log.debug("Terminating OCR process due to user cancellation")
 			try:
 				self.process.terminate()
-				self.process.join(timeout=1.0)  # Wait for process to terminate
+				self.process.join(timeout=1.0)
 				if self.process.is_alive():
 					log.warning("Process did not terminate, killing it")
 					self.process.kill()
 			except Exception as e:
 				log.error("Error terminating process: %s", e, exc_info=True)
 
-		# Destroy dialog safely
+	def _destroy_ocr_dialog(self, dialog: ProgressBarDialog) -> None:
+		"""Safely destroy the OCR progress dialog.
+
+		Args:
+			dialog: The progress dialog to destroy
+		"""
 		try:
 			if dialog and dialog.IsShown():
 				dialog.Destroy()
 		except RuntimeError:
-			log.debug("OCR dialog already destroyed")
+			log.debug("OCR dialog already destroyed", exc_info=True)
 		except Exception as e:
 			log.error("Error destroying dialog: %s", e, exc_info=True)
 
-		# Enable button only if parent tab still exists and is valid
+	def _enable_ocr_button(self) -> None:
+		"""Enable the OCR button if parent tab is still valid."""
 		if (
-			hasattr(self.parent, '_is_widget_valid')
-			and self.parent._is_widget_valid('ocr_button')
-			and hasattr(self, 'ocr_button')
+			hasattr(self.parent, "_is_widget_valid")
+			and self.parent._is_widget_valid("ocr_button")
+			and hasattr(self, "ocr_button")
 			and self.ocr_button
 		):
 			self.ocr_button.Enable()
 		elif (
-			hasattr(self.parent, '_is_destroying')
+			hasattr(self.parent, "_is_destroying")
 			and self.parent._is_destroying
 		):
 			log.debug(
 				"Skipping OCR button enable: parent tab is being destroyed"
 			)
+
+	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
+		"""Clean up OCR process resources when task completes or is canceled.
+
+		Args:
+			dialog: The progress dialog to manage
+		"""
+		if self._ocr_cleanup_done:
+			self._terminate_ocr_process_if_needed(dialog)
+			self.process = None
+			self._ocr_cleanup_done = False
+			return
+
+		self._terminate_ocr_process_if_needed(dialog)
+		self._destroy_ocr_dialog(dialog)
+		self._enable_ocr_button()
+
+		self._ocr_cleanup_done = True
 		self.process = None
 
 	def check_task_progress(
@@ -342,6 +371,8 @@ class OCRHandler:
 			return
 
 		self.ocr_button.Disable()
+
+		self._ocr_cleanup_done = False
 
 		cancel_flag = Value("i", 0)
 		result_queue = Queue()
