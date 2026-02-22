@@ -10,26 +10,20 @@ import os
 import weakref
 from collections import namedtuple
 from functools import partialmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import wx
 
 import basilisk.config as config
-from basilisk.accessible_output import AccessibleOutputHandler
 from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.message_segment_manager import (
-	MessageSegment,
-	MessageSegmentManager,
-	MessageSegmentType,
-)
+from basilisk.message_segment_manager import MessageSegment, MessageSegmentType
+from basilisk.presenters.history_presenter import HistoryPresenter
 from basilisk.services.search_service import SearchDirection
 
 from .edit_block_dialog import EditBlockDialog
-from .read_only_message_dialog import ReadOnlyMessageDialog
-from .search_dialog import SearchDialog
 
 if TYPE_CHECKING:
 	from .conversation_tab import ConversationTab
@@ -68,14 +62,61 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			| wx.HSCROLL,
 		)
 
-		self.segment_manager = MessageSegmentManager()
-		self._search_dialog = None  # Lazy initialization in _do_search
-		self._presenter = None  # Paired with _search_dialog
-		self.speak_response = True
-		self.a_output = AccessibleOutputHandler()
+		self.presenter = HistoryPresenter(self)
 		self.init_role_labels()
 		self.Bind(wx.EVT_CONTEXT_MENU, self.on_context_menu)
 		self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+
+	# ------------------------------------------------------------------
+	# Proxy properties — delegate to presenter
+	# ------------------------------------------------------------------
+
+	@property
+	def segment_manager(self):
+		"""Proxy to presenter.segment_manager."""
+		return self.presenter.segment_manager
+
+	@property
+	def a_output(self):
+		"""Proxy to presenter.a_output."""
+		return self.presenter.a_output
+
+	@property
+	def speak_response(self) -> bool:
+		"""Proxy to presenter.speak_response."""
+		return self.presenter.speak_response
+
+	@property
+	def should_speak_response(self) -> bool:
+		"""Proxy to presenter.should_speak_response."""
+		return self.presenter.should_speak_response
+
+	@property
+	def current_msg_range(self) -> tuple[int, int]:
+		"""Proxy to presenter.current_msg_range."""
+		return self.presenter.current_msg_range
+
+	@property
+	def current_msg_block(self) -> MessageBlock | None:
+		"""Proxy to presenter.current_msg_block."""
+		return self.presenter.current_msg_block
+
+	@property
+	def current_msg_content(self) -> str:
+		"""Proxy to presenter.current_msg_content."""
+		return self.presenter.current_msg_content
+
+	# ------------------------------------------------------------------
+	# View interface method used by the presenter
+	# ------------------------------------------------------------------
+
+	def bell(self) -> None:
+		"""Ring the system bell."""
+		wx.Bell()
+
+	# ------------------------------------------------------------------
+	# Role labels
+	# ------------------------------------------------------------------
 
 	def init_role_labels(self):
 		"""Initialize role labels for conversation messages.
@@ -88,10 +129,14 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		if label := config.conf().conversation.role_label_assistant:
 			self.role_labels[MessageRoleEnum.ASSISTANT] = label
 
+	# ------------------------------------------------------------------
+	# Text / segment operations
+	# ------------------------------------------------------------------
+
 	def Clear(self):
 		"""Clear the conversation text control."""
 		super().Clear()
-		self.segment_manager.clear()
+		self.presenter.clear()
 
 	def append_text_and_segment(
 		self,
@@ -199,27 +244,11 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 	def update_last_segment_length(self):
 		"""Update the length of the last content segment to match the current text control position."""
-		if not self.segment_manager.segments:
-			return
-		last_position = self.GetLastPosition()
-		# Find the last content segment (before any suffix)
-		last_content_index = len(self.segment_manager.segments) - 1
-		while (
-			last_content_index >= 0
-			and self.segment_manager.segments[last_content_index].kind
-			!= MessageSegmentType.CONTENT
-		):
-			last_content_index -= 1
-		if last_content_index < 0:
-			return
-		# Calculate the expected end position based on current segments
-		expected_end = sum(seg.length for seg in self.segment_manager.segments)
-		# The difference is the additional content that was streamed
-		additional_length = last_position - expected_end
-		if additional_length > 0:
-			# Update the content segment length
-			content_segment = self.segment_manager.segments[last_content_index]
-			content_segment.length += additional_length
+		self.presenter.update_last_segment_length(self.GetLastPosition())
+
+	# ------------------------------------------------------------------
+	# Context menu
+	# ------------------------------------------------------------------
 
 	def menu_msg_info(self) -> list[MenuItemInfo]:
 		"""Initialize the message operations menu items.
@@ -355,87 +384,25 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		menu.Append(wx.ID_COPY)
 		menu.Append(wx.ID_SELECTALL)
 
-	# Navigation methods
+	# ------------------------------------------------------------------
+	# Navigation — delegate to presenter
+	# ------------------------------------------------------------------
+
 	def navigate_message(self, previous: bool):
-		"""Navigate to the previous or next message, update the insertion point, and handle accessible output.
+		"""Navigate to the previous or next message.
 
 		Args:
 			previous: If True, navigate to previous message, else next message
 		"""
-		self.segment_manager.absolute_position = self.GetInsertionPoint()
-		try:
-			if previous:
-				self.segment_manager.previous(MessageSegmentType.CONTENT)
-			else:
-				self.segment_manager.next(MessageSegmentType.CONTENT)
-		except IndexError:
-			wx.Bell()
-			return
-		try:
-			pos = self.segment_manager.start
-		except IndexError:
-			wx.Bell()
-		else:
-			self.SetInsertionPoint(pos)
-			if config.conf().conversation.nav_msg_select:
-				self.on_select_current_message()
-			else:
-				self.a_output.handle(
-					self.current_msg_content, clear_for_speak=True
-				)
-				self.report_number_of_citations()
+		self.presenter.navigate_message(previous)
 
 	def go_to_previous_message(self, event=None):
 		"""Navigate to the previous message."""
-		self.navigate_message(True)
+		self.presenter.go_to_previous_message()
 
 	def go_to_next_message(self, event=None):
 		"""Navigate to the next message."""
-		self.navigate_message(False)
-
-	@property
-	def current_msg_range(self) -> tuple[int, int]:
-		"""Get the range of the current message.
-
-		Returns:
-			Tuple of (start, end) positions
-		"""
-		self.segment_manager.absolute_position = self.GetInsertionPoint()
-		self.segment_manager.focus_content_block()
-		return (self.segment_manager.start, self.segment_manager.end)
-
-	@property
-	def current_msg_block(self) -> MessageBlock | None:
-		"""Get the current message block.
-
-		Returns:
-			The current message block, or None if not found
-		"""
-		cursor_pos = self.GetInsertionPoint()
-		self.segment_manager.absolute_position = cursor_pos
-		return self.segment_manager.current_segment.message_block()
-
-	@property
-	def current_citations(self) -> list[dict[str, Any]]:
-		"""Get the citations for the current message.
-
-		Returns:
-			The list of citations for the current message
-		"""
-		block = self.current_msg_block
-		if not block:
-			wx.Bell()
-			return []
-		return block.response.citations
-
-	@property
-	def current_msg_content(self) -> str:
-		"""Get the content of the current message.
-
-		Returns:
-			The content of the current message
-		"""
-		return self.GetRange(*self.current_msg_range)
+		self.presenter.go_to_next_message()
 
 	def on_select_current_message(self, event: wx.Event | None = None):
 		"""Select the current message range."""
@@ -469,61 +436,61 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		self.SetInsertionPoint(self.segment_manager.end - 1)
 		self.a_output.handle(_("End of message"), clear_for_speak=False)
 
+	# ------------------------------------------------------------------
+	# Search — delegate to presenter
+	# ------------------------------------------------------------------
+
 	def _do_search(self, direction: SearchDirection = SearchDirection.FORWARD):
-		"""Open the search dialog, initializing it if not already created.
+		"""Open the search dialog.
 
 		Args:
 			direction: Search direction
 		"""
-		if self._search_dialog is None:
-			from basilisk.presenters.search_presenter import (
-				SearchPresenter,
-				SearchTargetAdapter,
-			)
-
-			target = SearchTargetAdapter(self)
-			self._presenter = SearchPresenter(view=None, target=target)
-			self._search_dialog = SearchDialog(
-				self.GetParent(), presenter=self._presenter
-			)
-			self._presenter.view = self._search_dialog
-		self._presenter.search_direction = direction
-		self._search_dialog.focus_search_input()
-		self._search_dialog.ShowModal()
+		self.presenter.open_search(direction)
 
 	def on_search(self, event: wx.Event | None):
 		"""Handle search command."""
-		self._do_search()
+		self.presenter.open_search(SearchDirection.FORWARD)
 
 	def on_search_previous(self, event: wx.Event | None):
 		"""Search for previous occurrence."""
-		if not self._search_dialog:
-			return self._do_search(SearchDirection.BACKWARD)
-		self._presenter.search_previous()
+		self.presenter.search_previous()
 
 	def on_search_next(self, event: wx.Event | None):
 		"""Search for next occurrence."""
-		if not self._search_dialog:
-			return self._do_search()
-		self._presenter.search_next()
+		self.presenter.search_next()
+
+	# ------------------------------------------------------------------
+	# Speak response — delegate to presenter
+	# ------------------------------------------------------------------
 
 	def on_toggle_speak_response(self, event: wx.Event | None = None):
 		"""Toggle response speaking mode."""
 		if event:
 			return wx.CallLater(500, self.on_toggle_speak_response)
-		self.speak_response = not self.speak_response
-		self.a_output.handle(
-			_("Response speaking %s")
-			% (_("enabled") if self.speak_response else _("disabled")),
-			braille=True,
-			clear_for_speak=False,
-		)
+		self.presenter.toggle_speak_response()
 
 	def on_read_current_message(self, event: wx.Event | None = None):
 		"""Read the current message."""
 		if event:
 			return wx.CallLater(500, self.on_read_current_message)
 		self.a_output.handle(self.current_msg_content, force=True)
+
+	# ------------------------------------------------------------------
+	# Streaming — delegate to presenter
+	# ------------------------------------------------------------------
+
+	def append_stream_chunk(self, text: str):
+		"""Append a chunk of text to the speech stream buffer.
+
+		Args:
+			text: The text chunk to append
+		"""
+		self.presenter.handle_stream_chunk(text)
+
+	# ------------------------------------------------------------------
+	# HTML view
+	# ------------------------------------------------------------------
 
 	def on_show_as_html(self, event: wx.Event | None):
 		"""Show current message as HTML.
@@ -537,35 +504,25 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.GetParent(), self.current_msg_content, "markdown"
 		)
 
-	@property
-	def should_speak_response(self) -> bool:
-		"""Check if the response should be spoken.
+	# ------------------------------------------------------------------
+	# Citations — delegate to presenter
+	# ------------------------------------------------------------------
 
-		This property checks if the speak stream mode is enabled and if the text control has focus or its parent prompt panel has focus.
+	def report_number_of_citations(self):
+		"""Report the number of citations for the current message."""
+		self.presenter.report_number_of_citations()
 
-		Returns:
-			True if the stream should be spoken, False otherwise.
-		"""
-		return (
-			self.speak_response
-			and (
-				self.HasFocus()
-				or self.GetParent().prompt_panel.prompt.HasFocus()
-			)
-			and self.GetTopLevelParent().IsShown()
-		)
-
-	def append_stream_chunk(self, text: str):
-		"""Append a chunk of text to the speech stream buffer.
+	def show_citations(self, event: wx.CommandEvent | None = None):
+		"""Show the citations for the current message.
 
 		Args:
-			text: The text chunk to append
+			event: The event that triggered the action
 		"""
-		pos = self.GetInsertionPoint()
-		if self.should_speak_response:
-			self.a_output.handle_stream_buffer(new_text=text)
-		self.AppendText(text)
-		self.SetInsertionPoint(pos)
+		self.presenter.show_citations()
+
+	# ------------------------------------------------------------------
+	# Message block operations
+	# ------------------------------------------------------------------
 
 	def on_remove_message_block(self, event: wx.CommandEvent | None = None):
 		"""Remove the current message block from the conversation.
@@ -604,105 +561,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.a_output.handle(_("Message block updated"), braille=True)
 		dlg.Destroy()
 
-	@staticmethod
-	def _handle_citations(citations: list[dict[str, Any]]) -> str:
-		"""Format a list of citations for display.
-
-		Args:
-			citations: The list of citations to format
-
-		Returns:
-			A formatted string containing the citations
-		"""
-		citations_str = []
-		for i, citation in enumerate(citations):
-			location_text = ""
-			cited_text = citation.get("cited_text")
-			document_index = citation.get("document_index")
-			document_title = citation.get("document_title")
-			match citation.get("type"):
-				case "char_location":
-					start_char_index = citation.get("start_char_index", 0)
-					end_char_index = citation.get("end_char_index", 0)
-					# Translators: This is a citation format for character locations
-					location_text = _("C.{start} .. {end}").format(
-						start=start_char_index, end=end_char_index
-					)
-				case "page_location":
-					start_page_number = citation.get("start_page_number", 0)
-					end_page_number = citation.get("end_page_number", 0)
-					# Translators: This is a citation format for page locations
-					location_text = _("P.{start} .. {end}").format(
-						start=start_page_number, end=end_page_number
-					)
-				case _:
-					# Translators: This is a citation format for unknown locations
-					location_text = _("Unknown location")
-					logger.warning("Unknown citation type: %s", citation)
-			if document_index is not None:
-				if document_title:
-					location_text = _(
-						"{document_title} / {location_text}"
-					).format(
-						document_title=document_title,
-						location_text=location_text,
-					)
-				else:
-					location_text = _(
-						"Document {document_index} / {location_text}"
-					).format(
-						document_index=document_index,
-						location_text=location_text,
-					)
-			if cited_text:
-				citations_str.append(
-					# Translators: This is a citation format for a cited text
-					_("{location_text}: “{cited_text}”").format(
-						location_text=location_text,
-						cited_text=cited_text.strip(),
-					)
-				)
-		return "\n_--_\n".join(citations_str)
-
-	def report_number_of_citations(self):
-		"""Report the number of citations for the current message."""
-		citations = self.current_citations
-		if not citations:
-			return
-		nb_citations = len(citations)
-		self.GetParent().SetStatusText(
-			# Translators: This is a status message for the number of citations in the current message
-			_("%d citations in the current message") % nb_citations
-		)
-
-	def show_citations(self, event: wx.CommandEvent | None = None):
-		"""Show the citations for the current message.
-
-		Args:
-			event: The event that triggered the action
-		"""
-		self.report_number_of_citations()
-		citations = self.current_citations
-		if not citations:
-			self.a_output.handle(
-				# Translators: This message is emitted when there are no citations for the current message.
-				_("No citations for this message"),
-				braille=True,
-			)
-			wx.Bell()
-			return
-		citations_str = self._handle_citations(citations)
-		if not citations_str:
-			wx.Bell()
-			return
-		ReadOnlyMessageDialog(
-			self,
-			# Translators: This is a title for message citations dialog
-			_("Message citations"),
-			citations_str,
-		).ShowModal()
-
-	# goes here because with need all the methods to be defined before we can assign to the dict
+	# goes here because we need all the methods to be defined before we can assign to the dict
 	key_actions = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
 		(wx.MOD_NONE, wx.WXK_SPACE): on_read_current_message,

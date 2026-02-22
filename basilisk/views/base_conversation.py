@@ -10,6 +10,9 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+from basilisk.presenters.base_conversation_presenter import (
+	BaseConversationPresenter,
+)
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
@@ -66,9 +69,14 @@ class BaseConversation:
 				account/model resolution. A new instance is created
 				if not provided.
 		"""
-		self.account_model_service = (
-			account_model_service or AccountModelService()
+		self.base_conv_presenter = BaseConversationPresenter(
+			account_model_service
 		)
+
+	@property
+	def account_model_service(self) -> AccountModelService:
+		"""Proxy to base_conv_presenter.account_model_service."""
+		return self.base_conv_presenter.account_model_service
 
 	@property
 	def current_engine(self) -> Optional[BaseEngine]:
@@ -80,7 +88,7 @@ class BaseConversation:
 		account = self.current_account
 		if not account:
 			return None
-		return self.account_model_service.get_engine(account)
+		return self.base_conv_presenter.get_engine(account)
 
 	def create_account_widget(self) -> wx.StaticText:
 		"""Create and configure the account selection combo box.
@@ -146,12 +154,7 @@ class BaseConversation:
 		Returns:
 		List of account display names
 		"""
-		accounts = []
-		for account in config.accounts():
-			if force_refresh:
-				account.reset_active_organization()
-			accounts.append(account.display_name)
-		return accounts
+		return self.base_conv_presenter.get_display_accounts(force_refresh)
 
 	def on_account_change(
 		self, event: wx.Event | None
@@ -164,7 +167,7 @@ class BaseConversation:
 		account = self.current_account
 		if not account:
 			return None
-		self.account_model_service.get_engine(account)
+		self.base_conv_presenter.get_engine(account)
 		self.update_model_list()
 		return account
 
@@ -223,10 +226,7 @@ class BaseConversation:
 		Returns:
 			List of model display information in a tuple format e.g. (name, vision, context window)
 		"""
-		engine = self.current_engine
-		if not engine:
-			return []
-		return [m.display_model for m in engine.models]
+		return self.base_conv_presenter.get_display_models(self.current_engine)
 
 	def set_model_list(self, model: Optional[ProviderAIModel]):
 		"""Set the selected model in the model list.
@@ -292,10 +292,8 @@ class BaseConversation:
 			profile: Profile containing account or model settings
 			fall_back_default_account: Whether to use default account as fallback
 		"""
-		account, model_id = (
-			self.account_model_service.resolve_account_and_model(
-				profile, fall_back_default_account
-			)
+		account, model_id = self.base_conv_presenter.resolve_account_and_model(
+			profile, fall_back_default_account
 		)
 		if account is None and model_id is None and fall_back_default_account:
 			self.select_default_account()
