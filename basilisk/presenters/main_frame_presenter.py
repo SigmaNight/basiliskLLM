@@ -91,14 +91,19 @@ class MainFramePresenter:
 			return False
 
 	def flush_and_save_on_quit(self):
-		"""Flush drafts and save the last active conversation ID.
+		"""Clean up all tabs and save the last active conversation ID.
 
 		Called by MainFrame.on_quit() before wx cleanup. Stops all
-		active completion handlers and flushes pending drafts.
+		active completion handlers, flushes pending drafts, and cleans
+		up OCR and recording resources.
 		"""
-		for tab in self.view.tabs_panels:
-			tab.completion_handler.stop_completion()
-			tab.flush_draft()
+		for index, tab in enumerate(self.view.tabs_panels):
+			try:
+				tab.cleanup_resources()
+			except Exception as e:
+				log.error(
+					"Error cleaning up tab %d: %s", index, e, exc_info=True
+				)
 		if self.view.conf.conversation.reopen_last_conversation:
 			current = self.view.current_tab
 			if current and current.db_conv_id is not None:
@@ -198,6 +203,13 @@ class MainFramePresenter:
 		current_tab_index = self.view.notebook.GetSelection()
 		if current_tab_index == wx.NOT_FOUND:
 			return
+		tab = self.view.tabs_panels[current_tab_index]
+		try:
+			tab.cleanup_resources()
+		except Exception as e:
+			log.error(
+				"Error cleaning up tab before close: %s", e, exc_info=True
+			)
 		self.view.notebook.DeletePage(current_tab_index)
 		self.view.tabs_panels.pop(current_tab_index)
 		current_tab_count = self.view.notebook.GetPageCount()
@@ -267,7 +279,7 @@ class MainFramePresenter:
 			title = current_tab.generate_conversation_title()
 			if not title:
 				return
-			title = title.strip().replace('\n', ' ')
+			title = title.strip().replace("\n", " ")
 		dialog = NameConversationDialog(self.view, title=title, auto=auto)
 		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
 			dialog.Destroy()
@@ -436,7 +448,7 @@ class MainFramePresenter:
 			)
 			log.debug("Creating NVDA addon: %s", tmp_nvda_addon_path)
 			with zipfile.ZipFile(
-				tmp_nvda_addon_path, 'w', zipfile.ZIP_DEFLATED
+				tmp_nvda_addon_path, "w", zipfile.ZIP_DEFLATED
 			) as zipf:
 				for root, _, files in os.walk(res_nvda_addon_path):
 					for file in files:

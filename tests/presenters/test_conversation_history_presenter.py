@@ -35,7 +35,7 @@ class TestLoadConversations:
 		result = presenter.load_conversations()
 
 		mock_conv_db.list_conversations.assert_called_once_with(
-			search=None, limit=200
+			search=None, limit=100, offset=0
 		)
 		assert result == expected
 
@@ -43,10 +43,10 @@ class TestLoadConversations:
 		"""load_conversations should forward the search parameter."""
 		mock_conv_db.list_conversations.return_value = []
 
-		presenter.load_conversations(search="hello", limit=50)
+		presenter.load_conversations(search="hello", limit=50, offset=100)
 
 		mock_conv_db.list_conversations.assert_called_once_with(
-			search="hello", limit=50
+			search="hello", limit=50, offset=100
 		)
 
 	def test_returns_empty_list_on_error(self, presenter, mock_conv_db):

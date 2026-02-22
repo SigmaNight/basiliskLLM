@@ -141,7 +141,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 				continue
 			url = obj.IAccessibleObject.accValue(obj.IAccessibleChildID)
 			if url and url.startswith("http"):
-				url = '/'.join(url.split('/', 3)[:3])
+				url = "/".join(url.split("/", 3)[:3])
 				break
 		return url
 

@@ -97,7 +97,7 @@ class ServerThread(threading.Thread):
 		"""
 		data = data.decode("utf-8")
 		if data.startswith("grab:"):
-			grab_mode = data.split(':', 1)[1].strip()
+			grab_mode = data.split(":", 1)[1].strip()
 			if grab_mode == "full":
 				wx.CallAfter(self.frame.screen_capture, CaptureMode.FULL)
 			elif grab_mode == "window":
@@ -105,8 +105,8 @@ class ServerThread(threading.Thread):
 			elif re.match(r"\d+, ?\d+, ?\d+, ?\d+(?:;.*+)?", grab_mode):
 				name = ""
 				coords = grab_mode
-				if '\n' in grab_mode:
-					coords, name = grab_mode.split('\n', 1)
+				if "\n" in grab_mode:
+					coords, name = grab_mode.split("\n", 1)
 					coords = tuple(map(int, coords.split(",")))
 					if len(coords) != 4:
 						log.error("Invalid coordinates")
@@ -121,9 +121,9 @@ class ServerThread(threading.Thread):
 				log.error("Invalid grab mode: %s", grab_mode)
 		elif data.startswith("url:"):
 			name = ""
-			url = data.split(':', 1)[1].strip()
-			if '\n' in url:
-				url, name = url.split('\n', 1)
+			url = data.split(":", 1)[1].strip()
+			if "\n" in url:
+				url, name = url.split("\n", 1)
 				wx.CallAfter(
 					self.frame.current_tab.prompt_panel.add_attachment_url_thread,
 					url,

@@ -82,9 +82,11 @@ class RecordingThread(threading.Thread):
 			self.audio_file_path = self.get_filename()
 			self.audio_data = np_array([], dtype=self.recordings_settings.dtype)
 			log.debug("Recording started")
-			wx.CallAfter(self.callbacks.on_recording_started)
+			if not self._want_abort:
+				wx.CallAfter(self.callbacks.on_recording_started)
 			self.record_audio(self.recordings_settings.sample_rate)
-			wx.CallAfter(self.callbacks.on_recording_stopped)
+			if not self._want_abort:
+				wx.CallAfter(self.callbacks.on_recording_stopped)
 			log.debug("Recording stopped")
 
 			if self._want_abort:
@@ -95,6 +97,9 @@ class RecordingThread(threading.Thread):
 				self.recordings_settings.sample_rate,
 			)
 			log.debug("Audio file saved to %s", self.audio_file_path)
+
+		if self._want_abort:
+			return
 		wx.CallAfter(self.callbacks.on_transcription_started)
 		self.process_transcription(self.audio_file_path)
 

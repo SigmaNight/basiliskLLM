@@ -192,8 +192,28 @@ class ConversationPresenter:
 
 	# -- Completion callbacks --
 
+	def cleanup(self):
+		"""Stop all active resources before destroying the tab."""
+		if self.completion_handler.is_running():
+			log.debug("Stopping completion handler before closing tab")
+			self.completion_handler.stop_completion(skip_callbacks=True)
+		if self.recording_thread and self.recording_thread.is_alive():
+			log.debug("Aborting recording thread before closing tab")
+			try:
+				self.recording_thread.abort()
+				self.recording_thread.join(timeout=0.5)
+			except Exception as e:
+				log.error(
+					"Error aborting recording thread: %s", e, exc_info=True
+				)
+			self.recording_thread = None
+		stop_sound()
+		self.flush_draft()
+
 	def _on_completion_start(self):
 		"""Called when completion starts."""
+		if self.view._is_destroying:
+			return
 		self.view.submit_btn.Disable()
 		self.view.stop_completion_btn.Show()
 		if config.conf().conversation.focus_history_after_send:
@@ -201,6 +221,8 @@ class ConversationPresenter:
 
 	def _on_completion_end(self, success: bool):
 		"""Called when completion ends."""
+		if self.view._is_destroying:
+			return
 		self.view.stop_completion_btn.Hide()
 		self.view.submit_btn.Enable()
 
@@ -212,18 +234,24 @@ class ConversationPresenter:
 
 	def _on_stream_chunk(self, chunk: str):
 		"""Called for each streaming chunk."""
+		if self.view._is_destroying:
+			return
 		self.view.messages.append_stream_chunk(chunk)
 
 	def _on_stream_start(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	):
 		"""Called when streaming starts."""
+		if self.view._is_destroying:
+			return
 		self.conversation.add_block(new_block, system_message)
 		self.view.messages.display_new_block(new_block, streaming=True)
 		self.view.messages.SetInsertionPointEnd()
 
 	def _on_stream_finish(self, new_block: MessageBlock):
 		"""Called when streaming finishes."""
+		if self.view._is_destroying:
+			return
 		self.view.messages.a_output.handle_stream_buffer()
 		self.view.messages.update_last_segment_length()
 		self.service.auto_save_to_db(self.conversation, new_block)
@@ -232,6 +260,8 @@ class ConversationPresenter:
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	):
 		"""Called when non-streaming completion finishes."""
+		if self.view._is_destroying:
+			return
 		self.conversation.add_block(new_block, system_message)
 		self.view.messages.display_new_block(new_block)
 		if self.view.messages.should_speak_response:
@@ -264,6 +294,8 @@ class ConversationPresenter:
 
 	def _on_completion_error(self, error_message: str):
 		"""Called when a completion error occurs."""
+		if self.view._is_destroying:
+			return
 		from basilisk.views.enhanced_error_dialog import (
 			show_enhanced_error_dialog,
 		)
@@ -302,11 +334,22 @@ class ConversationPresenter:
 		self.view.submit_btn.Disable()
 		self.transcribe_audio_file()
 
-	def stop_recording(self):
-		"""Stop audio recording."""
-		self.recording_thread.stop()
-		self.view.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
-		self.view.submit_btn.Enable()
+	def stop_recording(self, abort: bool = False):
+		"""Stop audio recording.
+
+		Args:
+			abort: If True, abort the recording and transcription process
+				entirely instead of stopping normally.
+		"""
+		if not self.recording_thread:
+			return
+		if abort:
+			self.recording_thread.abort()
+		else:
+			self.recording_thread.stop()
+		if not self.view._is_destroying:
+			self.view.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
+			self.view.submit_btn.Enable()
 
 	def transcribe_audio_file(self, audio_file: str = None):
 		"""Transcribe an audio file using the current provider's STT.
@@ -358,16 +401,22 @@ class ConversationPresenter:
 
 	def on_recording_started(self):
 		"""Handle the start of audio recording."""
+		if self.view._is_destroying:
+			return
 		play_sound("recording_started")
 		self.view.SetStatusText(_("Recording..."))
 
 	def on_recording_stopped(self):
 		"""Handle the end of audio recording."""
+		if self.view._is_destroying:
+			return
 		play_sound("recording_stopped")
 		self.view.SetStatusText(_("Recording stopped"))
 
 	def on_transcription_started(self):
 		"""Handle the start of audio transcription."""
+		if self.view._is_destroying:
+			return
 		play_sound("progress", loop=True)
 		self.view.SetStatusText(_("Transcribing..."))
 
@@ -377,6 +426,8 @@ class ConversationPresenter:
 		Args:
 			transcription: The transcription result.
 		"""
+		if self.view._is_destroying:
+			return
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
 		self.view.prompt_panel.prompt.AppendText(transcription.text)
@@ -394,6 +445,8 @@ class ConversationPresenter:
 		Args:
 			error: The error that occurred.
 		"""
+		if self.view._is_destroying:
+			return
 		from basilisk.views.enhanced_error_dialog import (
 			show_enhanced_error_dialog,
 		)
@@ -515,6 +568,8 @@ class ConversationPresenter:
 			A MessageBlock with no response, or None if empty.
 		"""
 		view = self.view
+		if not view.current_account or not view.current_model:
+			return None
 		prompt_text = view.prompt_panel.prompt_text
 		attachments = view.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
@@ -526,14 +581,8 @@ class ConversationPresenter:
 				attachments=attachments or None,
 			),
 			model=AIModelInfo(
-				provider_id=(
-					view.current_account.provider.id
-					if view.current_account
-					else "unknown"
-				),
-				model_id=(
-					view.current_model.id if view.current_model else "unknown"
-				),
+				provider_id=view.current_account.provider.id,
+				model_id=view.current_model.id,
 			),
 			temperature=view.temperature_spinner.GetValue(),
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),

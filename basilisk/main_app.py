@@ -114,7 +114,7 @@ class MainApp(wx.App):
 	def start_auto_update_thread(self):
 		"""Starts the automatic update thread.
 
-		Creates a new thread to handle automatic updates based on the configuration settings. The thread is started er the background and runs until the application exits or the thread is stopped.
+		Creates a new thread to handle automatic updates based on the configuration settings. The thread is started in the background and runs until the application exits or the thread is stopped.
 		"""
 		self.stop_auto_update = False
 		target_func = (
@@ -196,16 +196,25 @@ class MainApp(wx.App):
 			)
 
 	def init_conversation_db(self) -> None:
-		"""Init the database att application level."""
+		"""Init the database at application level."""
+		self.conv_db = None
 		log.debug("Initializing conversation database")
-		db_path = ConversationDatabase.get_db_path()
-		self.conv_db = ConversationDatabase(db_path)
+		try:
+			db_path = ConversationDatabase.get_db_path()
+			self.conv_db = ConversationDatabase(db_path)
+		except Exception:
+			log.error(
+				"Failed to initialize conversation database", exc_info=True
+			)
+			self.conv_db = None
 
 	def close_conversation_db(self):
-		"""Close the databse connection and release the singleton."""
-		log.debug("closing conversation database")
+		"""Close the database connection and release the singleton."""
+		if self.conv_db is None:
+			return
+		log.debug("Closing conversation database")
 		self.conv_db.close()
-		log.info("conversation database closed")
+		log.info("Conversation database closed")
 
 	def bring_window_to_focus(self, data: FocusSignal):
 		"""Brings the main application window to the front and gives it focus.

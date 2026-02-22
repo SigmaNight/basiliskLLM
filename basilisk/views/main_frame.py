@@ -14,7 +14,7 @@ from typing import Callable, Optional
 import wx
 from more_itertools import locate
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
 	import win32con
 import basilisk.config as config
 from basilisk import global_vars
@@ -265,17 +265,17 @@ class MainFrame(wx.Frame):
 		self.RegisterHotKey(
 			HotkeyAction.TOGGLE_VISIBILITY.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('B'),
+			ord("B"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_FULL.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('F'),
+			ord("F"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_WINDOW.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('W'),
+			ord("W"),
 		)
 
 	def on_hotkey(self, event):

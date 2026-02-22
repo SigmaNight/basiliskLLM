@@ -11,14 +11,15 @@ license = "GPL-2.0-only"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
-    "anthropic>=0.72.0,<0.80",
+    "alembic>=1.18,<1.19",
+    "anthropic>=0.72.0,<0.84",
     "babel>=2.17,<2.19",
     "fsspec>=2025.9.0,<2026.3",
-    "google-genai>=1.47.0,<1.64",
+    "google-genai>=1.47.0,<1.65",
     "httpx (>=0.28.1,<0.29.0)",
     "keyring (>=25.7.0,<25.8)",
     "markdown2 (>=2.5.4,<2.6)",
-    "mistralai>=1.10.1,<1.12.3",
+    "mistralai>=1.10.1,<1.12.5",
     "more-itertools (>=10.8.0,<10.8.1)",
     "numpy (>=2.4.0,<2.5)",
     "ollama (>=0.6.1,<0.7)",
@@ -27,12 +28,11 @@ dependencies = [
     "pillow>=12.0.0,<12.2",
     "platformdirs>=4.5.1,<4.10",
     "pydantic (>=2.12.5,<2.13)",
-    "pydantic-settings>=2.11.0,<2.13",
+    "pydantic-settings>=2.11.0,<2.14",
     "pywin32 (>=311,<312) ; sys_platform == 'win32'",
     "pyyaml (>=6.0.3,<6.1)",
-    "sqlalchemy>=2.0,<2.1",
-    "alembic>=1.18,<1.19",
     "sounddevice (>=0.5.3,<0.6)",
+    "sqlalchemy>=2.0,<2.1",
     "truststore (>=0.10.4,<0.11)",
     "universal-pathlib (>=0.3.7,<0.4)",
     "wxpython (>=4.2.4,<4.3)",
@@ -102,7 +102,7 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004"]
+extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004","Q"]
 extend-ignore = ["D206"]
 
 [tool.ruff.lint.mccabe]

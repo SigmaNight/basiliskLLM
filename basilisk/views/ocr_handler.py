@@ -151,6 +151,10 @@ class OCRHandler:
 				wx.OK | wx.ICON_INFORMATION,
 			)
 
+	def cleanup(self) -> None:
+		"""Clean up OCR resources by delegating to the presenter."""
+		self._presenter.cleanup()
+
 	def show_error(self, message: str, title: str) -> None:
 		"""Display an error dialog.
 

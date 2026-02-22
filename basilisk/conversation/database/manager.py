@@ -7,11 +7,11 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from platformdirs import user_data_path
-from sqlalchemy import Engine, create_engine, event, func, select
+from sqlalchemy import Engine, create_engine, delete, event, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from basilisk import global_vars
-from basilisk.consts import APP_AUTHOR, APP_NAME
+from basilisk.consts import APP_AUTHOR, APP_NAME, BSKC_VERSION
 from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
@@ -63,7 +63,7 @@ class ConversationDatabase:
 
 	@staticmethod
 	def get_db_engine(db_path: Path) -> Engine:
-		"""Get the sqlalchemy database engine"""
+		"""Get the sqlalchemy database engine."""
 		engine = create_engine(f"sqlite:///{db_path}", echo=False)
 		event.listen(engine, "connect", _set_sqlite_pragmas)
 		return engine
@@ -78,7 +78,27 @@ class ConversationDatabase:
 		self._engine = self.get_db_engine(self._db_path)
 		self._session_factory = sessionmaker(bind=self._engine)
 		self._run_migrations()
+		self.cleanup_orphan_attachments()
 		log.info("Database initialized at %s", db_path)
+
+	@classmethod
+	def from_engine(cls, engine: Engine) -> "ConversationDatabase":
+		"""Create a ConversationDatabase from an existing engine (no migrations).
+
+		This factory is intended for testing where the schema is created
+		directly via ``Base.metadata.create_all`` rather than Alembic.
+
+		Args:
+			engine: A pre-configured SQLAlchemy engine.
+
+		Returns:
+			A fully initialised ConversationDatabase instance.
+		"""
+		instance = cls.__new__(cls)
+		instance._db_path = engine.url.database
+		instance._engine = engine
+		instance._session_factory = sessionmaker(bind=engine)
+		return instance
 
 	def _run_migrations(self):
 		"""Run Alembic migrations to bring the database up to date."""
@@ -253,10 +273,11 @@ class ConversationDatabase:
 			else:
 				try:
 					content_bytes = attachment.read_as_bytes()
-				except Exception:
-					log.warning(
+				except Exception as e:
+					log.error(
 						"Could not read attachment %s, skipping",
 						attachment.name,
+						exc_info=e,
 					)
 					return
 
@@ -499,6 +520,9 @@ class ConversationDatabase:
 	def delete_conversation(self, conv_id: int):
 		"""Delete a conversation and all related data.
 
+		Also removes any DBAttachment rows that are no longer referenced by
+		any message after the cascade delete completes.
+
 		Args:
 			conv_id: The database conversation ID.
 		"""
@@ -508,6 +532,44 @@ class ConversationDatabase:
 				if db_conv:
 					session.delete(db_conv)
 		log.debug("Deleted conversation %d", conv_id)
+		self.cleanup_orphan_attachments()
+
+	def cleanup_orphan_attachments(self) -> int:
+		"""Delete DBAttachment rows that have no DBMessageAttachment references.
+
+		DBAttachment uses content-hash deduplication, so its rows are not
+		cascade-deleted when their DBMessageAttachment links are removed.
+		This method finds truly unreferenced rows via a LEFT JOIN and deletes
+		them in a single transaction.
+
+		Call this after any bulk delete, or once at startup to reclaim space
+		left by draft-block replacements from previous sessions.
+
+		Returns:
+			Number of orphaned attachment rows deleted.
+		"""
+		with self._get_session() as session:
+			with session.begin():
+				orphan_ids = (
+					session.execute(
+						select(DBAttachment.id)
+						.outerjoin(
+							DBMessageAttachment,
+							DBAttachment.id
+							== DBMessageAttachment.attachment_id,
+						)
+						.where(DBMessageAttachment.id.is_(None))
+					)
+					.scalars()
+					.all()
+				)
+				if not orphan_ids:
+					return 0
+				session.execute(
+					delete(DBAttachment).where(DBAttachment.id.in_(orphan_ids))
+				)
+		log.debug("Cleaned up %d orphaned attachment(s)", len(orphan_ids))
+		return len(orphan_ids)
 
 	# --- Read operations ---
 
@@ -516,16 +578,19 @@ class ConversationDatabase:
 		"""Apply search filtering to a conversation query."""
 		if not search:
 			return query
-		search_term = f"%{search}%"
+		escaped = (
+			search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+		)
+		search_term = f"%{escaped}%"
 		msg_conv_ids = (
 			select(DBMessageBlock.conversation_id)
 			.join(DBMessage)
-			.where(DBMessage.content.like(search_term))
+			.where(DBMessage.content.like(search_term, escape="\\"))
 			.distinct()
 			.subquery()
 		)
 		return query.where(
-			DBConversation.title.like(search_term)
+			DBConversation.title.like(search_term, escape="\\")
 			| DBConversation.id.in_(select(msg_conv_ids.c.conversation_id))
 		)
 
@@ -664,9 +729,6 @@ class ConversationDatabase:
 				)
 				block.db_id = db_block.id
 				blocks.append(block)
-
-			from basilisk.consts import BSKC_VERSION
-
 			return Conversation(
 				messages=blocks,
 				systems=systems,
@@ -728,6 +790,7 @@ class ConversationDatabase:
 		"""Build an AttachmentFile or ImageFile from a DB record."""
 		if db_att.is_image:
 			return ImageFile(
+				db_id=db_att.id,
 				location=location,
 				name=db_att.name,
 				description=description,
@@ -741,6 +804,7 @@ class ConversationDatabase:
 				),
 			)
 		return AttachmentFile(
+			db_id=db_att.id,
 			location=location,
 			name=db_att.name,
 			description=description,

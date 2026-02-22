@@ -23,7 +23,7 @@ def isolated_config_manager(mock_settings_sources):
 
 	def _get_isolated_manager():
 		"""Get or create a cached isolated manager instance."""
-		if not hasattr(_get_isolated_manager, '_cached_instance'):
+		if not hasattr(_get_isolated_manager, "_cached_instance"):
 			_get_isolated_manager._cached_instance = (
 				ConversationProfileManager()
 			)
@@ -572,10 +572,10 @@ class TestConversationProfileManagerConfig:
 		"""Test the global configuration function with proper isolation."""
 		config = isolated_config_manager()
 		# Check that it behaves like a ConversationProfileManager
-		assert hasattr(config, 'profiles')
-		assert hasattr(config, 'default_profile_id')
-		assert hasattr(config, 'add')
-		assert hasattr(config, 'remove')
+		assert hasattr(config, "profiles")
+		assert hasattr(config, "default_profile_id")
+		assert hasattr(config, "add")
+		assert hasattr(config, "remove")
 
 		# Test caching - should return same instance
 		config2 = isolated_config_manager()
@@ -592,8 +592,8 @@ class TestConversationProfileManagerConfig:
 		# This should work regardless of what config files exist on the system
 		config = isolated_config_manager()
 		# Check that it behaves like a ConversationProfileManager
-		assert hasattr(config, 'profiles')
-		assert hasattr(config, 'default_profile_id')
+		assert hasattr(config, "profiles")
+		assert hasattr(config, "default_profile_id")
 
 		# Should start with no profiles (clean slate)
 		assert len(config.profiles) == 0

@@ -41,6 +41,7 @@ def mock_view():
 	view.stream_mode.GetValue.return_value = True
 	view.web_search_mode = MagicMock()
 	view.web_search_mode.GetValue.return_value = False
+	view._is_destroying = False
 	view.toggle_record_btn = MagicMock()
 	view._draft_timer = MagicMock()
 	view.current_engine = MagicMock()

@@ -236,6 +236,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			bskc_path=bskc_path,
 		)
 
+		self._is_destroying = False
 		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_handler = OCRHandler(self)
 		self._draft_timer = wx.Timer(self)
@@ -633,6 +634,34 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		if self.service.set_private(private):
 			self.stop_draft_timer()
+
+	def _is_widget_valid(self, widget_name: str | None = None) -> bool:
+		"""Check if the tab and its widgets are still valid.
+
+		Args:
+			widget_name: Optional specific widget name to check. If None,
+				only checks if the tab itself is valid.
+
+		Returns:
+			True if widgets are valid, False otherwise.
+		"""
+		if self._is_destroying:
+			return False
+		if widget_name and not hasattr(self, widget_name):
+			return False
+		try:
+			self.GetParent()
+			if widget_name:
+				getattr(self, widget_name).GetParent()
+			return True
+		except RuntimeError:
+			return False
+
+	def cleanup_resources(self):
+		"""Clean up all running resources before closing the conversation tab."""
+		self._is_destroying = True
+		self.presenter.cleanup()
+		self.ocr_handler.cleanup()
 
 	def flush_draft(self):
 		"""Immediately save any pending draft to the database."""

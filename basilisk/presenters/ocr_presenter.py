@@ -140,7 +140,7 @@ class OCRPresenter:
 
 		self.view.set_ocr_button_enabled(False)
 
-		cancel_flag = Value('i', 0)
+		cancel_flag = Value("i", 0)
 		result_queue = Queue()
 
 		progress_bar_dialog = self.view.create_progress_dialog(
@@ -277,6 +277,22 @@ class OCRPresenter:
 			self.view.show_result(data)
 		else:
 			self.view.show_error(str(data), _("OCR Error"))
+
+	def cleanup(self) -> None:
+		"""Terminate the OCR process if running. Called on tab destruction."""
+		if not self.process or not self.process.is_alive():
+			return
+		log.debug("Terminating OCR process before closing tab")
+		try:
+			self.process.terminate()
+			self.process.join(timeout=1.0)
+			if self.process.is_alive():
+				log.warning("OCR process did not terminate, killing it")
+				self.process.kill()
+				self.process.join(timeout=0.5)
+		except Exception as e:
+			log.error("Error terminating OCR process: %s", e, exc_info=True)
+		self.process = None
 
 	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
 		"""Terminate the subprocess (if cancelled) and update the view.

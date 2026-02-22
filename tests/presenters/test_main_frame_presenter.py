@@ -101,7 +101,7 @@ class TestFlushAndSaveOnQuit:
 	"""Tests for flush_and_save_on_quit."""
 
 	def test_flushes_all_tabs(self, presenter, mock_view):
-		"""Should call stop_completion and flush_draft on each tab."""
+		"""Should call cleanup_resources on each tab."""
 		tab1 = MagicMock()
 		tab2 = MagicMock()
 		mock_view.tabs_panels = [tab1, tab2]
@@ -109,10 +109,8 @@ class TestFlushAndSaveOnQuit:
 
 		presenter.flush_and_save_on_quit()
 
-		tab1.completion_handler.stop_completion.assert_called_once()
-		tab1.flush_draft.assert_called_once()
-		tab2.completion_handler.stop_completion.assert_called_once()
-		tab2.flush_draft.assert_called_once()
+		tab1.cleanup_resources.assert_called_once()
+		tab2.cleanup_resources.assert_called_once()
 
 	def test_saves_last_conv_id(self, presenter, mock_view):
 		"""Should save current tab's db_conv_id when reopen is enabled."""

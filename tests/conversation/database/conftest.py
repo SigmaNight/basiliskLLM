@@ -15,7 +15,11 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 from basilisk.conversation.database.manager import ConversationDatabase
-from basilisk.conversation.database.models import Base
+from basilisk.conversation.database.models import (
+	Base,
+	DBConversation,
+	DBMessageBlock,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 
@@ -41,11 +45,24 @@ def db_session(db_engine):
 @pytest.fixture
 def db_manager(db_engine):
 	"""Create a ConversationDatabase with an in-memory DB (no Alembic)."""
-	manager = ConversationDatabase.__new__(ConversationDatabase)
-	manager._db_path = ":memory:"
-	manager._engine = db_engine
-	manager._session_factory = sessionmaker(bind=db_engine)
-	return manager
+	return ConversationDatabase.from_engine(db_engine)
+
+
+@pytest.fixture
+def db_message_block(db_session):
+	"""Create a persisted DBMessageBlock with a parent DBConversation."""
+	conv = DBConversation()
+	db_session.add(conv)
+	db_session.flush()
+	block = DBMessageBlock(
+		conversation_id=conv.id,
+		position=0,
+		model_provider="openai",
+		model_id="gpt-4",
+	)
+	db_session.add(block)
+	db_session.flush()
+	return block
 
 
 @pytest.fixture

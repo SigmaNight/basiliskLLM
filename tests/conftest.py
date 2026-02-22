@@ -98,8 +98,8 @@ def image_file(tmp_path):
 	"""Create and return an image file for testing."""
 	test_file_path = UPath(tmp_path) / "test.png"
 	with test_file_path.open("wb") as f:
-		img = Image.new('RGB', (100, 50), color='red')
-		img.save(f, format='PNG')
+		img = Image.new("RGB", (100, 50), color="red")
+		img.save(f, format="PNG")
 	return test_file_path
 
 
@@ -190,7 +190,7 @@ def mock_settings_sources():
 	# Apply the mock
 	with mock.patch.object(
 		BasiliskBaseSettings,
-		'settings_customise_sources',
+		"settings_customise_sources",
 		mock_settings_customise_sources,
 	):
 		yield

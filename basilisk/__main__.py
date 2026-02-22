@@ -58,9 +58,9 @@ def parse_args():
 		action="store_true",
 	)
 	parser.add_argument(
-		'bskc_file',
-		nargs='?',
-		help='Basilisk conversation file to open',
+		"bskc_file",
+		nargs="?",
+		help="Basilisk conversation file to open",
 		default=None,
 	)
 	return parser.parse_args()
@@ -79,7 +79,7 @@ def action_on_already_running() -> None:
 		send_focus_signal()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	# Enable multiprocessing support for frozen executables
 	multiprocessing.freeze_support()
 

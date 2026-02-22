@@ -1,14 +1,20 @@
 """Tests for the ConversationDatabase manager CRUD operations."""
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
+from sqlalchemy import func, select
+from upath import UPath
 
 from basilisk.conversation import (
+	AttachmentFile,
 	Conversation,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.database.models import DBAttachment
 
 
 class TestSaveConversation:
@@ -65,8 +71,6 @@ class TestSaveConversation:
 			db_manager.save_conversation(conv)
 
 		# Both should reference the same system_prompt row
-		from sqlalchemy import select
-
 		from basilisk.conversation.database.models import DBSystemPrompt
 
 		with db_manager._get_session() as session:
@@ -203,10 +207,21 @@ class TestListConversations:
 
 	def test_list_ordered_by_updated(self, db_manager, test_ai_model):
 		"""Test that results are ordered by updated_at DESC."""
+		from basilisk.conversation.database.models import DBConversation
+
+		base_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
 		for i in range(3):
 			conv = Conversation()
 			conv.title = f"Conv {i}"
-			db_manager.save_conversation(conv)
+			conv_id = db_manager.save_conversation(conv)
+			# Assign deterministic updated_at so ordering is predictable
+			with db_manager._get_session() as session:
+				with session.begin():
+					session.execute(
+						DBConversation.__table__.update()
+						.where(DBConversation.id == conv_id)
+						.values(updated_at=base_time + timedelta(seconds=i))
+					)
 
 		result = db_manager.list_conversations()
 		assert len(result) == 3
@@ -441,10 +456,6 @@ class TestDraftBlock:
 		self, db_manager, test_ai_model, tmp_path
 	):
 		"""Test draft block with attachments round-trip."""
-		from upath import UPath
-
-		from basilisk.conversation import AttachmentFile
-
 		text_path = UPath(tmp_path) / "draft_file.txt"
 		with text_path.open("w") as f:
 			f.write("draft attachment content")
@@ -468,3 +479,64 @@ class TestDraftBlock:
 		assert atts is not None
 		assert len(atts) == 1
 		assert atts[0].read_as_plain_text() == "draft attachment content"
+
+
+class TestCleanupOrphanAttachments:
+	"""Tests for cleanup_orphan_attachments."""
+
+	def _count_attachments(self, db_manager) -> int:
+		with db_manager._get_session() as session:
+			return session.execute(
+				select(func.count(DBAttachment.id))
+			).scalar_one()
+
+	def test_no_orphans_returns_zero(
+		self, db_manager, conversation_with_attachments
+	):
+		"""Test that cleanup returns 0 when no orphans exist."""
+		db_manager.save_conversation(conversation_with_attachments)
+		assert db_manager.cleanup_orphan_attachments() == 0
+
+	def test_orphans_removed_after_conversation_delete(
+		self, db_manager, conversation_with_attachments
+	):
+		"""Test that orphaned attachments are removed after conversation delete."""
+		conv_id = db_manager.save_conversation(conversation_with_attachments)
+
+		assert self._count_attachments(db_manager) > 0
+
+		# delete_conversation calls cleanup internally
+		db_manager.delete_conversation(conv_id)
+
+		assert self._count_attachments(db_manager) == 0
+
+	def test_shared_attachment_not_removed(
+		self, db_manager, test_ai_model, tmp_path
+	):
+		"""Test that an attachment shared between two conversations is kept."""
+		text_path = UPath(tmp_path) / "shared.txt"
+		text_path.write_text("shared content")
+
+		def _make_conv():
+			att = AttachmentFile(location=text_path)
+			req = Message(
+				role=MessageRoleEnum.USER, content="msg", attachments=[att]
+			)
+			block = MessageBlock(request=req, model=test_ai_model)
+			conv = Conversation()
+			conv.add_block(block)
+			return conv
+
+		id1 = db_manager.save_conversation(_make_conv())
+		id2 = db_manager.save_conversation(_make_conv())
+
+		# Deduplication: only one DBAttachment row
+		assert self._count_attachments(db_manager) == 1
+
+		# Delete first — shared row must survive
+		db_manager.delete_conversation(id1)
+		assert self._count_attachments(db_manager) == 1
+
+		# Delete second — now orphaned, must be removed
+		db_manager.delete_conversation(id2)
+		assert self._count_attachments(db_manager) == 0

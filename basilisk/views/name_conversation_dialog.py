@@ -87,7 +87,7 @@ class NameConversationDialog(wx.Dialog):
 		try:
 			title = self.parent.current_tab.generate_conversation_title()
 			if title:
-				title = title.strip().replace('\n', ' ')
+				title = title.strip().replace("\n", " ")
 				self.text_ctrl.SetValue(title)
 		except Exception as e:
 			wx.MessageBox(

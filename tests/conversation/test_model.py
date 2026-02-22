@@ -147,48 +147,32 @@ class TestConversationWithMultipleBlocks:
 	"""Tests for conversations with multiple message blocks."""
 
 	@pytest.fixture
-	def first_block(self, ai_model):
-		"""Return a first message block."""
-		req_msg = Message(role=MessageRoleEnum.USER, content="First message")
-		return MessageBlock(request=req_msg, model=ai_model)
+	def make_user_block(self, ai_model):
+		"""Factory for creating user message blocks with given content."""
+
+		def _make(content):
+			return MessageBlock(
+				request=Message(role=MessageRoleEnum.USER, content=content),
+				model=ai_model,
+			)
+
+		return _make
 
 	@pytest.fixture
-	def second_block(self, ai_model):
-		"""Return a second message block."""
-		req_msg = Message(role=MessageRoleEnum.USER, content="Second message")
-		return MessageBlock(request=req_msg, model=ai_model)
+	def make_system(self):
+		"""Factory for creating system messages with given content."""
 
-	@pytest.fixture
-	def third_block(self, ai_model):
-		"""Return a third message block."""
-		req_msg = Message(role=MessageRoleEnum.USER, content="Third message")
-		return MessageBlock(request=req_msg, model=ai_model)
+		def _make(content):
+			return SystemMessage(role=MessageRoleEnum.SYSTEM, content=content)
 
-	@pytest.fixture
-	def first_system(self):
-		"""Return a first system message."""
-		return SystemMessage(
-			role=MessageRoleEnum.SYSTEM, content="First system instructions"
-		)
-
-	@pytest.fixture
-	def second_system(self):
-		"""Return a second system message."""
-		return SystemMessage(
-			role=MessageRoleEnum.SYSTEM, content="Second system instructions"
-		)
-
-	@pytest.fixture
-	def third_system(self):
-		"""Return a third system message."""
-		return SystemMessage(
-			role=MessageRoleEnum.SYSTEM, content="Third system instructions"
-		)
+		return _make
 
 	def test_add_block_with_duplicate_system(
-		self, empty_conversation, first_block, second_block, system_message
+		self, empty_conversation, make_user_block, system_message
 	):
 		"""Test adding blocks with duplicate system messages."""
+		first_block = make_user_block("First message")
+		second_block = make_user_block("Second message")
 		empty_conversation.add_block(first_block, system_message)
 		empty_conversation.add_block(second_block, system_message)
 
@@ -200,14 +184,13 @@ class TestConversationWithMultipleBlocks:
 		)  # Only one unique system message
 
 	def test_add_block_with_multiple_systems(
-		self,
-		empty_conversation,
-		first_block,
-		second_block,
-		first_system,
-		second_system,
+		self, empty_conversation, make_user_block, make_system
 	):
 		"""Test adding blocks with multiple different system messages."""
+		first_block = make_user_block("First message")
+		second_block = make_user_block("Second message")
+		first_system = make_system("First system instructions")
+		second_system = make_system("Second system instructions")
 		empty_conversation.add_block(first_block, first_system)
 		empty_conversation.add_block(second_block, second_system)
 
@@ -246,9 +229,11 @@ class TestConversationWithMultipleBlocks:
 		assert len(empty_conversation.systems) == 0
 
 	def test_remove_block_with_shared_system(
-		self, empty_conversation, first_block, second_block, system_message
+		self, empty_conversation, make_user_block, system_message
 	):
 		"""Test removing a block that shares a system message with another block."""
+		first_block = make_user_block("First message")
+		second_block = make_user_block("Second message")
 		empty_conversation.add_block(first_block, system_message)
 		empty_conversation.add_block(second_block, system_message)
 
@@ -268,15 +253,14 @@ class TestConversationWithMultipleBlocks:
 		)  # System still used by remaining block
 
 	def test_remove_block_with_multiple_systems(
-		self,
-		empty_conversation,
-		first_block,
-		second_block,
-		third_block,
-		first_system,
-		second_system,
+		self, empty_conversation, make_user_block, make_system
 	):
 		"""Test removing blocks with multiple system messages."""
+		first_block = make_user_block("First message")
+		second_block = make_user_block("Second message")
+		third_block = make_user_block("Third message")
+		first_system = make_system("First system instructions")
+		second_system = make_system("Second system instructions")
 		empty_conversation.add_block(first_block, first_system)
 		empty_conversation.add_block(second_block, second_system)
 		empty_conversation.add_block(
@@ -298,16 +282,15 @@ class TestConversationWithMultipleBlocks:
 		assert second_system not in empty_conversation.systems
 
 	def test_remove_block_with_index_adjustment(
-		self,
-		empty_conversation,
-		first_block,
-		second_block,
-		third_block,
-		first_system,
-		second_system,
-		third_system,
+		self, empty_conversation, make_user_block, make_system
 	):
 		"""Test system index adjustment when removing a system."""
+		first_block = make_user_block("First message")
+		second_block = make_user_block("Second message")
+		third_block = make_user_block("Third message")
+		first_system = make_system("First system instructions")
+		second_system = make_system("Second system instructions")
+		third_system = make_system("Third system instructions")
 		empty_conversation.add_block(first_block, first_system)
 		empty_conversation.add_block(second_block, second_system)
 		empty_conversation.add_block(third_block, third_system)

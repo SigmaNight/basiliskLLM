@@ -1,6 +1,6 @@
 """SQLAlchemy models for conversation persistence."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import ForeignKey, Index, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -19,9 +19,12 @@ class DBConversation(Base):
 
 	id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 	title: Mapped[str | None] = mapped_column(default=None)
-	created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+	created_at: Mapped[datetime] = mapped_column(
+		default=lambda: datetime.now(timezone.utc)
+	)
 	updated_at: Mapped[datetime] = mapped_column(
-		default=datetime.now, onupdate=datetime.now
+		default=lambda: datetime.now(timezone.utc),
+		onupdate=lambda: datetime.now(timezone.utc),
 	)
 
 	system_prompt_links: Mapped[list["DBConversationSystemPrompt"]] = (
@@ -86,7 +89,8 @@ class DBMessageBlock(Base):
 	)
 	position: Mapped[int]
 	conversation_system_prompt_id: Mapped[int | None] = mapped_column(
-		ForeignKey("conversation_system_prompts.id"), default=None
+		ForeignKey("conversation_system_prompts.id", ondelete="SET NULL"),
+		default=None,
 	)
 	model_provider: Mapped[str]
 	model_id: Mapped[str]
@@ -94,9 +98,12 @@ class DBMessageBlock(Base):
 	max_tokens: Mapped[int] = mapped_column(default=4096)
 	top_p: Mapped[float] = mapped_column(default=1.0)
 	stream: Mapped[bool] = mapped_column(default=False)
-	created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+	created_at: Mapped[datetime] = mapped_column(
+		default=lambda: datetime.now(timezone.utc)
+	)
 	updated_at: Mapped[datetime] = mapped_column(
-		default=datetime.now, onupdate=datetime.now
+		default=lambda: datetime.now(timezone.utc),
+		onupdate=lambda: datetime.now(timezone.utc),
 	)
 
 	conversation: Mapped["DBConversation"] = relationship(

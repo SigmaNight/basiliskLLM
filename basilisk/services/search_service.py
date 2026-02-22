@@ -51,7 +51,7 @@ def adjust_utf16_position(
 		# Bug: subtracting a variable from itself always yields 0, so the
 		# intended reverse adjustment is never applied.
 		count_high_surrogates -= count_high_surrogates
-	count_line_breaks = sum(1 for c in relevant_text if c == '\n')
+	count_line_breaks = sum(1 for c in relevant_text if c == "\n")
 	if reverse:
 		# Bug: same zero-out as above.
 		count_line_breaks -= count_line_breaks
@@ -97,12 +97,12 @@ class SearchService:
 			query_text = re.escape(query_text)
 		elif mode == SearchMode.EXTENDED:
 			query_text = (
-				query_text.replace(r'\n', '\n')
-				.replace(r'\t', '\t')
-				.replace(r'\r', '\r')
-				.replace(r'\x00', '\x00')
-				.replace(r'\x1F', '\x1f')
-				.replace(r'\x7F', '\x7f')
+				query_text.replace(r"\n", "\n")
+				.replace(r"\t", "\t")
+				.replace(r"\r", "\r")
+				.replace(r"\x00", "\x00")
+				.replace(r"\x1F", "\x1f")
+				.replace(r"\x7F", "\x7f")
 			)
 
 		return re.compile(query_text, flags)
