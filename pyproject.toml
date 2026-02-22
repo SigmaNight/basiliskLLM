@@ -100,7 +100,7 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004"]
+extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004","Q"]
 extend-ignore = ["D206"]
 
 [tool.ruff.lint.mccabe]
