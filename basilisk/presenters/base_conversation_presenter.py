@@ -8,7 +8,7 @@ conversation panel.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import basilisk.config as config
 from basilisk.services.account_model_service import AccountModelService
@@ -31,7 +31,7 @@ class BaseConversationPresenter:
 	"""
 
 	def __init__(
-		self, account_model_service: Optional[AccountModelService] = None
+		self, account_model_service: AccountModelService | None = None
 	) -> None:
 		"""Initialize the presenter.
 
@@ -71,7 +71,7 @@ class BaseConversationPresenter:
 			accounts.append(account.display_name)
 		return accounts
 
-	def get_display_models(self, engine: Optional[BaseEngine]) -> list[tuple]:
+	def get_display_models(self, engine: BaseEngine | None) -> list[tuple]:
 		"""Return model display tuples for the given engine.
 
 		Args:
@@ -88,7 +88,7 @@ class BaseConversationPresenter:
 		self,
 		profile: config.ConversationProfile,
 		fall_back_default_account: bool = False,
-	) -> tuple[Optional[config.Account], Optional[str]]:
+	) -> tuple[config.Account | None, str | None]:
 		"""Resolve account and model ID from a conversation profile.
 
 		Delegates to AccountModelService.

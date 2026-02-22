@@ -27,6 +27,7 @@ from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
 from basilisk.sound_manager import play_sound, stop_sound
+from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
 
 if TYPE_CHECKING:
 	from basilisk.recording_thread import RecordingThread
@@ -296,9 +297,6 @@ class ConversationPresenter:
 		"""Called when a completion error occurs."""
 		if self.view._is_destroying:
 			return
-		from basilisk.views.enhanced_error_dialog import (
-			show_enhanced_error_dialog,
-		)
 
 		self._restore_prompt_content()
 		self._clear_stored_content()
@@ -447,9 +445,6 @@ class ConversationPresenter:
 		"""
 		if self.view._is_destroying:
 			return
-		from basilisk.views.enhanced_error_dialog import (
-			show_enhanced_error_dialog,
-		)
 
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
@@ -468,10 +463,6 @@ class ConversationPresenter:
 		Returns:
 			The generated title, or None on failure.
 		"""
-		from basilisk.views.enhanced_error_dialog import (
-			show_enhanced_error_dialog,
-		)
-
 		if self.completion_handler.is_running():
 			wx.MessageBox(
 				_(
@@ -514,10 +505,6 @@ class ConversationPresenter:
 		Returns:
 			True if saved successfully.
 		"""
-		from basilisk.views.enhanced_error_dialog import (
-			show_enhanced_error_dialog,
-		)
-
 		draft_block = self._build_draft_block()
 		success, error = self.service.save_conversation(
 			self.conversation, file_path, draft_block

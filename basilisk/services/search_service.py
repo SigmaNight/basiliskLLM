@@ -4,9 +4,10 @@ Provides search algorithm components extracted from SearchDialog, including
 enums, pattern compilation, and match finding.
 """
 
+from __future__ import annotations
+
 import enum
 import re
-from typing import List
 
 
 class SearchDirection(enum.IntEnum):
@@ -114,7 +115,7 @@ class SearchService:
 		mode: SearchMode,
 		case_sensitive: bool,
 		dot_all: bool,
-	) -> List[re.Match]:
+	) -> list[re.Match]:
 		"""Find all occurrences of *query_text* in *text_content*.
 
 		Uses :meth:`compile_pattern` internally. Case-insensitive matching is

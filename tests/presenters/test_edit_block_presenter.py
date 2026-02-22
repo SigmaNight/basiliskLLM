@@ -77,6 +77,7 @@ def mock_view(conversation):
 	# TTS
 	view.should_speak_response = False
 
+	view._is_destroying = False
 	return view
 
 

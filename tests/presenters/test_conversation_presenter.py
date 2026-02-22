@@ -113,7 +113,7 @@ class TestOnCompletionError:
 		presenter._stored_attachments = []
 
 		with patch(
-			"basilisk.views.enhanced_error_dialog.show_enhanced_error_dialog"
+			"basilisk.presenters.conversation_presenter.show_enhanced_error_dialog"
 		):
 			presenter._on_completion_error("test error")
 
@@ -162,3 +162,97 @@ class TestToggleRecording:
 		with patch.object(presenter, "stop_recording") as mock_stop:
 			presenter.toggle_recording()
 			mock_stop.assert_called_once()
+
+
+class TestBuildDraftBlock:
+	"""Tests for _build_draft_block guard conditions."""
+
+	def test_returns_none_when_no_account(self, presenter, mock_view):
+		"""_build_draft_block returns None when current_account is None."""
+		mock_view.current_account = None
+		assert presenter._build_draft_block() is None
+
+	def test_returns_none_when_no_model(self, presenter, mock_view):
+		"""_build_draft_block returns None when current_model is None."""
+		mock_view.current_model = None
+		assert presenter._build_draft_block() is None
+
+	def test_returns_none_when_empty_prompt_and_no_attachments(
+		self, presenter, mock_view
+	):
+		"""_build_draft_block returns None when prompt and attachments are empty."""
+		# mock_view default: prompt_text="" and attachment_files=[]
+		assert presenter._build_draft_block() is None
+
+	def test_returns_block_when_prompt_present(self, presenter, mock_view):
+		"""_build_draft_block returns a MessageBlock when prompt is non-empty."""
+		mock_view.prompt_panel.prompt_text = "draft text"
+		result = presenter._build_draft_block()
+		assert result is not None
+		assert result.request.content == "draft text"
+
+
+class TestCleanup:
+	"""Tests for cleanup() resource teardown."""
+
+	def test_stops_running_completion(self, presenter):
+		"""cleanup() stops completion with skip_callbacks=True when running."""
+		with (
+			patch.object(
+				presenter.completion_handler, "is_running", return_value=True
+			),
+			patch.object(
+				presenter.completion_handler, "stop_completion"
+			) as mock_stop,
+			patch("basilisk.presenters.conversation_presenter.stop_sound"),
+			patch.object(presenter, "flush_draft"),
+		):
+			presenter.cleanup()
+		mock_stop.assert_called_once_with(skip_callbacks=True)
+
+	def test_aborts_live_recording_thread(self, presenter):
+		"""cleanup() aborts a live recording thread."""
+		mock_thread = MagicMock()
+		mock_thread.is_alive.return_value = True
+		presenter.recording_thread = mock_thread
+		with (
+			patch("basilisk.presenters.conversation_presenter.stop_sound"),
+			patch.object(presenter, "flush_draft"),
+		):
+			presenter.cleanup()
+		mock_thread.abort.assert_called_once()
+
+	def test_skips_abort_when_no_recording_thread(self, presenter):
+		"""cleanup() does not raise when recording_thread is None."""
+		presenter.recording_thread = None
+		with (
+			patch("basilisk.presenters.conversation_presenter.stop_sound"),
+			patch.object(presenter, "flush_draft"),
+		):
+			presenter.cleanup()  # must not raise
+
+
+class TestIsDestroyingGuard:
+	"""Tests that callbacks respect the _is_destroying flag."""
+
+	def test_on_completion_start_skips_when_destroying(
+		self, presenter, mock_view
+	):
+		"""_on_completion_start is a no-op when _is_destroying is True."""
+		mock_view._is_destroying = True
+		presenter._on_completion_start()
+		mock_view.submit_btn.Disable.assert_not_called()
+
+	def test_on_completion_end_skips_when_destroying(
+		self, presenter, mock_view
+	):
+		"""_on_completion_end is a no-op when _is_destroying is True."""
+		mock_view._is_destroying = True
+		presenter._on_completion_end(True)
+		mock_view.stop_completion_btn.Hide.assert_not_called()
+
+	def test_on_stream_chunk_skips_when_destroying(self, presenter, mock_view):
+		"""_on_stream_chunk is a no-op when _is_destroying is True."""
+		mock_view._is_destroying = True
+		presenter._on_stream_chunk("text")
+		mock_view.messages.append_stream_chunk.assert_not_called()
