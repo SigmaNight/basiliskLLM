@@ -138,8 +138,27 @@ class OCRHandler:
 			# Dialog might have been destroyed already
 			return
 
-		dialog.Destroy()
-		self.ocr_button.Enable()
+		# Destroy dialog safely
+		try:
+			if dialog.IsShown():
+				dialog.Destroy()
+		except RuntimeError:
+			log.debug("OCR dialog already destroyed")
+
+		# Check if parent tab still exists and is valid
+		if (
+			not hasattr(self.parent, '_is_destroying')
+			or self.parent._is_destroying
+			or not hasattr(self.parent, '_is_widget_valid')
+			or not self.parent._is_widget_valid()
+		):
+			log.debug(
+				"Skipping OCR completion handling: parent tab is being destroyed"
+			)
+			return
+
+		if hasattr(self, 'ocr_button') and self.ocr_button:
+			self.ocr_button.Enable()
 
 		# Handle based on message type
 		if message_type == "result":
@@ -226,13 +245,30 @@ class OCRHandler:
 			except Exception as e:
 				log.error("Error terminating process: %s", e, exc_info=True)
 
+		# Destroy dialog safely
 		try:
 			if dialog and dialog.IsShown():
 				dialog.Destroy()
+		except RuntimeError:
+			log.debug("OCR dialog already destroyed")
 		except Exception as e:
 			log.error("Error destroying dialog: %s", e, exc_info=True)
 
-		self.ocr_button.Enable()
+		# Enable button only if parent tab still exists and is valid
+		if (
+			hasattr(self.parent, '_is_widget_valid')
+			and self.parent._is_widget_valid('ocr_button')
+			and hasattr(self, 'ocr_button')
+			and self.ocr_button
+		):
+			self.ocr_button.Enable()
+		elif (
+			hasattr(self.parent, '_is_destroying')
+			and self.parent._is_destroying
+		):
+			log.debug(
+				"Skipping OCR button enable: parent tab is being destroyed"
+			)
 		self.process = None
 
 	def check_task_progress(

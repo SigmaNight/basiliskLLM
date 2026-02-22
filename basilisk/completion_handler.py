@@ -120,14 +120,19 @@ class CompletionHandler:
 		self.task.start()
 		logger.debug("Completion task %s started", self.task.ident)
 
-	def stop_completion(self):
-		"""Stop the current completion if running."""
+	def stop_completion(self, skip_callbacks: bool = False):
+		"""Stop the current completion if running.
+
+		Args:
+			skip_callbacks: If True, skip calling completion end callbacks.
+				Useful when cleaning up resources before destroying the tab.
+		"""
 		if self.is_running():
 			self._stop_completion = True
 			logger.debug("Stopping completion task: %s", self.task.ident)
 			self.task.join(timeout=0.05)
 			self.task = None
-		if self.on_completion_end:
+		if self.on_completion_end and not skip_callbacks:
 			wx.CallAfter(self.on_completion_end, False)
 
 	def is_running(self) -> bool:
