@@ -4,6 +4,10 @@ import logging
 
 import wx
 
+from basilisk.presenters.conversation_history_presenter import (
+	ConversationHistoryPresenter,
+)
+
 log = logging.getLogger(__name__)
 
 # Debounce delay for search input in milliseconds
@@ -26,7 +30,9 @@ class ConversationHistoryDialog(wx.Dialog):
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 			size=(600, 400),
 		)
-		self.conv_db = wx.GetApp().conv_db
+		self.presenter = ConversationHistoryPresenter(
+			self, conv_db_getter=lambda: wx.GetApp().conv_db
+		)
 		self.selected_conv_id: int | None = None
 		self._search_timer = wx.Timer(self)
 		self._conversations: list[dict] = []
@@ -180,11 +186,9 @@ class ConversationHistoryDialog(wx.Dialog):
 		if result != wx.YES:
 			return
 
-		try:
-			self.conv_db.delete_conversation(conv["id"])
+		if self.presenter.delete_conversation(conv["id"]):
 			self._refresh_list()
-		except Exception:
-			log.error("Failed to delete conversation", exc_info=True)
+		else:
 			wx.MessageBox(
 				_("Failed to delete conversation"),
 				_("Error"),
@@ -195,16 +199,8 @@ class ConversationHistoryDialog(wx.Dialog):
 	def _refresh_list(self):
 		"""Refresh the conversation list from the database."""
 		self.list_ctrl.DeleteAllItems()
-		self._conversations = []
-
-		try:
-			search = self.search_ctrl.GetValue().strip() or None
-			self._conversations = self.conv_db.list_conversations(
-				search=search, limit=200
-			)
-		except Exception:
-			log.error("Failed to load conversation list", exc_info=True)
-			return
+		search = self.search_ctrl.GetValue().strip() or None
+		self._conversations = self.presenter.load_conversations(search=search)
 
 		for conv in self._conversations:
 			index = self.list_ctrl.GetItemCount()

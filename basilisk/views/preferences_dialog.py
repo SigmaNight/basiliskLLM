@@ -3,24 +3,16 @@
 import logging
 
 import wx
-from babel import Locale
 
-from basilisk.config import (
-	AutomaticUpdateModeEnum,
-	LogLevelEnum,
-	ReleaseChannelEnum,
+import basilisk.config as config
+from basilisk.presenters.preferences_presenter import (
+	LOG_LEVELS,
+	PreferencesPresenter,
+	auto_update_modes,
+	release_channels,
 )
-from basilisk.config import conf as get_conf
-from basilisk.localization import get_app_locale, get_supported_locales
-from basilisk.logger import set_log_level
 
 log = logging.getLogger(__name__)
-
-LOG_LEVELS = LogLevelEnum.get_labels()
-
-release_channels = ReleaseChannelEnum.get_labels()
-
-auto_update_modes = AutomaticUpdateModeEnum.get_labels()
 
 
 class PreferencesDialog(wx.Dialog):
@@ -38,7 +30,7 @@ class PreferencesDialog(wx.Dialog):
 		"""
 		wx.Dialog.__init__(self, parent, title=title, size=size)
 		self.parent = parent
-		self.conf = get_conf()
+		self.presenter = PreferencesPresenter(self)
 		self.init_ui()
 		self.Centre()
 		self.Show()
@@ -56,7 +48,8 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.ALIGN_LEFT,
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
-		log_level_value = LOG_LEVELS[self.conf.general.log_level]
+		conf = config.conf()
+		log_level_value = LOG_LEVELS[conf.general.log_level]
 		self.log_level = wx.ComboBox(
 			panel,
 			choices=list(LOG_LEVELS.values()),
@@ -64,10 +57,8 @@ class PreferencesDialog(wx.Dialog):
 			style=wx.CB_READONLY,
 		)
 		sizer.Add(self.log_level, 0, wx.ALL, 5)
-		app_locale = get_app_locale(self.conf.general.language)
-		self.init_languages(app_locale)
-		value = self.languages.get(
-			self.conf.general.language, self.languages["auto"]
+		value = self.presenter.languages.get(
+			conf.general.language, self.presenter.languages["auto"]
 		)
 		label = wx.StaticText(
 			panel,
@@ -78,7 +69,7 @@ class PreferencesDialog(wx.Dialog):
 		sizer.Add(label, 0, wx.ALL, 5)
 		self.language = wx.ComboBox(
 			panel,
-			choices=list(self.languages.values()),
+			choices=list(self.presenter.languages.values()),
 			value=value,
 			style=wx.CB_READONLY,
 		)
@@ -87,7 +78,7 @@ class PreferencesDialog(wx.Dialog):
 		self.quit_on_close = wx.CheckBox(
 			panel, label=_("Quit on &close, don't minimize")
 		)
-		self.quit_on_close.SetValue(self.conf.general.quit_on_close)
+		self.quit_on_close.SetValue(conf.general.quit_on_close)
 		sizer.Add(self.quit_on_close, 0, wx.ALL, 5)
 
 		update_group = wx.StaticBox(panel, label=_("Update"))
@@ -98,9 +89,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
 
-		release_channel_value = release_channels[
-			self.conf.general.release_channel
-		]
+		release_channel_value = release_channels[conf.general.release_channel]
 		self.release_channel = wx.ComboBox(
 			panel,
 			choices=list(release_channels.values()),
@@ -114,7 +103,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
 		auto_update_mode_value = auto_update_modes[
-			self.conf.general.automatic_update_mode
+			conf.general.automatic_update_mode
 		]
 		self.auto_update_mode = wx.ComboBox(
 			panel,
@@ -132,7 +121,7 @@ class PreferencesDialog(wx.Dialog):
 			label=_("Advanced mode"),
 			style=wx.ALIGN_LEFT,
 		)
-		self.advanced_mode.SetValue(self.conf.general.advanced_mode)
+		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
 		conversation_group = wx.StaticBox(panel, label=_("Conversation"))
@@ -147,8 +136,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		conversation_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.role_label_user = wx.TextCtrl(
-			conversation_group,
-			value=self.conf.conversation.role_label_user or "",
+			conversation_group, value=conf.conversation.role_label_user or ""
 		)
 		conversation_group_sizer.Add(self.role_label_user, 0, wx.ALL, 5)
 
@@ -160,7 +148,7 @@ class PreferencesDialog(wx.Dialog):
 		conversation_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.role_label_assistant = wx.TextCtrl(
 			conversation_group,
-			value=self.conf.conversation.role_label_assistant or "",
+			value=conf.conversation.role_label_assistant or "",
 		)
 		conversation_group_sizer.Add(self.role_label_assistant, 0, wx.ALL, 5)
 
@@ -169,7 +157,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Message Selection on Previous/Next Navigation"),
 		)
-		self.nav_msg_select.SetValue(self.conf.conversation.nav_msg_select)
+		self.nav_msg_select.SetValue(conf.conversation.nav_msg_select)
 		conversation_group_sizer.Add(self.nav_msg_select, 0, wx.ALL, 5)
 
 		self.shift_enter_mode = wx.CheckBox(
@@ -177,7 +165,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Send message with Enter, insert newline with Shift+Enter"),
 		)
-		self.shift_enter_mode.SetValue(self.conf.conversation.shift_enter_mode)
+		self.shift_enter_mode.SetValue(conf.conversation.shift_enter_mode)
 		conversation_group_sizer.Add(self.shift_enter_mode, 0, wx.ALL, 5)
 
 		self.use_accessible_output = wx.CheckBox(
@@ -188,7 +176,7 @@ class PreferencesDialog(wx.Dialog):
 			),
 		)
 		self.use_accessible_output.SetValue(
-			self.conf.conversation.use_accessible_output
+			conf.conversation.use_accessible_output
 		)
 		conversation_group_sizer.Add(self.use_accessible_output, 0, wx.ALL, 5)
 
@@ -196,7 +184,7 @@ class PreferencesDialog(wx.Dialog):
 			conversation_group, label=_("Focus message history after sending")
 		)
 		self.focus_history_checkbox.SetValue(
-			self.conf.conversation.focus_history_after_send
+			conf.conversation.focus_history_after_send
 		)
 		conversation_group_sizer.Add(self.focus_history_checkbox, 0, wx.ALL, 5)
 
@@ -205,7 +193,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Automatically save conversations to &database"),
 		)
-		self.auto_save_to_db.SetValue(self.conf.conversation.auto_save_to_db)
+		self.auto_save_to_db.SetValue(conf.conversation.auto_save_to_db)
 		conversation_group_sizer.Add(self.auto_save_to_db, 0, wx.ALL, 5)
 
 		self.auto_save_draft = wx.CheckBox(
@@ -213,7 +201,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Auto-save &draft prompt text"),
 		)
-		self.auto_save_draft.SetValue(self.conf.conversation.auto_save_draft)
+		self.auto_save_draft.SetValue(conf.conversation.auto_save_draft)
 		conversation_group_sizer.Add(self.auto_save_draft, 0, wx.ALL, 5)
 
 		self.reopen_last_conversation = wx.CheckBox(
@@ -222,7 +210,7 @@ class PreferencesDialog(wx.Dialog):
 			label=_("&Reopen last conversation on startup"),
 		)
 		self.reopen_last_conversation.SetValue(
-			self.conf.conversation.reopen_last_conversation
+			conf.conversation.reopen_last_conversation
 		)
 		conversation_group_sizer.Add(
 			self.reopen_last_conversation, 0, wx.ALL, 5
@@ -238,7 +226,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Resize images before uploading"),
 		)
-		self.image_resize.SetValue(self.conf.images.resize)
+		self.image_resize.SetValue(conf.images.resize)
 		self.image_resize.Bind(wx.EVT_CHECKBOX, self.on_resize)
 		images_group_sizer.Add(self.image_resize, 0, wx.ALL, 5)
 
@@ -251,10 +239,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_max_height = wx.SpinCtrl(
-			images_group,
-			value=str(self.conf.images.max_height),
-			min=0,
-			max=10000,
+			images_group, value=str(conf.images.max_height), min=0, max=10000
 		)
 		images_group_sizer.Add(self.image_max_height, 0, wx.ALL, 5)
 
@@ -267,10 +252,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_max_width = wx.SpinCtrl(
-			images_group,
-			value=str(self.conf.images.max_width),
-			min=0,
-			max=10000,
+			images_group, value=str(conf.images.max_width), min=0, max=10000
 		)
 		images_group_sizer.Add(self.image_max_width, 0, wx.ALL, 5)
 
@@ -283,7 +265,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		images_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.image_quality = wx.SpinCtrl(
-			images_group, value=str(self.conf.images.quality), min=1, max=100
+			images_group, value=str(conf.images.quality), min=1, max=100
 		)
 		images_group_sizer.Add(self.image_quality, 0, wx.ALL, 5)
 
@@ -300,9 +282,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Use system certificate store (Requires restart)"),
 		)
-		self.use_system_cert_store.SetValue(
-			self.conf.network.use_system_cert_store
-		)
+		self.use_system_cert_store.SetValue(conf.network.use_system_cert_store)
 		network_sizer.Add(self.use_system_cert_store, 0, wx.ALL, 5)
 		sizer.Add(network_sizer, 0, wx.ALL, 5)
 
@@ -314,7 +294,7 @@ class PreferencesDialog(wx.Dialog):
 			# Translators: A label for a checkbox in the preferences dialog
 			label=_("Enable server mode (requires restart)"),
 		)
-		self.server_enable.SetValue(self.conf.server.enable)
+		self.server_enable.SetValue(conf.server.enable)
 		server_group_sizer.Add(self.server_enable, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
@@ -324,7 +304,7 @@ class PreferencesDialog(wx.Dialog):
 		)
 		server_group_sizer.Add(label, 0, wx.ALL, 5)
 		self.server_port = wx.SpinCtrl(
-			server_group, value=str(self.conf.server.port), min=1, max=65535
+			server_group, value=str(conf.server.port), min=1, max=65535
 		)
 		server_group_sizer.Add(self.server_port, 0, wx.ALL, 5)
 
@@ -363,79 +343,8 @@ class PreferencesDialog(wx.Dialog):
 		Args:
 			event: The event that triggered the save.
 		"""
-		log.debug("Saving configuration")
-		self.conf.general.log_level = list(LOG_LEVELS.keys())[
-			self.log_level.GetSelection()
-		]
-		self.conf.general.language = list(self.languages.keys())[
-			self.language.GetSelection()
-		]
-		self.conf.general.quit_on_close = self.quit_on_close.GetValue()
-		self.conf.general.release_channel = list(release_channels.keys())[
-			self.release_channel.GetSelection()
-		]
-		self.conf.general.automatic_update_mode = list(
-			auto_update_modes.keys()
-		)[self.auto_update_mode.GetSelection()]
-		self.conf.general.advanced_mode = self.advanced_mode.GetValue()
-		self.conf.conversation.role_label_user = self.role_label_user.GetValue()
-		self.conf.conversation.role_label_assistant = (
-			self.role_label_assistant.GetValue()
-		)
-		self.conf.conversation.nav_msg_select = self.nav_msg_select.GetValue()
-		self.conf.conversation.shift_enter_mode = (
-			self.shift_enter_mode.GetValue()
-		)
-		self.conf.conversation.use_accessible_output = (
-			self.use_accessible_output.GetValue()
-		)
-		self.conf.conversation.focus_history_after_send = (
-			self.focus_history_checkbox.GetValue()
-		)
-		self.conf.conversation.auto_save_to_db = self.auto_save_to_db.GetValue()
-		self.conf.conversation.auto_save_draft = self.auto_save_draft.GetValue()
-		self.conf.conversation.reopen_last_conversation = (
-			self.reopen_last_conversation.GetValue()
-		)
-
-		self.conf.images.resize = self.image_resize.GetValue()
-		self.conf.images.max_height = int(self.image_max_height.GetValue())
-		self.conf.images.max_width = int(self.image_max_width.GetValue())
-		self.conf.images.quality = int(self.image_quality.GetValue())
-		self.conf.network.use_system_cert_store = (
-			self.use_system_cert_store.GetValue()
-		)
-		self.conf.server.enable = self.server_enable.GetValue()
-		self.conf.server.port = int(self.server_port.GetValue())
-
-		self.conf.save()
-		set_log_level(self.conf.general.log_level.name)
-
-		self.EndModal(wx.ID_OK)
+		self.presenter.on_ok()
 
 	def on_cancel(self, event):
 		"""Close the dialog without saving the configuration."""
 		self.EndModal(wx.ID_CANCEL)
-
-	def init_languages(self, cur_locale: Locale) -> dict[str, str]:
-		"""Get all supported languages and set the current language as default.
-
-		Args:
-			cur_locale: The current locale.
-
-		Returns:
-			A dictionary with the supported languages.
-		"""
-		self.languages = {
-			# Translators: A label for the language in the settings dialog
-			"auto": _("System default (auto)")
-		}
-		supported_locales = get_supported_locales()
-		self.languages.update(
-			{
-				str(
-					locale
-				): f"{locale.get_display_name(cur_locale).capitalize()} ({locale})"
-				for locale in supported_locales
-			}
-		)
