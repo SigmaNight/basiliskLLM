@@ -1329,3 +1329,4 @@ class ConversationTab(wx.Panel, BaseConversation):
 		self._terminate_process(self.process, "background process")
 		if self.process:
 			self.process = None
+		self.flush_draft()
