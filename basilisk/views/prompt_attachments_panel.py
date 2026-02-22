@@ -7,22 +7,17 @@ where these features are needed, such as conversation tabs and edit dialogs.
 
 from __future__ import annotations
 
-import datetime
 import logging
-import re
 from typing import TYPE_CHECKING, Callable, Optional
 
 import wx
 from upath import UPath
 
 import basilisk.config as config
-from basilisk.conversation import (
-	URL_PATTERN,
-	AttachmentFile,
-	ImageFile,
-	parse_supported_attachment_formats,
+from basilisk.conversation import AttachmentFile, ImageFile
+from basilisk.presenters.attachment_panel_presenter import (
+	PromptAttachmentPresenter,
 )
-from basilisk.services.attachment_service import AttachmentService
 
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
@@ -40,9 +35,8 @@ class PromptAttachmentsPanel(wx.Panel):
 	functionality. It provides methods for adding, removing, and displaying attachments,
 	as well as handling user input in the prompt area.
 
-	Attributes:
-		attachment_files: List of attachment files
-		conv_storage_path: Path for storing conversation attachments
+	The panel is a thin view: business logic lives in
+	:class:`~basilisk.presenters.attachment_panel_presenter.PromptAttachmentPresenter`.
 	"""
 
 	def __init__(
@@ -59,17 +53,16 @@ class PromptAttachmentsPanel(wx.Panel):
 			on_submit_callback: Callback function for submit action (Ctrl+Enter)
 		"""
 		super().__init__(parent)
-
-		self.attachment_files: list[AttachmentFile | ImageFile] = []
-		self.conv_storage_path = conv_storage_path
 		self.on_submit_callback = on_submit_callback
-		self.attachment_service = AttachmentService(
-			on_download_success=self._on_attachment_downloaded,
-			on_download_error=self._on_attachment_download_error,
+		self.presenter = PromptAttachmentPresenter(
+			view=self, conv_storage_path=conv_storage_path
 		)
-		self.current_engine = None  # Will be set by the parent component
 		self.init_ui()
 		self.init_prompt_shortcuts()
+
+	# ------------------------------------------------------------------
+	# UI setup
+	# ------------------------------------------------------------------
 
 	def init_ui(self):
 		"""Initialize the user interface components."""
@@ -135,26 +128,6 @@ class PromptAttachmentsPanel(wx.Panel):
 		self.attachments_list_label.Hide()
 		self.attachments_list.Hide()
 
-	@property
-	def selected_attachment_file(self) -> Optional[AttachmentFile | ImageFile]:
-		"""Get the currently selected attachment file.
-
-		Returns:
-			The selected attachment file or None if no selection
-		"""
-		selected = self.attachments_list.GetFirstSelected()
-		if selected == wx.NOT_FOUND:
-			return None
-		return self.attachment_files[selected]
-
-	def set_engine(self, engine: BaseEngine):
-		"""Set the current engine to use for attachment validation.
-
-		Args:
-			engine: The engine to use
-		"""
-		self.current_engine = engine
-
 	def init_prompt_shortcuts(self):
 		"""Initialize keyboard shortcuts for the prompt text control."""
 		self.prompt_shortcuts = {
@@ -173,6 +146,275 @@ class PromptAttachmentsPanel(wx.Panel):
 		)
 		if previous_prompt:
 			self.prompt_shortcuts[(wx.MOD_CONTROL, wx.WXK_UP)] = previous_prompt
+
+	# ------------------------------------------------------------------
+	# Delegation to presenter (public API used by ConversationPresenter)
+	# ------------------------------------------------------------------
+
+	@property
+	def attachment_files(self) -> list[AttachmentFile | ImageFile]:
+		"""Get the attachment list from the presenter.
+
+		Returns:
+			The list of current attachments.
+		"""
+		return self.presenter.attachment_files
+
+	@attachment_files.setter
+	def attachment_files(self, value: list[AttachmentFile | ImageFile]) -> None:
+		"""Set the attachment list on the presenter.
+
+		Args:
+			value: New list of attachments.
+		"""
+		self.presenter.attachment_files = value
+
+	def set_engine(self, engine: BaseEngine) -> None:
+		"""Set the current engine on the presenter.
+
+		Args:
+			engine: The engine to use.
+		"""
+		self.presenter.set_engine(engine)
+
+	def check_attachments_valid(self) -> bool:
+		"""Delegate to presenter.
+
+		Returns:
+			True if all attachments are valid.
+		"""
+		return self.presenter.check_attachments_valid()
+
+	def ensure_model_compatibility(
+		self, current_model: ProviderAIModel | None
+	) -> ProviderAIModel | None:
+		"""Delegate to presenter.
+
+		Args:
+			current_model: The selected AI model.
+
+		Returns:
+			The model if compatible, None otherwise.
+		"""
+		return self.presenter.ensure_model_compatibility(current_model)
+
+	def resize_all_attachments(self) -> None:
+		"""Delegate to presenter."""
+		self.presenter.resize_all_attachments()
+
+	def has_image_attachments(self) -> bool:
+		"""Delegate to presenter.
+
+		Returns:
+			True if any attachment is an image.
+		"""
+		return self.presenter.has_image_attachments()
+
+	def add_attachments(
+		self, paths: list[str | AttachmentFile | ImageFile]
+	) -> None:
+		"""Add one or more attachments via the presenter.
+
+		Args:
+			paths: List of file paths (str) or attachment objects.
+		"""
+		self.presenter.add_attachments(paths)
+
+	def refresh_attachments_list(self) -> None:
+		"""Push current presenter state to the list widget."""
+		self.presenter.refresh_view()
+
+	def clear(self, refresh: bool = False) -> None:
+		"""Clear the prompt text and remove all attachments.
+
+		Args:
+			refresh: Whether to refresh the attachments display after clearing.
+		"""
+		self.prompt.Clear()
+		self.presenter.clear()
+		if refresh:
+			self.refresh_attachments_display(self.presenter.attachment_files)
+
+	# ------------------------------------------------------------------
+	# View interface (called by the presenter)
+	# ------------------------------------------------------------------
+
+	def show_error(self, msg: str) -> None:
+		"""Show an error message box.
+
+		Args:
+			msg: The error message to display.
+		"""
+		wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
+
+	def show_file_dialog(self, wildcard: str) -> list[str] | None:
+		"""Show a file-picker dialog and return selected paths.
+
+		Args:
+			wildcard: File type filter string.
+
+		Returns:
+			List of selected file paths, or None if cancelled.
+		"""
+		file_dialog = wx.FileDialog(
+			self,
+			# Translators: This is a label for select files dialog
+			message=_("Select one or more files to attach"),
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
+			wildcard=wildcard,
+		)
+		paths = None
+		if file_dialog.ShowModal() == wx.ID_OK:
+			paths = file_dialog.GetPaths()
+		file_dialog.Destroy()
+		return paths
+
+	def show_url_dialog(self) -> str | None:
+		"""Show a URL entry dialog and return the entered URL.
+
+		Returns:
+			The URL string entered by the user, or None if cancelled/empty.
+		"""
+		url_dialog = wx.TextEntryDialog(
+			self,
+			# Translators: This is a label for enter URL in add attachment dialog
+			message=_("Enter the URL of the file to attach:"),
+			caption=_("Add attachment from URL"),
+		)
+		url = None
+		if url_dialog.ShowModal() == wx.ID_OK:
+			url = url_dialog.GetValue() or None
+		url_dialog.Destroy()
+		return url
+
+	def refresh_attachments_display(
+		self, files: list[AttachmentFile | ImageFile]
+	) -> None:
+		"""Update the attachments list widget and show/hide it.
+
+		Args:
+			files: The current list of attachment objects.
+		"""
+		self.attachments_list.DeleteAllItems()
+
+		if not files:
+			self.attachments_list_label.Hide()
+			self.attachments_list.Hide()
+			if getattr(self.Parent, "ocr_button", None):
+				self.Parent.ocr_button.Hide()
+			self.Parent.Layout()
+			return
+
+		self.attachments_list_label.Show()
+		self.attachments_list.Show()
+		if getattr(self.Parent, "ocr_button", None):
+			self.Parent.ocr_button.Show()
+		for attachment in files:
+			self.attachments_list.Append(attachment.get_display_info())
+
+		last_index = len(files) - 1
+		self.attachments_list.SetItemState(
+			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
+		)
+		self.attachments_list.EnsureVisible(last_index)
+		self.Parent.Layout()
+
+	def write_prompt_text(self, text: str) -> None:
+		"""Insert text at the current position and focus the prompt.
+
+		Args:
+			text: The text to insert.
+		"""
+		self.prompt.WriteText(text)
+		self.prompt.SetFocus()
+
+	def get_prompt_text(self) -> str:
+		"""Return the current prompt text.
+
+		Returns:
+			The text in the prompt control.
+		"""
+		return self.prompt.GetValue()
+
+	def focus_attachments(self) -> None:
+		"""Set focus to the attachments list."""
+		self.attachments_list.SetFocus()
+
+	def get_clipboard_bitmap_image(self):
+		"""Read a bitmap from the clipboard and return it as a wx.Image.
+
+		Returns:
+			A wx.Image if the clipboard contains a bitmap, None otherwise.
+		"""
+		with wx.TheClipboard as clipboard:
+			if not clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
+				return None
+			bitmap_data = wx.BitmapDataObject()
+			success = clipboard.GetData(bitmap_data)
+			if not success:
+				return None
+			return bitmap_data.GetBitmap().ConvertToImage()
+
+	# ------------------------------------------------------------------
+	# Prompt properties
+	# ------------------------------------------------------------------
+
+	@property
+	def prompt_text(self) -> str:
+		"""Get the prompt text.
+
+		Returns:
+			The text from the prompt input control
+		"""
+		return self.prompt.GetValue()
+
+	@prompt_text.setter
+	def prompt_text(self, text: str):
+		"""Set the prompt text.
+
+		Args:
+			text: The text to set in the prompt input control
+		"""
+		self.prompt.SetValue(text)
+
+	def set_prompt(self, text: str):
+		"""Set the prompt text.
+
+		Args:
+			text: The text to set in the prompt input control
+		"""
+		self.prompt.SetValue(text)
+
+	def set_prompt_focus(self):
+		"""Set focus to the prompt input control."""
+		self.prompt.SetFocus()
+
+	def set_attachments_focus(self):
+		"""Set focus to the attachments list control."""
+		if not self.presenter.attachment_files:
+			self.prompt.SetFocus()
+			return
+		self.attachments_list.SetFocus()
+
+	# ------------------------------------------------------------------
+	# Selected attachment helper
+	# ------------------------------------------------------------------
+
+	@property
+	def selected_attachment_file(self) -> Optional[AttachmentFile | ImageFile]:
+		"""Get the currently selected attachment file.
+
+		Returns:
+			The selected attachment file or None if no selection
+		"""
+		selected = self.attachments_list.GetFirstSelected()
+		if selected == wx.NOT_FOUND:
+			return None
+		return self.presenter.attachment_files[selected]
+
+	# ------------------------------------------------------------------
+	# Event handlers — prompt area
+	# ------------------------------------------------------------------
 
 	def on_prompt_key_down(self, event: wx.KeyEvent):
 		"""Handle keyboard shortcuts for the prompt text control.
@@ -198,7 +440,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			self.Bind(wx.EVT_MENU, self.on_submit_callback, item)
 
 		item = wx.MenuItem(
-			menu, wx.ID_ANY, _("Paste (file or text)") + "	Ctrl+V"
+			menu, wx.ID_ANY, _("Paste (file or text)") + "\tCtrl+V"
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_paste, item)
@@ -225,6 +467,10 @@ class PromptAttachmentsPanel(wx.Panel):
 			menu.Append(wx.ID_PASTE)
 		menu.Append(wx.ID_SELECTALL)
 
+	# ------------------------------------------------------------------
+	# Event handlers — attachments list
+	# ------------------------------------------------------------------
+
 	def on_attachments_context_menu(self, event: wx.ContextMenuEvent):
 		"""Display context menu for the attachments list.
 
@@ -239,7 +485,7 @@ class PromptAttachmentsPanel(wx.Panel):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for show details in the context menu
-				_("Show details") + "	Enter",
+				_("Show details") + "\tEnter",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_show_attachment_details, item)
@@ -248,7 +494,7 @@ class PromptAttachmentsPanel(wx.Panel):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for remove selected attachment in the context menu
-				_("Remove selected attachment") + "	Shift+Del",
+				_("Remove selected attachment") + "\tShift+Del",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_attachments_remove, item)
@@ -257,7 +503,7 @@ class PromptAttachmentsPanel(wx.Panel):
 				menu,
 				wx.ID_ANY,
 				# Translators: This is a label for copy location in the context menu
-				_("Copy location") + "	Ctrl+C",
+				_("Copy location") + "\tCtrl+C",
 			)
 			menu.Append(item)
 			self.Bind(wx.EVT_MENU, self.on_copy_attachment_location, item)
@@ -266,7 +512,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			menu,
 			wx.ID_ANY,
 			# Translators: This is a label for paste in the context menu
-			_("Paste (file or text)") + "	Ctrl+V",
+			_("Paste (file or text)") + "\tCtrl+V",
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_paste, item)
@@ -284,7 +530,7 @@ class PromptAttachmentsPanel(wx.Panel):
 			menu,
 			wx.ID_ANY,
 			# Translators: This is a label for add attachment URL in the context menu
-			_("Add attachment URL...") + "	Ctrl+U",
+			_("Add attachment URL...") + "\tCtrl+U",
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.add_attachment_url_dlg, item)
@@ -313,6 +559,9 @@ class PromptAttachmentsPanel(wx.Panel):
 	def on_paste(self, event: wx.CommandEvent):
 		"""Handle pasting content from the clipboard.
 
+		Reads clipboard data and routes to the appropriate presenter
+		handler based on data format.
+
 		Args:
 			event: The clipboard paste event
 		"""
@@ -322,19 +571,13 @@ class PromptAttachmentsPanel(wx.Panel):
 				file_data = wx.FileDataObject()
 				clipboard.GetData(file_data)
 				paths = file_data.GetFilenames()
-				self.add_attachments(paths)
+				self.presenter.on_paste_files(paths)
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
 				log.debug("Pasting text from clipboard")
 				text_data = wx.TextDataObject()
 				clipboard.GetData(text_data)
 				text = text_data.GetText()
-				if re.fullmatch(URL_PATTERN, text):
-					log.info("Pasting URL from clipboard, adding attachment")
-					self.attachment_service.download_from_url(text)
-				else:
-					log.info("Pasting text from clipboard")
-					self.prompt.WriteText(text)
-					self.prompt.SetFocus()
+				self.presenter.on_paste_text(text)
 			elif clipboard.IsSupported(wx.DataFormat(wx.DF_BITMAP)):
 				log.debug("Pasting bitmap from clipboard")
 				bitmap_data = wx.BitmapDataObject()
@@ -343,13 +586,7 @@ class PromptAttachmentsPanel(wx.Panel):
 					log.error("Failed to get bitmap data from clipboard")
 					return
 				img = bitmap_data.GetBitmap().ConvertToImage()
-				path = (
-					self.conv_storage_path
-					/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
-				)
-				with path.open("wb") as f:
-					img.SaveFile(f, wx.BITMAP_TYPE_PNG)
-				self.add_attachments([ImageFile(location=path)])
+				self.presenter.on_paste_bitmap(img)
 			else:
 				log.info("Unsupported clipboard data")
 
@@ -359,40 +596,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		Args:
 			event: Event triggered by the add files action
 		"""
-		if not self.current_engine:
-			wx.MessageBox(
-				_("No engine available. Please select an account."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-
-		wildcard = parse_supported_attachment_formats(
-			self.current_engine.supported_attachment_formats
-		)
-		if not wildcard:
-			wx.MessageBox(
-				# Translators: This message is displayed when there are no supported attachment formats.
-				_("This provider does not support any attachment formats."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-
-		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
-		file_dialog = wx.FileDialog(
-			self,
-			# Translators: This is a label for select files dialog
-			message=_("Select one or more files to attach"),
-			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE,
-			wildcard=wildcard,
-		)
-
-		if file_dialog.ShowModal() == wx.ID_OK:
-			paths = file_dialog.GetPaths()
-			self.add_attachments(paths)
-
-		file_dialog.Destroy()
+		self.presenter.on_add_files()
 
 	def add_attachment_url_dlg(self, event: wx.CommandEvent = None):
 		"""Open a dialog to input an attachment URL.
@@ -400,48 +604,11 @@ class PromptAttachmentsPanel(wx.Panel):
 		Args:
 			event: Event triggered by the add attachment URL action
 		"""
-		url_dialog = wx.TextEntryDialog(
-			self,
-			# Translators: This is a label for enter URL in add attachment dialog
-			message=_("Enter the URL of the file to attach:"),
-			caption=_("Add attachment from URL"),
-		)
+		self.presenter.on_add_url()
 
-		if url_dialog.ShowModal() != wx.ID_OK:
-			url_dialog.Destroy()
-			return
-
-		url = url_dialog.GetValue()
-		url_dialog.Destroy()
-
-		if not url:
-			return
-
-		if not re.fullmatch(URL_PATTERN, url):
-			wx.MessageBox(
-				_("Invalid URL format."), _("Error"), wx.OK | wx.ICON_ERROR
-			)
-			return
-
-		self.attachment_service.download_from_url(url)
-
-	def _on_attachment_downloaded(
-		self, attachment: AttachmentFile | ImageFile
-	) -> None:
-		"""Handle successful attachment download.
-
-		Args:
-			attachment: The downloaded attachment object
-		"""
-		self.add_attachments([attachment])
-
-	def _on_attachment_download_error(self, error_msg: str) -> None:
-		"""Handle attachment download error.
-
-		Args:
-			error_msg: Human-readable error description
-		"""
-		wx.MessageBox(error_msg, _("Error"), wx.OK | wx.ICON_ERROR)
+	# ------------------------------------------------------------------
+	# Attachment item actions
+	# ------------------------------------------------------------------
 
 	def on_show_attachment_details(self, event: wx.CommandEvent):
 		"""Show details of the selected attachment.
@@ -484,7 +651,7 @@ class PromptAttachmentsPanel(wx.Panel):
 		if not current_attachment:
 			return
 
-		self.attachment_files.remove(current_attachment)
+		self.presenter.attachment_files.remove(current_attachment)
 		self.refresh_attachments_list()
 
 		if selection >= self.attachments_list.GetItemCount():
@@ -510,202 +677,3 @@ class PromptAttachmentsPanel(wx.Panel):
 		location = f'"{current_attachment.location}"'
 		with wx.TheClipboard as clipboard:
 			clipboard.SetData(wx.TextDataObject(location))
-
-	def refresh_attachments_list(self):
-		"""Update the attachments list display."""
-		self.attachments_list.DeleteAllItems()
-
-		if not self.attachment_files:
-			self.attachments_list_label.Hide()
-			self.attachments_list.Hide()
-			if getattr(self.Parent, "ocr_button", None):
-				self.Parent.ocr_button.Hide()
-			self.Parent.Layout()
-			return
-
-		self.attachments_list_label.Show()
-		self.attachments_list.Show()
-		if getattr(self.Parent, "ocr_button", None):
-			self.Parent.ocr_button.Show()
-		for attachment in self.attachment_files:
-			self.attachments_list.Append(attachment.get_display_info())
-
-		last_index = len(self.attachment_files) - 1
-		self.attachments_list.SetItemState(
-			last_index, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED
-		)
-		self.attachments_list.EnsureVisible(last_index)
-		self.Parent.Layout()
-
-	def add_attachments(self, paths: list[str | AttachmentFile | ImageFile]):
-		"""Add one or more attachments.
-
-		Args:
-			paths: List of attachment file paths or attachment objects
-		"""
-		log.debug("Adding attachments: %s", paths)
-
-		if not self.current_engine:
-			wx.MessageBox(
-				_("No engine available. Please select an account."),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-
-		supported_attachment_formats = (
-			self.current_engine.supported_attachment_formats
-		)
-
-		for path in paths:
-			if isinstance(path, (AttachmentFile, ImageFile)):
-				self.attachment_files.append(path)
-			else:
-				attachment, _mime = (
-					AttachmentService.build_attachment_from_path(
-						str(path), supported_attachment_formats
-					)
-				)
-				if attachment is None:
-					wx.MessageBox(
-						# Translators: This message is displayed when there are no supported attachment formats.
-						_(
-							"This attachment format is not supported by the current provider. Source:"
-						)
-						+ f"\n{path}",
-						_("Error"),
-						wx.OK | wx.ICON_ERROR,
-					)
-					continue
-				self.attachment_files.append(attachment)
-
-		self.refresh_attachments_list()
-		self.attachments_list.SetFocus()
-
-	@property
-	def prompt_text(self) -> str:
-		"""Get the prompt text.
-
-		Returns:
-			The text from the prompt input control
-		"""
-		return self.prompt.GetValue()
-
-	@prompt_text.setter
-	def prompt_text(self, text: str):
-		"""Set the prompt text.
-
-		Args:
-			text: The text to set in the prompt input control
-		"""
-		self.prompt.SetValue(text)
-
-	def set_prompt(self, text: str):
-		"""Set the prompt text.
-
-		Args:
-			text: The text to set in the prompt input control
-		"""
-		self.prompt.SetValue(text)
-
-	def clear(self, refresh: bool = False):
-		"""Clear the prompt text and remove all attachments.
-
-		Args:
-			refresh: Whether to refresh the attachments list after clearing the prompt.
-		"""
-		self.prompt.Clear()
-		self.attachment_files = list()
-		if not refresh:
-			return
-		self.refresh_attachments_list()
-
-	def has_image_attachments(self) -> bool:
-		"""Check if there are image attachments.
-
-		Returns:
-			True if there are image attachments, False otherwise
-		"""
-		return any(
-			attachment.mime_type and attachment.mime_type.startswith("image/")
-			for attachment in self.attachment_files
-		)
-
-	def check_attachments_valid(self) -> bool:
-		"""Check if all attachments are valid for the current engine.
-
-		Returns:
-			True if all attachments are valid, False otherwise
-		"""
-		if not self.current_engine:
-			return False
-
-		supported_attachment_formats = (
-			self.current_engine.supported_attachment_formats
-		)
-
-		invalid_locations = AttachmentService.validate_attachments(
-			self.attachment_files, supported_attachment_formats
-		)
-		for location in invalid_locations:
-			msg = (
-				_(
-					"This attachment format is not supported by the current provider. Source: %s"
-				)
-				% location
-			)
-			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
-
-		return not invalid_locations
-
-	def set_prompt_focus(self):
-		"""Set focus to the prompt input control."""
-		self.prompt.SetFocus()
-
-	def set_attachments_focus(self):
-		"""Set focus to the attachments list control."""
-		if not self.attachment_files:
-			self.prompt.SetFocus()
-			return
-		self.attachments_list.SetFocus()
-
-	def resize_all_attachments(self):
-		"""Resize all image attachments if configured to do so."""
-		if not config.conf().images.resize:
-			return
-		AttachmentService.resize_attachments(
-			self.attachment_files,
-			self.conv_storage_path,
-			config.conf().images.max_width,
-			config.conf().images.max_height,
-			config.conf().images.quality,
-		)
-
-	def ensure_model_compatibility(
-		self, current_model: ProviderAIModel | None
-	) -> ProviderAIModel | None:
-		"""Check if current model is compatible with requested operations.
-
-		Returns:
-			The current model if compatible, None otherwise
-		"""
-		if not current_model:
-			wx.MessageBox(
-				_("Please select a model"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
-			return None
-		compatible, vision_models = (
-			AttachmentService.check_model_vision_compatible(
-				self.attachment_files, current_model, self.current_engine
-			)
-		)
-		if not compatible:
-			wx.MessageBox(
-				_(
-					"The selected model does not support images. Please select a vision model instead ({})."
-				).format(", ".join(vision_models)),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return None
-		return current_model
