@@ -97,6 +97,16 @@ class ConversationService:
 				"Failed to update conversation title in database", exc_info=True
 			)
 
+	def should_auto_save_draft(self) -> bool:
+		"""Return True if auto-save draft is active for this conversation."""
+		conf = config.conf()
+		return (
+			conf.conversation.auto_save_to_db
+			and conf.conversation.auto_save_draft
+			and not self.private
+			and self.db_conv_id is not None
+		)
+
 	def set_private(self, private: bool) -> bool:
 		"""Set the private flag. If enabling, delete conversation from DB.
 

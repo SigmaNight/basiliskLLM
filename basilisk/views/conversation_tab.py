@@ -613,6 +613,18 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		self.service.update_db_title(title)
 
+	def start_draft_timer(self, ms: int = 2000) -> None:
+		"""Start the draft auto-save timer.
+
+		Args:
+			ms: Delay in milliseconds before the timer fires.
+		"""
+		self._draft_timer.StartOnce(ms)
+
+	def stop_draft_timer(self) -> None:
+		"""Stop the draft auto-save timer."""
+		self._draft_timer.Stop()
+
 	def set_private(self, private: bool):
 		"""Set the private flag.
 
@@ -620,7 +632,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 			private: Whether the conversation should be private.
 		"""
 		if self.service.set_private(private):
-			self._draft_timer.Stop()
+			self.stop_draft_timer()
 
 	def flush_draft(self):
 		"""Immediately save any pending draft to the database."""

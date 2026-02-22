@@ -98,7 +98,7 @@ class ConversationPresenter:
 	def on_submit(self):
 		"""Handle submission of a new message for completion."""
 		view = self.view
-		view._draft_timer.Stop()
+		view.stop_draft_timer()
 		if not view.submit_btn.IsEnabled():
 			return
 		if (
@@ -492,32 +492,19 @@ class ConversationPresenter:
 
 	def on_prompt_text_changed(self):
 		"""Handle prompt text changes for draft auto-save debouncing."""
-		conf = config.conf()
-		if (
-			not conf.conversation.auto_save_to_db
-			or not conf.conversation.auto_save_draft
-		):
-			return
-		if self.service.private or self.service.db_conv_id is None:
-			return
-		self.view._draft_timer.StartOnce(2000)
+		if self.service.should_auto_save_draft():
+			self.view.start_draft_timer(2000)
 
 	def on_draft_timer(self):
 		"""Handle draft timer expiration to save draft to DB."""
-		if self.service.db_conv_id is None:
+		if not self.service.should_auto_save_draft():
 			return
 		self._save_draft_to_db()
 
 	def flush_draft(self):
 		"""Immediately save any pending draft to the database."""
-		self.view._draft_timer.Stop()
-		if self.service.db_conv_id is None or self.service.private:
-			return
-		conf = config.conf()
-		if (
-			not conf.conversation.auto_save_to_db
-			or not conf.conversation.auto_save_draft
-		):
+		self.view.stop_draft_timer()
+		if not self.service.should_auto_save_draft():
 			return
 		self._save_draft_to_db()
 
