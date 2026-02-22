@@ -25,10 +25,11 @@ from basilisk.message_segment_manager import (
 	MessageSegmentManager,
 	MessageSegmentType,
 )
+from basilisk.services.search_service import SearchDirection
 
 from .edit_block_dialog import EditBlockDialog
 from .read_only_message_dialog import ReadOnlyMessageDialog
-from .search_dialog import SearchDialog, SearchDirection
+from .search_dialog import SearchDialog
 
 if TYPE_CHECKING:
 	from .conversation_tab import ConversationTab
@@ -69,6 +70,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 
 		self.segment_manager = MessageSegmentManager()
 		self._search_dialog = None  # Lazy initialization in _do_search
+		self._presenter = None  # Paired with _search_dialog
 		self.speak_response = True
 		self.a_output = AccessibleOutputHandler()
 		self.init_role_labels()
@@ -474,15 +476,19 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			direction: Search direction
 		"""
 		if self._search_dialog is None:
-			self._search_dialog = SearchDialog(self.GetParent(), self)
-		self._search_dialog._dir_radio_forward.SetValue(
-			direction == SearchDirection.FORWARD
-		)
-		self._search_dialog._dir_radio_backward.SetValue(
-			direction == SearchDirection.BACKWARD
-		)
-		self._search_dialog._search_combo.SetFocus()
-		self._search_dialog._search_combo.SelectAll()
+			from basilisk.presenters.search_presenter import (
+				SearchPresenter,
+				SearchTargetAdapter,
+			)
+
+			target = SearchTargetAdapter(self)
+			self._presenter = SearchPresenter(view=None, target=target)
+			self._search_dialog = SearchDialog(
+				self.GetParent(), presenter=self._presenter
+			)
+			self._presenter.view = self._search_dialog
+		self._presenter.search_direction = direction
+		self._search_dialog.focus_search_input()
 		self._search_dialog.ShowModal()
 
 	def on_search(self, event: wx.Event | None):
@@ -493,13 +499,13 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""Search for previous occurrence."""
 		if not self._search_dialog:
 			return self._do_search(SearchDirection.BACKWARD)
-		self._search_dialog.search_previous()
+		self._presenter.search_previous()
 
 	def on_search_next(self, event: wx.Event | None):
 		"""Search for next occurrence."""
 		if not self._search_dialog:
 			return self._do_search()
-		self._search_dialog.search_next()
+		self._presenter.search_next()
 
 	def on_toggle_speak_response(self, event: wx.Event | None = None):
 		"""Toggle response speaking mode."""

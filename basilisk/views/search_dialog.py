@@ -1,15 +1,15 @@
 """Search dialog for searching text in a wx.TextCtrl."""
 
-from typing import List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import wx
 
-from basilisk.services.search_service import (
-	SearchDirection,
-	SearchMode,
-	SearchService,
-	adjust_utf16_position,
-)
+from basilisk.services.search_service import SearchDirection, SearchMode
+
+if TYPE_CHECKING:
+	from basilisk.presenters.search_presenter import SearchPresenter
 
 
 class SearchDialog(wx.Dialog):
@@ -18,30 +18,23 @@ class SearchDialog(wx.Dialog):
 	def __init__(
 		self,
 		parent: wx.Window,
-		text: wx.TextCtrl,
+		presenter: SearchPresenter,
 		# Translators: Search dialog title
 		title: str = _("Search"),
-		search_list: List[str] = [],
 	) -> None:
 		"""Initialize the dialog.
 
 		Args:
 			parent: The parent window.
-			text: The text control to search in.
+			presenter: The SearchPresenter that owns search state and logic.
 			title: The dialog title.
-			search_list: The list of search strings.
 		"""
 		super().__init__(
 			parent,
 			title=title,
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
-		self._text = text
-		self._search_list = search_list
-		self._search_direction = SearchDirection.FORWARD
-		self._search_mode = SearchMode.PLAIN_TEXT
-		self._case_sensitive = False
-		self._search_dot_all = False
+		self.presenter = presenter
 		self._create_ui()
 		self._bind_events()
 		self._apply_initial_values()
@@ -158,47 +151,151 @@ class SearchDialog(wx.Dialog):
 		self.Bind(wx.EVT_CLOSE, self._on_close)
 
 	def _apply_initial_values(self) -> None:
-		"""Apply the initial values to the dialog controls."""
-		self._dir_radio_forward.SetValue(
-			self._search_direction == SearchDirection.FORWARD
-		)
-		self._dir_radio_backward.SetValue(
-			self._search_direction == SearchDirection.BACKWARD
-		)
+		"""Apply presenter state to the dialog controls."""
+		self.apply_direction(self.presenter.search_direction)
 		self._mode_radio_plain.SetValue(
-			self._search_mode == SearchMode.PLAIN_TEXT
+			self.presenter.search_mode == SearchMode.PLAIN_TEXT
 		)
 		self._mode_radio_extended.SetValue(
-			self._search_mode == SearchMode.EXTENDED
+			self.presenter.search_mode == SearchMode.EXTENDED
 		)
-		self._mode_radio_regex.SetValue(self._search_mode == SearchMode.REGEX)
-		self._case_sensitive_checkbox.SetValue(self._case_sensitive)
-		self._search_dot_all_checkbox.SetValue(self._search_dot_all)
-		self._update_dot_all_visibility()
-		self._update_search_choice()
+		self._mode_radio_regex.SetValue(
+			self.presenter.search_mode == SearchMode.REGEX
+		)
+		self._case_sensitive_checkbox.SetValue(self.presenter.case_sensitive)
+		self._search_dot_all_checkbox.SetValue(self.presenter.search_dot_all)
+		self.update_dot_all_visible(
+			self.presenter.search_mode == SearchMode.REGEX
+		)
+		self.sync_history(self.presenter.search_list, None)
 
-	def _update_search_choice(self) -> None:
-		"""Update the search choice combo box."""
+	# ------------------------------------------------------------------
+	# View interface — called by SearchPresenter
+	# ------------------------------------------------------------------
+
+	def get_search_text(self) -> str:
+		"""Return the current combo text, stripped of whitespace.
+
+		Returns:
+			The search text entered by the user.
+		"""
+		return self._search_combo.GetValue().strip()
+
+	def get_direction(self) -> SearchDirection:
+		"""Return the currently selected search direction.
+
+		Returns:
+			The selected SearchDirection.
+		"""
+		return (
+			SearchDirection.BACKWARD
+			if self._dir_radio_backward.GetValue()
+			else SearchDirection.FORWARD
+		)
+
+	def get_mode(self) -> SearchMode:
+		"""Return the currently selected search mode.
+
+		Returns:
+			The selected SearchMode.
+		"""
+		if self._mode_radio_plain.GetValue():
+			return SearchMode.PLAIN_TEXT
+		if self._mode_radio_extended.GetValue():
+			return SearchMode.EXTENDED
+		return SearchMode.REGEX
+
+	def get_case_sensitive(self) -> bool:
+		"""Return whether the case-sensitive checkbox is checked.
+
+		Returns:
+			True if case-sensitive is enabled.
+		"""
+		return self._case_sensitive_checkbox.GetValue()
+
+	def get_dot_all(self) -> bool:
+		"""Return whether the dot-all checkbox is checked.
+
+		Returns:
+			True if dot-all is enabled.
+		"""
+		return self._search_dot_all_checkbox.GetValue()
+
+	def apply_direction(self, direction: SearchDirection) -> None:
+		"""Update radio buttons to reflect the given direction.
+
+		Args:
+			direction: The direction to select.
+		"""
+		self._dir_radio_forward.SetValue(direction == SearchDirection.FORWARD)
+		self._dir_radio_backward.SetValue(direction == SearchDirection.BACKWARD)
+
+	def show_not_found(self, text: str) -> None:
+		"""Show a 'not found' message to the user.
+
+		Args:
+			text: The search text that was not found.
+		"""
+		wx.MessageBox(
+			# Translators: Search dialog message when text is not found
+			_('"{search_text}" not found.').format(search_text=text),
+			# Translators: Search dialog result title
+			_("Search Result"),
+			wx.OK | wx.ICON_INFORMATION,
+		)
+
+	def show_error(self, msg: str) -> None:
+		"""Show an error message to the user.
+
+		Args:
+			msg: The error message.
+		"""
+		wx.MessageBox(
+			msg,
+			# Translators: Search dialog error title
+			_("Error"),
+			wx.OK | wx.ICON_ERROR,
+		)
+
+	def sync_history(
+		self, search_list: list[str], current_text: str | None
+	) -> None:
+		"""Refresh the combo items to match search_list.
+
+		Args:
+			search_list: The updated history list.
+			current_text: The item to select, or None.
+		"""
 		self._search_combo.Clear()
-		self._search_combo.AppendItems(self._search_list)
+		self._search_combo.AppendItems(search_list)
+		if current_text is not None and current_text in search_list:
+			self._search_combo.SetSelection(search_list.index(current_text))
 
-	def _update_dot_all_visibility(self) -> None:
-		"""Update the visibility of the "Dot matches all" checkbox."""
-		if self._mode_radio_regex.GetValue():
+	def update_dot_all_visible(self, show: bool) -> None:
+		"""Show or hide the dot-all checkbox.
+
+		Args:
+			show: True to show the checkbox, False to hide it.
+		"""
+		if show:
 			self._search_dot_all_checkbox.Show()
 		else:
 			self._search_dot_all_checkbox.Hide()
 		self.Layout()
 
-	def _select_text(self, start: int, end: int):
-		"""Select the text in the text control.
+	def dismiss_modal(self) -> None:
+		"""End the modal loop if the dialog is currently modal."""
+		if self.IsModal():
+			self.EndModal(wx.ID_OK)
 
-		Args:
-			start: The start position of the selection.
-			end: The end position of the selection.
-		"""
-		self._text.SetSelection(start, end)
-		self._text.SetFocus()
+	def focus_search_input(self) -> None:
+		"""Set focus to the search combo and select all text."""
+		self._search_combo.SetFocus()
+		self._search_combo.SelectAll()
+
+	# ------------------------------------------------------------------
+	# Event handlers — delegate to presenter
+	# ------------------------------------------------------------------
 
 	def _on_find(self, event: wx.Event) -> None:
 		"""Handle the find button click event.
@@ -206,86 +303,7 @@ class SearchDialog(wx.Dialog):
 		Args:
 			event: The event object.
 		"""
-		if self.IsModal():
-			self.EndModal(wx.ID_OK)
-
-		search_text = self._search_combo.GetValue().strip()
-		if not search_text:
-			wx.MessageBox(
-				# Translators: Search dialog error message
-				_("Please enter text to search for."),
-				# Translators: Search dialog error title
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
-			return
-
-		if search_text not in self._search_list:
-			self._search_list.append(search_text)
-			self._search_combo.Append(search_text)
-			self._search_combo.SetSelection(len(self._search_list) - 1)
-		else:
-			index = self._search_list.index(search_text)
-			self._search_combo.SetSelection(index)
-		self._case_sensitive = self._case_sensitive_checkbox.GetValue()
-		self._search_dot_all = self._search_dot_all_checkbox.GetValue()
-		self._search_direction = (
-			SearchDirection.BACKWARD
-			if self._dir_radio_backward.GetValue()
-			else SearchDirection.FORWARD
-		)
-		self._search_mode = (
-			SearchMode.PLAIN_TEXT
-			if self._mode_radio_plain.GetValue()
-			else SearchMode.EXTENDED
-			if self._mode_radio_extended.GetValue()
-			else SearchMode.REGEX
-		)
-
-		matches = SearchService.find_all_matches(
-			self._text.GetValue(),
-			search_text,
-			self._search_mode,
-			self._case_sensitive,
-			self._search_dot_all,
-		)
-		if not matches:
-			wx.MessageBox(
-				# Translators: Search dialog error message
-				_('"{search_text}" not found.').format(search_text=search_text),
-				# Translators: Search dialog error title
-				_("Search Result"),
-				wx.OK | wx.ICON_INFORMATION,
-			)
-			return
-
-		cursor_pos = self._text.GetInsertionPoint()
-		cursor_pos = adjust_utf16_position(
-			self._text.GetValue(), cursor_pos, reverse=True
-		)
-		match_positions = [(match.start(), match.end()) for match in matches]
-
-		if self._search_direction == SearchDirection.FORWARD:
-			for start, end in match_positions:
-				start = adjust_utf16_position(self._text.GetValue(), start)
-				end = adjust_utf16_position(self._text.GetValue(), end)
-				if start > cursor_pos:
-					self._select_text(start, end)
-					return
-		else:
-			cursor_pos += 1
-			for start, end in reversed(match_positions):
-				start = adjust_utf16_position(self._text.GetValue(), start)
-				end = adjust_utf16_position(self._text.GetValue(), end)
-				if end < cursor_pos:
-					self._select_text(start, end)
-					return
-
-		wx.MessageBox(
-			_('"{search_text}" not found.').format(search_text=search_text),
-			_("Search Result"),
-			wx.OK | wx.ICON_INFORMATION,
-		)
+		self.presenter.on_find()
 
 	def _on_close(self, event: wx.Event) -> None:
 		"""Handle the dialog close event.
@@ -301,34 +319,12 @@ class SearchDialog(wx.Dialog):
 		Args:
 			event: The event object.
 		"""
-		self._update_dot_all_visibility()
-
-	@property
-	def search_direction(self) -> SearchDirection:
-		"""Get the search direction.
-
-		Returns:
-			The search direction.
-		"""
-		return self._search_direction
-
-	@search_direction.setter
-	def search_direction(self, value: SearchDirection) -> None:
-		"""Set the search direction.
-
-		Args:
-			value: The search direction.
-		"""
-		if value not in {SearchDirection.BACKWARD, SearchDirection.FORWARD}:
-			raise ValueError("search_direction must be a SearchDirection")
-		self._search_direction = value
+		self.presenter.on_mode_changed(self.get_mode())
 
 	def search_previous(self) -> None:
-		"""Search for the previous match."""
-		self._dir_radio_backward.SetValue(True)
-		self._on_find(None)
+		"""Search for the previous match via the presenter."""
+		self.presenter.search_previous()
 
 	def search_next(self) -> None:
-		"""Search for the next match."""
-		self._dir_radio_forward.SetValue(True)
-		self._on_find(None)
+		"""Search for the next match via the presenter."""
+		self.presenter.search_next()

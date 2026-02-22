@@ -22,6 +22,10 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from basilisk.conversation import ImageFile
 from basilisk.logger import get_log_file_path
 from basilisk.presenters.main_frame_presenter import MainFramePresenter
+from basilisk.presenters.update_presenter import (
+	DownloadPresenter,
+	UpdatePresenter,
+)
 from basilisk.screen_capture_thread import CaptureMode
 from basilisk.updater import BaseUpdater
 
@@ -841,7 +845,11 @@ class MainFrame(wx.Frame):
 			event: The triggering event. Can be None.
 		"""
 		log.debug("Checking for updates")
-		UpdateDialog(parent=self, title=_("Check updates")).Show()
+		dialog = UpdateDialog(parent=self, title=_("Check updates"))
+		presenter = UpdatePresenter(view=dialog)
+		dialog.presenter = presenter
+		presenter.start()
+		dialog.Show()
 
 	def on_view_log(self, event: wx.Event | None):
 		"""Open the application log file.
@@ -890,8 +898,11 @@ class MainFrame(wx.Frame):
 
 		def show_dialog():
 			update_dialog = UpdateDialog(
-				parent=self, title=_("New version available"), updater=updater
+				parent=self, title=_("New version available")
 			)
+			presenter = UpdatePresenter(view=update_dialog, updater=updater)
+			update_dialog.presenter = presenter
+			presenter.start()
 			update_dialog.ShowModal()
 			log.debug("Update dialog shown: %s", update_dialog.IsShown())
 
@@ -907,8 +918,14 @@ class MainFrame(wx.Frame):
 
 		def show_dialog():
 			download_dialog = DownloadUpdateDialog(
-				parent=self, title=_("Downloading update"), updater=updater
+				parent=self, title=_("Downloading update")
 			)
+			download_dialog.update_label.SetLabel(
+				_("Update basiliskLLM version: %s") % updater.latest_version
+			)
+			pres = DownloadPresenter(view=download_dialog, updater=updater)
+			download_dialog.presenter = pres
+			pres.start()
 			download_dialog.ShowModal()
 			log.debug("Download dialog shown: %s", download_dialog.IsShown())
 
