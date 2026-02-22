@@ -403,6 +403,27 @@ class MainFrame(wx.Frame):
 		self.Show(True)
 		self.Raise()
 
+	def _cleanup_all_tabs(self):
+		"""Clean up resources for all conversation tabs.
+
+		This helper method is used by on_quit to clean up all tabs when
+		closing the application. For closing a single tab, use
+		tab.cleanup_resources() directly.
+
+		Each tab's cleanup is wrapped in try/except to ensure all tabs
+		get cleaned up even if one fails.
+		"""
+		for index, tab in enumerate(self.tabs_panels):
+			try:
+				tab.cleanup_resources()
+			except Exception as e:
+				log.error(
+					"Error cleaning up resources for tab at index %d: %s",
+					index,
+					e,
+					exc_info=True,
+				)
+
 	def on_close(self, event: wx.Event | None):
 		"""Handle the close event for the main application frame.
 
@@ -419,7 +440,7 @@ class MainFrame(wx.Frame):
 
 		This method performs the following actions:
 		- Sets a global flag to indicate the application should exit
-		- Waits for all active conversation tasks to complete
+		- Cleans up all resources for all conversation tabs (completions, recordings, sounds, processes)
 		- Unregisters global hotkeys on Windows platforms
 		- Removes and destroys the system tray icon
 		- Destroys the main application window
@@ -430,15 +451,16 @@ class MainFrame(wx.Frame):
 		"""
 		log.info("Closing application")
 		global_vars.app_should_exit = True
-		# ensure all conversation tasks are stopped
-		for tab in self.tabs_panels:
-			tab.completion_handler.stop_completion()
+
+		self._cleanup_all_tabs()
+
 		if sys.platform == "win32":
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_FULL.value)
 			self.tray_icon.RemoveIcon()
 			self.tray_icon.Destroy()
+
 		self.Destroy()
 		wx.GetApp().ExitMainLoop()
 
@@ -611,14 +633,31 @@ class MainFrame(wx.Frame):
 		This method removes the current tab from the notebook and the tabs_panels list. If no tabs remain,
 		a new default conversation is created. Otherwise, the last tab is selected and the frame title is refreshed.
 
+		Before closing, it cleans up all running resources for this specific tab only
+		(completion tasks, recordings, sounds, processes).
+
 		Args:
 			event: The event that triggered the tab closure. Can be None.
 		"""
 		current_tab_index = self.notebook.GetSelection()
 		if current_tab_index == wx.NOT_FOUND:
 			return
+
+		current_tab = self.tabs_panels[current_tab_index]
+
+		try:
+			current_tab.cleanup_resources()
+		except Exception as e:
+			log.error(
+				"Error cleaning up resources for tab at index %d: %s",
+				current_tab_index,
+				e,
+				exc_info=True,
+			)
+
 		self.notebook.DeletePage(current_tab_index)
 		self.tabs_panels.pop(current_tab_index)
+
 		current_tab_count = self.notebook.GetPageCount()
 		if current_tab_count == 0:
 			self.on_new_default_conversation(None)
