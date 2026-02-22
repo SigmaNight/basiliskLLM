@@ -129,7 +129,7 @@ class AccessibleOutputHandler:
 		except Exception as e:
 			log.error("Failed to output text to screen reader", exc_info=e)
 
-	def handle_stream_buffer(self, new_text: str = ''):
+	def handle_stream_buffer(self, new_text: str = ""):
 		"""Processes incoming speech stream text and updates the buffer accordingly.
 
 		If the input `new_text` is not a valid string or is empty, it forces flushing the current buffer to the accessible output handler.

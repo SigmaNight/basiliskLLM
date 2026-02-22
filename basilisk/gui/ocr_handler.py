@@ -307,7 +307,7 @@ class OCRHandler:
 
 		self.ocr_button.Disable()
 
-		cancel_flag = Value('i', 0)
+		cancel_flag = Value("i", 0)
 		result_queue = Queue()
 
 		progress_bar_dialog = ProgressBarDialog(

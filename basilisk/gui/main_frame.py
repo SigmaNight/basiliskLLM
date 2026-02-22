@@ -12,7 +12,7 @@ from typing import Callable, Optional
 import wx
 from more_itertools import locate
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
 	import win32con
 import basilisk.config as config
 from basilisk import global_vars
@@ -273,17 +273,17 @@ class MainFrame(wx.Frame):
 		self.RegisterHotKey(
 			HotkeyAction.TOGGLE_VISIBILITY.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('B'),
+			ord("B"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_FULL.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('F'),
+			ord("F"),
 		)
 		self.RegisterHotKey(
 			HotkeyAction.CAPTURE_WINDOW.value,
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
-			ord('W'),
+			ord("W"),
 		)
 
 	def on_hotkey(self, event):
@@ -559,7 +559,7 @@ class MainFrame(wx.Frame):
 			title = current_tab.generate_conversation_title()
 			if not title:
 				return
-			title = title.strip().replace('\n', ' ')
+			title = title.strip().replace("\n", " ")
 		dialog = NameConversationDialog(self, title=title, auto=auto)
 		if dialog.ShowModal() != wx.ID_OK or not dialog.get_name():
 			dialog.Destroy()
@@ -778,7 +778,7 @@ class MainFrame(wx.Frame):
 			)
 			log.debug("Creating NVDA addon: %s", tmp_nvda_addon_path)
 			with zipfile.ZipFile(
-				tmp_nvda_addon_path, 'w', zipfile.ZIP_DEFLATED
+				tmp_nvda_addon_path, "w", zipfile.ZIP_DEFLATED
 			) as zipf:
 				for root, _, files in os.walk(res_nvda_addon_path):
 					for file in files:

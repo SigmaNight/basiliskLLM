@@ -42,7 +42,7 @@ def adjust_utf16_position(
 	count_high_surrogates = sum(1 for c in relevant_text if ord(c) >= 0x10000)
 	if reverse:
 		count_high_surrogates -= count_high_surrogates
-	count_line_breaks = sum(1 for c in relevant_text if c == '\n')
+	count_line_breaks = sum(1 for c in relevant_text if c == "\n")
 	if reverse:
 		count_line_breaks -= count_line_breaks
 	return position + count_high_surrogates + count_line_breaks
@@ -238,12 +238,12 @@ class SearchDialog(wx.Dialog):
 			flags |= re.DOTALL
 		if self._search_mode == SearchMode.EXTENDED:
 			query_text = (
-				query_text.replace(r'\n', '\n')
-				.replace(r'\t', '\t')
-				.replace(r'\r', '\r')
-				.replace(r'\x00', '\x00')
-				.replace(r'\x1F', '\x1f')
-				.replace(r'\x7F', '\x7f')
+				query_text.replace(r"\n", "\n")
+				.replace(r"\t", "\t")
+				.replace(r"\r", "\r")
+				.replace(r"\x00", "\x00")
+				.replace(r"\x1F", "\x1f")
+				.replace(r"\x7F", "\x7f")
 			)
 		return re.compile(query_text, flags)
 
