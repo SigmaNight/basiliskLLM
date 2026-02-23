@@ -226,6 +226,7 @@ class AttachmentFile(BaseModel):
 	description: str | None = None
 	size: int | None = None
 	mime_type: str | None = None
+	db_id: int | None = Field(default=None, exclude=True)
 
 	@field_serializer("location", mode="wrap")
 	@classmethod

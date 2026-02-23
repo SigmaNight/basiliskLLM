@@ -22,16 +22,6 @@ from basilisk.conversation import (
 class TestBasicSaveRestore:
 	"""Tests for basic conversation save and restore functionality."""
 
-	@pytest.fixture
-	def bskc_path(self, tmp_path, request):
-		"""Return a test conversation file path."""
-		return f"{tmp_path}{os.sep}{request.node.name}.bskc"
-
-	@pytest.fixture
-	def storage_path(self, request):
-		"""Return a test storage path."""
-		return UPath("memory://{request.node.name}")
-
 	def test_save_empty_conversation(self, empty_conversation, bskc_path):
 		"""Test saving an empty conversation."""
 		empty_conversation.save(bskc_path)
@@ -132,16 +122,6 @@ class TestBasicSaveRestore:
 class TestSystemMessageSaveRestore:
 	"""Tests for saving and restoring conversations with system messages."""
 
-	@pytest.fixture
-	def bskc_path(self, tmp_path):
-		"""Return a test conversation file path."""
-		return f"{tmp_path}{os.sep}test_conversation.bskc"
-
-	@pytest.fixture
-	def storage_path(self):
-		"""Return a test storage path."""
-		return UPath("memory://test_system_restore")
-
 	def test_save_restore_with_system_messages(
 		self, empty_conversation, ai_model, bskc_path, storage_path
 	):
@@ -220,11 +200,6 @@ class TestAttachmentSaveRestore:
 	"""Tests for saving and restoring conversations with attachments."""
 
 	@pytest.fixture
-	def bskc_path(self, tmp_path):
-		"""Return a test conversation file path."""
-		return tmp_path / "test_conversation.bskc"
-
-	@pytest.fixture
 	def text_content(self):
 		"""Return test text content."""
 		return "This is a test file content"
@@ -249,7 +224,7 @@ class TestAttachmentSaveRestore:
 		return ImageFile(location=UPath(url))
 
 	def test_save_restore_with_image_attachment(
-		self, empty_conversation, ai_model, image_file, bskc_path
+		self, empty_conversation, ai_model, image_file, bskc_path, storage_path
 	):
 		"""Test saving and restoring a conversation with image attachments."""
 		# Create image attachment
@@ -270,7 +245,6 @@ class TestAttachmentSaveRestore:
 		empty_conversation.save(str(bskc_path))
 
 		# Restore conversation
-		storage_path = UPath("memory://test_image_restore")
 		restored_conversation = Conversation.open(str(bskc_path), storage_path)
 
 		# Verify restored conversation
@@ -292,6 +266,7 @@ class TestAttachmentSaveRestore:
 		text_attachment,
 		text_content,
 		bskc_path,
+		storage_path,
 	):
 		"""Test saving and restoring a conversation with text file attachments."""
 		# Create message with text attachment
@@ -309,7 +284,6 @@ class TestAttachmentSaveRestore:
 		empty_conversation.save(str(bskc_path))
 
 		# Restore conversation
-		storage_path = UPath("memory://test_text_restore")
 		restored_conversation = Conversation.open(str(bskc_path), storage_path)
 
 		# Verify restored conversation
@@ -330,7 +304,7 @@ class TestAttachmentSaveRestore:
 			assert content == text_content
 
 	def test_save_restore_with_url_attachment(
-		self, empty_conversation, ai_model, url_image, bskc_path
+		self, empty_conversation, ai_model, url_image, bskc_path, storage_path
 	):
 		"""Test saving and restoring a conversation with URL attachments."""
 		# Create message with URL attachment
@@ -348,7 +322,6 @@ class TestAttachmentSaveRestore:
 		empty_conversation.save(str(bskc_path))
 
 		# Restore conversation
-		storage_path = UPath("memory://test_url_restore")
 		restored_conversation = Conversation.open(str(bskc_path), storage_path)
 
 		# Verify restored conversation
@@ -372,6 +345,7 @@ class TestAttachmentSaveRestore:
 		image_attachment,
 		url_image,
 		bskc_path,
+		storage_path,
 	):
 		"""Test saving and restoring a conversation with multiple attachments."""
 		# Create message with multiple attachments
@@ -389,7 +363,6 @@ class TestAttachmentSaveRestore:
 		empty_conversation.save(str(bskc_path))
 
 		# Restore conversation
-		storage_path = UPath("memory://test_multiple_restore")
 		restored_conversation = Conversation.open(str(bskc_path), storage_path)
 
 		# Verify restored conversation
@@ -412,7 +385,7 @@ class TestAttachmentSaveRestore:
 		)
 
 	def test_save_conversation_with_citations(
-		self, empty_conversation, ai_model, bskc_path
+		self, empty_conversation, ai_model, bskc_path, storage_path
 	):
 		"""Test saving and restoring a conversation with citations."""
 		# Create citations
@@ -441,7 +414,6 @@ class TestAttachmentSaveRestore:
 		empty_conversation.save(bskc_path)
 
 		# Restore conversation
-		storage_path = UPath("memory://test_citation_restore")
 		restored_conversation = Conversation.open(bskc_path, storage_path)
 
 		# Verify restored conversation

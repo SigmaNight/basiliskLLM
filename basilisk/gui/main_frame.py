@@ -64,8 +64,33 @@ class MainFrame(wx.Frame):
 			self.Bind(wx.EVT_HOTKEY, self.on_hotkey)
 		if open_file:
 			self.open_conversation(open_file)
-		else:
+		elif not self._try_reopen_last_conversation():
 			self.on_new_default_conversation(None)
+
+	def _try_reopen_last_conversation(self) -> bool:
+		"""Try to reopen the last active conversation from the database.
+
+		Returns:
+			True if the conversation was successfully reopened.
+		"""
+		if not self.conf.conversation.reopen_last_conversation:
+			return False
+		conv_id = self.conf.conversation.last_active_conversation_id
+		if conv_id is None:
+			return False
+		try:
+			tab = ConversationTab.open_from_db(
+				self.notebook, conv_id, self.get_default_conv_title()
+			)
+			self.add_conversation_tab(tab)
+			return True
+		except Exception:
+			log.warning(
+				"Failed to reopen last conversation %d", conv_id, exc_info=True
+			)
+			self.conf.conversation.last_active_conversation_id = None
+			self.conf.save()
+			return False
 
 	def init_ui(self):
 		"""Initialize the user interface for the main application frame.
@@ -114,6 +139,12 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_open_conversation, open_conversation_item
 		)
+		history_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to browse conversation history
+			_("Conversation &history") + "...\tCtrl+H",
+		)
+		self.Bind(wx.EVT_MENU, self.on_conversation_history, history_item)
 		conversation_menu.AppendSubMenu(
 			self.build_name_conversation_menu(),
 			# Translators: A label for a menu item to name a conversation
@@ -435,6 +466,16 @@ class MainFrame(wx.Frame):
 		else:
 			self.on_minimize(event)
 
+	def _save_conv_to_reopen(self):
+		if not self.conf.conversation.reopen_last_conversation:
+			return
+		tab = self.current_tab
+		if tab.db_conv_id is None:
+			self.conf.conversation.last_active_conversation_id = tab.db_conv_id
+		else:
+			self.conf.conversation.last_active_conversation_id = None
+		self.conf.save()
+
 	def on_quit(self, event: wx.Event | None):
 		"""Gracefully close the application, stopping all conversation tasks and cleaning up resources.
 
@@ -451,9 +492,8 @@ class MainFrame(wx.Frame):
 		"""
 		log.info("Closing application")
 		global_vars.app_should_exit = True
-
+		self._save_conv_to_reopen()
 		self._cleanup_all_tabs()
-
 		if sys.platform == "win32":
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
@@ -588,6 +628,7 @@ class MainFrame(wx.Frame):
 			return
 
 		current_tab.conversation.title = dialog.get_name()
+		current_tab.update_db_title(dialog.get_name())
 		self.refresh_tab_title(True)
 		dialog.Destroy()
 
@@ -1020,6 +1061,13 @@ class MainFrame(wx.Frame):
 			# Translators: A label for a menu item to name a conversation
 			_("Name conversation"),
 		)
+		privacy_item = menu.AppendCheckItem(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to mark conversation as private (not saved to database)
+			_("&Private conversation"),
+		)
+		privacy_item.Check(self.current_tab.private)
+		self.Bind(wx.EVT_MENU, self.on_toggle_privacy, privacy_item)
 		close_conversation_item = menu.Append(
 			wx.ID_CLOSE,
 			# Translators: A label for a menu item to close a conversation
@@ -1030,6 +1078,17 @@ class MainFrame(wx.Frame):
 		)
 		self.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_toggle_privacy(self, event: wx.Event):
+		"""Toggle the private flag on the current conversation tab.
+
+		Args:
+			event: The event that triggered the toggle.
+		"""
+		tab = self.current_tab
+		if not tab:
+			return
+		tab.set_private(not tab.private)
 
 	def on_apply_conversation_profile(self, event: wx.Event):
 		"""Apply the selected conversation profile to the current conversation.
@@ -1164,4 +1223,34 @@ class MainFrame(wx.Frame):
 		if file_dialog.ShowModal() == wx.ID_OK:
 			file_path = file_dialog.GetPath()
 			self.open_conversation(file_path)
-			file_dialog.Destroy()
+		file_dialog.Destroy()
+
+	def on_conversation_history(self, event: wx.Event | None):
+		"""Open the conversation history dialog to browse saved conversations.
+
+		Args:
+			event: The event that triggered the method.
+		"""
+		from .conversation_history_dialog import ConversationHistoryDialog
+
+		dlg = ConversationHistoryDialog(self)
+		if dlg.ShowModal() == wx.ID_OK and dlg.selected_conv_id is not None:
+			try:
+				tab = ConversationTab.open_from_db(
+					self.notebook,
+					dlg.selected_conv_id,
+					self.get_default_conv_title(),
+				)
+				self.add_conversation_tab(tab)
+			except Exception as e:
+				log.error(
+					"Failed to open conversation from database: %s",
+					e,
+					exc_info=True,
+				)
+				wx.MessageBox(
+					_("Failed to open conversation: %s") % str(e),
+					_("Error"),
+					wx.OK | wx.ICON_ERROR,
+				)
+		dlg.Destroy()
