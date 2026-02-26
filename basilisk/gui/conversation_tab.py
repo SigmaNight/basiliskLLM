@@ -824,20 +824,21 @@ class ConversationTab(wx.Panel, BaseConversation):
 				temperature=self.temperature_spinner.GetValue(),
 				top_p=self.top_p_spinner.GetValue(),
 				max_tokens=self.max_tokens_spin_ctrl.GetValue(),
-				stream=self.stream_mode.GetValue(),
+				stream=True,  # Required for Anthropic: long requests must use streaming
 			)
 			engine = self.current_engine
 			completion_kw = {
 				"system_message": None,
 				"conversation": self.conversation,
 				"new_block": new_block,
-				"stream": False,
+				"stream": True,
 			}
 			response = engine.completion(**completion_kw)
-			new_block = engine.completion_response_without_stream(
-				response=response, **completion_kw
-			)
-			return new_block.response.content
+			content_parts = []
+			for chunk in engine.completion_response_with_stream(response):
+				if isinstance(chunk, str):
+					content_parts.append(chunk)
+			return "".join(content_parts).strip()
 		except Exception as e:
 			show_enhanced_error_dialog(
 				parent=self,
