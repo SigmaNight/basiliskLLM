@@ -47,10 +47,12 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		models = [
 			ProviderAIModel(
 				id="deepseek-chat",
-				name="DeepSeek-V3",
+				name="DeepSeek-V3.2",
 				# Translators: This is a model description
-				description="",
-				context_window=64000,
+				description=_(
+					"Non-thinking mode for general chat, code and writing"
+				),
+				context_window=128000,
 				max_temperature=2.0,
 				default_temperature=1.0,
 				max_output_tokens=8000,
@@ -59,11 +61,13 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 				id="deepseek-reasoner",
 				name="DeepSeek-R1",
 				# Translators: This is a model description
-				description="",
-				context_window=64000,
+				description=_(
+					"Thinking mode for chain-of-thought, research and logic"
+				),
+				context_window=128000,
 				max_temperature=2.0,
 				default_temperature=1.0,
-				max_output_tokens=8000,
+				max_output_tokens=64000,
 				reasoning=True,
 			),
 		]

@@ -89,14 +89,56 @@ class AnthropicEngine(BaseEngine):
 		"""
 		super().models
 		log.debug("Getting Anthropic models")
-		# See <https://docs.anthropic.com/en/docs/about-claude/models>
+		# See <https://docs.anthropic.com/en/docs/about-claude/models/overview>
 		return [
+			ProviderAIModel(
+				id="claude-opus-4-6",
+				name="Claude Opus 4.6",
+				# Translators: This is a model description
+				description=_(
+					"The most intelligent model for building agents and coding"
+				),
+				context_window=200000,
+				max_output_tokens=128000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-6_reasoning",
+				name="Claude Opus 4.6 (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"The most intelligent model for building agents and coding"
+				),
+				context_window=200000,
+				max_output_tokens=128000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
+				id="claude-sonnet-4-6",
+				name="Claude Sonnet 4.6",
+				# Translators: This is a model description
+				description=_("The best combination of speed and intelligence"),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-sonnet-4-6_reasoning",
+				name="Claude Sonnet 4.6 (thinking)",
+				# Translators: This is a model description
+				description=_("The best combination of speed and intelligence"),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
 			ProviderAIModel(
 				id="claude-haiku-4-5",
 				name="Claude Haiku 4.5",
 				# Translators: This is a model description
 				description=_(
-					"Our fastest model with near-frontier intelligenceBest model for complex agents and coding with highest intelligence"
+					"The fastest model with near-frontier intelligence"
 				),
 				context_window=200000,
 				max_output_tokens=64000,
@@ -107,7 +149,7 @@ class AnthropicEngine(BaseEngine):
 				name="Claude Haiku 4.5 (thinking)",
 				# Translators: This is a model description
 				description=_(
-					"Our fastest model with near-frontier intelligence"
+					"The fastest model with near-frontier intelligence"
 				),
 				context_window=200000,
 				max_output_tokens=64000,
@@ -131,6 +173,29 @@ class AnthropicEngine(BaseEngine):
 				# Translators: This is a model description
 				description=_(
 					"Best model for complex agents and coding with highest intelligence"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+				reasoning=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-5",
+				name="Claude Opus 4.5",
+				# Translators: This is a model description
+				description=_(
+					"Exceptional model for specialized complex tasks"
+				),
+				context_window=200000,
+				max_output_tokens=64000,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="claude-opus-4-5_reasoning",
+				name="Claude Opus 4.5 (thinking)",
+				# Translators: This is a model description
+				description=_(
+					"Exceptional model for specialized complex tasks"
 				),
 				context_window=200000,
 				max_output_tokens=64000,
@@ -183,7 +248,9 @@ class AnthropicEngine(BaseEngine):
 				id="claude-opus-4-0",
 				name="Claude Opus 4",
 				# Translators: This is a model description
-				description=_("Our most capable model"),
+				description=_(
+					"Exceptional model for specialized complex tasks"
+				),
 				context_window=200000,
 				max_output_tokens=32000,
 				vision=True,
@@ -192,32 +259,11 @@ class AnthropicEngine(BaseEngine):
 				id="claude-opus-4-0_reasoning",
 				name="Claude Opus 4 (thinking)",
 				# Translators: This is a model description
-				description=_("Our most capable model"),
+				description=_(
+					"Exceptional model for specialized complex tasks"
+				),
 				context_window=200000,
 				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-3-7-sonnet-latest",
-				name="Claude 3.7 Sonnet",
-				# Translators: This is a model description
-				description=_(
-					"High-performance model with early extended thinking"
-				),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-7-sonnet-latest_reasoning",
-				name="Claude 3.7 Sonnet (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"High-performance model with early extended thinking"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
 				vision=True,
 				reasoning=True,
 			),
@@ -225,38 +271,9 @@ class AnthropicEngine(BaseEngine):
 				id="claude-3-5-sonnet-latest",
 				name="Claude 3.5 Sonnet",
 				# Translators: This is a model description
-				description=_("Our previous intelligent model"),
+				description=_("Previous intelligent model"),
 				context_window=200000,
 				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-haiku-latest",
-				name="Claude 3.5 Haiku",
-				# Translators: This is a model description
-				description=_("Our fastest model"),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-opus-20240229",
-				name="Claude Opus 3",
-				# Translators: This is a model description
-				description=_("Powerful model for complex tasks"),
-				context_window=200000,
-				max_output_tokens=4096,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-3-haiku-20240307",
-				name="Claude 3 Haiku",
-				# Translators: This is a model description
-				description=_(
-					"Fastest and most compact model for near-instant responsiveness"
-				),
-				context_window=200000,
-				max_output_tokens=4096,
 				vision=True,
 			),
 		]
