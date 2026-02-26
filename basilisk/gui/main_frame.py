@@ -126,6 +126,16 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
 		)
+		new_private_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to create a new private conversation
+			_("New private conversation") + "\tCtrl+Shift+N",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			self.on_new_private_conversation,
+			new_private_conversation_item,
+		)
 		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
 			self.build_profile_menu(self.on_new_conversation),
 			# Translators: A label for a menu item to create a new conversation from a profile
@@ -547,6 +557,21 @@ class MainFrame(wx.Frame):
 			)
 		self.new_conversation(profile)
 
+	def on_new_private_conversation(self, event: wx.Event | None):
+		"""Create a new private conversation tab with the default profile.
+
+		Args:
+			event: The event that triggered the new private conversation action. Can be None.
+		"""
+		self.handle_no_account_configured()
+		profile = config.conversation_profiles().default_profile
+		if profile:
+			log.info(
+				"Creating a new private conversation with default profile (%s)",
+				profile.name,
+			)
+		self.new_conversation(profile, private=True)
+
 	def get_selected_profile_from_menu(
 		self, event: wx.Event
 	) -> config.ConversationProfile | None:
@@ -644,7 +669,9 @@ class MainFrame(wx.Frame):
 		# Translators: A default title for a conversation
 		return _("Conversation %d") % self.last_conversation_id
 
-	def new_conversation(self, profile: config.ConversationProfile | None):
+	def new_conversation(
+		self, profile: config.ConversationProfile | None, private: bool = False
+	):
 		"""Create a new conversation tab with the specified profile.
 
 		Creates a new conversation tab in the notebook with a default title and the specified profile.
@@ -652,10 +679,13 @@ class MainFrame(wx.Frame):
 
 		Args:
 			profile: The conversation profile to use for the new tab. If None, a default profile will be used.
+			private: If True, mark the conversation as private. Defaults to False.
 		"""
 		new_tab = ConversationTab(
 			self.notebook, title=self.get_default_conv_title(), profile=profile
 		)
+		if private:
+			new_tab.set_private(True)
 		self.add_conversation_tab(new_tab)
 
 	def add_conversation_tab(self, new_tab: ConversationTab):
@@ -759,11 +789,16 @@ class MainFrame(wx.Frame):
 		"""Refresh the title of the main application frame based on the current conversation tab.
 
 		The frame title is updated to include the title of the currently selected conversation tab.
+		If the conversation is private, "(private)" is appended to the title.
 		"""
 		current_tab = self.current_tab
 		if not current_tab:
 			return
 		tab_title = current_tab.conversation.title or current_tab.title
+		if current_tab.private:
+			# Translators: Label appended to window title when conversation is private
+			private_label = _("private")
+			tab_title = f"{tab_title} ({private_label})"
 		self.SetTitle(f"{tab_title} - {APP_NAME}")
 
 	def refresh_tabs(self):
@@ -1089,6 +1124,7 @@ class MainFrame(wx.Frame):
 		if not tab:
 			return
 		tab.set_private(not tab.private)
+		self.refresh_frame_title()
 
 	def on_apply_conversation_profile(self, event: wx.Event):
 		"""Apply the selected conversation profile to the current conversation.
