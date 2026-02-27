@@ -220,8 +220,7 @@ class MainApp(wx.App):
 		"""Brings the main application window to the front and gives it focus.
 
 		This method is called by the IPC mechanism when a focus signal is received.
-		It ensures that the main application window is brought to the front and given focus,
-		with special handling for screen readers like NVDA.
+		It ensures that the main application window is brought to the front and given focus.
 
 		The logic is:
 		1. If window is hidden -> restore it
@@ -270,9 +269,8 @@ class MainApp(wx.App):
 			log.debug("Window is iconized, restoring")
 			wx.CallAfter(self.frame.on_restore, None)
 		else:
-			# Window is visible, just force focus for screen readers
-			log.debug("Window is visible, forcing focus for screen readers")
-			wx.CallAfter(self.frame.force_focus_for_screen_reader)
+			log.debug("Window is visible, restoring focus")
+			wx.CallAfter(self.frame._restore_focus)
 
 	def init_ipc(self):
 		"""Initializes the IPC mechanism for inter-process communication."""

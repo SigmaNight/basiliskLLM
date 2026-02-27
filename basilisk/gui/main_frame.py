@@ -6,6 +6,7 @@ import os
 import signal
 import sys
 import tempfile
+import weakref
 from types import FrameType
 from typing import Callable, Optional
 
@@ -27,6 +28,9 @@ from .taskbar_icon import TaskBarIcon
 from .update_dialog import DownloadUpdateDialog, UpdateDialog
 
 log = logging.getLogger(__name__)
+
+# Delay (ms) before setting focus after window restore; allows window to fully appear.
+_FOCUS_RESTORE_DELAY_MS = 80
 
 
 class MainFrame(wx.Frame):
@@ -53,6 +57,9 @@ class MainFrame(wx.Frame):
 		self.conf: config.BasiliskConfig = kwargs.pop("conf", config.conf())
 		open_file = kwargs.pop("open_file", None)
 		self.last_conversation_id = 0
+		self._last_focused_before_minimize: Optional[weakref.ref[wx.Window]] = (
+			None
+		)
 		super(MainFrame, self).__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
 		self.init_ui()
@@ -418,6 +425,7 @@ class MainFrame(wx.Frame):
 			self.Restore()
 			self.Layout()
 		self.Raise()
+		wx.CallLater(_FOCUS_RESTORE_DELAY_MS, self._restore_focus)
 
 	def on_minimize(self, event: wx.Event | None):
 		"""Minimize the main application frame to the system tray.
@@ -428,6 +436,9 @@ class MainFrame(wx.Frame):
 		if not self.IsShown():
 			log.debug("Already minimized")
 			return
+		focused = wx.Window.FindFocus()
+		if focused and focused.GetTopLevelParent() == self:
+			self._last_focused_before_minimize = weakref.ref(focused)
 		log.debug("Minimized to tray")
 		self.Hide()
 
@@ -443,6 +454,38 @@ class MainFrame(wx.Frame):
 		log.debug("Restored from tray")
 		self.Show(True)
 		self.Raise()
+		wx.CallLater(_FOCUS_RESTORE_DELAY_MS, self._restore_focus)
+
+	def _restore_focus(self):
+		"""Restore focus to the last focused control or a meaningful fallback."""
+		if self._last_focused_before_minimize:
+			try:
+				ctrl = self._last_focused_before_minimize()
+				if (
+					ctrl is not None
+					and ctrl.IsShown()
+					and ctrl.GetTopLevelParent() == self
+				):
+					ctrl.SetFocus()
+					return
+			except (AttributeError, RuntimeError) as e:
+				log.error("Failed to restore focus to last control: %s", e)
+			self._last_focused_before_minimize = None
+		try:
+			if (
+				self.tabs_panels
+				and self.notebook.GetSelection() != wx.NOT_FOUND
+			):
+				tab = self.tabs_panels[self.notebook.GetSelection()]
+				if tab and hasattr(tab, "prompt_panel"):
+					tab.prompt_panel.set_prompt_focus()
+					return
+		except (IndexError, AttributeError) as e:
+			log.error("Failed to restore focus to prompt: %s", e)
+		if self.panel and self.panel.IsShown():
+			self.panel.SetFocus()
+		else:
+			self.SetFocus()
 
 	def _cleanup_all_tabs(self):
 		"""Clean up resources for all conversation tabs.
