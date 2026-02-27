@@ -32,13 +32,13 @@ repos:
       - id: check-yaml
       - id: check-ast
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.3
+    rev: 0.10.4
     hooks:
       - id: uv-lock
         files: "^(pyproject.toml|uv.lock)$"
         always_run: false
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.7
+    rev: v4.13.8
     hooks:
       - id: commitizen
         stages:
@@ -50,7 +50,7 @@ repos:
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.15.1"
+    rev: "v0.15.2"
     hooks:
       - id: ruff-check
         args: ["--fix", "--ignore", "D"]
