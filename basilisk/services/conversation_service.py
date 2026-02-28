@@ -18,6 +18,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.provider_ai_model import AIModelInfo
 from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
@@ -230,8 +231,7 @@ class ConversationService:
 				request=Message(
 					role=MessageRoleEnum.USER, content=PROMPT_TITLE
 				),
-				provider_id=provider_id,
-				model_id=model_id,
+				model=AIModelInfo(provider_id=provider_id, model_id=model_id),
 				temperature=temperature,
 				top_p=top_p,
 				max_tokens=max_tokens,

@@ -163,8 +163,9 @@ class ConversationPresenter(DestroyGuardMixin):
 				content=view.prompt_panel.prompt_text,
 				attachments=view.prompt_panel.attachment_files,
 			),
-			model_id=model.id,
-			provider_id=view.current_account.provider.id,
+			model=AIModelInfo(
+				provider_id=view.current_account.provider.id, model_id=model.id
+			),
 			temperature=view.temperature_spinner.GetValue(),
 			top_p=view.top_p_spinner.GetValue(),
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),

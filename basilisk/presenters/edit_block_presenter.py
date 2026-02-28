@@ -108,8 +108,9 @@ class EditBlockPresenter(DestroyGuardMixin):
 				content=self.view.prompt_panel.prompt_text,
 				attachments=self.view.prompt_panel.attachment_files or None,
 			),
-			model_id=model.id,
-			provider_id=account.provider.id,
+			model=AIModelInfo(
+				provider_id=account.provider.id, model_id=model.id
+			),
 			temperature=self.view.temperature_spinner.GetValue(),
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
