@@ -7,6 +7,7 @@ responsible only for widget management.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 from basilisk.services.search_service import (
@@ -198,28 +199,64 @@ class SearchPresenter:
 			)
 			return
 
-		# Update search history
 		if search_text not in self.search_list:
 			self.search_list.append(search_text)
 		self.view.sync_history(self.search_list, search_text)
 
-		# Snapshot current widget state
+		self._sync_state_from_view()
+		self.view.dismiss_modal()
+
+		text = self.target.get_text()
+		matches = self._find_matches(text, search_text)
+		if matches is None:
+			return
+		self._navigate_to_match(text, matches, search_text)
+
+	def _sync_state_from_view(self) -> None:
+		"""Snapshot current widget values into presenter state."""
 		self._case_sensitive = self.view.get_case_sensitive()
 		self._search_dot_all = self.view.get_dot_all()
 		self._search_direction = self.view.get_direction()
 		self._search_mode = self.view.get_mode()
 
-		# Dismiss modal so the target can receive focus
-		self.view.dismiss_modal()
+	def _find_matches(
+		self, text: str, search_text: str
+	) -> list[re.Match] | None:
+		"""Run the search and return all matches, or None on regex error.
 
-		text = self.target.get_text()
-		matches = SearchService.find_all_matches(
-			text,
-			search_text,
-			self._search_mode,
-			self._case_sensitive,
-			self._search_dot_all,
-		)
+		Args:
+			text: The full text to search within.
+			search_text: The raw pattern entered by the user.
+
+		Returns:
+			A (possibly empty) list of matches, or None if the pattern
+			is an invalid regular expression.
+		"""
+		try:
+			return SearchService.find_all_matches(
+				text,
+				search_text,
+				self._search_mode,
+				self._case_sensitive,
+				self._search_dot_all,
+			)
+		except re.error as e:
+			self.view.show_error(
+				# Translators: Error shown when the user enters an invalid regular expression
+				_("Invalid regular expression: %s") % e
+			)
+			return None
+
+	def _navigate_to_match(
+		self, text: str, matches: list[re.Match], search_text: str
+	) -> None:
+		"""Select the nearest match to the cursor, or report not found.
+
+		Args:
+			text: The full text that was searched.
+			matches: All matches returned by the search service.
+			search_text: The raw pattern, used for the not-found message.
+		"""
 		if not matches:
 			self.view.show_not_found(search_text)
 			return
@@ -261,14 +298,10 @@ class SearchPresenter:
 
 	def search_next(self) -> None:
 		"""Search for the next occurrence (forward direction)."""
-		self._search_direction = SearchDirection.FORWARD
-		if self.view is not None:
-			self.view.apply_direction(SearchDirection.FORWARD)
+		self.search_direction = SearchDirection.FORWARD
 		self.on_find()
 
 	def search_previous(self) -> None:
 		"""Search for the previous occurrence (backward direction)."""
-		self._search_direction = SearchDirection.BACKWARD
-		if self.view is not None:
-			self.view.apply_direction(SearchDirection.BACKWARD)
+		self.search_direction = SearchDirection.BACKWARD
 		self.on_find()

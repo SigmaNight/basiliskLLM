@@ -421,3 +421,49 @@ class TestSearchPresenterModeChange:
 		p = make_presenter(view=None)
 		p.on_mode_changed(SearchMode.REGEX)  # must not raise
 		assert p.search_mode == SearchMode.REGEX
+
+
+# ---------------------------------------------------------------------------
+# SearchPresenter — invalid regex handling
+# ---------------------------------------------------------------------------
+
+
+class TestSearchPresenterInvalidRegex:
+	"""Tests for re.error handling in on_find()."""
+
+	def test_invalid_regex_calls_show_error(self):
+		"""on_find() calls view.show_error for an invalid regex pattern."""
+		view = make_view(search_text="[invalid", mode=SearchMode.REGEX)
+		target = make_target(text="some text", pos=0)
+		p = make_presenter(view=view, target=target)
+		p.on_find()
+		view.show_error.assert_called_once()
+		error_msg = view.show_error.call_args[0][0]
+		assert (
+			"invalid" in error_msg.lower() or "expression" in error_msg.lower()
+		)
+
+	def test_invalid_regex_does_not_select(self):
+		"""on_find() does not call set_selection when regex is invalid."""
+		view = make_view(search_text="(?P<", mode=SearchMode.REGEX)
+		target = make_target(text="some text", pos=0)
+		p = make_presenter(view=view, target=target)
+		p.on_find()
+		target.set_selection.assert_not_called()
+
+	def test_invalid_regex_does_not_show_not_found(self):
+		"""on_find() does not call show_not_found when regex is invalid."""
+		view = make_view(search_text="*bad", mode=SearchMode.REGEX)
+		target = make_target(text="some text", pos=0)
+		p = make_presenter(view=view, target=target)
+		p.on_find()
+		view.show_not_found.assert_not_called()
+
+	def test_valid_regex_is_not_affected(self):
+		"""on_find() works normally for a valid regex pattern."""
+		view = make_view(search_text=r"\d+", mode=SearchMode.REGEX)
+		target = make_target(text="price: 42 items", pos=0)
+		p = make_presenter(view=view, target=target)
+		p.on_find()
+		view.show_error.assert_not_called()
+		target.set_selection.assert_called_once()
