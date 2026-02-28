@@ -6,10 +6,10 @@ import wx
 
 import basilisk.config as config
 from basilisk.presenters.preferences_presenter import (
+	AUTO_UPDATE_MODES,
 	LOG_LEVELS,
+	RELEASE_CHANNELS,
 	PreferencesPresenter,
-	auto_update_modes,
-	release_channels,
 )
 
 log = logging.getLogger(__name__)
@@ -89,10 +89,10 @@ class PreferencesDialog(wx.Dialog):
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
 
-		release_channel_value = release_channels[conf.general.release_channel]
+		release_channel_value = RELEASE_CHANNELS[conf.general.release_channel]
 		self.release_channel = wx.ComboBox(
 			panel,
-			choices=list(release_channels.values()),
+			choices=list(RELEASE_CHANNELS.values()),
 			value=release_channel_value,
 			style=wx.CB_READONLY,
 		)
@@ -102,12 +102,12 @@ class PreferencesDialog(wx.Dialog):
 			panel, label=_("Automatic update mode"), style=wx.ALIGN_LEFT
 		)
 		update_group_sizer.Add(label, 0, wx.ALL, 5)
-		auto_update_mode_value = auto_update_modes[
+		auto_update_mode_value = AUTO_UPDATE_MODES[
 			conf.general.automatic_update_mode
 		]
 		self.auto_update_mode = wx.ComboBox(
 			panel,
-			choices=list(auto_update_modes.values()),
+			choices=list(AUTO_UPDATE_MODES.values()),
 			value=auto_update_mode_value,
 			style=wx.CB_READONLY,
 		)

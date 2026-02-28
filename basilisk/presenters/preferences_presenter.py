@@ -19,8 +19,8 @@ from basilisk.logger import set_log_level
 log = logging.getLogger(__name__)
 
 LOG_LEVELS = LogLevelEnum.get_labels()
-release_channels = ReleaseChannelEnum.get_labels()
-auto_update_modes = AutomaticUpdateModeEnum.get_labels()
+RELEASE_CHANNELS = ReleaseChannelEnum.get_labels()
+AUTO_UPDATE_MODES = AutomaticUpdateModeEnum.get_labels()
 
 
 class PreferencesPresenter:
@@ -82,10 +82,10 @@ class PreferencesPresenter:
 			self.view.language.GetSelection()
 		]
 		conf.general.quit_on_close = self.view.quit_on_close.GetValue()
-		conf.general.release_channel = list(release_channels.keys())[
+		conf.general.release_channel = list(RELEASE_CHANNELS.keys())[
 			self.view.release_channel.GetSelection()
 		]
-		conf.general.automatic_update_mode = list(auto_update_modes.keys())[
+		conf.general.automatic_update_mode = list(AUTO_UPDATE_MODES.keys())[
 			self.view.auto_update_mode.GetSelection()
 		]
 		conf.general.advanced_mode = self.view.advanced_mode.GetValue()
