@@ -203,7 +203,7 @@ class AttachmentService:
 	@staticmethod
 	def resize_attachments(
 		attachments: list[AttachmentFile | ImageFile],
-		conv_storage_path,
+		conv_storage_path: UPath | str,
 		max_width: int,
 		max_height: int,
 		quality: int,
