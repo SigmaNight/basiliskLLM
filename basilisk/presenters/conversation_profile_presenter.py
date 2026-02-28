@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from pydantic import ValidationError
+
 from basilisk.config import ConversationProfile
 
 if TYPE_CHECKING:
@@ -89,7 +91,11 @@ class EditConversationProfilePresenter:
 			self.profile.top_p = None
 
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
-		ConversationProfile.model_validate(self.profile)
+		try:
+			ConversationProfile.model_validate(self.profile)
+		except ValidationError as e:
+			log.error("Profile validation failed: %s", e)
+			return None
 		return self.profile
 
 
@@ -154,3 +160,4 @@ class ConversationProfilePresenter:
 		"""
 		self.profiles.set_default_profile(profile)
 		self.profiles.save()
+		self.menu_update = True
