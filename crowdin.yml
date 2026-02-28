@@ -6,3 +6,6 @@ preserve_hierarchy: true
 files:
   - source: basiliskLLM.pot
     translation: basilisk/res/locale/%osx_locale%/LC_MESSAGES/basiliskLLM.po
+    language_mapping:
+      pt-BR:
+        osx_locale: pt_BR
