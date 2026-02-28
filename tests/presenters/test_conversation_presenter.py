@@ -338,6 +338,12 @@ class TestOnNonStreamFinish:
 class TestStartRecording:
 	"""Tests for start_recording."""
 
+	def test_returns_early_when_no_engine(self, presenter, mock_view):
+		"""start_recording returns silently when current_engine is None."""
+		mock_view.current_engine = None
+		presenter.start_recording()
+		mock_view.show_error_message.assert_not_called()
+
 	def test_shows_error_when_stt_not_supported(self, presenter, mock_view):
 		"""start_recording calls view.show_error_message when STT unsupported."""
 		mock_view.current_engine.capabilities = set()  # no STT

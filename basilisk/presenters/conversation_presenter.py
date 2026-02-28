@@ -319,6 +319,8 @@ class ConversationPresenter:
 	def start_recording(self):
 		"""Start audio recording."""
 		cur_provider = self.view.current_engine
+		if cur_provider is None:
+			return
 		if ProviderCapability.STT not in cur_provider.capabilities:
 			self.view.show_error_message(
 				_("The selected provider does not support speech-to-text"),
@@ -352,6 +354,9 @@ class ConversationPresenter:
 		Args:
 			audio_file: Path to audio file. If None, starts recording.
 		"""
+		engine = self.view.current_engine
+		if engine is None:
+			return
 		if not self.recording_thread:
 			from basilisk.recording_thread import (
 				RecordingThread as recording_thread_cls,
@@ -359,7 +364,7 @@ class ConversationPresenter:
 		else:
 			recording_thread_cls = self.recording_thread.__class__
 		self.recording_thread = recording_thread_cls(
-			provider_engine=self.view.current_engine,
+			provider_engine=engine,
 			recordings_settings=config.conf().recordings,
 			callbacks=self,
 			audio_file_path=audio_file,
@@ -369,6 +374,8 @@ class ConversationPresenter:
 	def on_transcribe_audio_file(self):
 		"""Open file dialog and transcribe selected audio file."""
 		cur_provider = self.view.current_engine
+		if cur_provider is None:
+			return
 		if ProviderCapability.STT not in cur_provider.capabilities:
 			self.view.show_error_message(
 				_("The selected provider does not support speech-to-text"),
