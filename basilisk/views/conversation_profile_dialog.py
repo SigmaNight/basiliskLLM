@@ -307,7 +307,8 @@ class ConversationProfileDialog(wx.Dialog):
 			return
 		dialog = EditConversationProfileDialog(
 			self,
-			"Edit Conversation Profile",
+			# translator: dialog title
+			_("Edit Conversation Profile"),
 			profile=self.profiles[profile_index],
 		)
 		if dialog.ShowModal() == wx.ID_OK:
