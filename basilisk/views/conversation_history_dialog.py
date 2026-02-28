@@ -213,7 +213,9 @@ class ConversationHistoryDialog(wx.Dialog):
 			self._refresh_list()
 		else:
 			wx.MessageBox(
+				# Translators: Error message shown when a conversation cannot be deleted
 				_("Failed to delete conversation"),
+				# Translators: Title of the error dialog when deletion fails
 				_("Error"),
 				wx.OK | wx.ICON_ERROR,
 				self,
