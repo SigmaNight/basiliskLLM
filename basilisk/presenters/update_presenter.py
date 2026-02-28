@@ -61,7 +61,7 @@ class UpdatePresenter:
 		self.updater = get_updater_from_channel(conf())
 
 		if not self.updater.is_update_enable:
-			log.error("Update are disabled for source application")
+			log.error("Updates are disabled for source application")
 			self.view.show_error(
 				# Translators: Shown when updates are disabled for source builds
 				_("Update are disabled for source application")
@@ -171,6 +171,8 @@ class DownloadPresenter:
 		"""
 		import wx
 
+		if total_length <= 0:
+			return
 		pct = int(downloaded_length / total_length * 100)
 		log.debug(
 			"Download progress: %d%% - %d / %d",
