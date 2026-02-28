@@ -288,6 +288,9 @@ class PromptAttachmentPresenter:
 		if not current_model:
 			self.view.show_error(_("Please select a model"))
 			return None
+		if not self.current_engine:
+			self.view.show_error(_("Please select an engine"))
+			return None
 		compatible, vision_models = (
 			AttachmentService.check_model_vision_compatible(
 				self.attachment_files, current_model, self.current_engine
@@ -296,8 +299,9 @@ class PromptAttachmentPresenter:
 		if not compatible:
 			self.view.show_error(
 				_(
-					"The selected model does not support images. Please select a vision model instead ({})."
-				).format(", ".join(vision_models))
+					"The selected model does not support images. Please select a vision model instead (%s)."
+				)
+				% ", ".join(vision_models)
 			)
 			return None
 		return current_model
