@@ -308,19 +308,23 @@ class TestAccountPresenter:
 		mock_account_manager.save.assert_called_once()
 
 	def test_remove_account_saves(self, presenter, mock_account_manager):
-		"""Removing an account should remove and save."""
+		"""Removing an account should remove the account object and save."""
+		account = mock_account_manager[0]
 		presenter.remove_account(0)
-		mock_account_manager.remove.assert_called_once()
-		mock_account_manager.save.assert_called_once()
+		mock_account_manager.remove.assert_called_once_with(account)
+		mock_account_manager.save.assert_called_once_with()
 
 	def test_set_default_account_toggles_on(
 		self, presenter, mock_account_manager
 	):
 		"""Setting default on a non-default account should set it."""
+		account = mock_account_manager[0]
 		mock_account_manager.default_account = MagicMock()
 		presenter.set_default_account(0)
-		mock_account_manager.set_default_account.assert_called_once()
-		mock_account_manager.save.assert_called_once()
+		mock_account_manager.set_default_account.assert_called_once_with(
+			account
+		)
+		mock_account_manager.save.assert_called_once_with()
 
 	def test_set_default_account_toggles_off(
 		self, presenter, mock_account_manager
