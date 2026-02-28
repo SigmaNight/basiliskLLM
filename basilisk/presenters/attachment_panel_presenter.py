@@ -185,10 +185,9 @@ class PromptAttachmentPresenter:
 		Args:
 			image: A wx.Image (or compatible) object from the clipboard.
 		"""
-		path = (
-			self.conv_storage_path
-			/ f"clipboard_{datetime.datetime.now().isoformat(timespec='seconds')}.png"
-		)
+		dt_now = datetime.datetime.now()
+		file_name = f"clipboard_{dt_now.strftime('%Y_%m_%d_%H_%M_%S')}.png"
+		path = self.conv_storage_path / file_name
 		with path.open("wb") as f:
 			image.SaveFile(f, self._wx_bitmap_type_png())
 		self.add_attachments([ImageFile(location=path)])
