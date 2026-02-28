@@ -189,4 +189,4 @@ class TestOpenUrl:
 		mock_view.bell.assert_called_once()
 		mock_view.set_open_url_state.assert_called_once()
 		(label,) = mock_view.set_open_url_state.call_args[0]
-		assert "failed" in label.lower() or "Open" in label
+		assert "failed" in label.lower()

@@ -678,3 +678,33 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_transcribe_audio_file(self):
 		"""Open file dialog and transcribe selected audio file."""
 		self.presenter.on_transcribe_audio_file()
+
+	def show_error_message(self, message: str, title: str) -> None:
+		"""Show a modal error message box.
+
+		Args:
+			message: The error text to display.
+			title: The dialog title.
+		"""
+		wx.MessageBox(message, title, wx.OK | wx.ICON_ERROR)
+
+	def ask_audio_file(self) -> Optional[str]:
+		"""Show a file-open dialog filtered to audio files.
+
+		Returns:
+			The selected file path, or None if the user cancelled.
+		"""
+		dlg = wx.FileDialog(
+			self,
+			# Translators: This is a label for audio file in the main window
+			message=_("Select an audio file to transcribe"),
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+			wildcard=_("Audio files")
+			+ " (*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm)|*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm",
+		)
+		if dlg.ShowModal() == wx.ID_OK:
+			path = dlg.GetPath()
+			dlg.Destroy()
+			return path
+		dlg.Destroy()
+		return None

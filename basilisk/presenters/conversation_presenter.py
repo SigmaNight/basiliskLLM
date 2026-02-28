@@ -10,8 +10,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
-import wx
-
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
@@ -322,10 +320,9 @@ class ConversationPresenter:
 		"""Start audio recording."""
 		cur_provider = self.view.current_engine
 		if ProviderCapability.STT not in cur_provider.capabilities:
-			wx.MessageBox(
+			self.view.show_error_message(
 				_("The selected provider does not support speech-to-text"),
 				_("Error"),
-				wx.OK | wx.ICON_ERROR,
 			)
 			return
 		self.view.toggle_record_btn.SetLabel(_("Stop recording") + " (Ctrl+R)")
@@ -356,10 +353,9 @@ class ConversationPresenter:
 			audio_file: Path to audio file. If None, starts recording.
 		"""
 		if not self.recording_thread:
-			module = __import__(
-				"basilisk.recording_thread", fromlist=["RecordingThread"]
+			from basilisk.recording_thread import (
+				RecordingThread as recording_thread_cls,
 			)
-			recording_thread_cls = getattr(module, "RecordingThread")
 		else:
 			recording_thread_cls = self.recording_thread.__class__
 		self.recording_thread = recording_thread_cls(
@@ -374,26 +370,14 @@ class ConversationPresenter:
 		"""Open file dialog and transcribe selected audio file."""
 		cur_provider = self.view.current_engine
 		if ProviderCapability.STT not in cur_provider.capabilities:
-			wx.MessageBox(
+			self.view.show_error_message(
 				_("The selected provider does not support speech-to-text"),
 				_("Error"),
-				wx.OK | wx.ICON_ERROR,
 			)
 			return
-		dlg = wx.FileDialog(
-			self.view,
-			# Translators: This is a label for audio file in the main window
-			message=_("Select an audio file to transcribe"),
-			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-			wildcard=_("Audio files")
-			+ " (*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm)|*.mp3;*.mp4;*.mpeg;*.mpga;*.m4a;*.wav;*.webm",
-		)
-		if dlg.ShowModal() == wx.ID_OK:
-			audio_file = dlg.GetPath()
-			dlg.Destroy()
+		audio_file = self.view.ask_audio_file()
+		if audio_file:
 			self.transcribe_audio_file(audio_file)
-		else:
-			dlg.Destroy()
 
 	# Recording callbacks (called by RecordingThread)
 
@@ -464,12 +448,11 @@ class ConversationPresenter:
 			The generated title, or None on failure.
 		"""
 		if self.completion_handler.is_running():
-			wx.MessageBox(
+			self.view.show_error_message(
 				_(
 					"A completion is already in progress. Please wait until it finishes."
 				),
 				_("Error"),
-				wx.OK | wx.ICON_ERROR,
 			)
 			return
 		if not self.conversation.messages:

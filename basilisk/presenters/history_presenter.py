@@ -335,12 +335,14 @@ class HistoryPresenter:
 		if not citations_str:
 			self.view.bell()
 			return
-		ReadOnlyMessageDialog(
+		dlg = ReadOnlyMessageDialog(
 			self.view,
 			# Translators: This is a title for message citations dialog
 			_("Message citations"),
 			citations_str,
-		).ShowModal()
+		)
+		dlg.ShowModal()
+		dlg.Destroy()
 
 	# ------------------------------------------------------------------
 	# Search
@@ -388,3 +390,14 @@ class HistoryPresenter:
 			self.open_search(SearchDirection.BACKWARD)
 			return
 		self._search_presenter.search_previous()
+
+	# ------------------------------------------------------------------
+	# Cleanup
+	# ------------------------------------------------------------------
+
+	def cleanup(self) -> None:
+		"""Destroy the search dialog if open and release all references."""
+		if self._search_dialog is not None:
+			self._search_dialog.Destroy()
+			self._search_dialog = None
+			self._search_presenter = None
