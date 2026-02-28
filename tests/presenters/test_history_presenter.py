@@ -8,6 +8,7 @@ from basilisk.message_segment_manager import (
 	MessageSegmentType,
 )
 from basilisk.presenters.history_presenter import HistoryPresenter
+from basilisk.services.search_service import SearchDirection
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -561,8 +562,6 @@ class TestSearchManagement:
 		p = make_presenter()
 		p.open_search = MagicMock()
 		p.search_next()
-		from basilisk.services.search_service import SearchDirection
-
 		p.open_search.assert_called_once_with(SearchDirection.FORWARD)
 
 	def test_search_previous_opens_dialog_when_none(self):
@@ -570,8 +569,6 @@ class TestSearchManagement:
 		p = make_presenter()
 		p.open_search = MagicMock()
 		p.search_previous()
-		from basilisk.services.search_service import SearchDirection
-
 		p.open_search.assert_called_once_with(SearchDirection.BACKWARD)
 
 	def test_search_next_delegates_to_search_presenter(self):
