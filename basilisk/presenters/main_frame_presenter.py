@@ -183,7 +183,7 @@ class MainFramePresenter:
 				"Failed to open conversation file: %s, error: %s",
 				file_path,
 				e,
-				exc_info=e,
+				exc_info=True,
 			)
 
 	def open_from_db(self, conv_id: int):
@@ -361,7 +361,11 @@ class MainFramePresenter:
 			image_file: The captured image file or path.
 		"""
 		log.debug("Screen capture received")
-		self.view.current_tab.prompt_panel.add_attachments([image_file])
+		tab = self.view.current_tab
+		if not tab:
+			log.error("No tab selected, aborting capture ...")
+			return
+		tab.prompt_panel.add_attachments([image_file])
 		if not self.view.IsShown():
 			self.view.Show()
 			self.view.Restore()
