@@ -167,17 +167,14 @@ class TestOpenConversation:
 
 		mock_view.add_conversation_tab.assert_called_once_with(mock_tab)
 
-	@patch("basilisk.presenters.main_frame_presenter.wx")
 	@patch("basilisk.views.conversation_tab.ConversationTab.open_conversation")
-	def test_error_shows_message(
-		self, mock_open_conv, mock_wx, presenter, mock_view
-	):
+	def test_error_shows_message(self, mock_open_conv, presenter, mock_view):
 		"""Should show error dialog when opening fails."""
 		mock_open_conv.side_effect = RuntimeError("bad file")
 
 		presenter.open_conversation("/bad/file.bskc")
 
-		mock_wx.MessageBox.assert_called_once()
+		mock_view.show_error.assert_called_once()
 		mock_view.add_conversation_tab.assert_not_called()
 
 
@@ -194,17 +191,14 @@ class TestOpenFromDb:
 
 		mock_view.add_conversation_tab.assert_called_once_with(mock_tab)
 
-	@patch("basilisk.presenters.main_frame_presenter.wx")
 	@patch("basilisk.views.conversation_tab.ConversationTab.open_from_db")
-	def test_error_shows_message(
-		self, mock_open_from_db, mock_wx, presenter, mock_view
-	):
+	def test_error_shows_message(self, mock_open_from_db, presenter, mock_view):
 		"""Should show error dialog when DB open fails."""
 		mock_open_from_db.side_effect = RuntimeError("DB error")
 
 		presenter.open_from_db(99)
 
-		mock_wx.MessageBox.assert_called_once()
+		mock_view.show_error.assert_called_once()
 		mock_view.add_conversation_tab.assert_not_called()
 
 
@@ -351,8 +345,7 @@ class TestTogglePrivacy:
 class TestScreenCapture:
 	"""Tests for screen_capture."""
 
-	@patch("basilisk.presenters.main_frame_presenter.wx")
-	def test_error_when_no_tab(self, mock_wx, presenter, mock_view):
+	def test_error_when_no_tab(self, presenter, mock_view):
 		"""Should show error when no conversation is selected."""
 		from basilisk.screen_capture_thread import CaptureMode
 
@@ -360,7 +353,7 @@ class TestScreenCapture:
 
 		presenter.screen_capture(CaptureMode.FULL)
 
-		mock_wx.MessageBox.assert_called_once()
+		mock_view.show_error.assert_called_once()
 
 	@patch("basilisk.presenters.main_frame_presenter.ScreenCaptureThread")
 	def test_starts_capture_thread(self, mock_thread_cls, presenter, mock_view):

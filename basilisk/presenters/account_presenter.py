@@ -19,6 +19,7 @@ from basilisk.config import (
 	AccountSource,
 	KeyStorageMethodEnum,
 )
+from basilisk.presenters.presenter_mixins import ManagerCrudMixin
 
 if TYPE_CHECKING:
 	from basilisk.config import AccountManager
@@ -265,7 +266,7 @@ class EditAccountPresenter:
 		return self.account
 
 
-class AccountPresenter:
+class AccountPresenter(ManagerCrudMixin):
 	"""Presenter for the account management dialog.
 
 	Handles CRUD operations and persistence for accounts.
@@ -281,6 +282,20 @@ class AccountPresenter:
 			account_manager: The account manager instance.
 		"""
 		self.account_manager = account_manager
+
+	@property
+	def manager(self):
+		"""Return the backing account manager."""
+		return self.account_manager
+
+	def _before_edit(self, index: int, account: Account) -> None:
+		"""Reset the active organization before replacing an account.
+
+		Args:
+			index: Position of the account being replaced.
+			account: The replacement account.
+		"""
+		account.reset_active_organization()
 
 	def is_editable(self, index: int) -> bool:
 		"""Check if the account at the given index is editable.
@@ -312,8 +327,7 @@ class AccountPresenter:
 		Args:
 			account: The account to add.
 		"""
-		self.account_manager.add(account)
-		self.account_manager.save()
+		self.add_item(account)
 
 	def edit_account(self, index: int, account: Account):
 		"""Replace an account at the given index and save.
@@ -322,9 +336,7 @@ class AccountPresenter:
 			index: The index of the account to replace.
 			account: The new account data.
 		"""
-		account.reset_active_organization()
-		self.account_manager[index] = account
-		self.account_manager.save()
+		self.edit_item(index, account)
 
 	def remove_account(self, index: int):
 		"""Remove an account at the given index and save.
@@ -332,9 +344,7 @@ class AccountPresenter:
 		Args:
 			index: The index of the account to remove.
 		"""
-		account = self.account_manager[index]
-		self.account_manager.remove(account)
-		self.account_manager.save()
+		self.remove_item_by_index(index)
 
 	def save_organizations(self, index: int, account: Account):
 		"""Save organization changes for an account and save.
@@ -343,9 +353,7 @@ class AccountPresenter:
 			index: The index of the account.
 			account: The account with updated organizations.
 		"""
-		account.reset_active_organization()
-		self.account_manager[index] = account
-		self.account_manager.save()
+		self.edit_item(index, account)
 
 	def set_default_account(self, index: int):
 		"""Toggle the default account at the given index and save.

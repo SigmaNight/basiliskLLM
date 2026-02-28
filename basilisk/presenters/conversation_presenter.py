@@ -21,11 +21,14 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.presenters.presenter_mixins import (
+	DestroyGuardMixin,
+	_guard_destroying,
+)
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
 from basilisk.sound_manager import play_sound, stop_sound
-from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
 
 if TYPE_CHECKING:
 	from basilisk.recording_thread import RecordingThread
@@ -34,7 +37,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class ConversationPresenter:
+class ConversationPresenter(DestroyGuardMixin):
 	"""Orchestrates completion, recording, and submission flows.
 
 	The presenter holds the completion handler, recording thread, error
@@ -209,19 +212,17 @@ class ConversationPresenter:
 		stop_sound()
 		self.flush_draft()
 
+	@_guard_destroying
 	def _on_completion_start(self):
 		"""Called when completion starts."""
-		if self.view._is_destroying:
-			return
 		self.view.submit_btn.Disable()
 		self.view.stop_completion_btn.Show()
 		if config.conf().conversation.focus_history_after_send:
 			self.view.messages.SetFocus()
 
+	@_guard_destroying
 	def _on_completion_end(self, success: bool):
 		"""Called when completion ends."""
-		if self.view._is_destroying:
-			return
 		self.view.stop_completion_btn.Hide()
 		self.view.submit_btn.Enable()
 
@@ -231,36 +232,32 @@ class ConversationPresenter:
 		if success and config.conf().conversation.focus_history_after_send:
 			self.view.messages.SetFocus()
 
+	@_guard_destroying
 	def _on_stream_chunk(self, chunk: str):
 		"""Called for each streaming chunk."""
-		if self.view._is_destroying:
-			return
 		self.view.messages.append_stream_chunk(chunk)
 
+	@_guard_destroying
 	def _on_stream_start(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	):
 		"""Called when streaming starts."""
-		if self.view._is_destroying:
-			return
 		self.conversation.add_block(new_block, system_message)
 		self.view.messages.display_new_block(new_block, streaming=True)
 		self.view.messages.SetInsertionPointEnd()
 
+	@_guard_destroying
 	def _on_stream_finish(self, new_block: MessageBlock):
 		"""Called when streaming finishes."""
-		if self.view._is_destroying:
-			return
 		self.view.messages.a_output.handle_stream_buffer()
 		self.view.messages.update_last_segment_length()
 		self.service.auto_save_to_db(self.conversation, new_block)
 
+	@_guard_destroying
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	):
 		"""Called when non-streaming completion finishes."""
-		if self.view._is_destroying:
-			return
 		self.conversation.add_block(new_block, system_message)
 		self.view.messages.display_new_block(new_block)
 		if self.view.messages.should_speak_response:
@@ -291,19 +288,14 @@ class ConversationPresenter:
 		self._stored_prompt_text = None
 		self._stored_attachments = None
 
+	@_guard_destroying
 	def _on_completion_error(self, error_message: str):
 		"""Called when a completion error occurs."""
-		if self.view._is_destroying:
-			return
-
 		self._restore_prompt_content()
 		self._clear_stored_content()
-
-		show_enhanced_error_dialog(
-			parent=self.view,
-			message=_("An error occurred during completion: %s")
-			% error_message,
-			title=_("Completion Error"),
+		self.view.show_enhanced_error(
+			_("An error occurred during completion: %s") % error_message,
+			_("Completion Error"),
 			is_completion_error=True,
 		)
 
@@ -322,7 +314,7 @@ class ConversationPresenter:
 		if cur_provider is None:
 			return
 		if ProviderCapability.STT not in cur_provider.capabilities:
-			self.view.show_error_message(
+			self.view.show_error(
 				_("The selected provider does not support speech-to-text"),
 				_("Error"),
 			)
@@ -377,7 +369,7 @@ class ConversationPresenter:
 		if cur_provider is None:
 			return
 		if ProviderCapability.STT not in cur_provider.capabilities:
-			self.view.show_error_message(
+			self.view.show_error(
 				_("The selected provider does not support speech-to-text"),
 				_("Error"),
 			)
@@ -388,35 +380,31 @@ class ConversationPresenter:
 
 	# Recording callbacks (called by RecordingThread)
 
+	@_guard_destroying
 	def on_recording_started(self):
 		"""Handle the start of audio recording."""
-		if self.view._is_destroying:
-			return
 		play_sound("recording_started")
 		self.view.SetStatusText(_("Recording..."))
 
+	@_guard_destroying
 	def on_recording_stopped(self):
 		"""Handle the end of audio recording."""
-		if self.view._is_destroying:
-			return
 		play_sound("recording_stopped")
 		self.view.SetStatusText(_("Recording stopped"))
 
+	@_guard_destroying
 	def on_transcription_started(self):
 		"""Handle the start of audio transcription."""
-		if self.view._is_destroying:
-			return
 		play_sound("progress", loop=True)
 		self.view.SetStatusText(_("Transcribing..."))
 
+	@_guard_destroying
 	def on_transcription_received(self, transcription):
 		"""Handle a transcription result.
 
 		Args:
 			transcription: The transcription result.
 		"""
-		if self.view._is_destroying:
-			return
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
 		self.view.prompt_panel.prompt.AppendText(transcription.text)
@@ -428,22 +416,18 @@ class ConversationPresenter:
 		self.view.prompt_panel.prompt.SetInsertionPointEnd()
 		self.view.prompt_panel.set_prompt_focus()
 
+	@_guard_destroying
 	def on_transcription_error(self, error):
 		"""Handle an error during audio transcription.
 
 		Args:
 			error: The error that occurred.
 		"""
-		if self.view._is_destroying:
-			return
-
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
-		show_enhanced_error_dialog(
-			parent=self.view,
-			message=_("An error occurred during transcription: %s") % error,
-			title=_("Transcription Error"),
-			is_completion_error=False,
+		self.view.show_enhanced_error(
+			_("An error occurred during transcription: %s") % error,
+			_("Transcription Error"),
 		)
 
 	# -- Service delegations --
@@ -455,7 +439,7 @@ class ConversationPresenter:
 			The generated title, or None on failure.
 		"""
 		if self.completion_handler.is_running():
-			self.view.show_error_message(
+			self.view.show_error(
 				_(
 					"A completion is already in progress. Please wait until it finishes."
 				),
@@ -478,10 +462,9 @@ class ConversationPresenter:
 			stream=True,  # Required for Anthropic: long requests must use streaming
 		)
 		if title is None and self.conversation.messages:
-			show_enhanced_error_dialog(
-				parent=self.view,
-				message=_("An error occurred during title generation"),
-				title=_("Title Generation Error"),
+			self.view.show_enhanced_error(
+				_("An error occurred during title generation"),
+				_("Title Generation Error"),
 				is_completion_error=True,
 			)
 		return title
@@ -500,12 +483,10 @@ class ConversationPresenter:
 			self.conversation, file_path, draft_block
 		)
 		if not success and error is not None:
-			show_enhanced_error_dialog(
-				parent=self.view,
-				message=_("An error occurred while saving the conversation: %s")
+			self.view.show_enhanced_error(
+				_("An error occurred while saving the conversation: %s")
 				% error,
-				title=_("Save Error"),
-				is_completion_error=False,
+				_("Save Error"),
 			)
 		return success
 

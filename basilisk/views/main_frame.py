@@ -32,11 +32,12 @@ from basilisk.updater import BaseUpdater
 from .conversation_tab import ConversationTab
 from .taskbar_icon import TaskBarIcon
 from .update_dialog import DownloadUpdateDialog, UpdateDialog
+from .view_mixins import ErrorDisplayMixin
 
 log = logging.getLogger(__name__)
 
 
-class MainFrame(wx.Frame):
+class MainFrame(wx.Frame, ErrorDisplayMixin):
 	"""Main application frame for BasiliskLLM.
 
 	This is the *view* layer: it creates the UI, handles pure-UI events,

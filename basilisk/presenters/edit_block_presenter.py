@@ -19,6 +19,7 @@ from basilisk.conversation.conversation_model import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.presenters.presenter_mixins import DestroyGuardMixin
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class EditBlockPresenter:
+class EditBlockPresenter(DestroyGuardMixin):
 	"""Orchestrates completion and save flows for EditBlockDialog.
 
 	The presenter holds the CompletionHandler and implements the callbacks

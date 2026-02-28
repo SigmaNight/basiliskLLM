@@ -177,11 +177,10 @@ class MainFramePresenter:
 			if new_tab:
 				self.view.add_conversation_tab(new_tab)
 		except Exception as e:
-			wx.MessageBox(
+			self.view.show_error(
 				# Translators: An error message when a conversation file cannot be opened
 				_("Failed to open conversation file: '%s', error: %s")
-				% (file_path, e),
-				style=wx.OK | wx.ICON_ERROR,
+				% (file_path, e)
 			)
 			log.error(
 				"Failed to open conversation file: %s, error: %s",
@@ -209,10 +208,8 @@ class MainFramePresenter:
 				e,
 				exc_info=True,
 			)
-			wx.MessageBox(
-				_("Failed to open conversation: %s") % str(e),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			self.view.show_error(
+				_("Failed to open conversation: %s") % str(e), _("Error")
 			)
 
 	def close_conversation(self):
@@ -248,9 +245,7 @@ class MainFramePresenter:
 		"""
 		current_tab = self.view.current_tab
 		if not current_tab:
-			wx.MessageBox(
-				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
+			self.view.show_error(_("No conversation selected"), _("Error"))
 			return
 		if not current_tab.bskc_path:
 			self.view.on_save_as_conversation(None)
@@ -290,9 +285,7 @@ class MainFramePresenter:
 
 		current_tab = self.view.current_tab
 		if not current_tab:
-			wx.MessageBox(
-				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
+			self.view.show_error(_("No conversation selected"), _("Error"))
 			return
 		title = current_tab.conversation.title or current_tab.title
 		if auto:
@@ -331,15 +324,11 @@ class MainFramePresenter:
 		log.debug("Capturing %s screen", capture_mode.value)
 		conv_tab = self.view.current_tab
 		if not conv_tab:
-			wx.MessageBox(
-				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
+			self.view.show_error(_("No conversation selected"), _("Error"))
 			return
 		if capture_mode == CaptureMode.PARTIAL and not screen_coordinates:
-			wx.MessageBox(
-				_("No screen coordinates provided"),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
+			self.view.show_error(
+				_("No screen coordinates provided"), _("Error")
 			)
 			return
 		now = datetime.datetime.now()
@@ -491,8 +480,4 @@ class MainFramePresenter:
 				os.startfile(tmp_nvda_addon_path)
 		except Exception as e:
 			log.error("Failed to create NVDA addon: %s", e)
-			wx.MessageBox(
-				_("Failed to create NVDA addon"),
-				_("Error"),
-				wx.OK | wx.ICON_ERROR,
-			)
+			self.view.show_error(_("Failed to create NVDA addon"), _("Error"))

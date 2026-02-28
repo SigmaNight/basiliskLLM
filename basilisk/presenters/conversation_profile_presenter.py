@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from basilisk.config import ConversationProfile
+from basilisk.presenters.presenter_mixins import ManagerCrudMixin
 
 if TYPE_CHECKING:
 	from basilisk.config.conversation_profile import ConversationProfileManager
@@ -99,7 +100,7 @@ class EditConversationProfilePresenter:
 		return self.profile
 
 
-class ConversationProfilePresenter:
+class ConversationProfilePresenter(ManagerCrudMixin):
 	"""Presenter for the conversation profile management dialog.
 
 	Handles CRUD operations and persistence for conversation profiles.
@@ -119,7 +120,12 @@ class ConversationProfilePresenter:
 		"""
 		self.view = view
 		self.profiles = profiles
-		self.menu_update = False
+		self._init_crud()
+
+	@property
+	def manager(self):
+		"""Return the backing profile manager."""
+		return self.profiles
 
 	def add_profile(self, profile: ConversationProfile):
 		"""Add a new profile and save.
@@ -127,9 +133,7 @@ class ConversationProfilePresenter:
 		Args:
 			profile: The profile to add.
 		"""
-		self.profiles.add(profile)
-		self.profiles.save()
-		self.menu_update = True
+		self.add_item(profile)
 
 	def edit_profile(self, index: int, profile: ConversationProfile):
 		"""Replace a profile at the given index and save.
@@ -138,9 +142,7 @@ class ConversationProfilePresenter:
 			index: The index of the profile to replace.
 			profile: The new profile data.
 		"""
-		self.profiles[index] = profile
-		self.profiles.save()
-		self.menu_update = True
+		self.edit_item(index, profile)
 
 	def remove_profile(self, profile: ConversationProfile):
 		"""Remove a profile and save.
@@ -148,9 +150,7 @@ class ConversationProfilePresenter:
 		Args:
 			profile: The profile to remove.
 		"""
-		self.profiles.remove(profile)
-		self.profiles.save()
-		self.menu_update = True
+		self.remove_item(profile)
 
 	def set_default(self, profile: ConversationProfile):
 		"""Set a profile as the default and save.

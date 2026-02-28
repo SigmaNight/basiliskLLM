@@ -42,6 +42,40 @@ def ensure_no_task_running(method: Callable):
 	return wrapper
 
 
+def require_list_selection(widget_attr: str):
+	"""Guard decorator for view event handlers requiring a valid list selection.
+
+	Returns immediately (None) when the widget's current selection is
+	invalid (``-1`` / ``wx.NOT_FOUND``).  Supports both
+	``GetFirstSelected()`` (``wx.ListCtrl``) and ``GetSelection()``
+	(``wx.ComboBox``, ``wx.ListBox``).
+
+	Args:
+		widget_attr: Name of the widget attribute on the instance (``self``).
+			Example: ``"organization_list"``, ``"account_list"``,
+			``"list_ctrl"``.
+
+	Returns:
+		The decorator.
+	"""
+
+	def decorator(method: Callable) -> Callable:
+		@wraps(method)
+		def wrapper(instance, *args, **kwargs):
+			widget = getattr(instance, widget_attr)
+			if hasattr(widget, "GetFirstSelected"):
+				index = widget.GetFirstSelected()
+			else:
+				index = widget.GetSelection()
+			if index == wx.NOT_FOUND:
+				return
+			return method(instance, *args, **kwargs)
+
+		return wrapper
+
+	return decorator
+
+
 def measure_time(method: Callable):
 	"""Decorator to measure the time taken by a method in seconds.
 

@@ -20,6 +20,7 @@ from basilisk.presenters.attachment_panel_presenter import (
 )
 
 from .read_only_message_dialog import ReadOnlyMessageDialog
+from .view_mixins import ErrorDisplayMixin
 
 if TYPE_CHECKING:
 	from basilisk.provider_ai_model import ProviderAIModel
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class PromptAttachmentsPanel(wx.Panel):
+class PromptAttachmentsPanel(wx.Panel, ErrorDisplayMixin):
 	"""Panel component for managing prompt input and attachments.
 
 	This panel combines a text input area for user prompts with attachment management
@@ -238,14 +239,6 @@ class PromptAttachmentsPanel(wx.Panel):
 	# ------------------------------------------------------------------
 	# View interface (called by the presenter)
 	# ------------------------------------------------------------------
-
-	def show_error(self, msg: str) -> None:
-		"""Show an error message box.
-
-		Args:
-			msg: The error message to display.
-		"""
-		wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)
 
 	def show_file_dialog(self, wildcard: str) -> list[str] | None:
 		"""Show a file-picker dialog and return selected paths.

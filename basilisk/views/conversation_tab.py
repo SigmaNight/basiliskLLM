@@ -27,6 +27,7 @@ from .base_conversation import BaseConversation
 from .history_msg_text_ctrl import HistoryMsgTextCtrl
 from .ocr_handler import OCRHandler
 from .prompt_attachments_panel import PromptAttachmentsPanel
+from .view_mixins import ErrorDisplayMixin
 
 if TYPE_CHECKING:
 	from basilisk.recording_thread import RecordingThread
@@ -38,7 +39,7 @@ log = logging.getLogger(__name__)
 CHECK_TASK_DELAY = 100  # ms
 
 
-class ConversationTab(wx.Panel, BaseConversation):
+class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 	"""A tab panel that manages a single conversation with an AI assistant.
 
 	This is the *view* layer: it creates widgets, handles pure-UI events,
@@ -634,7 +635,7 @@ class ConversationTab(wx.Panel, BaseConversation):
 		"""
 		success, should_stop_timer = self.service.set_private(private)
 		if not success:
-			self.show_error_message(
+			self.show_error(
 				# Translators: Error shown when a conversation cannot be made private
 				_(
 					"Failed to switch the conversation to private mode:"
@@ -690,15 +691,6 @@ class ConversationTab(wx.Panel, BaseConversation):
 	def on_transcribe_audio_file(self):
 		"""Open file dialog and transcribe selected audio file."""
 		self.presenter.on_transcribe_audio_file()
-
-	def show_error_message(self, message: str, title: str) -> None:
-		"""Show a modal error message box.
-
-		Args:
-			message: The error text to display.
-			title: The dialog title.
-		"""
-		wx.MessageBox(message, title, wx.OK | wx.ICON_ERROR)
 
 	def ask_audio_file(self) -> Optional[str]:
 		"""Show a file-open dialog filtered to audio files.

@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Optional
 
 import wx
 
+from basilisk.views.view_mixins import ErrorDisplayMixin
+
 if TYPE_CHECKING:
 	from basilisk.presenters.update_presenter import (
 		DownloadPresenter,
@@ -37,7 +39,7 @@ def show_release_notes(updater: BaseUpdater) -> None:
 	).Show()
 
 
-class DownloadUpdateDialog(wx.Dialog):
+class DownloadUpdateDialog(wx.Dialog, ErrorDisplayMixin):
 	"""Dialog for downloading a basiliskLLM update.
 
 	Acts as the IDownloadView for DownloadPresenter.  All download logic
@@ -180,7 +182,7 @@ class DownloadUpdateDialog(wx.Dialog):
 		self.presenter.on_release_notes_clicked()
 
 
-class UpdateDialog(wx.Dialog):
+class UpdateDialog(wx.Dialog, ErrorDisplayMixin):
 	"""Dialog for checking and initiating basiliskLLM updates.
 
 	Acts as the IUpdateView for UpdatePresenter.  All update-check

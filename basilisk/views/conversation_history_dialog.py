@@ -4,6 +4,7 @@ import logging
 
 import wx
 
+from basilisk.decorators import require_list_selection
 from basilisk.presenters.conversation_history_presenter import (
 	ConversationHistoryPresenter,
 )
@@ -182,20 +183,17 @@ class ConversationHistoryDialog(wx.Dialog):
 		else:
 			event.Skip()
 
+	@require_list_selection("list_ctrl")
 	def _on_open(self, event):
 		"""Open the selected conversation."""
 		index = self.list_ctrl.GetFirstSelected()
-		if index == -1:
-			return
 		self.selected_conv_id = self._conversations[index]["id"]
 		self.EndModal(wx.ID_OK)
 
+	@require_list_selection("list_ctrl")
 	def _on_delete(self, event):
 		"""Delete the selected conversation after confirmation."""
 		index = self.list_ctrl.GetFirstSelected()
-		if index == -1:
-			return
-
 		conv = self._conversations[index]
 		title = conv["title"] or _("Untitled conversation")
 		result = wx.MessageBox(

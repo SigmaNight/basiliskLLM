@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING
 import wx
 
 from basilisk.services.search_service import SearchDirection, SearchMode
+from basilisk.views.view_mixins import ErrorDisplayMixin
 
 if TYPE_CHECKING:
 	from basilisk.presenters.search_presenter import SearchPresenter
 
 
-class SearchDialog(wx.Dialog):
+class SearchDialog(wx.Dialog, ErrorDisplayMixin):
 	"""Dialog for searching text in a wx.TextCtrl."""
 
 	def __init__(
@@ -242,19 +243,6 @@ class SearchDialog(wx.Dialog):
 			# Translators: Search dialog result title
 			_("Search Result"),
 			wx.OK | wx.ICON_INFORMATION,
-		)
-
-	def show_error(self, msg: str) -> None:
-		"""Show an error message to the user.
-
-		Args:
-			msg: The error message.
-		"""
-		wx.MessageBox(
-			msg,
-			# Translators: Search dialog error title
-			_("Error"),
-			wx.OK | wx.ICON_ERROR,
 		)
 
 	def sync_history(

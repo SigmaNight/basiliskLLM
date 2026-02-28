@@ -6,6 +6,7 @@ from typing import Optional
 import wx
 
 from basilisk.config import ConversationProfile, conversation_profiles
+from basilisk.decorators import require_list_selection
 from basilisk.presenters.conversation_profile_presenter import (
 	ConversationProfilePresenter,
 	EditConversationProfilePresenter,
@@ -296,6 +297,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.on_list_item_selected(None)
 		dialog.Destroy()
 
+	@require_list_selection("list_profile_ctrl")
 	def on_edit(self, event: wx.Event | None):
 		"""Handle editing the selected conversation profile.
 
@@ -303,8 +305,6 @@ class ConversationProfileDialog(wx.Dialog):
 			event: The event that triggered the edit action.
 		"""
 		profile_index = self.current_profile_index
-		if profile_index is None:
-			return
 		dialog = EditConversationProfileDialog(
 			self,
 			# translator: dialog title
@@ -333,6 +333,7 @@ class ConversationProfileDialog(wx.Dialog):
 		else:
 			self.profile_detail_text.SetValue(profile.to_summary_text())
 
+	@require_list_selection("list_profile_ctrl")
 	def on_remove(self, event: wx.Event | None):
 		"""Handle removing the selected conversation profile.
 
@@ -340,8 +341,6 @@ class ConversationProfileDialog(wx.Dialog):
 			event: The event that triggered the remove action.
 		"""
 		profile = self.current_profile
-		if profile is None:
-			return
 		confirm_msg = wx.MessageBox(
 			# translators: Message box title for removing a conversation profile
 			_("Are you sure you want to remove the profile: %s?")
@@ -355,6 +354,7 @@ class ConversationProfileDialog(wx.Dialog):
 			self.update_ui()
 			self.on_list_item_selected(None)
 
+	@require_list_selection("list_profile_ctrl")
 	def on_default(self, event: wx.Event | None):
 		"""Handle setting the selected profile as the default profile.
 
@@ -362,8 +362,6 @@ class ConversationProfileDialog(wx.Dialog):
 			event: The event that triggered the default action.
 		"""
 		profile = self.current_profile
-		if profile is None:
-			return
 		self.presenter.set_default(profile)
 
 	def on_list_item_selected(self, event: wx.Event | None):

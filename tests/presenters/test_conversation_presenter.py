@@ -112,13 +112,11 @@ class TestOnCompletionError:
 		presenter._stored_prompt_text = "my prompt"
 		presenter._stored_attachments = []
 
-		with patch(
-			"basilisk.presenters.conversation_presenter.show_enhanced_error_dialog"
-		):
-			presenter._on_completion_error("test error")
+		presenter._on_completion_error("test error")
 
 		assert mock_view.prompt_panel.prompt_text == "my prompt"
 		assert presenter._stored_prompt_text is None
+		mock_view.show_enhanced_error.assert_called_once()
 
 
 class TestOnStreamStart:
@@ -342,13 +340,13 @@ class TestStartRecording:
 		"""start_recording returns silently when current_engine is None."""
 		mock_view.current_engine = None
 		presenter.start_recording()
-		mock_view.show_error_message.assert_not_called()
+		mock_view.show_error.assert_not_called()
 
 	def test_shows_error_when_stt_not_supported(self, presenter, mock_view):
-		"""start_recording calls view.show_error_message when STT unsupported."""
+		"""start_recording calls view.show_error when STT unsupported."""
 		mock_view.current_engine.capabilities = set()  # no STT
 		presenter.start_recording()
-		mock_view.show_error_message.assert_called_once()
+		mock_view.show_error.assert_called_once()
 
 	def test_calls_transcribe_when_stt_supported(self, presenter, mock_view):
 		"""start_recording calls transcribe_audio_file when STT is available."""
@@ -362,7 +360,7 @@ class TestStartRecording:
 			presenter.start_recording()
 
 		mock_transcribe.assert_called_once_with()
-		mock_view.show_error_message.assert_not_called()
+		mock_view.show_error.assert_not_called()
 
 
 class TestTranscribeAudioFile:
@@ -421,7 +419,7 @@ class TestGenerateConversationTitle:
 			result = presenter.generate_conversation_title()
 
 		assert result is None
-		mock_view.show_error_message.assert_called_once()
+		mock_view.show_error.assert_called_once()
 
 	def test_returns_none_when_no_messages(self, presenter):
 		"""Returns None silently when conversation has no messages."""
@@ -467,15 +465,10 @@ class TestGenerateConversationTitle:
 		presenter.conversation.add_block(block, None)
 		mock_service.generate_title.return_value = None
 
-		with (
-			patch.object(
-				presenter.completion_handler, "is_running", return_value=False
-			),
-			patch(
-				"basilisk.presenters.conversation_presenter.show_enhanced_error_dialog"
-			) as mock_dlg,
+		with patch.object(
+			presenter.completion_handler, "is_running", return_value=False
 		):
 			result = presenter.generate_conversation_title()
 
 		assert result is None
-		mock_dlg.assert_called_once()
+		mock_view.show_enhanced_error.assert_called_once()

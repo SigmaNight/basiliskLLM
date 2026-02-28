@@ -17,6 +17,7 @@ from basilisk.presenters.ocr_presenter import OCRPresenter
 
 from .enhanced_error_dialog import show_enhanced_error_dialog
 from .progress_bar_dialog import ProgressBarDialog
+from .view_mixins import ErrorDisplayMixin
 
 if TYPE_CHECKING:
 	from .conversation_tab import ConversationTab
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class OCRHandler:
+class OCRHandler(ErrorDisplayMixin):
 	"""Thin view wrapper for OCR operations.
 
 	Creates OCRPresenter and implements the IOCRView interface so that
@@ -155,16 +156,32 @@ class OCRHandler:
 		"""Clean up OCR resources by delegating to the presenter."""
 		self._presenter.cleanup()
 
-	def show_error(self, message: str, title: str) -> None:
-		"""Display an error dialog.
+	def show_enhanced_error(
+		self, message: str, title: str = None, is_completion_error: bool = False
+	) -> None:
+		"""Display the enhanced error dialog using the parent tab as window.
+
+		Overrides ``ErrorDisplayMixin.show_enhanced_error`` to pass
+		``self.parent`` (the owning ``ConversationTab``) as the wx parent
+		window, since ``OCRHandler`` itself is not a ``wx.Window``.
+
+		Args:
+			message: The error message.
+			title: Dialog title.
+			is_completion_error: Passed through to the dialog.
+		"""
+		show_enhanced_error_dialog(
+			self.parent, message, title, is_completion_error
+		)
+
+	def show_error(self, message: str, title: str = None) -> None:
+		"""Display an enhanced error dialog for OCR errors.
+
+		Overrides ``ErrorDisplayMixin.show_error`` to route all simple
+		errors through the enhanced dialog.
 
 		Args:
 			message: The error message.
 			title: The dialog title.
 		"""
-		show_enhanced_error_dialog(
-			parent=self.parent,
-			message=message,
-			title=title,
-			is_completion_error=False,
-		)
+		self.show_enhanced_error(message, title)

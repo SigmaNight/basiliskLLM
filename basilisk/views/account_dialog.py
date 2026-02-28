@@ -12,6 +12,7 @@ from basilisk.config import (
 	KeyStorageMethodEnum,
 	accounts,
 )
+from basilisk.decorators import require_list_selection
 from basilisk.presenters.account_presenter import (
 	AccountOrganizationPresenter,
 	AccountPresenter,
@@ -313,14 +314,13 @@ class AccountOrganizationDialog(wx.Dialog):
 			self.organization_list.GetItemCount() - 1
 		)
 
+	@require_list_selection("organization_list")
 	def on_edit(self, event: wx.Event | None):
 		"""Handle the Edit button click event.
 
 		Open the EditAccountOrganizationDialog to edit the selected organization.
 		"""
 		selected_item = self.organization_list.GetFirstSelected()
-		if selected_item == -1:
-			return
 		organization = self.presenter.organizations[selected_item]
 		dialog = EditAccountOrganizationDialog(
 			self, _("Edit organization"), organization
@@ -347,14 +347,13 @@ class AccountOrganizationDialog(wx.Dialog):
 		)
 		self.organization_list.EnsureVisible(selected_item)
 
+	@require_list_selection("organization_list")
 	def on_remove(self, event: wx.Event | None):
 		"""Handle the Remove button click event.
 
 		Remove the selected organization from the account.
 		"""
 		index = self.organization_list.GetFirstSelected()
-		if index == -1:
-			return
 		organization = self.presenter.organizations[index]
 		# Translators: A confirmation message in account dialog for removing organization
 		msg = _("Are you sure you want to remove the organization {}?").format(
@@ -915,6 +914,7 @@ class AccountDialog(wx.Dialog):
 		self.account_list.EnsureVisible(self.account_list.GetItemCount() - 1)
 		self.update_ui()
 
+	@require_list_selection("account_list")
 	def on_edit(self, event: wx.Event | None):
 		"""Handle the Edit button click event.
 
@@ -924,8 +924,6 @@ class AccountDialog(wx.Dialog):
 			event: The event that triggered the Edit button click.
 		"""
 		index = self.account_list.GetFirstSelected()
-		if index == -1:
-			return
 		account = self.account_manager[index]
 		if account.source == AccountSource.ENV_VAR:
 			msg = _("Cannot edit account from environment variable")
@@ -956,6 +954,7 @@ class AccountDialog(wx.Dialog):
 		self.account_list.EnsureVisible(index)
 		self.update_ui()
 
+	@require_list_selection("account_list")
 	def on_remove(self, event: wx.Event | None):
 		"""Handle the Remove button click event.
 
@@ -965,8 +964,6 @@ class AccountDialog(wx.Dialog):
 			event: The event that triggered the Remove button click.
 		"""
 		index = self.account_list.GetFirstSelected()
-		if index == -1:
-			return
 		account = self.account_manager[index]
 		account_name = account.name
 		# Translators: A confirmation message in account dialog
@@ -982,6 +979,7 @@ class AccountDialog(wx.Dialog):
 		self.presenter.remove_account(index)
 		self.account_list.DeleteItem(index)
 
+	@require_list_selection("account_list")
 	def on_default_account(self, event: wx.Event | None):
 		"""Handle the default account toggle button click event.
 
@@ -991,8 +989,6 @@ class AccountDialog(wx.Dialog):
 			event: The event that triggered the default account toggle button click.
 		"""
 		index = self.account_list.GetFirstSelected()
-		if index == -1:
-			return
 		self.presenter.set_default_account(index)
 		self.update_ui()
 
