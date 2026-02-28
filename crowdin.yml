@@ -5,6 +5,6 @@ preserve_hierarchy: true
 
 files:
   - source: basiliskLLM.pot
-    translation: basilisk/res/locale/%locale_with_underscore%/LC_MESSAGES/basiliskLLM.po
-  - source: basiliskLLM.pot
     translation: basilisk/res/locale/%two_letters_code%/LC_MESSAGES/basiliskLLM.po
+  - source: basiliskLLM.pot
+    translation: basilisk/res/locale/%locale_with_underscore%/LC_MESSAGES/basiliskLLM.po
