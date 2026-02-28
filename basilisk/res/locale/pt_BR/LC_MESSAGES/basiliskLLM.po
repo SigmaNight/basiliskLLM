@@ -14,7 +14,7 @@ msgstr ""
 "X-Crowdin-Project: basiliskllm\n"
 "X-Crowdin-Project-ID: 724543\n"
 "X-Crowdin-Language: pt_BR\n"
-"X-Crowdin-File: basiliskLLM.pot\n"
+"X-Crowdin-File: ba siliskLLM.pot\n"
 "X-Crowdin-File-ID: 2\n"
 "Language: pt_BR\n"
 
@@ -156,7 +156,6 @@ msgid "Name"
 msgstr "Nome"
 
 #. Translators: A label in account dialog
-790
 #: basilisk/gui/account_dialog.py:225
 msgid "Key"
 msgstr "Chave"
