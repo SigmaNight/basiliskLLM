@@ -1812,4 +1812,3 @@ msgstr "Економічно, швидше, ніж Grok 3 для чітко ви
 #: basilisk/provider_engine/xai_engine.py:111
 msgid "Multimodal image understanding with 32K context."
 msgstr "Розуміння мультимодального зображення з контекстом 32K."
-
