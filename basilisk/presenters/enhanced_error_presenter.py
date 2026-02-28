@@ -81,10 +81,20 @@ class EnhancedErrorPresenter:
 		Args:
 			url: The URL to open.
 		"""
+		log.info("Opening URL in browser: %s", url)
 		try:
-			log.info("Opening URL in browser: %s", url)
-			webbrowser.open(url)
-		except Exception as e:
-			log.error("Failed to open URL %s: %s", url, e)
-			self.view.bell()
-			self.view.set_open_url_state(_("Open failed"))
+			if not webbrowser.open(url):
+				self.fail_open_browser(url)
+		except Exception:
+			self.fail_open_browser(url, True)
+
+	def fail_open_browser(self, url: str, exc_info: bool = False):
+		"""Display user info when open browser fail.
+
+		Args:
+			url: The URL to open
+			exc_info: show exception traceback
+		"""
+		log.error("Failed to open URL %s", url, exc_info=exc_info)
+		self.view.bell()
+		self.view.set_open_url_state(_("Open failed"))
