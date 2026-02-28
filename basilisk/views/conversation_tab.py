@@ -217,9 +217,9 @@ class ConversationTab(wx.Panel, BaseConversation):
 			bskc_path: Path to a .bskc file.
 		"""
 		wx.Panel.__init__(self, parent)
-		self.account_model_service = AccountModelService()
+		_account_model_service = AccountModelService()
 		BaseConversation.__init__(
-			self, account_model_service=self.account_model_service
+			self, account_model_service=_account_model_service
 		)
 		self.title = title
 		self.SetStatusText = self.TopLevelParent.SetStatusText
