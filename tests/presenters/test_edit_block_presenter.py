@@ -171,6 +171,51 @@ class TestSaveBlock:
 		presenter.save_block()
 		assert conversation.messages[0].request.attachments is None
 
+	def test_calls_auto_save_to_db_on_success(self, mock_view, conversation):
+		"""save_block calls service.auto_save_to_db when service is provided."""
+		service = MagicMock()
+		p = EditBlockPresenter(
+			view=mock_view,
+			conversation=conversation,
+			block_index=0,
+			service=service,
+		)
+
+		result = p.save_block()
+
+		assert result is True
+		service.auto_save_to_db.assert_called_once_with(
+			conversation, conversation.messages[0]
+		)
+
+	def test_no_auto_save_on_validation_failure(self, mock_view, conversation):
+		"""save_block does not call auto_save_to_db when validation fails."""
+		service = MagicMock()
+		mock_view.current_account = None
+		p = EditBlockPresenter(
+			view=mock_view,
+			conversation=conversation,
+			block_index=0,
+			service=service,
+		)
+
+		result = p.save_block()
+
+		assert result is False
+		service.auto_save_to_db.assert_not_called()
+
+	def test_updated_at_refreshed_on_success(self, mock_view, conversation):
+		"""save_block updates block.updated_at to the current time."""
+		block = conversation.messages[0]
+		original_updated_at = block.updated_at
+		p = EditBlockPresenter(
+			view=mock_view, conversation=conversation, block_index=0
+		)
+
+		p.save_block()
+
+		assert block.updated_at >= original_updated_at
+
 
 # ---------------------------------------------------------------------------
 # start_regenerate

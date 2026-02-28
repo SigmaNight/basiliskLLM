@@ -8,6 +8,7 @@ start/stop/save interface used by the dialog.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import basilisk.config as config
@@ -23,6 +24,7 @@ from basilisk.presenters.presenter_mixins import DestroyGuardMixin
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
+	from basilisk.services.conversation_service import ConversationService
 	from basilisk.views.edit_block_dialog import EditBlockDialog
 
 log = logging.getLogger(__name__)
@@ -49,6 +51,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		view: EditBlockDialog,
 		conversation: Conversation,
 		block_index: int,
+		service: Optional[ConversationService] = None,
 	):
 		"""Initialise the presenter.
 
@@ -56,11 +59,13 @@ class EditBlockPresenter(DestroyGuardMixin):
 			view: The EditBlockDialog view instance.
 			conversation: The active conversation model.
 			block_index: Index of the block to edit in conversation.messages.
+			service: Optional conversation service for database persistence.
 		"""
 		self.view = view
 		self.conversation = conversation
 		self.block_index = block_index
 		self.block: MessageBlock = conversation.messages[block_index]
+		self.service = service
 
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_regenerate_start,
@@ -178,6 +183,10 @@ class EditBlockPresenter(DestroyGuardMixin):
 		# Update response if present
 		if self.block.response:
 			self.block.response.content = self.view.response_txt.GetValue()
+
+		self.block.updated_at = datetime.now()
+		if self.service is not None:
+			self.service.auto_save_to_db(self.conversation, self.block)
 
 		return True
 

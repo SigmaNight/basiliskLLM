@@ -81,7 +81,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.speak_response = parent.messages.speak_response
 
 		self.presenter = EditBlockPresenter(
-			self, parent.conversation, message_block_index
+			self, parent.conversation, message_block_index, parent.service
 		)
 
 		self.init_ui()
