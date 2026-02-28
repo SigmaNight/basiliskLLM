@@ -319,6 +319,8 @@ class AccountOrganizationDialog(wx.Dialog):
 		Open the EditAccountOrganizationDialog to edit the selected organization.
 		"""
 		selected_item = self.organization_list.GetFirstSelected()
+		if selected_item == -1:
+			return
 		organization = self.presenter.organizations[selected_item]
 		dialog = EditAccountOrganizationDialog(
 			self, _("Edit organization"), organization
@@ -351,6 +353,8 @@ class AccountOrganizationDialog(wx.Dialog):
 		Remove the selected organization from the account.
 		"""
 		index = self.organization_list.GetFirstSelected()
+		if index == -1:
+			return
 		organization = self.presenter.organizations[index]
 		# Translators: A confirmation message in account dialog for removing organization
 		msg = _("Are you sure you want to remove the organization {}?").format(
