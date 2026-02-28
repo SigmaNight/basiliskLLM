@@ -162,17 +162,17 @@ class TestAdjustUtf16Position:
 		result = adjust_utf16_position(text, 6)
 		assert result == 7
 
-	def test_reverse_zeroes_adjustment_bug(self):
-		"""reverse=True is documented to zero out the adjustment due to a bug.
+	def test_reverse_subtracts_adjustment(self):
+		"""reverse=True should subtract the surrogate offset (UTF-16 → Python).
 
-		The bug: ``count -= count`` always evaluates to 0, so reverse=True
-		suppresses the entire adjustment rather than reversing it. The position
-		is returned as-is, without any surrogate or newline correction.
+		For "\U0001f600abc" the emoji occupies two UTF-16 code units.
+		- forward (Python→UTF-16): position 1 → 2 (add 1 for the surrogate pair)
+		- reverse (UTF-16→Python): position 1 → 0 (subtract 1 for the surrogate pair)
 		"""
 		text = "\U0001f600abc"
-		# reverse=False: position 1 (after emoji) → adjusted to 2
+		# reverse=False: Python position 1 (after emoji) → UTF-16 position 2
 		result_forward = adjust_utf16_position(text, 1, reverse=False)
 		assert result_forward == 2
-		# reverse=True: count is zeroed out → position returned unchanged
+		# reverse=True: UTF-16 position 1 (inside emoji surrogate pair) → Python position 0
 		result_reverse = adjust_utf16_position(text, 1, reverse=True)
-		assert result_reverse == 1
+		assert result_reverse == 0

@@ -37,25 +37,19 @@ def adjust_utf16_position(
 	Args:
 		text: The input string.
 		position: The original position in the string.
-		reverse: If True, the function is intended to adjust the position in
-			the reverse direction. Note: due to a bug ``count -= count``
-			always zeroes the count, so ``reverse=True`` returns *position*
-			unchanged (i.e. the adjustment is fully suppressed rather than
-			reversed).
+		reverse: If True, subtract the surrogate-pair and newline offsets
+			instead of adding them, converting a UTF-16 code-unit index
+			back to a Python character index.
 
 	Returns:
 		The adjusted position reflecting the presence of surrogate pairs.
 	"""
 	relevant_text = text[:position]
 	count_high_surrogates = sum(1 for c in relevant_text if ord(c) >= 0x10000)
-	if reverse:
-		# Bug: subtracting a variable from itself always yields 0, so the
-		# intended reverse adjustment is never applied.
-		count_high_surrogates -= count_high_surrogates
 	count_line_breaks = sum(1 for c in relevant_text if c == "\n")
 	if reverse:
-		# Bug: same zero-out as above.
-		count_line_breaks -= count_line_breaks
+		count_high_surrogates = -count_high_surrogates
+		count_line_breaks = -count_line_breaks
 	return position + count_high_surrogates + count_line_breaks
 
 
