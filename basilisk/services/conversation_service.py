@@ -107,28 +107,32 @@ class ConversationService:
 			and self.db_conv_id is not None
 		)
 
-	def set_private(self, private: bool) -> bool:
+	def set_private(self, private: bool) -> tuple[bool, bool]:
 		"""Set the private flag. If enabling, delete conversation from DB.
 
 		Args:
 			private: Whether the conversation should be private.
 
 		Returns:
-			True if the draft timer should be stopped (i.e. going private
-			with an existing DB record), False otherwise.
+			A tuple of (success, should_stop_timer). success is False when a
+			DB deletion was required but failed; the private flag and
+			db_conv_id are left unchanged so the caller can retry or notify
+			the user. should_stop_timer is True only on a successful
+			transition to private with an existing DB record.
 		"""
-		self.private = private
 		should_stop_timer = False
 		if private and self.db_conv_id is not None:
-			should_stop_timer = True
 			try:
 				self._get_conv_db().delete_conversation(self.db_conv_id)
+				self.db_conv_id = None
+				should_stop_timer = True
 			except Exception:
 				log.error(
 					"Failed to delete conversation from DB", exc_info=True
 				)
-			self.db_conv_id = None
-		return should_stop_timer
+				return False, False
+		self.private = private
+		return True, should_stop_timer
 
 	def save_conversation(
 		self,

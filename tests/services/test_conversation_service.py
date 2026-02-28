@@ -142,7 +142,8 @@ class TestSetPrivate:
 	def test_deletes_from_db(self, service, mock_conv_db):
 		"""Going private should delete the conversation from DB."""
 		service.db_conv_id = 5
-		should_stop = service.set_private(True)
+		success, should_stop = service.set_private(True)
+		assert success is True
 		assert should_stop is True
 		mock_conv_db.delete_conversation.assert_called_once_with(5)
 		assert service.db_conv_id is None
@@ -150,9 +151,22 @@ class TestSetPrivate:
 
 	def test_no_delete_when_no_db_id(self, service, mock_conv_db):
 		"""Going private without a DB ID should not call delete."""
-		should_stop = service.set_private(True)
+		success, should_stop = service.set_private(True)
+		assert success is True
 		assert should_stop is False
 		mock_conv_db.delete_conversation.assert_not_called()
+
+	def test_delete_failure_retains_id_and_reverts_flag(
+		self, service, mock_conv_db
+	):
+		"""Failed DB deletion must not clear db_conv_id or set private."""
+		service.db_conv_id = 7
+		mock_conv_db.delete_conversation.side_effect = OSError("db error")
+		success, should_stop = service.set_private(True)
+		assert success is False
+		assert should_stop is False
+		assert service.db_conv_id == 7
+		assert service.private is False
 
 
 class TestGenerateTitle:

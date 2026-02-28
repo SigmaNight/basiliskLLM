@@ -632,7 +632,19 @@ class ConversationTab(wx.Panel, BaseConversation):
 		Args:
 			private: Whether the conversation should be private.
 		"""
-		if self.service.set_private(private):
+		success, should_stop_timer = self.service.set_private(private)
+		if not success:
+			self.show_error_message(
+				# Translators: Error shown when a conversation cannot be made private
+				_(
+					"Failed to switch the conversation to private mode:"
+					" the existing database record could not be deleted."
+				),
+				# Translators: Error dialog title
+				_("Error"),
+			)
+			return
+		if should_stop_timer:
 			self.stop_draft_timer()
 
 	def _is_widget_valid(self, widget_name: str | None = None) -> bool:
