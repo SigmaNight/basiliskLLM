@@ -34,7 +34,7 @@ class TestAttachmentFileCreation:
 			AttachmentFile(location=test_file_path)
 
 	@pytest.mark.parametrize(
-		"file_path,expected_type",
+		("file_path", "expected_type"),
 		[
 			(
 				lambda tmp_path: UPath(tmp_path) / "test.txt",
@@ -92,7 +92,7 @@ class TestAttachmentFileProperties:
 		assert str(text_file) in location
 
 	@pytest.mark.parametrize(
-		"content_size,expected_display",
+		("content_size", "expected_display"),
 		[
 			(500, "500 B"),
 			(1024, "1.00 KB"),
@@ -113,7 +113,7 @@ class TestAttachmentFileProperties:
 		assert attachment.display_size == expected_display
 
 	@pytest.mark.parametrize(
-		"file_name,expected_mime",
+		("file_name", "expected_mime"),
 		[
 			("test.txt", "text/plain"),
 			("test.jpg", "image/jpeg"),
@@ -383,7 +383,7 @@ class TestImageResizing:
 		return folder
 
 	@pytest.mark.parametrize(
-		"img_width,img_height,quality,final_size",
+		("img_width", "img_height", "quality", "final_size"),
 		[
 			(200, 100, 85, None),  # Same size, no resize
 			(50, 25, 85, (50, 25)),  # Smaller size, resize
@@ -492,7 +492,7 @@ class TestURLAndFormatting:
 		assert "..." in data_attachment.display_location  # Should be truncated
 
 	@pytest.mark.parametrize(
-		"mime_type,expected_wildcard",
+		("mime_type", "expected_wildcard"),
 		[
 			({"image/jpeg"}, "*.jpg;*.jpe;*.jpeg;*.jfif"),
 			({"image/jpeg", "image/png"}, "*.jpg;*.jpe;*.jpeg;*.jfif;*.png"),
@@ -607,7 +607,7 @@ class TestAttachmentFileReadMethods:
 		assert binary_content == test_content.encode("utf-8")
 
 	@pytest.mark.parametrize(
-		"file_content,expected_size",
+		("file_content", "expected_size"),
 		[
 			("", 0),  # Empty file
 			("a", 1),  # Single character

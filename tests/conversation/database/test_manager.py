@@ -329,7 +329,7 @@ class TestDeleteConversation:
 		conv_id = db_manager.save_conversation(conversation_with_blocks)
 		db_manager.delete_conversation(conv_id)
 
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"not found"):
 			db_manager.load_conversation(conv_id)
 
 	def test_delete_nonexistent(self, db_manager):
