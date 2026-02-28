@@ -118,25 +118,29 @@ class MainFramePresenter:
 
 	def on_new_default_conversation(self):
 		"""Create a new conversation with the default profile."""
-		self.handle_no_account_configured()
-		profile = config.conversation_profiles().default_profile
-		if profile:
-			log.info(
-				"Creating a new conversation with default profile (%s)",
-				profile.name,
-			)
-		self.new_conversation(profile)
+		self._new_conversation_from_default_profile()
 
 	def on_new_private_conversation(self):
 		"""Create a new private conversation with the default profile."""
+		self._new_conversation_from_default_profile(private=True)
+
+	def _new_conversation_from_default_profile(
+		self, private: bool = False
+	) -> None:
+		"""Resolve the default profile and open a new conversation.
+
+		Args:
+			private: If True, mark the conversation as private.
+		"""
 		self.handle_no_account_configured()
 		profile = config.conversation_profiles().default_profile
 		if profile:
 			log.info(
-				"Creating a new private conversation with default profile (%s)",
+				"Creating a new %sconversation with default profile (%s)",
+				"private " if private else "",
 				profile.name,
 			)
-		self.new_conversation(profile, private=True)
+		self.new_conversation(profile, private=private)
 
 	def new_conversation(
 		self, profile: config.ConversationProfile | None, private: bool = False
