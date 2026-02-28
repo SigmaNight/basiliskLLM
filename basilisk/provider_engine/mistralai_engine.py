@@ -86,90 +86,106 @@ class MistralAIEngine(BaseEngine):
 		"""
 		super().models
 		log.debug("Getting MistralAI models")
-		# See <https://docs.mistral.ai/getting-started/models/models_overview/>
+		# See <https://docs.mistral.ai/models/>
 		return [
 			ProviderAIModel(
-				id="ministral-3b-latest",
-				name="Ministral 3B",
-				# Translators: This is a model description
-				description=_("World's best edge model"),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="ministral-8b-latest",
-				name="Ministral 8B",
+				id="mistral-large-2512",
+				name="Mistral Large 3",
 				# Translators: This is a model description
 				description=_(
-					"Powerful edge model with extremely high performance/price ratio"
+					"State-of-the-art open-weight general-purpose multimodal model"
+				),
+				context_window=256000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="mistral-medium-2508",
+				name="Mistral Medium 3.1",
+				# Translators: This is a model description
+				description=_(
+					"Frontier-class multimodal model released August 2025"
 				),
 				context_window=128000,
 				max_temperature=1.0,
 				default_temperature=0.7,
+				vision=True,
 			),
 			ProviderAIModel(
-				id="mistral-large-latest",
-				name="Mistral Large",
+				id="mistral-small-2506",
+				name="Mistral Small 3.2",
 				# Translators: This is a model description
-				description=_(
-					"Our top-tier reasoning model for high-complexity tasks with the latest version v2 released July 2024"
-				),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="pixtral-large-latest",
-				name="Pixtral Large",
-				# Translators: This is a model description
-				description=_(
-					"Our frontier-class multimodal model released November 2024"
-				),
+				description=_("Updated small model released June 2025"),
 				context_window=131000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 				vision=True,
 			),
 			ProviderAIModel(
-				id="mistral-small-latest",
-				name="Mistral Small",
+				id="devstral-2512",
+				name="Devstral 2",
 				# Translators: This is a model description
 				description=_(
-					"Our latest enterprise-grade small model with the lastest version v2 released September 2024"
-				),
-				context_window=32000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="devstral-small-latest",
-				name="Devstral Small",
-				# Translators: This is a model description
-				description=_(
-					"A 24B text model, open source model that excels at using tools to explore codebases, editing multiple files and power software engineering agents."
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="codestral-latest",
-				name="Codestral",
-				# Translators: This is a model description
-				description=_(
-					"Our cutting-edge language model for coding released May 2024"
+					"Frontier code agents model for software engineering tasks"
 				),
 				context_window=256000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),
 			ProviderAIModel(
-				id="pixtral-12b-2409",
-				name="Pixtral",
+				id="ministral-14b-2512",
+				name="Ministral 3 14B",
 				# Translators: This is a model description
 				description=_(
-					"A 12B model with image understanding capabilities in addition to text"
+					"Powerful model with best-in-class text and vision capabilities"
+				),
+				context_window=256000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="ministral-8b-2512",
+				name="Ministral 3 8B",
+				# Translators: This is a model description
+				description=_(
+					"Efficient model with best-in-class text and vision capabilities"
+				),
+				context_window=256000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="ministral-3b-2512",
+				name="Ministral 3 3B",
+				# Translators: This is a model description
+				description=_(
+					"Tiny efficient model with best-in-class text and vision capabilities"
+				),
+				context_window=256000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+				vision=True,
+			),
+			ProviderAIModel(
+				id="codestral-2508",
+				name="Codestral",
+				# Translators: This is a model description
+				description=_(
+					"Cutting-edge language model for code completion"
+				),
+				context_window=256000,
+				max_temperature=1.0,
+				default_temperature=0.7,
+			),
+			ProviderAIModel(
+				id="pixtral-large-2411",
+				name="Pixtral Large",
+				# Translators: This is a model description
+				description=_(
+					"Frontier-class multimodal model released November 2024"
 				),
 				context_window=131000,
 				max_temperature=1.0,
@@ -178,23 +194,12 @@ class MistralAIEngine(BaseEngine):
 			),
 			ProviderAIModel(
 				id="open-mistral-nemo",
-				name="Mistral Nemo",
+				name="Mistral Nemo 12B",
 				# Translators: This is a model description
 				description=_(
-					"A 12B model built with the partnership with Nvidia. It is easy to use and a drop-in replacement in any system using Mistral 7B that it supersedes"
+					"Best multilingual open source model for text generation"
 				),
 				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="mistral-saba-latest",
-				name="Mistral Saba",
-				# Translators: This is a model description
-				description=_(
-					"A powerful and efficient model for languages from the Middle East and South Asia. "
-				),
-				context_window=32000,
 				max_temperature=1.0,
 				default_temperature=0.7,
 			),

@@ -485,7 +485,7 @@ class ConversationPresenter:
 			temperature=self.view.temperature_spinner.GetValue(),
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=self.view.stream_mode.GetValue(),
+			stream=True,  # Required for Anthropic: long requests must use streaming
 		)
 		if title is None and self.conversation.messages:
 			show_enhanced_error_dialog(

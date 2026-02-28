@@ -127,11 +127,25 @@ class MainFramePresenter:
 			)
 		self.new_conversation(profile)
 
-	def new_conversation(self, profile: config.ConversationProfile | None):
+	def on_new_private_conversation(self):
+		"""Create a new private conversation with the default profile."""
+		self.handle_no_account_configured()
+		profile = config.conversation_profiles().default_profile
+		if profile:
+			log.info(
+				"Creating a new private conversation with default profile (%s)",
+				profile.name,
+			)
+		self.new_conversation(profile, private=True)
+
+	def new_conversation(
+		self, profile: config.ConversationProfile | None, private: bool = False
+	):
 		"""Create a new conversation tab with the specified profile.
 
 		Args:
 			profile: The conversation profile to use, or None for default.
+			private: If True, mark the conversation as private.
 		"""
 		from basilisk.views.conversation_tab import ConversationTab
 
@@ -140,6 +154,8 @@ class MainFramePresenter:
 			title=self.get_default_conv_title(),
 			profile=profile,
 		)
+		if private:
+			new_tab.set_private(True)
 		self.view.add_conversation_tab(new_tab)
 
 	def open_conversation(self, file_path: str):

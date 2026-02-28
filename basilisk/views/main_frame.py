@@ -93,6 +93,16 @@ class MainFrame(wx.Frame):
 		self.Bind(
 			wx.EVT_MENU, self.on_new_default_conversation, new_conversation_item
 		)
+		new_private_conversation_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to create a new private conversation
+			_("New private conversation") + "\tCtrl+Shift+N",
+		)
+		self.Bind(
+			wx.EVT_MENU,
+			self.on_new_private_conversation,
+			new_private_conversation_item,
+		)
 		self.new_conversation_profile_item: wx.MenuItem = conversation_menu.AppendSubMenu(
 			self.build_profile_menu(self.on_new_conversation),
 			# Translators: A label for a menu item to create a new conversation from a profile
@@ -416,6 +426,14 @@ class MainFrame(wx.Frame):
 		"""
 		self.presenter.on_new_default_conversation()
 
+	def on_new_private_conversation(self, event: wx.Event | None):
+		"""Create a new private conversation tab.
+
+		Args:
+			event: The triggering event. Can be None.
+		"""
+		self.presenter.on_new_private_conversation()
+
 	def on_new_conversation(self, event: wx.Event):
 		"""Create a new conversation with the selected profile.
 
@@ -657,6 +675,10 @@ class MainFrame(wx.Frame):
 		if not current_tab:
 			return
 		tab_title = current_tab.conversation.title or current_tab.title
+		if current_tab.private:
+			# Translators: Label appended to window title when conversation is private
+			private_label = _("private")
+			tab_title = f"{tab_title} ({private_label})"
 		self.SetTitle(f"{tab_title} - {APP_NAME}")
 
 	def refresh_tabs(self):
