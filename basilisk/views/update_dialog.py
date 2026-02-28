@@ -146,12 +146,16 @@ class DownloadUpdateDialog(wx.Dialog):
 		Args:
 			msg: The error description.
 		"""
-		wx.MessageDialog(
+		dlg = wx.MessageDialog(
 			self,
 			# Translators: Error message shown when update download fails
 			_("Error downloading update: %s") % msg,
 			style=wx.OK | wx.ICON_ERROR,
-		).ShowModal()
+		)
+		try:
+			dlg.ShowModal()
+		finally:
+			dlg.Destroy()
 		self.close()
 
 	def open_release_notes(self) -> None:
@@ -159,8 +163,8 @@ class DownloadUpdateDialog(wx.Dialog):
 		show_release_notes(self.presenter.updater)
 
 	def close(self) -> None:
-		"""Destroy the dialog (ends modal loop if active)."""
-		self.Destroy()
+		"""End the modal loop; the caller is responsible for Destroy."""
+		self.EndModal(wx.ID_CANCEL)
 
 	# ------------------------------------------------------------------
 	# Event handlers
@@ -332,12 +336,16 @@ class UpdateDialog(wx.Dialog):
 		Args:
 			msg: The error description.
 		"""
-		wx.MessageDialog(
+		dlg = wx.MessageDialog(
 			self,
 			# Translators: Error message shown when update check fails
 			_("Error checking for updates: %s") % msg,
 			style=wx.OK | wx.ICON_ERROR,
-		).ShowModal()
+		)
+		try:
+			dlg.ShowModal()
+		finally:
+			dlg.Destroy()
 
 	def start_download(self, updater: BaseUpdater) -> None:
 		"""Spawn a DownloadUpdateDialog and run it modal.
@@ -350,14 +358,17 @@ class UpdateDialog(wx.Dialog):
 		dlg = DownloadUpdateDialog(
 			parent=self.Parent, title=_("Downloading update")
 		)
-		# Store latest_version for the update_label
-		dlg.update_label.SetLabel(
-			_("Update basiliskLLM version: %s") % updater.latest_version
-		)
-		pres = DownloadPresenter(view=dlg, updater=updater)
-		dlg.presenter = pres
-		pres.start()
-		dlg.ShowModal()
+		try:
+			# Store latest_version for the update_label
+			dlg.update_label.SetLabel(
+				_("Update basiliskLLM version: %s") % updater.latest_version
+			)
+			pres = DownloadPresenter(view=dlg, updater=updater)
+			dlg.presenter = pres
+			pres.start()
+			dlg.ShowModal()
+		finally:
+			dlg.Destroy()
 
 	def open_release_notes(self) -> None:
 		"""Display the release notes HTML window."""
