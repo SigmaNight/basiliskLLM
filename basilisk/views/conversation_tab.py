@@ -460,18 +460,6 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				self.prompt_panel.attachment_files = []
 			self.prompt_panel.refresh_attachments_list()
 
-	def extract_text_from_message(self, content: str) -> str:
-		"""Extract text content from a message.
-
-		Args:
-			content: The message content.
-
-		Returns:
-			The extracted text content.
-		"""
-		if isinstance(content, str):
-			return content
-
 	def refresh_messages(
 		self, need_clear: bool = True, preserve_prompt: bool = False
 	):
