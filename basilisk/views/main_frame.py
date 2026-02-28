@@ -414,7 +414,7 @@ class MainFrame(wx.Frame):
 		"""
 		self.tabs_panels.append(new_tab)
 		self.notebook.AddPage(self.tabs_panels[-1], new_tab.title, select=True)
-		self.refresh_frame_title()
+		self.refresh_tab_title(include_frame=True)
 
 	# -- Delegating event handlers (to presenter) --
 
@@ -665,6 +665,9 @@ class MainFrame(wx.Frame):
 		if not current_tab:
 			return
 		title = current_tab.conversation.title or current_tab.title
+		if current_tab.private:
+			# Translators: Label appended to tab title when conversation is private
+			title = f"{title} ({_('private')})"
 		self.notebook.SetPageText(self.notebook.GetSelection(), title)
 		if include_frame:
 			self.refresh_frame_title()

@@ -446,6 +446,7 @@ class MainFramePresenter:
 		if not tab:
 			return
 		tab.set_private(not tab.private)
+		self.view.refresh_tab_title(include_frame=True)
 
 	# -- NVDA addon --
 
