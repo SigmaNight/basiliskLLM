@@ -49,13 +49,34 @@ class TestLoadConversations:
 			search="hello", limit=50, offset=100
 		)
 
-	def test_returns_empty_list_on_error(self, presenter, mock_conv_db):
-		"""load_conversations should return [] when the DB raises."""
+	def test_propagates_db_error(self, presenter, mock_conv_db):
+		"""load_conversations should re-raise DB exceptions to the caller."""
 		mock_conv_db.list_conversations.side_effect = RuntimeError("DB error")
 
-		result = presenter.load_conversations()
+		with pytest.raises(RuntimeError, match="DB error"):
+			presenter.load_conversations()
 
-		assert result == []
+
+class TestGetConversationCount:
+	"""Tests for ConversationHistoryPresenter.get_conversation_count."""
+
+	def test_delegates_to_db(self, presenter, mock_conv_db):
+		"""get_conversation_count should call get_conversation_count on the DB."""
+		mock_conv_db.get_conversation_count.return_value = 7
+
+		result = presenter.get_conversation_count(search="hello")
+
+		mock_conv_db.get_conversation_count.assert_called_once_with("hello")
+		assert result == 7
+
+	def test_propagates_db_error(self, presenter, mock_conv_db):
+		"""get_conversation_count should re-raise DB exceptions to the caller."""
+		mock_conv_db.get_conversation_count.side_effect = RuntimeError(
+			"DB error"
+		)
+
+		with pytest.raises(RuntimeError, match="DB error"):
+			presenter.get_conversation_count()
 
 
 class TestDeleteConversation:

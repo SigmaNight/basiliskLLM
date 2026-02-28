@@ -239,10 +239,22 @@ class ConversationHistoryDialog(wx.Dialog):
 			self._conversations = []
 
 		search = self.search_ctrl.GetValue().strip() or None
-		new_convs = self.presenter.load_conversations(
-			search=search, limit=PAGE_SIZE, offset=self._offset
-		)
-		total = self.presenter.get_conversation_count(search)
+		try:
+			new_convs = self.presenter.load_conversations(
+				search=search, limit=PAGE_SIZE, offset=self._offset
+			)
+			total = self.presenter.get_conversation_count(search)
+		except Exception:
+			log.error("Failed to refresh conversation list", exc_info=True)
+			wx.MessageBox(
+				# Translators: Error shown when the conversation history cannot be loaded from the database
+				_("Failed to load conversation history from the database."),
+				# Translators: Title of the error dialog when loading conversation history fails
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+				self,
+			)
+			return
 
 		self._conversations.extend(new_convs)
 		for conv in new_convs:

@@ -49,15 +49,16 @@ class ConversationHistoryPresenter:
 			offset: Number of results to skip for pagination.
 
 		Returns:
-			A list of conversation dicts, or an empty list on error.
+			A list of conversation dicts.
+
+		Raises:
+			Exception: Re-raised from the database layer on any DB error so
+				the caller can distinguish a genuine failure from an empty
+				result set.
 		"""
-		try:
-			return self._get_conv_db().list_conversations(
-				search=search, limit=limit, offset=offset
-			)
-		except Exception:
-			log.error("Failed to load conversation list", exc_info=True)
-			return []
+		return self._get_conv_db().list_conversations(
+			search=search, limit=limit, offset=offset
+		)
 
 	def get_conversation_count(self, search: str | None = None) -> int:
 		"""Get the total number of conversations matching the search.
@@ -66,13 +67,14 @@ class ConversationHistoryPresenter:
 			search: Optional search string to filter conversations.
 
 		Returns:
-			The total count, or 0 on error.
+			The total count.
+
+		Raises:
+			Exception: Re-raised from the database layer on any DB error so
+				the caller can distinguish a genuine failure from a count of
+				zero.
 		"""
-		try:
-			return self._get_conv_db().get_conversation_count(search)
-		except Exception:
-			log.error("Failed to get conversation count", exc_info=True)
-			return 0
+		return self._get_conv_db().get_conversation_count(search)
 
 	def delete_conversation(self, conv_id: int) -> bool:
 		"""Delete a conversation from the database.
