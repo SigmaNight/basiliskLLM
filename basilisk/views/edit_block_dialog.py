@@ -54,6 +54,24 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.conversation: Conversation = parent.conversation
 		self.a_output = parent.messages.a_output
 		self.block_index = message_block_index
+		if not (0 <= self.block_index < len(self.conversation.messages)):
+			logger.warning(
+				"EditBlockDialog: block_index %d out of range (len=%d)",
+				self.block_index,
+				len(self.conversation.messages),
+			)
+			self.block = None
+			wx.MessageBox(
+				# Translators: Error shown when the message block to edit no longer exists
+				_("Message block %d no longer exists in the conversation.")
+				% self.block_index,
+				# Translators: Title of the error dialog when editing a message block fails
+				_("Error"),
+				wx.OK | wx.ICON_ERROR,
+				self,
+			)
+			wx.CallAfter(self.EndModal, wx.ID_CANCEL)
+			return
 		self.block = self.conversation.messages[self.block_index]
 		self.system_message: SystemMessage | None = None
 		if self.block.system_index is not None:
