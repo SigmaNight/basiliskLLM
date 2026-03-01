@@ -52,7 +52,7 @@ class ConversationService:
 
 	def auto_save_to_db(
 		self, conversation: Conversation, new_block: MessageBlock
-	):
+	) -> None:
 		"""Auto-save the conversation or new block to the database.
 
 		Args:
@@ -81,7 +81,7 @@ class ConversationService:
 				"Failed to auto-save conversation to database", exc_info=True
 			)
 
-	def update_db_title(self, title: Optional[str]):
+	def update_db_title(self, title: Optional[str]) -> None:
 		"""Update the conversation title in the database.
 
 		Args:
@@ -171,7 +171,7 @@ class ConversationService:
 		conversation: Conversation,
 		draft_block: Optional[MessageBlock],
 		system_msg: Optional[SystemMessage],
-	):
+	) -> None:
 		"""Save (or delete) the current draft in the database.
 
 		Args:

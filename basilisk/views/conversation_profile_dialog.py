@@ -55,7 +55,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 
 		label = wx.StaticText(
 			self,
-			# translators: Label for the name of a conversation profile
+			# Translators: Label for the name of a conversation profile
 			label=_("profile &name:"),
 		)
 		self.sizer.Add(label, 0, wx.ALL, 5)
@@ -68,7 +68,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.sizer.Add(self.account_combo, 0, wx.ALL | wx.EXPAND, 5)
 		self.include_account_checkbox = wx.CheckBox(
 			self,
-			# translators: Label for including an account in a conversation profile
+			# Translators: Label for including an account in a conversation profile
 			label=_("&Include account in profile"),
 		)
 		self.sizer.Add(self.include_account_checkbox, 0, wx.ALL, 5)
@@ -125,9 +125,9 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		result = self.presenter.validate_and_build_profile()
 		if result is None:
 			wx.MessageBox(
-				# translators: Message box title for a conversation profile name
+				# Translators: Message box title for a conversation profile name
 				_("Profile name cannot be empty"),
-				# translators: Message box title for a conversation profile name
+				# Translators: Message box title for a conversation profile name
 				_("Profile name error"),
 				style=wx.OK | wx.ICON_ERROR,
 			)
@@ -176,14 +176,14 @@ class ConversationProfileDialog(wx.Dialog):
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
 		label = wx.StaticText(
 			self.panel,
-			# translators: Label for the conversation profile dialog
+			# Translators: Label for the conversation profile dialog
 			label=_("Conversation &Profiles"),
 		)
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.list_profile_ctrl = wx.ListCtrl(self.panel, style=wx.LC_REPORT)
 		self.list_profile_ctrl.InsertColumn(
 			0,
-			# translators: Column header for the name of a conversation profile
+			# Translators: Column header for the name of a conversation profile
 			_("Profile name"),
 			width=140,
 		)
@@ -206,25 +206,25 @@ class ConversationProfileDialog(wx.Dialog):
 		self.profile_detail_text.Disable()
 		self.add_btn = wx.Button(
 			self.panel,
-			# translators: Button label to add a new conversation profile
+			# Translators: Button label to add a new conversation profile
 			label=_("&Add"),
 		)
 
 		self.edit_btn = wx.Button(
 			self.panel,
-			# translators: Button label to edit a conversation profile
+			# Translators: Button label to edit a conversation profile
 			label=_("&Edit"),
 		)
 		self.edit_btn.Disable()
 		self.remove_btn = wx.Button(
 			self.panel,
-			# translators: Button label to remove a conversation profile
+			# Translators: Button label to remove a conversation profile
 			label=_("&Remove"),
 		)
 		self.remove_btn.Disable()
 		self.default_btn = wx.ToggleButton(
 			self.panel,
-			# translators: Button label to set a conversation profile as the default
+			# Translators: Button label to set a conversation profile as the default
 			label=_("&Default Profile"),
 		)
 		self.default_btn.Disable()
@@ -288,7 +288,7 @@ class ConversationProfileDialog(wx.Dialog):
 		"""
 		dialog = EditConversationProfileDialog(
 			self,
-			# translators: Dialog title to add a new conversation profile
+			# Translators: Dialog title to add a new conversation profile
 			title=_("Add Conversation Profile"),
 		)
 		if dialog.ShowModal() == wx.ID_OK:
@@ -307,7 +307,7 @@ class ConversationProfileDialog(wx.Dialog):
 		profile_index = self.current_profile_index
 		dialog = EditConversationProfileDialog(
 			self,
-			# translator: dialog title
+			# Translators: dialog title
 			_("Edit Conversation Profile"),
 			profile=self.profiles[profile_index],
 		)
@@ -342,10 +342,10 @@ class ConversationProfileDialog(wx.Dialog):
 		"""
 		profile = self.current_profile
 		confirm_msg = wx.MessageBox(
-			# translators: Message box title for removing a conversation profile
+			# Translators: Message box title for removing a conversation profile
 			_("Are you sure you want to remove the profile: %s?")
 			% profile.name,
-			# translators: Message box title for removing a conversation profile
+			# Translators: Message box title for removing a conversation profile
 			_("Remove Profile %s") % profile.name,
 			style=wx.YES_NO | wx.ICON_QUESTION,
 		)

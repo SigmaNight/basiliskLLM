@@ -145,9 +145,9 @@ class PromptAttachmentPresenter:
 				if attachment is None:
 					self.view.show_error(
 						_(
-							"This attachment format is not supported by the current provider. Source:"
+							"This attachment format is not supported by the current provider. Source: \n%s"
 						)
-						+ f"\n{path}"
+						% path
 					)
 					continue
 				self.attachment_files.append(attachment)
@@ -225,7 +225,7 @@ class PromptAttachmentPresenter:
 			)
 			return
 
-		wildcard = _("All supported formats") + f" ({wildcard})|{wildcard}"
+		wildcard = _("All supported formats (%s)|(%s)") % (wildcard, wildcard)
 		paths = self.view.show_file_dialog(wildcard)
 		if paths:
 			self.add_attachments(paths)

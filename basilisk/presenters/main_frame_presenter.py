@@ -372,11 +372,11 @@ class MainFramePresenter:
 		if config.accounts():
 			return
 		first_account_msg = wx.MessageBox(
-			# translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
+			# Translators: This message is displayed when no account is configured and the user tries to use the conversation tab.
 			_(
 				"Please add an account first. Do you want to add an account now?"
 			),
-			# translators: This is a title for the message box
+			# Translators: This is a title for the message box
 			_("No account configured"),
 			wx.YES_NO | wx.ICON_QUESTION,
 		)
