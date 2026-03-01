@@ -93,6 +93,9 @@ class PromptAttachmentPresenter:
 		Args:
 			attachment: The attachment object to remove.
 		"""
+		if attachment not in self.attachment_files:
+			log.debug("remove_attachment: attachment not found, ignoring")
+			return
 		self.attachment_files.remove(attachment)
 
 	def refresh_view(self) -> None:
@@ -234,7 +237,7 @@ class PromptAttachmentPresenter:
 				_("This provider does not support any attachment formats.")
 			)
 			return
-
+		# Translators: File dialog filter label. %s is replaced with file extensions like "*.png;*.jpg"
 		wildcard = _("All supported formats (%s)|(%s)") % (wildcard, wildcard)
 		paths = self.view.show_file_dialog(wildcard)
 		if paths:
@@ -247,6 +250,7 @@ class PromptAttachmentPresenter:
 			return
 
 		if not re.fullmatch(URL_PATTERN, url):
+			# Translators: Error when user enters an invalid URL in the attachment URL dialog
 			self.view.show_error(_("Invalid URL format."))
 			return
 
@@ -275,6 +279,7 @@ class PromptAttachmentPresenter:
 			self.attachment_files, supported_attachment_formats
 		)
 		for location in invalid_locations:
+			# Translators: Error when attachment MIME type is not supported. %s is the file path.
 			self.view.show_error(
 				_(
 					"This attachment format is not supported by the current provider. Source: %s"
@@ -296,6 +301,7 @@ class PromptAttachmentPresenter:
 			The model if compatible, None otherwise.
 		"""
 		if not current_model:
+			# Translators: Error when user tries to check attachment compatibility without selecting a model
 			self.view.show_error(_("Please select a model"))
 			return None
 		if not self.current_engine:
