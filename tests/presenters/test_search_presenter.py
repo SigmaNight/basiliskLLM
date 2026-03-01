@@ -282,7 +282,7 @@ class TestSearchPresenterOnFind:
 
 	def test_case_insensitive_by_default(self):
 		"""Case-insensitive search matches mixed-case text."""
-		text = "Hello World"
+		text = "Say Hello"
 		view = _make_view(
 			search_text="hello",
 			direction=SearchDirection.FORWARD,
@@ -291,7 +291,8 @@ class TestSearchPresenterOnFind:
 		target = _make_target(text=text, pos=0)
 		p = SearchPresenter(view=view, target=target)
 		p.on_find()
-		view.show_not_found.assert_called_once()
+		view.show_not_found.assert_not_called()
+		target.set_selection.assert_called_once()
 
 	def test_case_insensitive_finds_match_after_cursor(self):
 		"""Case-insensitive search finds 'WORLD' with query 'world'."""

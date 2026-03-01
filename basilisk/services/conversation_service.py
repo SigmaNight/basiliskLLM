@@ -235,7 +235,7 @@ class ConversationService:
 				temperature=temperature,
 				top_p=top_p,
 				max_tokens=max_tokens,
-				stream=stream,
+				stream=False,
 			)
 			completion_kw = {
 				"system_message": None,

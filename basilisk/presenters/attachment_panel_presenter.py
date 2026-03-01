@@ -132,6 +132,7 @@ class PromptAttachmentPresenter:
 		log.debug("Adding attachments: %s", paths)
 
 		if not self.current_engine:
+			# Translators: Shown in the attachment panel when no engine/account is selected
 			self.view.show_error(
 				_("No engine available. Please select an account.")
 			)
@@ -218,6 +219,7 @@ class PromptAttachmentPresenter:
 	def on_add_files(self) -> None:
 		"""Open a file-picker dialog and add the selected files."""
 		if not self.current_engine:
+			# Translators: Shown in the attachment panel when no engine/account is selected
 			self.view.show_error(
 				_("No engine available. Please select an account.")
 			)
