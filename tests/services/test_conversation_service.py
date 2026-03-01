@@ -1,6 +1,6 @@
 """Tests for ConversationService."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -44,63 +44,58 @@ def conversation_with_block():
 
 
 @pytest.fixture(autouse=True)
-def mock_sounds():
+def mock_sounds(mocker):
 	"""Mock play_sound and stop_sound to prevent sound system init."""
-	with (
-		patch("basilisk.services.conversation_service.play_sound") as mock_play,
-		patch("basilisk.services.conversation_service.stop_sound") as mock_stop,
-	):
-		yield mock_play, mock_stop
+	mocker.patch("basilisk.services.conversation_service.play_sound")
+	mocker.patch("basilisk.services.conversation_service.stop_sound")
+
+
+@pytest.fixture
+def mock_config(mocker):
+	"""Patch config used by ConversationService."""
+	cfg = mocker.patch("basilisk.services.conversation_service.config")
+	cfg.conf.return_value.conversation.auto_save_to_db = True
+	return cfg
 
 
 class TestAutoSaveToDb:
 	"""Tests for auto_save_to_db."""
 
-	def test_skips_when_private(self, service, mock_conv_db):
-		"""Auto-save should be skipped when private mode is enabled."""
-		service.private = True
+	@pytest.mark.parametrize(
+		("is_private", "auto_save"),
+		[(True, True), (False, False)],
+		ids=["private", "config_off"],
+	)
+	def test_skips_auto_save(
+		self, service, mock_conv_db, mock_config, is_private, auto_save
+	):
+		"""auto_save_to_db is skipped when private mode or config disables it."""
+		service.private = is_private
+		mock_config.conf.return_value.conversation.auto_save_to_db = auto_save
 		conv = Conversation()
 		block = MessageBlock(
 			request=Message(role=MessageRoleEnum.USER, content="Hi"),
 			model=AIModelInfo(provider_id="openai", model_id="test"),
 		)
-		with patch("basilisk.services.conversation_service.config") as cfg:
-			cfg.conf.return_value.conversation.auto_save_to_db = True
-			service.auto_save_to_db(conv, block)
-		mock_conv_db.save_conversation.assert_not_called()
-
-	def test_skips_when_config_disabled(self, service, mock_conv_db):
-		"""Auto-save should be skipped when config disables it."""
-		conv = Conversation()
-		block = MessageBlock(
-			request=Message(role=MessageRoleEnum.USER, content="Hi"),
-			model=AIModelInfo(provider_id="openai", model_id="test"),
-		)
-		with patch("basilisk.services.conversation_service.config") as cfg:
-			cfg.conf.return_value.conversation.auto_save_to_db = False
-			service.auto_save_to_db(conv, block)
+		service.auto_save_to_db(conv, block)
 		mock_conv_db.save_conversation.assert_not_called()
 
 	def test_new_conversation_saves_full(
-		self, service, mock_conv_db, conversation_with_block
+		self, service, mock_conv_db, conversation_with_block, mock_config
 	):
 		"""First auto-save should save the full conversation."""
 		conv, block = conversation_with_block
-		with patch("basilisk.services.conversation_service.config") as cfg:
-			cfg.conf.return_value.conversation.auto_save_to_db = True
-			service.auto_save_to_db(conv, block)
+		service.auto_save_to_db(conv, block)
 		mock_conv_db.save_conversation.assert_called_once_with(conv)
 		assert service.db_conv_id == 42
 
 	def test_existing_conversation_saves_block(
-		self, service, mock_conv_db, conversation_with_block
+		self, service, mock_conv_db, conversation_with_block, mock_config
 	):
 		"""Subsequent auto-save should save only the new block."""
 		conv, block = conversation_with_block
 		service.db_conv_id = 10
-		with patch("basilisk.services.conversation_service.config") as cfg:
-			cfg.conf.return_value.conversation.auto_save_to_db = True
-			service.auto_save_to_db(conv, block)
+		service.auto_save_to_db(conv, block)
 		mock_conv_db.save_message_block.assert_called_once()
 		call_args = mock_conv_db.save_message_block.call_args
 		assert call_args[0][0] == 10  # db_conv_id
@@ -110,7 +105,7 @@ class TestAutoSaveToDb:
 class TestSaveConversation:
 	"""Tests for save_conversation."""
 
-	def test_saves_with_draft(self, service, tmp_path):
+	def test_saves_with_draft(self, service, tmp_path, mocker):
 		"""Save should include draft block and then remove it."""
 		conv = Conversation()
 		draft = MessageBlock(
@@ -118,20 +113,20 @@ class TestSaveConversation:
 			model=AIModelInfo(provider_id="openai", model_id="test"),
 		)
 		file_path = str(tmp_path / "test.bskc")
-		with patch.object(Conversation, "save"):
-			success, error = service.save_conversation(conv, file_path, draft)
+		mocker.patch.object(Conversation, "save")
+		success, error = service.save_conversation(conv, file_path, draft)
 		assert success is True
 		assert error is None
 		# Draft should be temporarily appended then removed
 		assert len(conv.messages) == 0
 
-	def test_returns_error_on_failure(self, service, tmp_path):
+	def test_returns_error_on_failure(self, service, tmp_path, mocker):
 		"""Save should return the exception on failure."""
 		conv = Conversation()
 		file_path = str(tmp_path / "test.bskc")
 		exc = OSError("disk full")
-		with patch.object(Conversation, "save", side_effect=exc):
-			success, error = service.save_conversation(conv, file_path)
+		mocker.patch.object(Conversation, "save", side_effect=exc)
+		success, error = service.save_conversation(conv, file_path)
 		assert success is False
 		assert error is exc
 
@@ -139,22 +134,25 @@ class TestSaveConversation:
 class TestSetPrivate:
 	"""Tests for set_private."""
 
-	def test_deletes_from_db(self, service, mock_conv_db):
-		"""Going private should delete the conversation from DB."""
-		service.db_conv_id = 5
+	@pytest.mark.parametrize(
+		("db_conv_id", "expected_should_stop"),
+		[(5, True), (None, False)],
+		ids=["with_id", "no_id"],
+	)
+	def test_set_private_success(
+		self, service, mock_conv_db, db_conv_id, expected_should_stop
+	):
+		"""Going private succeeds, deleting from DB if db_conv_id was set."""
+		service.db_conv_id = db_conv_id
 		success, should_stop = service.set_private(True)
 		assert success is True
-		assert should_stop is True
-		mock_conv_db.delete_conversation.assert_called_once_with(5)
+		assert should_stop is expected_should_stop
+		if db_conv_id:
+			mock_conv_db.delete_conversation.assert_called_once_with(db_conv_id)
+		else:
+			mock_conv_db.delete_conversation.assert_not_called()
 		assert service.db_conv_id is None
 		assert service.private is True
-
-	def test_no_delete_when_no_db_id(self, service, mock_conv_db):
-		"""Going private without a DB ID should not call delete."""
-		success, should_stop = service.set_private(True)
-		assert success is True
-		assert should_stop is False
-		mock_conv_db.delete_conversation.assert_not_called()
 
 	def test_delete_failure_retains_id_and_reverts_flag(
 		self, service, mock_conv_db

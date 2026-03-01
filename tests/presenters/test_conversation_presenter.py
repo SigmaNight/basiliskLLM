@@ -1,6 +1,6 @@
 """Tests for ConversationPresenter."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -17,41 +17,12 @@ from basilisk.services.conversation_service import ConversationService
 
 
 @pytest.fixture
-def mock_view():
+def mock_view(conversation_view_base):
 	"""Return a mock ConversationTab view with required attributes."""
-	view = MagicMock()
-	view.submit_btn = MagicMock()
+	view = conversation_view_base
 	view.submit_btn.IsEnabled.return_value = True
-	view.stop_completion_btn = MagicMock()
-	view.messages = MagicMock()
 	view.messages.should_speak_response = False
-	view.prompt_panel = MagicMock()
-	view.prompt_panel.prompt_text = ""
-	view.prompt_panel.attachment_files = []
-	view.prompt_panel.check_attachments_valid.return_value = True
-	view.system_prompt_txt = MagicMock()
-	view.system_prompt_txt.GetValue.return_value = ""
-	view.temperature_spinner = MagicMock()
-	view.temperature_spinner.GetValue.return_value = 0.5
-	view.top_p_spinner = MagicMock()
-	view.top_p_spinner.GetValue.return_value = 1.0
-	view.max_tokens_spin_ctrl = MagicMock()
-	view.max_tokens_spin_ctrl.GetValue.return_value = 100
-	view.stream_mode = MagicMock()
-	view.stream_mode.GetValue.return_value = True
-	view.web_search_mode = MagicMock()
 	view.web_search_mode.GetValue.return_value = False
-	view._is_destroying = False
-	view.toggle_record_btn = MagicMock()
-	view._draft_timer = MagicMock()
-	view.current_engine = MagicMock()
-	view.current_engine.capabilities = set()
-	view.current_account = MagicMock()
-	view.current_account.provider.id = "openai"
-	view.current_account.provider.engine_cls.capabilities = set()
-	view.current_model = MagicMock()
-	view.current_model.id = "gpt-4"
-	view.SetStatusText = MagicMock()
 	view.GetTopLevelParent.return_value.IsShown.return_value = False
 	return view
 
@@ -87,18 +58,19 @@ class TestOnSubmit:
 		presenter.on_submit()
 		mock_view.prompt_panel.set_prompt_focus.assert_called_once()
 
-	def test_stores_content_and_starts_completion(self, presenter, mock_view):
+	def test_stores_content_and_starts_completion(
+		self, presenter, mock_view, mocker
+	):
 		"""Submit with content should store prompt and start completion."""
 		mock_view.prompt_panel.prompt_text = "Hello"
 		mock_view.prompt_panel.attachment_files = []
 		mock_view.prompt_panel.ensure_model_compatibility.return_value = (
 			mock_view.current_model
 		)
-
-		with patch.object(
+		mock_start = mocker.patch.object(
 			presenter.completion_handler, "start_completion"
-		) as mock_start:
-			presenter.on_submit()
+		)
+		presenter.on_submit()
 
 		mock_view.prompt_panel.clear.assert_called_once_with(refresh=True)
 		mock_start.assert_called_once()
@@ -143,43 +115,43 @@ class TestOnStreamStart:
 class TestToggleRecording:
 	"""Tests for toggle_recording."""
 
-	def test_dispatches_start_when_not_recording(self, presenter, mock_view):
+	def test_dispatches_start_when_not_recording(
+		self, presenter, mock_view, mocker
+	):
 		"""Toggle should call start_recording when not already recording."""
 		presenter.recording_thread = None
+		mock_start = mocker.patch.object(presenter, "start_recording")
+		presenter.toggle_recording()
+		mock_start.assert_called_once()
 
-		with patch.object(presenter, "start_recording") as mock_start:
-			presenter.toggle_recording()
-			mock_start.assert_called_once()
-
-	def test_dispatches_stop_when_recording(self, presenter, mock_view):
+	def test_dispatches_stop_when_recording(self, presenter, mock_view, mocker):
 		"""Toggle should call stop_recording when already recording."""
 		mock_thread = MagicMock()
 		mock_thread.is_alive.return_value = True
 		presenter.recording_thread = mock_thread
-
-		with patch.object(presenter, "stop_recording") as mock_stop:
-			presenter.toggle_recording()
-			mock_stop.assert_called_once()
+		mock_stop = mocker.patch.object(presenter, "stop_recording")
+		presenter.toggle_recording()
+		mock_stop.assert_called_once()
 
 
 class TestBuildDraftBlock:
 	"""Tests for _build_draft_block guard conditions."""
 
-	def test_returns_none_when_no_account(self, presenter, mock_view):
-		"""_build_draft_block returns None when current_account is None."""
-		mock_view.current_account = None
-		assert presenter._build_draft_block() is None
-
-	def test_returns_none_when_no_model(self, presenter, mock_view):
-		"""_build_draft_block returns None when current_model is None."""
-		mock_view.current_model = None
-		assert presenter._build_draft_block() is None
-
-	def test_returns_none_when_empty_prompt_and_no_attachments(
-		self, presenter, mock_view
-	):
-		"""_build_draft_block returns None when prompt and attachments are empty."""
-		# mock_view default: prompt_text="" and attachment_files=[]
+	@pytest.mark.parametrize(
+		("mutate", "reason"),
+		[
+			(lambda v: setattr(v, "current_account", None), "no_account"),
+			(lambda v: setattr(v, "current_model", None), "no_model"),
+			(
+				lambda v: None,  # default: prompt_text="" + attachment_files=[]
+				"empty_prompt",
+			),
+		],
+		ids=["no_account", "no_model", "empty_prompt"],
+	)
+	def test_returns_none_on_guard(self, presenter, mock_view, mutate, reason):
+		"""_build_draft_block returns None when guard conditions are not met."""
+		mutate(mock_view)
 		assert presenter._build_draft_block() is None
 
 	def test_returns_block_when_prompt_present(self, presenter, mock_view):
@@ -193,67 +165,59 @@ class TestBuildDraftBlock:
 class TestCleanup:
 	"""Tests for cleanup() resource teardown."""
 
-	def test_stops_running_completion(self, presenter):
+	def test_stops_running_completion(self, presenter, mocker):
 		"""cleanup() stops completion with skip_callbacks=True when running."""
-		with (
-			patch.object(
-				presenter.completion_handler, "is_running", return_value=True
-			),
-			patch.object(
-				presenter.completion_handler, "stop_completion"
-			) as mock_stop,
-			patch("basilisk.presenters.conversation_presenter.stop_sound"),
-			patch.object(presenter, "flush_draft"),
-		):
-			presenter.cleanup()
+		mocker.patch.object(
+			presenter.completion_handler, "is_running", return_value=True
+		)
+		mock_stop = mocker.patch.object(
+			presenter.completion_handler, "stop_completion"
+		)
+		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch.object(presenter, "flush_draft")
+		presenter.cleanup()
 		mock_stop.assert_called_once_with(skip_callbacks=True)
 
-	def test_aborts_live_recording_thread(self, presenter):
+	def test_aborts_live_recording_thread(self, presenter, mocker):
 		"""cleanup() aborts a live recording thread."""
 		mock_thread = MagicMock()
 		mock_thread.is_alive.return_value = True
 		presenter.recording_thread = mock_thread
-		with (
-			patch("basilisk.presenters.conversation_presenter.stop_sound"),
-			patch.object(presenter, "flush_draft"),
-		):
-			presenter.cleanup()
+		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch.object(presenter, "flush_draft")
+		presenter.cleanup()
 		mock_thread.abort.assert_called_once()
 
-	def test_skips_abort_when_no_recording_thread(self, presenter):
+	def test_skips_abort_when_no_recording_thread(self, presenter, mocker):
 		"""cleanup() does not raise when recording_thread is None."""
 		presenter.recording_thread = None
-		with (
-			patch("basilisk.presenters.conversation_presenter.stop_sound"),
-			patch.object(presenter, "flush_draft"),
-		):
-			presenter.cleanup()  # must not raise
+		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch.object(presenter, "flush_draft")
+		presenter.cleanup()  # must not raise
 
 
 class TestIsDestroyingGuard:
 	"""Tests that callbacks respect the _is_destroying flag."""
 
-	def test_on_completion_start_skips_when_destroying(
-		self, presenter, mock_view
+	@pytest.mark.parametrize(
+		("callback", "args", "spy_attr"),
+		[
+			("_on_completion_start", (), "submit_btn.Disable"),
+			("_on_completion_end", (True,), "stop_completion_btn.Hide"),
+			("_on_stream_chunk", ("text",), "messages.append_stream_chunk"),
+		],
+		ids=["completion_start", "completion_end", "stream_chunk"],
+	)
+	def test_skips_when_destroying(
+		self, presenter, mock_view, callback, args, spy_attr
 	):
-		"""_on_completion_start is a no-op when _is_destroying is True."""
+		"""All guarded callbacks are no-ops when _is_destroying is True."""
 		mock_view._is_destroying = True
-		presenter._on_completion_start()
-		mock_view.submit_btn.Disable.assert_not_called()
-
-	def test_on_completion_end_skips_when_destroying(
-		self, presenter, mock_view
-	):
-		"""_on_completion_end is a no-op when _is_destroying is True."""
-		mock_view._is_destroying = True
-		presenter._on_completion_end(True)
-		mock_view.stop_completion_btn.Hide.assert_not_called()
-
-	def test_on_stream_chunk_skips_when_destroying(self, presenter, mock_view):
-		"""_on_stream_chunk is a no-op when _is_destroying is True."""
-		mock_view._is_destroying = True
-		presenter._on_stream_chunk("text")
-		mock_view.messages.append_stream_chunk.assert_not_called()
+		getattr(presenter, callback)(*args)
+		target = mock_view
+		for attr in spy_attr.split("."):
+			target = getattr(target, attr)
+		target.assert_not_called()
 
 
 class TestOnStreamFinish:
@@ -348,16 +312,17 @@ class TestStartRecording:
 		presenter.start_recording()
 		mock_view.show_error.assert_called_once()
 
-	def test_calls_transcribe_when_stt_supported(self, presenter, mock_view):
+	def test_calls_transcribe_when_stt_supported(
+		self, presenter, mock_view, mocker
+	):
 		"""start_recording calls transcribe_audio_file when STT is available."""
 		from basilisk.provider_capability import ProviderCapability
 
 		mock_view.current_engine.capabilities = {ProviderCapability.STT}
-
-		with patch.object(
+		mock_transcribe = mocker.patch.object(
 			presenter, "transcribe_audio_file"
-		) as mock_transcribe:
-			presenter.start_recording()
+		)
+		presenter.start_recording()
 
 		mock_transcribe.assert_called_once_with()
 		mock_view.show_error.assert_not_called()
@@ -366,7 +331,7 @@ class TestStartRecording:
 class TestTranscribeAudioFile:
 	"""Tests for transcribe_audio_file."""
 
-	def test_creates_new_thread_when_none(self, presenter, mock_view):
+	def test_creates_new_thread_when_none(self, presenter, mock_view, mocker):
 		"""transcribe_audio_file creates a RecordingThread when none exists."""
 		presenter.recording_thread = None
 
@@ -374,10 +339,10 @@ class TestTranscribeAudioFile:
 		mock_thread_instance = MagicMock()
 		mock_thread_cls.return_value = mock_thread_instance
 
-		with patch(
+		mocker.patch(
 			"basilisk.recording_thread.RecordingThread", mock_thread_cls
-		):
-			presenter.transcribe_audio_file()
+		)
+		presenter.transcribe_audio_file()
 
 		mock_thread_cls.assert_called_once()
 		mock_thread_instance.start.assert_called_once()
@@ -389,20 +354,18 @@ class TestTranscribeAudioFile:
 
 		presenter.transcribe_audio_file("audio.mp3")
 
-		# recording_thread is replaced with a new instance; start() is called on it
 		assert presenter.recording_thread is not mock_thread
 		presenter.recording_thread.start.assert_called_once()
 
-	def test_passes_audio_file_to_thread(self, presenter, mock_view):
+	def test_passes_audio_file_to_thread(self, presenter, mock_view, mocker):
 		"""transcribe_audio_file passes audio_file arg to RecordingThread."""
 		presenter.recording_thread = None
 
 		mock_thread_cls = MagicMock()
-
-		with patch(
+		mocker.patch(
 			"basilisk.recording_thread.RecordingThread", mock_thread_cls
-		):
-			presenter.transcribe_audio_file("/path/to/audio.mp3")
+		)
+		presenter.transcribe_audio_file("/path/to/audio.mp3")
 
 		call_kwargs = mock_thread_cls.call_args[1]
 		assert call_kwargs["audio_file_path"] == "/path/to/audio.mp3"
@@ -411,30 +374,30 @@ class TestTranscribeAudioFile:
 class TestGenerateConversationTitle:
 	"""Tests for generate_conversation_title."""
 
-	def test_returns_none_when_completion_running(self, presenter, mock_view):
+	def test_returns_none_when_completion_running(
+		self, presenter, mock_view, mocker
+	):
 		"""Returns None and shows error when a completion is in progress."""
-		with patch.object(
+		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=True
-		):
-			result = presenter.generate_conversation_title()
+		)
+		result = presenter.generate_conversation_title()
 
 		assert result is None
 		mock_view.show_error.assert_called_once()
 
-	def test_returns_none_when_no_messages(self, presenter):
+	def test_returns_none_when_no_messages(self, presenter, mocker):
 		"""Returns None silently when conversation has no messages."""
-		with patch.object(
+		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=False
-		):
-			result = presenter.generate_conversation_title()
-
+		)
+		result = presenter.generate_conversation_title()
 		assert result is None
 
-	def test_returns_title_on_success(self, presenter, mock_view, mock_service):
+	def test_returns_title_on_success(
+		self, presenter, mock_view, mock_service, mocker
+	):
 		"""Returns the generated title when service succeeds."""
-		from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
-		from basilisk.provider_ai_model import AIModelInfo
-
 		block = MessageBlock(
 			request=Message(role=MessageRoleEnum.USER, content="Hi"),
 			response=Message(role=MessageRoleEnum.ASSISTANT, content="Hello"),
@@ -443,20 +406,17 @@ class TestGenerateConversationTitle:
 		presenter.conversation.add_block(block, None)
 		mock_service.generate_title.return_value = "My Conversation"
 
-		with patch.object(
+		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=False
-		):
-			result = presenter.generate_conversation_title()
+		)
+		result = presenter.generate_conversation_title()
 
 		assert result == "My Conversation"
 
 	def test_shows_error_when_title_none_but_messages_exist(
-		self, presenter, mock_view, mock_service
+		self, presenter, mock_view, mock_service, mocker
 	):
 		"""Shows enhanced error dialog when service returns None but messages exist."""
-		from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
-		from basilisk.provider_ai_model import AIModelInfo
-
 		block = MessageBlock(
 			request=Message(role=MessageRoleEnum.USER, content="Hi"),
 			response=Message(role=MessageRoleEnum.ASSISTANT, content="Hello"),
@@ -465,10 +425,10 @@ class TestGenerateConversationTitle:
 		presenter.conversation.add_block(block, None)
 		mock_service.generate_title.return_value = None
 
-		with patch.object(
+		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=False
-		):
-			result = presenter.generate_conversation_title()
+		)
+		result = presenter.generate_conversation_title()
 
 		assert result is None
 		mock_view.show_enhanced_error.assert_called_once()

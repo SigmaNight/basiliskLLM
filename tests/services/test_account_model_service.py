@@ -1,6 +1,6 @@
 """Tests for AccountModelService."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -72,25 +72,27 @@ class TestResolveAccountAndModel:
 		assert account is mock_account
 		assert model_id == "gpt-4"
 
-	def test_falls_back_to_default_when_no_account_or_model(self, service):
+	def test_falls_back_to_default_when_no_account_or_model(
+		self, service, mocker
+	):
 		"""Empty profile with fallback should return default account."""
 		profile = MagicMock()
 		profile.account = None
 		profile.ai_model_info = None
 
 		mock_default = MagicMock()
-		with patch(
+		mock_config = mocker.patch(
 			"basilisk.services.account_model_service.config"
-		) as mock_config:
-			mock_config.accounts.return_value.__len__ = lambda self: 1
-			mock_config.accounts.return_value.default_account = mock_default
-			account, model_id = service.resolve_account_and_model(
-				profile, fall_back_default_account=True
-			)
+		)
+		mock_config.accounts.return_value.__len__ = lambda self: 1
+		mock_config.accounts.return_value.default_account = mock_default
+		account, model_id = service.resolve_account_and_model(
+			profile, fall_back_default_account=True
+		)
 		assert account is mock_default
 		assert model_id is None
 
-	def test_finds_account_by_provider_when_no_account(self, service):
+	def test_finds_account_by_provider_when_no_account(self, service, mocker):
 		"""Profile with model but no account should find account by provider."""
 		profile = MagicMock()
 		profile.account = None
@@ -99,13 +101,13 @@ class TestResolveAccountAndModel:
 		profile.ai_provider.name = "openai"
 
 		found_account = MagicMock()
-		with patch(
+		mock_config = mocker.patch(
 			"basilisk.services.account_model_service.config"
-		) as mock_config:
-			mock_config.accounts.return_value.get_accounts_by_provider.return_value = iter(
-				[found_account]
-			)
-			account, model_id = service.resolve_account_and_model(profile)
+		)
+		mock_config.accounts.return_value.get_accounts_by_provider.return_value = iter(
+			[found_account]
+		)
+		account, model_id = service.resolve_account_and_model(profile)
 		assert account is found_account
 		assert model_id == "gpt-4"
 

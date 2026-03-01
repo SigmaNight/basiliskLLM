@@ -1,7 +1,7 @@
 """Tests for AttachmentService."""
 
 import threading
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from PIL import Image as PILImage
@@ -89,54 +89,54 @@ class TestIsFormatSupported:
 class TestBuildAttachmentFromPath:
 	"""Tests for AttachmentService.build_attachment_from_path."""
 
-	def test_image_returns_image_file(self, tmp_path):
+	def test_image_returns_image_file(self, tmp_path, mocker):
 		"""An image MIME type should produce an ImageFile."""
 		p = tmp_path / "photo.png"
 		img = PILImage.new("RGB", (10, 10), color="red")
 		img.save(str(p))
 		supported = {"image/png"}
 
-		with patch(
+		mocker.patch(
 			"basilisk.services.attachment_service.get_mime_type",
 			return_value="image/png",
-		):
-			attachment, err = AttachmentService.build_attachment_from_path(
-				str(p), supported
-			)
+		)
+		attachment, err = AttachmentService.build_attachment_from_path(
+			str(p), supported
+		)
 
 		assert isinstance(attachment, ImageFile)
 		assert err is None
 
-	def test_text_returns_attachment_file(self, tmp_path):
+	def test_text_returns_attachment_file(self, tmp_path, mocker):
 		"""A text MIME type should produce an AttachmentFile."""
 		p = tmp_path / "notes.txt"
 		p.touch()
 		supported = {"text/plain"}
 
-		with patch(
+		mocker.patch(
 			"basilisk.services.attachment_service.get_mime_type",
 			return_value="text/plain",
-		):
-			attachment, err = AttachmentService.build_attachment_from_path(
-				str(p), supported
-			)
+		)
+		attachment, err = AttachmentService.build_attachment_from_path(
+			str(p), supported
+		)
 
 		assert isinstance(attachment, AttachmentFile)
 		assert err is None
 
-	def test_unsupported_format_returns_none_and_mime(self, tmp_path):
+	def test_unsupported_format_returns_none_and_mime(self, tmp_path, mocker):
 		"""An unsupported MIME type returns (None, mime_type)."""
 		p = tmp_path / "archive.zip"
 		p.touch()
 		supported = {"image/png"}
 
-		with patch(
+		mocker.patch(
 			"basilisk.services.attachment_service.get_mime_type",
 			return_value="application/zip",
-		):
-			attachment, err = AttachmentService.build_attachment_from_path(
-				str(p), supported
-			)
+		)
+		attachment, err = AttachmentService.build_attachment_from_path(
+			str(p), supported
+		)
 
 		assert attachment is None
 		assert err == "application/zip"
@@ -183,37 +183,26 @@ class TestValidateAttachments:
 class TestCheckModelVisionCompatible:
 	"""Tests for AttachmentService.check_model_vision_compatible."""
 
-	def test_no_images_always_compatible(self):
-		"""No image attachments → always compatible regardless of model."""
-		att = make_attachment("text/plain")
-		model = MagicMock()
-		model.vision = False
-		engine = MagicMock()
-
-		ok, names = AttachmentService.check_model_vision_compatible(
-			[att], model, engine
+	@pytest.mark.parametrize(
+		("has_images", "model_vision", "ok_expected", "names_expected"),
+		[
+			(False, False, True, None),
+			(True, True, True, None),
+			(True, False, False, ["gpt-4-vision"]),
+		],
+		ids=["no_images", "vision_ok", "no_vision"],
+	)
+	def test_vision_compatibility(
+		self, has_images, model_vision, ok_expected, names_expected
+	):
+		"""Vision compatibility check covers no-image, vision-ok, no-vision."""
+		att = (
+			make_image_attachment()
+			if has_images
+			else make_attachment("text/plain")
 		)
-		assert ok is True
-		assert names is None
-
-	def test_model_has_vision_compatible(self):
-		"""Model with vision=True → compatible even with images."""
-		att = make_image_attachment()
 		model = MagicMock()
-		model.vision = True
-		engine = MagicMock()
-
-		ok, names = AttachmentService.check_model_vision_compatible(
-			[att], model, engine
-		)
-		assert ok is True
-		assert names is None
-
-	def test_model_no_vision_with_images_returns_vision_models(self):
-		"""Model without vision + images → False + list of vision model names."""
-		att = make_image_attachment()
-		model = MagicMock()
-		model.vision = False
+		model.vision = model_vision
 
 		vision_m = MagicMock()
 		vision_m.vision = True
@@ -229,8 +218,8 @@ class TestCheckModelVisionCompatible:
 		ok, names = AttachmentService.check_model_vision_compatible(
 			[att], model, engine
 		)
-		assert ok is False
-		assert names == ["gpt-4-vision"]
+		assert ok is ok_expected
+		assert names == names_expected
 
 
 # ---------------------------------------------------------------------------
@@ -289,99 +278,98 @@ class TestDownloadFromUrl:
 		if service.task:
 			service.task.join(timeout=5)
 
-	def test_success_calls_on_download_success(self, service, success_cb):
+	def test_success_calls_on_download_success(
+		self, service, success_cb, mocker
+	):
 		"""On a successful download the success callback is called."""
 		fake_attachment = MagicMock(spec=AttachmentFile)
+		mocker.patch(
+			"basilisk.services.attachment_service.build_from_url",
+			return_value=fake_attachment,
+		)
+		mock_ca = mocker.patch(
+			"basilisk.services.attachment_service.wx.CallAfter"
+		)
 
-		with (
-			patch(
-				"basilisk.services.attachment_service.build_from_url",
-				return_value=fake_attachment,
-			),
-			patch(
-				"basilisk.services.attachment_service.wx.CallAfter"
-			) as mock_ca,
-		):
-			self._run_and_wait(service, "https://example.com/file.png")
+		self._run_and_wait(service, "https://example.com/file.png")
 
 		mock_ca.assert_called_once_with(success_cb, fake_attachment)
 
-	def test_http_error_calls_on_download_error(self, service, error_cb):
+	def test_http_error_calls_on_download_error(
+		self, service, error_cb, mocker
+	):
 		"""An HTTPError should trigger the error callback with an HTTP message."""
 		from httpx import HTTPError
 
-		with (
-			patch(
-				"basilisk.services.attachment_service.build_from_url",
-				side_effect=HTTPError("404"),
-			),
-			patch(
-				"basilisk.services.attachment_service.wx.CallAfter"
-			) as mock_ca,
-		):
-			self._run_and_wait(service, "https://example.com/missing.png")
+		mocker.patch(
+			"basilisk.services.attachment_service.build_from_url",
+			side_effect=HTTPError("404"),
+		)
+		mock_ca = mocker.patch(
+			"basilisk.services.attachment_service.wx.CallAfter"
+		)
+
+		self._run_and_wait(service, "https://example.com/missing.png")
 
 		assert mock_ca.call_count == 1
 		args = mock_ca.call_args[0]
 		assert args[0] is error_cb
 		assert "HTTP error" in args[1]
 
-	def test_generic_exception_calls_on_download_error(self, service, error_cb):
+	def test_generic_exception_calls_on_download_error(
+		self, service, error_cb, mocker
+	):
 		"""A generic exception should trigger the error callback."""
-		with (
-			patch(
-				"basilisk.services.attachment_service.build_from_url",
-				side_effect=ValueError("bad url"),
-			),
-			patch(
-				"basilisk.services.attachment_service.wx.CallAfter"
-			) as mock_ca,
-		):
-			self._run_and_wait(service, "https://example.com/bad")
+		mocker.patch(
+			"basilisk.services.attachment_service.build_from_url",
+			side_effect=ValueError("bad url"),
+		)
+		mock_ca = mocker.patch(
+			"basilisk.services.attachment_service.wx.CallAfter"
+		)
+
+		self._run_and_wait(service, "https://example.com/bad")
 
 		assert mock_ca.call_count == 1
 		args = mock_ca.call_args[0]
 		assert args[0] is error_cb
 
-	def test_task_reset_to_none_after_success(self, service):
+	def test_task_reset_to_none_after_success(self, service, mocker):
 		"""The task attribute should be None after the thread completes."""
 		fake_attachment = MagicMock(spec=AttachmentFile)
+		mocker.patch(
+			"basilisk.services.attachment_service.build_from_url",
+			return_value=fake_attachment,
+		)
+		mocker.patch("basilisk.services.attachment_service.wx.CallAfter")
 
-		with (
-			patch(
-				"basilisk.services.attachment_service.build_from_url",
-				return_value=fake_attachment,
-			),
-			patch("basilisk.services.attachment_service.wx.CallAfter"),
-		):
-			self._run_and_wait(service, "https://example.com/ok.png")
+		self._run_and_wait(service, "https://example.com/ok.png")
 
 		assert service.task is None
 
-	def test_task_reset_to_none_after_error(self, service):
+	def test_task_reset_to_none_after_error(self, service, mocker):
 		"""The task attribute should be None after a failed download too."""
-		with (
-			patch(
-				"basilisk.services.attachment_service.build_from_url",
-				side_effect=RuntimeError("oops"),
-			),
-			patch("basilisk.services.attachment_service.wx.CallAfter"),
-		):
-			self._run_and_wait(service, "https://example.com/bad")
+		mocker.patch(
+			"basilisk.services.attachment_service.build_from_url",
+			side_effect=RuntimeError("oops"),
+		)
+		mocker.patch("basilisk.services.attachment_service.wx.CallAfter")
+
+		self._run_and_wait(service, "https://example.com/bad")
 
 		assert service.task is None
 
-	def test_blocked_when_task_already_running(self, service):
+	def test_blocked_when_task_already_running(self, service, mocker):
 		"""A second download_from_url call while busy should be rejected."""
 		# Simulate an active task
 		mock_thread = MagicMock(spec=threading.Thread)
 		mock_thread.is_alive.return_value = True
 		service.task = mock_thread
 
-		with patch(
+		mock_mb = mocker.patch(
 			"basilisk.services.attachment_service.wx.MessageBox"
-		) as mock_mb:
-			service.download_from_url("https://example.com/file.png")
+		)
+		service.download_from_url("https://example.com/file.png")
 
 		# The error message box should have been shown
 		mock_mb.assert_called_once()

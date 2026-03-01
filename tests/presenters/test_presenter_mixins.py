@@ -41,19 +41,17 @@ class TestGuardDestroyingDecorator:
 
 		return FakePresenter(is_destroying)
 
-	def test_runs_when_not_destroying(self):
-		"""Callback executes normally when view is not destroying."""
-		p = self._make_presenter(False)
+	@pytest.mark.parametrize(
+		("is_destroying", "expect_called", "expect_result"),
+		[(False, True, "result"), (True, False, None)],
+		ids=["alive", "destroying"],
+	)
+	def test_guard_behavior(self, is_destroying, expect_called, expect_result):
+		"""Callback executes or is blocked depending on _is_destroying flag."""
+		p = self._make_presenter(is_destroying)
 		result = p.callback()
-		assert p.called is True
-		assert result == "result"
-
-	def test_returns_none_when_destroying(self):
-		"""Callback returns None immediately when view is destroying."""
-		p = self._make_presenter(True)
-		result = p.callback()
-		assert p.called is False
-		assert result is None
+		assert p.called is expect_called
+		assert result == expect_result
 
 	def test_preserves_function_name(self):
 		"""Decorated function keeps its original __name__."""
@@ -191,11 +189,6 @@ class TestManagerCrudMixin:
 		mock_manager.add.assert_called_once_with(item)
 		mock_manager.save.assert_called_once()
 
-	def test_add_item_sets_menu_update(self, presenter_with_menu):
-		"""add_item should set menu_update to True."""
-		presenter_with_menu.add_item(MagicMock())
-		assert presenter_with_menu.menu_update is True
-
 	def test_add_item_no_menu_update_attr(self, presenter_no_menu):
 		"""add_item without menu_update attribute should not raise."""
 		presenter_no_menu.add_item(MagicMock())
@@ -231,11 +224,6 @@ class TestManagerCrudMixin:
 		p.edit_item(5, item)
 		assert hook_args == [(5, item)]
 
-	def test_edit_item_sets_menu_update(self, presenter_with_menu):
-		"""edit_item should set menu_update to True."""
-		presenter_with_menu.edit_item(0, MagicMock())
-		assert presenter_with_menu.menu_update is True
-
 	# -- remove_item --
 
 	def test_remove_item_calls_remove_and_save(
@@ -247,10 +235,21 @@ class TestManagerCrudMixin:
 		mock_manager.remove.assert_called_once_with(item)
 		mock_manager.save.assert_called_once()
 
-	def test_remove_item_sets_menu_update(self, presenter_with_menu):
-		"""remove_item should set menu_update to True."""
-		presenter_with_menu.remove_item(MagicMock())
-		assert presenter_with_menu.menu_update is True
+	# -- menu_update (add / edit / remove) --
+
+	def test_crud_operations_update_menu(
+		self, presenter_with_menu, mock_manager, subtests
+	):
+		"""add_item, edit_item and remove_item each set menu_update to True."""
+		for op, args in [
+			("add_item", (MagicMock(),)),
+			("edit_item", (0, MagicMock())),
+			("remove_item", (MagicMock(),)),
+		]:
+			with subtests.test(op=op):
+				presenter_with_menu.menu_update = False
+				getattr(presenter_with_menu, op)(*args)
+				assert presenter_with_menu.menu_update is True
 
 	# -- remove_item_by_index --
 

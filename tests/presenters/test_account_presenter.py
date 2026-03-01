@@ -1,6 +1,6 @@
 """Tests for account presenters."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -27,30 +27,28 @@ class TestEditAccountOrganizationPresenter:
 		view.key.GetValue.return_value = "secret-key"
 		return view
 
-	def test_validate_empty_name_returns_error(self, mock_view):
-		"""Empty name should return error."""
-		mock_view.name.GetValue.return_value = ""
+	@pytest.mark.parametrize(
+		("mutate", "expected_field"),
+		[
+			(lambda v: setattr(v.name.GetValue, "return_value", ""), "name"),
+			(
+				lambda v: setattr(
+					v.key_storage_method.GetSelection, "return_value", -1
+				),
+				"key_storage_method",
+			),
+			(lambda v: setattr(v.key.GetValue, "return_value", ""), "key"),
+		],
+		ids=["empty_name", "no_storage", "no_key"],
+	)
+	def test_validate_and_build_errors(self, mock_view, mutate, expected_field):
+		"""Invalid input returns (None, error) pointing to the correct field."""
+		mutate(mock_view)
 		presenter = EditAccountOrganizationPresenter(view=mock_view)
 		result, error = presenter.validate_and_build()
 		assert result is None
 		assert error is not None
-		assert error[1] == "name"
-
-	def test_validate_no_key_storage_method_returns_error(self, mock_view):
-		"""No key storage method selected should return error."""
-		mock_view.key_storage_method.GetSelection.return_value = -1
-		presenter = EditAccountOrganizationPresenter(view=mock_view)
-		result, error = presenter.validate_and_build()
-		assert result is None
-		assert error[1] == "key_storage_method"
-
-	def test_validate_empty_key_returns_error(self, mock_view):
-		"""Empty key should return error."""
-		mock_view.key.GetValue.return_value = ""
-		presenter = EditAccountOrganizationPresenter(view=mock_view)
-		result, error = presenter.validate_and_build()
-		assert result is None
-		assert error[1] == "key"
+		assert error[1] == expected_field
 
 	def test_validate_builds_new_organization(self, mock_view):
 		"""Valid inputs should build a new organization."""
@@ -91,15 +89,15 @@ class TestAccountOrganizationPresenter:
 		account.active_organization_id = None
 		return account
 
-	def test_is_editable_true_for_config(self, mock_account):
-		"""Config-sourced organization should be editable."""
+	@pytest.mark.parametrize(
+		("index", "expected"),
+		[(0, True), (1, False)],
+		ids=["config", "env_var"],
+	)
+	def test_is_editable(self, mock_account, index, expected):
+		"""Config-sourced organizations are editable; ENV_VAR ones are not."""
 		presenter = AccountOrganizationPresenter(mock_account)
-		assert presenter.is_editable(0) is True
-
-	def test_is_editable_false_for_env_var(self, mock_account):
-		"""ENV_VAR-sourced organization should not be editable."""
-		presenter = AccountOrganizationPresenter(mock_account)
-		assert presenter.is_editable(1) is False
+		assert presenter.is_editable(index) is expected
 
 	def test_add_organization(self, mock_account):
 		"""Adding an organization should append it."""
@@ -168,46 +166,45 @@ class TestEditAccountPresenter:
 		view.organization_text_ctrl.GetSelection.return_value = -1
 		return view
 
-	def test_validate_empty_name(self, mock_view):
-		"""Empty name should return error."""
-		mock_view.name.GetValue.return_value = ""
-		presenter = EditAccountPresenter(view=mock_view)
-		error = presenter.validate_form()
+	@pytest.mark.parametrize(
+		("mutate", "expected_field"),
+		[
+			(lambda v: setattr(v.name.GetValue, "return_value", ""), "name"),
+			(lambda v: setattr(v, "provider", None), "provider_combo"),
+			(
+				lambda v: setattr(
+					v.api_key_storage_method_combo.GetSelection,
+					"return_value",
+					-1,
+				),
+				"api_key_storage_method_combo",
+			),
+			(
+				lambda v: setattr(
+					v.api_key_text_ctrl.GetValue, "return_value", ""
+				),
+				"api_key_text_ctrl",
+			),
+			(
+				lambda v: (
+					setattr(v.provider, "allow_custom_base_url", True),
+					setattr(
+						v.custom_base_url_text_ctrl.GetValue,
+						"return_value",
+						"not-a-url",
+					),
+				),
+				"custom_base_url_text_ctrl",
+			),
+		],
+		ids=["empty_name", "no_provider", "no_storage", "no_key", "bad_url"],
+	)
+	def test_validate_form_errors(self, mock_view, mutate, expected_field):
+		"""Invalid form data returns an error pointing to the correct field."""
+		mutate(mock_view)
+		error = EditAccountPresenter(view=mock_view).validate_form()
 		assert error is not None
-		assert error[1] == "name"
-
-	def test_validate_no_provider(self, mock_view):
-		"""No provider selected should return error."""
-		mock_view.provider = None
-		presenter = EditAccountPresenter(view=mock_view)
-		error = presenter.validate_form()
-		assert error is not None
-		assert error[1] == "provider_combo"
-
-	def test_validate_missing_api_key_storage_method(self, mock_view):
-		"""Missing API key storage method should return error."""
-		mock_view.api_key_storage_method_combo.GetSelection.return_value = -1
-		presenter = EditAccountPresenter(view=mock_view)
-		error = presenter.validate_form()
-		assert error is not None
-		assert error[1] == "api_key_storage_method_combo"
-
-	def test_validate_missing_api_key(self, mock_view):
-		"""Missing API key should return error."""
-		mock_view.api_key_text_ctrl.GetValue.return_value = ""
-		presenter = EditAccountPresenter(view=mock_view)
-		error = presenter.validate_form()
-		assert error is not None
-		assert error[1] == "api_key_text_ctrl"
-
-	def test_validate_invalid_base_url(self, mock_view):
-		"""Invalid custom base URL should return error."""
-		mock_view.provider.allow_custom_base_url = True
-		mock_view.custom_base_url_text_ctrl.GetValue.return_value = "not-a-url"
-		presenter = EditAccountPresenter(view=mock_view)
-		error = presenter.validate_form()
-		assert error is not None
-		assert error[1] == "custom_base_url_text_ctrl"
+		assert error[1] == expected_field
 
 	def test_validate_success(self, mock_view):
 		"""Valid form data should return None."""
@@ -223,9 +220,11 @@ class TestEditAccountPresenter:
 		error = presenter.validate_form()
 		assert error is None
 
-	@patch("basilisk.presenters.account_presenter.Account")
-	def test_build_new_account(self, mock_account_cls, mock_view):
+	def test_build_new_account(self, mock_view, mocker):
 		"""Building a new account should create an Account."""
+		mock_account_cls = mocker.patch(
+			"basilisk.presenters.account_presenter.Account"
+		)
 		presenter = EditAccountPresenter(view=mock_view)
 		result = presenter.build_account()
 		mock_account_cls.assert_called_once()
@@ -267,15 +266,16 @@ class TestAccountPresenter:
 		"""Return a presenter with mock dependencies."""
 		return AccountPresenter(mock_account_manager)
 
-	def test_is_editable_true_for_config(self, presenter, mock_account_manager):
-		"""Config-sourced account should be editable."""
-		assert presenter.is_editable(0) is True
-
-	def test_is_editable_false_for_env_var(
-		self, presenter, mock_account_manager
+	@pytest.mark.parametrize(
+		("index", "expected"),
+		[(0, True), (1, False)],
+		ids=["config", "env_var"],
+	)
+	def test_is_editable(
+		self, presenter, mock_account_manager, index, expected
 	):
-		"""ENV_VAR-sourced account should not be editable."""
-		assert presenter.is_editable(1) is False
+		"""Config-sourced accounts are editable; ENV_VAR-sourced are not."""
+		assert presenter.is_editable(index) is expected
 
 	def test_get_organization_display_name_no_org(self, presenter):
 		"""No active organization should return 'No (personal)'."""
@@ -336,13 +336,14 @@ class TestAccountPresenter:
 		mock_account_manager.set_default_account.assert_called_once_with(None)
 		mock_account_manager.save.assert_called_once()
 
-	def test_is_default_true(self, presenter, mock_account_manager):
-		"""is_default should return True for the default account."""
-		assert presenter.is_default(0) is True
-
-	def test_is_default_false(self, presenter, mock_account_manager):
-		"""is_default should return False for non-default accounts."""
-		assert presenter.is_default(1) is False
+	@pytest.mark.parametrize(
+		("index", "expected"),
+		[(0, True), (1, False)],
+		ids=["is_default", "not_default"],
+	)
+	def test_is_default(self, presenter, mock_account_manager, index, expected):
+		"""is_default returns True only for the default account."""
+		assert presenter.is_default(index) is expected
 
 	def test_save_organizations(self, presenter, mock_account_manager):
 		"""save_organizations should reset org, replace, and save."""

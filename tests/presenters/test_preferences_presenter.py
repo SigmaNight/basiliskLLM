@@ -1,69 +1,11 @@
 """Tests for PreferencesPresenter."""
 
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from basilisk.presenters.preferences_presenter import PreferencesPresenter
-
-
-def _make_presenter(mock_locales=None):
-	"""Build a PreferencesPresenter with mocked dependencies.
-
-	Args:
-		mock_locales: List of locale mocks to return from get_supported_locales.
-
-	Returns:
-		A tuple of (presenter, mock_conf) for assertions.
-	"""
-	if mock_locales is None:
-		mock_locales = []
-	mock_conf = MagicMock()
-	view = MagicMock()
-	with (
-		patch(
-			"basilisk.presenters.preferences_presenter.config"
-		) as mock_config,
-		patch(
-			"basilisk.presenters.preferences_presenter.get_supported_locales",
-			return_value=mock_locales,
-		),
-		patch("basilisk.presenters.preferences_presenter.get_app_locale"),
-	):
-		mock_config.conf.return_value = mock_conf
-		presenter = PreferencesPresenter(view)
-	return presenter, mock_conf
-
-
-class TestBuildLanguages:
-	"""Tests for PreferencesPresenter._build_languages."""
-
-	def test_auto_is_first_key(self):
-		"""The first language key must be 'auto'."""
-		presenter, _ = _make_presenter()
-
-		keys = list(presenter.languages.keys())
-
-		assert keys[0] == "auto"
-
-	def test_adds_supported_locales(self):
-		"""Supported locales should be added after 'auto'."""
-		mock_locale = MagicMock()
-		mock_locale.__str__ = MagicMock(return_value="fr_FR")
-		mock_locale.get_display_name.return_value = "french"
-
-		presenter, _ = _make_presenter(mock_locales=[mock_locale])
-
-		assert "fr_FR" in presenter.languages
-		assert len(presenter.languages) == 2
-
-	def test_auto_label_is_translated(self):
-		"""The 'auto' entry should use the translatable system default label."""
-		presenter, _ = _make_presenter()
-
-		# builtins._ is a passthrough in tests
-		assert presenter.languages["auto"] == "System default (auto)"
 
 
 @pytest.fixture
@@ -95,75 +37,103 @@ def mock_view():
 	return view
 
 
+@pytest.fixture
+def make_presenter(mocker):
+	"""Return a factory for PreferencesPresenter with mocked dependencies.
+
+	Args:
+		mocker: pytest-mock fixture.
+
+	Returns:
+		A callable that builds a (presenter, mock_conf) tuple.
+	"""
+
+	def _factory(mock_locales=None, view=None):
+		if mock_locales is None:
+			mock_locales = []
+		if view is None:
+			view = MagicMock()
+		mock_conf = MagicMock()
+		mock_config = mocker.patch(
+			"basilisk.presenters.preferences_presenter.config"
+		)
+		mocker.patch(
+			"basilisk.presenters.preferences_presenter.get_supported_locales",
+			return_value=mock_locales,
+		)
+		mocker.patch("basilisk.presenters.preferences_presenter.get_app_locale")
+		mock_config.conf.return_value = mock_conf
+		return PreferencesPresenter(view), mock_conf
+
+	return _factory
+
+
+class TestBuildLanguages:
+	"""Tests for PreferencesPresenter._build_languages."""
+
+	def test_auto_is_first_key(self, make_presenter):
+		"""The first language key must be 'auto'."""
+		presenter, _ = make_presenter()
+
+		keys = list(presenter.languages.keys())
+
+		assert keys[0] == "auto"
+
+	def test_adds_supported_locales(self, make_presenter):
+		"""Supported locales should be added after 'auto'."""
+		mock_locale = MagicMock()
+		mock_locale.__str__ = MagicMock(return_value="fr_FR")
+		mock_locale.get_display_name.return_value = "french"
+
+		presenter, _ = make_presenter(mock_locales=[mock_locale])
+
+		assert "fr_FR" in presenter.languages
+		assert len(presenter.languages) == 2
+
+	def test_auto_label_is_translated(self, make_presenter):
+		"""The 'auto' entry should use the translatable system default label."""
+		presenter, _ = make_presenter()
+
+		# builtins._ is a passthrough in tests
+		assert presenter.languages["auto"] == "System default (auto)"
+
+
 class TestOnOk:
 	"""Tests for PreferencesPresenter.on_ok."""
 
-	def test_saves_config_and_closes(self, mock_view):
+	def test_saves_config_and_closes(self, mock_view, make_presenter, mocker):
 		"""on_ok should save config and call EndModal(wx.ID_OK)."""
-		mock_conf = MagicMock()
 		mock_wx = MagicMock()
-		with (
-			patch(
-				"basilisk.presenters.preferences_presenter.config"
-			) as mock_config,
-			patch(
-				"basilisk.presenters.preferences_presenter.get_supported_locales",
-				return_value=[],
-			),
-			patch("basilisk.presenters.preferences_presenter.get_app_locale"),
-			patch("basilisk.presenters.preferences_presenter.set_log_level"),
-			patch.dict(sys.modules, {"wx": mock_wx}),
-		):
-			mock_config.conf.return_value = mock_conf
-			presenter = PreferencesPresenter(mock_view)
-			presenter.on_ok()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		presenter.on_ok()
 
 		mock_conf.save.assert_called_once()
 		mock_view.EndModal.assert_called_once_with(mock_wx.ID_OK)
 
-	def test_server_port_cast_to_int(self, mock_view):
+	def test_server_port_cast_to_int(self, mock_view, make_presenter, mocker):
 		"""on_ok should cast server_port value to int."""
-		mock_conf = MagicMock()
 		mock_wx = MagicMock()
 		mock_view.server_port.GetValue.return_value = "9090"
-		with (
-			patch(
-				"basilisk.presenters.preferences_presenter.config"
-			) as mock_config,
-			patch(
-				"basilisk.presenters.preferences_presenter.get_supported_locales",
-				return_value=[],
-			),
-			patch("basilisk.presenters.preferences_presenter.get_app_locale"),
-			patch("basilisk.presenters.preferences_presenter.set_log_level"),
-			patch.dict(sys.modules, {"wx": mock_wx}),
-		):
-			mock_config.conf.return_value = mock_conf
-			presenter = PreferencesPresenter(mock_view)
-			presenter.on_ok()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		presenter.on_ok()
 
 		assert mock_conf.server.port == 9090
 
-	def test_calls_set_log_level(self, mock_view):
+	def test_calls_set_log_level(self, mock_view, make_presenter, mocker):
 		"""on_ok should call set_log_level with the log level name."""
-		mock_conf = MagicMock()
 		mock_wx = MagicMock()
-		with (
-			patch(
-				"basilisk.presenters.preferences_presenter.config"
-			) as mock_config,
-			patch(
-				"basilisk.presenters.preferences_presenter.get_supported_locales",
-				return_value=[],
-			),
-			patch("basilisk.presenters.preferences_presenter.get_app_locale"),
-			patch(
-				"basilisk.presenters.preferences_presenter.set_log_level"
-			) as mock_set_log,
-			patch.dict(sys.modules, {"wx": mock_wx}),
-		):
-			mock_config.conf.return_value = mock_conf
-			presenter = PreferencesPresenter(mock_view)
-			presenter.on_ok()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mock_set_log = mocker.patch(
+			"basilisk.presenters.preferences_presenter.set_log_level"
+		)
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		presenter.on_ok()
 
 		mock_set_log.assert_called_once_with(mock_conf.general.log_level.name)

@@ -1,7 +1,6 @@
 """Common test fixtures for basiliskLLM."""
 
 import builtins
-from unittest import mock
 
 import pytest
 from PIL import Image
@@ -144,36 +143,26 @@ def segment_manager(message_segments):
 
 
 @pytest.fixture(autouse=True)
-def mock_display_error_msg():
+def mock_display_error_msg(mocker):
 	"""Mock display_signal_error_msg to prevent error dialogs in tests."""
-	with mock.patch(
-		"basilisk.send_signal.display_signal_error_msg"
-	) as mock_display:
-		# Also mock the platform-specific functions to ensure no system calls
-		with mock.patch(
-			"basilisk.send_signal._display_error_msg_windows"
-		) as mock_win:
-			with mock.patch(
-				"basilisk.send_signal._display_error_msg_macos"
-			) as mock_mac:
-				with mock.patch(
-					"basilisk.send_signal._display_error_msg_linux"
-				) as mock_linux:
-					yield {
-						"main": mock_display,
-						"windows": mock_win,
-						"macos": mock_mac,
-						"linux": mock_linux,
-					}
+	mock_display = mocker.patch("basilisk.send_signal.display_signal_error_msg")
+	mock_win = mocker.patch("basilisk.send_signal._display_error_msg_windows")
+	mock_mac = mocker.patch("basilisk.send_signal._display_error_msg_macos")
+	mock_linux = mocker.patch("basilisk.send_signal._display_error_msg_linux")
+	return {
+		"main": mock_display,
+		"windows": mock_win,
+		"macos": mock_mac,
+		"linux": mock_linux,
+	}
 
 
 @pytest.fixture
-def mock_settings_sources():
+def mock_settings_sources(mocker):
 	"""Mock the settings_customise_sources method to prevent loading real config files.
 
 	This overrides the method to only use init_settings, avoiding any file loading.
 	"""
-	original_method = BasiliskBaseSettings.settings_customise_sources
 
 	@classmethod
 	def mock_settings_customise_sources(
@@ -187,13 +176,8 @@ def mock_settings_sources():
 		# Only use init_settings, skip loading from files
 		return (init_settings,)
 
-	# Apply the mock
-	with mock.patch.object(
+	mocker.patch.object(
 		BasiliskBaseSettings,
 		"settings_customise_sources",
 		mock_settings_customise_sources,
-	):
-		yield
-
-	# Reset after test
-	BasiliskBaseSettings.settings_customise_sources = original_method
+	)

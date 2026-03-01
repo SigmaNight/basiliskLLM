@@ -1,5 +1,7 @@
 """Tests for SearchService."""
 
+import pytest
+
 from basilisk.services.search_service import (
 	SearchMode,
 	SearchService,
@@ -10,169 +12,133 @@ from basilisk.services.search_service import (
 class TestCompilePattern:
 	"""Tests for SearchService.compile_pattern."""
 
-	def test_plain_text_escapes_regex_chars(self):
-		"""PLAIN_TEXT mode should escape regex metacharacters."""
-		pattern = SearchService.compile_pattern(
-			"a.b", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert pattern.search("a.b")
-		assert not pattern.search("axb")
+	@pytest.mark.parametrize(
+		("pattern_str", "mode", "match_text", "no_match_text"),
+		[
+			("a.b", SearchMode.PLAIN_TEXT, "a.b", "axb"),
+			(r"\n", SearchMode.EXTENDED, "hello\nworld", "hello world"),
+			(r"\t", SearchMode.EXTENDED, "col1\tcol2", "col1 col2"),
+			(r"\d+", SearchMode.REGEX, "abc123", "abcdef"),
+		],
+		ids=["plain_escape", "ext_newline", "ext_tab", "regex_raw"],
+	)
+	def test_pattern_mode(self, pattern_str, mode, match_text, no_match_text):
+		"""Pattern matches the expected text and not the counter-example."""
+		pattern = SearchService.compile_pattern(pattern_str, mode, True, False)
+		assert pattern.search(match_text)
+		assert not pattern.search(no_match_text)
 
-	def test_extended_replaces_newline(self):
-		r"""EXTENDED mode should replace \n with a real newline."""
+	@pytest.mark.parametrize(
+		("case_sensitive", "text", "should_match"),
+		[
+			(False, "HELLO", True),
+			(False, "Hello", True),
+			(True, "hello", True),
+			(True, "HELLO", False),
+		],
+		ids=["insens_upper", "insens_mixed", "sens_lower", "sens_upper"],
+	)
+	def test_case_sensitivity(self, case_sensitive, text, should_match):
+		"""Case-sensitivity flag controls IGNORECASE behaviour."""
 		pattern = SearchService.compile_pattern(
-			r"\n", SearchMode.EXTENDED, True, False
+			"hello", SearchMode.PLAIN_TEXT, case_sensitive, False
 		)
-		assert pattern.search("hello\nworld")
-		assert not pattern.search("hello world")
+		assert bool(pattern.search(text)) is should_match
 
-	def test_extended_replaces_tab(self):
-		r"""EXTENDED mode should replace \t with a real tab."""
-		pattern = SearchService.compile_pattern(
-			r"\t", SearchMode.EXTENDED, True, False
-		)
-		assert pattern.search("col1\tcol2")
-		assert not pattern.search("col1 col2")
-
-	def test_regex_raw(self):
-		"""REGEX mode should compile the pattern as-is."""
-		pattern = SearchService.compile_pattern(
-			r"\d+", SearchMode.REGEX, True, False
-		)
-		assert pattern.search("abc123")
-		assert not pattern.search("abcdef")
-
-	def test_case_insensitive(self):
-		"""case_sensitive=False should set IGNORECASE flag."""
-		pattern = SearchService.compile_pattern(
-			"hello", SearchMode.PLAIN_TEXT, False, False
-		)
-		assert pattern.search("HELLO")
-		assert pattern.search("Hello")
-
-	def test_case_sensitive(self):
-		"""case_sensitive=True should NOT set IGNORECASE flag."""
-		pattern = SearchService.compile_pattern(
-			"hello", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert pattern.search("hello")
-		assert not pattern.search("HELLO")
-
-	def test_dot_all_on_with_regex(self):
-		"""dot_all=True with REGEX mode should set DOTALL flag."""
-		pattern = SearchService.compile_pattern(
-			"a.b", SearchMode.REGEX, True, True
-		)
-		assert pattern.search("a\nb")
-
-	def test_dot_all_off_with_regex(self):
-		"""dot_all=False with REGEX mode should NOT match newline with dot."""
-		pattern = SearchService.compile_pattern(
-			"a.b", SearchMode.REGEX, True, False
-		)
-		assert not pattern.search("a\nb")
-
-	def test_dot_all_ignored_in_plain_text(self):
-		"""dot_all should have no effect in PLAIN_TEXT mode."""
-		pattern = SearchService.compile_pattern(
-			"a.b", SearchMode.PLAIN_TEXT, True, True
-		)
-		# The dot is escaped in PLAIN_TEXT, so "a\nb" should NOT match
-		assert not pattern.search("a\nb")
-		assert pattern.search("a.b")
-
-	def test_dot_all_ignored_in_extended(self):
-		"""dot_all should have no effect in EXTENDED mode."""
-		pattern = SearchService.compile_pattern(
-			"a.b", SearchMode.EXTENDED, True, True
-		)
-		# dot is NOT escaped in EXTENDED mode, but DOTALL flag is not set
-		assert not pattern.search("a\nb")
-		assert pattern.search("axb")
+	@pytest.mark.parametrize(
+		("mode", "dot_all", "text", "should_match"),
+		[
+			(SearchMode.REGEX, True, "a\nb", True),
+			(SearchMode.REGEX, False, "a\nb", False),
+			(SearchMode.PLAIN_TEXT, True, "a\nb", False),
+			(SearchMode.PLAIN_TEXT, True, "a.b", True),
+			(SearchMode.EXTENDED, True, "a\nb", False),
+			(SearchMode.EXTENDED, True, "axb", True),
+		],
+		ids=[
+			"regex_on",
+			"regex_off",
+			"plain_no_nl",
+			"plain_dot",
+			"ext_no_nl",
+			"ext_dot",
+		],
+	)
+	def test_dot_all_flag(self, mode, dot_all, text, should_match):
+		r"""dot_all=True sets DOTALL only in REGEX mode; ignored otherwise."""
+		pattern = SearchService.compile_pattern("a.b", mode, True, dot_all)
+		assert bool(pattern.search(text)) is should_match
 
 
 class TestFindAllMatches:
 	"""Tests for SearchService.find_all_matches."""
 
-	def test_no_result(self):
-		"""Should return empty list when no match exists."""
-		matches = SearchService.find_all_matches(
-			"hello world", "xyz", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert matches == []
-
-	def test_one_result(self):
-		"""Should return one match when there is exactly one occurrence."""
-		matches = SearchService.find_all_matches(
-			"hello world", "world", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert len(matches) == 1
-		assert matches[0].group() == "world"
-
-	def test_multiple_results(self):
-		"""Should return all occurrences."""
-		matches = SearchService.find_all_matches(
-			"aaa", "a", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert len(matches) == 3
-
-	def test_plain_text_literal_dot(self):
-		"""PLAIN_TEXT should treat '.' as a literal dot, not a wildcard."""
-		matches = SearchService.find_all_matches(
-			"a.b axb", "a.b", SearchMode.PLAIN_TEXT, True, False
-		)
-		assert len(matches) == 1
-		assert matches[0].group() == "a.b"
-
-	def test_case_insensitive(self):
-		"""case_sensitive=False should find matches regardless of case."""
-		matches = SearchService.find_all_matches(
-			"Hello WORLD hello", "hello", SearchMode.PLAIN_TEXT, False, False
-		)
-		assert len(matches) == 2
-
-	def test_regex_mode(self):
-		"""REGEX mode should allow regex patterns."""
-		matches = SearchService.find_all_matches(
-			"cat bat sat", r"[cbs]at", SearchMode.REGEX, True, False
-		)
-		assert len(matches) == 3
+	@pytest.mark.parametrize(
+		(
+			"text",
+			"pat",
+			"mode",
+			"cs",
+			"dot_all",
+			"expected_count",
+			"first_match",
+		),
+		[
+			("hello world", "xyz", SearchMode.PLAIN_TEXT, True, False, 0, None),
+			(
+				"hello world",
+				"world",
+				SearchMode.PLAIN_TEXT,
+				True,
+				False,
+				1,
+				"world",
+			),
+			("aaa", "a", SearchMode.PLAIN_TEXT, True, False, 3, None),
+			("a.b axb", "a.b", SearchMode.PLAIN_TEXT, True, False, 1, "a.b"),
+			(
+				"Hello WORLD hello",
+				"hello",
+				SearchMode.PLAIN_TEXT,
+				False,
+				False,
+				2,
+				None,
+			),
+			("cat bat sat", r"[cbs]at", SearchMode.REGEX, True, False, 3, None),
+		],
+		ids=[
+			"no_match",
+			"one",
+			"multiple",
+			"literal_dot",
+			"case_insens",
+			"regex",
+		],
+	)
+	def test_find_all_matches(
+		self, text, pat, mode, cs, dot_all, expected_count, first_match
+	):
+		"""find_all_matches returns correct results for varied inputs."""
+		matches = SearchService.find_all_matches(text, pat, mode, cs, dot_all)
+		assert len(matches) == expected_count
+		if first_match is not None:
+			assert matches[0].group() == first_match
 
 
 class TestAdjustUtf16Position:
 	"""Tests for adjust_utf16_position."""
 
-	def test_ascii_no_adjustment(self):
-		"""Pure ASCII text should not change the position."""
-		text = "hello world"
-		assert adjust_utf16_position(text, 5) == 5
-
-	def test_surrogate_pair_adjusts_position(self):
-		"""A character outside BMP (emoji) should increase position by 1."""
-		# U+1F600 (GRINNING FACE) is outside BMP, ord() >= 0x10000
-		text = "\U0001f600abc"
-		# Position 1 (after the emoji) should be adjusted by +1
-		result = adjust_utf16_position(text, 1)
-		assert result == 2
-
-	def test_newline_adjusts_position(self):
-		"""A newline character should increase position by 1."""
-		text = "hello\nworld"
-		# Position 6 (after newline) should be adjusted by +1
-		result = adjust_utf16_position(text, 6)
-		assert result == 7
-
-	def test_reverse_subtracts_adjustment(self):
-		"""reverse=True should subtract the surrogate offset (UTF-16 → Python).
-
-		For "\U0001f600abc" the emoji occupies two UTF-16 code units.
-		- forward (Python→UTF-16): position 1 → 2 (add 1 for the surrogate pair)
-		- reverse (UTF-16→Python): position 1 → 0 (subtract 1 for the surrogate pair)
-		"""
-		text = "\U0001f600abc"
-		# reverse=False: Python position 1 (after emoji) → UTF-16 position 2
-		result_forward = adjust_utf16_position(text, 1, reverse=False)
-		assert result_forward == 2
-		# reverse=True: UTF-16 position 1 (inside emoji surrogate pair) → Python position 0
-		result_reverse = adjust_utf16_position(text, 1, reverse=True)
-		assert result_reverse == 0
+	@pytest.mark.parametrize(
+		("text", "pos", "reverse", "expected"),
+		[
+			("hello world", 5, False, 5),
+			("\U0001f600abc", 1, False, 2),
+			("hello\nworld", 6, False, 7),
+			("\U0001f600abc", 1, True, 0),
+		],
+		ids=["ascii", "surrogate_fwd", "newline_fwd", "surrogate_rev"],
+	)
+	def test_utf16_adjust(self, text, pos, reverse, expected):
+		"""adjust_utf16_position returns the correct adjusted index."""
+		assert adjust_utf16_position(text, pos, reverse) == expected

@@ -1,6 +1,6 @@
 """Tests for MainFramePresenter."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -56,26 +56,26 @@ class TestGetDefaultConvTitle:
 class TestTryReopenLastConversation:
 	"""Tests for try_reopen_last_conversation."""
 
-	def test_returns_false_when_config_disabled(self, presenter, mock_view):
-		"""Should return False when reopen_last_conversation is disabled."""
-		mock_view.conf.conversation.reopen_last_conversation = False
+	@pytest.mark.parametrize(
+		("reopen", "conv_id"),
+		[(False, None), (True, None)],
+		ids=["config_off", "no_id"],
+	)
+	def test_returns_false_early(self, presenter, mock_view, reopen, conv_id):
+		"""Returns False when config disabled or no last conversation ID."""
+		mock_view.conf.conversation.reopen_last_conversation = reopen
+		mock_view.conf.conversation.last_active_conversation_id = conv_id
 		assert presenter.try_reopen_last_conversation() is False
 
-	def test_returns_false_when_no_conv_id(self, presenter, mock_view):
-		"""Should return False when no last_active_conversation_id."""
-		mock_view.conf.conversation.reopen_last_conversation = True
-		mock_view.conf.conversation.last_active_conversation_id = None
-		assert presenter.try_reopen_last_conversation() is False
-
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_from_db")
-	def test_returns_true_on_success(
-		self, mock_open_from_db, presenter, mock_view
-	):
+	def test_returns_true_on_success(self, presenter, mock_view, mocker):
 		"""Should return True and add tab when reopening succeeds."""
 		mock_view.conf.conversation.reopen_last_conversation = True
 		mock_view.conf.conversation.last_active_conversation_id = 42
 		mock_tab = MagicMock()
-		mock_open_from_db.return_value = mock_tab
+		mock_open_from_db = mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
+			return_value=mock_tab,
+		)
 
 		result = presenter.try_reopen_last_conversation()
 
@@ -83,12 +83,14 @@ class TestTryReopenLastConversation:
 		mock_open_from_db.assert_called_once()
 		mock_view.add_conversation_tab.assert_called_once_with(mock_tab)
 
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_from_db")
-	def test_handles_exception(self, mock_open_from_db, presenter, mock_view):
+	def test_handles_exception(self, presenter, mock_view, mocker):
 		"""Should return False and clear config on exception."""
 		mock_view.conf.conversation.reopen_last_conversation = True
 		mock_view.conf.conversation.last_active_conversation_id = 99
-		mock_open_from_db.side_effect = RuntimeError("DB error")
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
+			side_effect=RuntimeError("DB error"),
+		)
 
 		result = presenter.try_reopen_last_conversation()
 
@@ -112,40 +114,37 @@ class TestFlushAndSaveOnQuit:
 		tab1.cleanup_resources.assert_called_once()
 		tab2.cleanup_resources.assert_called_once()
 
-	def test_saves_last_conv_id(self, presenter, mock_view):
-		"""Should save current tab's db_conv_id when reopen is enabled."""
+	@pytest.mark.parametrize(
+		("db_conv_id", "expected_id"),
+		[(42, 42), (None, None)],
+		ids=["with_id", "no_id"],
+	)
+	def test_saves_last_conv_id(
+		self, presenter, mock_view, db_conv_id, expected_id
+	):
+		"""Saves or clears last_active_conversation_id based on db_conv_id."""
 		mock_view.conf.conversation.reopen_last_conversation = True
-		mock_view.current_tab.db_conv_id = 42
+		mock_view.current_tab.db_conv_id = db_conv_id
 		mock_view.tabs_panels = []
 
 		presenter.flush_and_save_on_quit()
 
-		assert mock_view.conf.conversation.last_active_conversation_id == 42
-		mock_view.conf.save.assert_called_once()
-
-	def test_clears_last_conv_id_when_no_db_id(self, presenter, mock_view):
-		"""Should clear last_active_conversation_id when tab has no db_conv_id."""
-		mock_view.conf.conversation.reopen_last_conversation = True
-		mock_view.current_tab.db_conv_id = None
-		mock_view.tabs_panels = []
-
-		presenter.flush_and_save_on_quit()
-
-		assert mock_view.conf.conversation.last_active_conversation_id is None
+		assert (
+			mock_view.conf.conversation.last_active_conversation_id
+			== expected_id
+		)
 		mock_view.conf.save.assert_called_once()
 
 
 class TestNewConversation:
 	"""Tests for new_conversation."""
 
-	@patch(
-		"basilisk.views.conversation_tab.ConversationTab.__init__",
-		return_value=None,
-	)
-	def test_creates_tab_and_adds_to_view(
-		self, mock_init, presenter, mock_view
-	):
+	def test_creates_tab_and_adds_to_view(self, presenter, mock_view, mocker):
 		"""Should create a ConversationTab and add it to the view."""
+		mock_init = mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.__init__",
+			return_value=None,
+		)
 		profile = MagicMock()
 
 		presenter.new_conversation(profile)
@@ -157,20 +156,24 @@ class TestNewConversation:
 class TestOpenConversation:
 	"""Tests for open_conversation."""
 
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_conversation")
-	def test_success(self, mock_open_conv, presenter, mock_view):
+	def test_success(self, presenter, mock_view, mocker):
 		"""Should add tab when opening succeeds."""
 		mock_tab = MagicMock()
-		mock_open_conv.return_value = mock_tab
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_conversation",
+			return_value=mock_tab,
+		)
 
 		presenter.open_conversation("/path/to/file.bskc")
 
 		mock_view.add_conversation_tab.assert_called_once_with(mock_tab)
 
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_conversation")
-	def test_error_shows_message(self, mock_open_conv, presenter, mock_view):
+	def test_error_shows_message(self, presenter, mock_view, mocker):
 		"""Should show error dialog when opening fails."""
-		mock_open_conv.side_effect = RuntimeError("bad file")
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_conversation",
+			side_effect=RuntimeError("bad file"),
+		)
 
 		presenter.open_conversation("/bad/file.bskc")
 
@@ -181,20 +184,24 @@ class TestOpenConversation:
 class TestOpenFromDb:
 	"""Tests for open_from_db."""
 
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_from_db")
-	def test_success(self, mock_open_from_db, presenter, mock_view):
+	def test_success(self, presenter, mock_view, mocker):
 		"""Should add tab when opening from DB succeeds."""
 		mock_tab = MagicMock()
-		mock_open_from_db.return_value = mock_tab
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
+			return_value=mock_tab,
+		)
 
 		presenter.open_from_db(42)
 
 		mock_view.add_conversation_tab.assert_called_once_with(mock_tab)
 
-	@patch("basilisk.views.conversation_tab.ConversationTab.open_from_db")
-	def test_error_shows_message(self, mock_open_from_db, presenter, mock_view):
+	def test_error_shows_message(self, presenter, mock_view, mocker):
 		"""Should show error dialog when DB open fails."""
-		mock_open_from_db.side_effect = RuntimeError("DB error")
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
+			side_effect=RuntimeError("DB error"),
+		)
 
 		presenter.open_from_db(99)
 
@@ -215,20 +222,22 @@ class TestCloseConversation:
 
 		mock_view.notebook.DeletePage.assert_not_called()
 
-	@patch("basilisk.presenters.main_frame_presenter.config")
 	def test_creates_new_tab_when_last_closed(
-		self, mock_config, presenter, mock_view
+		self, presenter, mock_view, mocker
 	):
 		"""Should create new default conversation when last tab is closed."""
+		mock_config = mocker.patch(
+			"basilisk.presenters.main_frame_presenter.config"
+		)
 		mock_view.notebook.GetSelection.return_value = 0
 		mock_view.tabs_panels = [MagicMock()]
 		mock_view.notebook.GetPageCount.return_value = 0
 		mock_config.accounts.return_value = True
 		mock_config.conversation_profiles.return_value.default_profile = None
 
-		with patch.object(presenter, "on_new_default_conversation"):
-			presenter.close_conversation()
-			presenter.on_new_default_conversation.assert_called_once()
+		mocker.patch.object(presenter, "on_new_default_conversation")
+		presenter.close_conversation()
+		presenter.on_new_default_conversation.assert_called_once()
 
 	def test_selects_last_tab_when_remaining(self, presenter, mock_view):
 		"""Should select the last tab when tabs remain."""
@@ -288,23 +297,26 @@ class TestSaveConversationAs:
 class TestHandleNoAccountConfigured:
 	"""Tests for handle_no_account_configured."""
 
-	@patch("basilisk.presenters.main_frame_presenter.config")
 	def test_does_nothing_when_accounts_exist(
-		self, mock_config, presenter, mock_view
+		self, presenter, mock_view, mocker
 	):
 		"""Should do nothing when accounts are already configured."""
+		mock_config = mocker.patch(
+			"basilisk.presenters.main_frame_presenter.config"
+		)
+		mock_wx = mocker.patch("basilisk.presenters.main_frame_presenter.wx")
 		mock_config.accounts.return_value = [MagicMock()]
 
-		with patch("basilisk.presenters.main_frame_presenter.wx") as mock_wx:
-			presenter.handle_no_account_configured()
-			mock_wx.MessageBox.assert_not_called()
+		presenter.handle_no_account_configured()
 
-	@patch("basilisk.presenters.main_frame_presenter.config")
-	@patch("basilisk.presenters.main_frame_presenter.wx")
-	def test_shows_dialog_when_no_accounts(
-		self, mock_wx, mock_config, presenter, mock_view
-	):
+		mock_wx.MessageBox.assert_not_called()
+
+	def test_shows_dialog_when_no_accounts(self, presenter, mock_view, mocker):
 		"""Should show confirmation dialog when no accounts exist."""
+		mock_config = mocker.patch(
+			"basilisk.presenters.main_frame_presenter.config"
+		)
+		mock_wx = mocker.patch("basilisk.presenters.main_frame_presenter.wx")
 		mock_config.accounts.return_value = []
 		mock_wx.YES_NO = 0x2 | 0x4
 		mock_wx.ICON_QUESTION = 0x100
@@ -319,21 +331,20 @@ class TestHandleNoAccountConfigured:
 class TestTogglePrivacy:
 	"""Tests for toggle_privacy."""
 
-	def test_toggles_private_flag(self, presenter, mock_view):
-		"""Should call set_private with negated flag."""
-		mock_view.current_tab.private = False
+	@pytest.mark.parametrize(
+		("current", "expected"),
+		[(False, True), (True, False)],
+		ids=["toggle_on", "toggle_off"],
+	)
+	def test_toggles_private_flag(
+		self, presenter, mock_view, current, expected
+	):
+		"""Should call set_private with the negated current flag."""
+		mock_view.current_tab.private = current
 
 		presenter.toggle_privacy()
 
-		mock_view.current_tab.set_private.assert_called_once_with(True)
-
-	def test_toggles_private_flag_off(self, presenter, mock_view):
-		"""Should toggle from True to False."""
-		mock_view.current_tab.private = True
-
-		presenter.toggle_privacy()
-
-		mock_view.current_tab.set_private.assert_called_once_with(False)
+		mock_view.current_tab.set_private.assert_called_once_with(expected)
 
 	def test_does_nothing_when_no_tab(self, presenter, mock_view):
 		"""Should do nothing when no current tab."""
@@ -355,11 +366,13 @@ class TestScreenCapture:
 
 		mock_view.show_error.assert_called_once()
 
-	@patch("basilisk.presenters.main_frame_presenter.ScreenCaptureThread")
-	def test_starts_capture_thread(self, mock_thread_cls, presenter, mock_view):
+	def test_starts_capture_thread(self, presenter, mock_view, mocker):
 		"""Should start a capture thread."""
 		from basilisk.screen_capture_thread import CaptureMode
 
+		mock_thread_cls = mocker.patch(
+			"basilisk.presenters.main_frame_presenter.ScreenCaptureThread"
+		)
 		mock_view.current_tab.conv_storage_path = MagicMock()
 		mock_view.current_tab.conv_storage_path.__truediv__ = MagicMock(
 			return_value="path"
@@ -374,20 +387,21 @@ class TestScreenCapture:
 class TestOnNewDefaultConversation:
 	"""Tests for on_new_default_conversation."""
 
-	@patch("basilisk.presenters.main_frame_presenter.config")
-	@patch(
-		"basilisk.views.conversation_tab.ConversationTab.__init__",
-		return_value=None,
-	)
 	def test_creates_conversation_with_default_profile(
-		self, mock_init, mock_config, presenter, mock_view
+		self, presenter, mock_view, mocker
 	):
 		"""Should create a new conversation with the default profile."""
+		mock_config = mocker.patch(
+			"basilisk.presenters.main_frame_presenter.config"
+		)
+		mocker.patch(
+			"basilisk.views.conversation_tab.ConversationTab.__init__",
+			return_value=None,
+		)
 		mock_config.accounts.return_value = [MagicMock()]
 		profile = MagicMock()
 		mock_config.conversation_profiles.return_value.default_profile = profile
 
 		presenter.on_new_default_conversation()
 
-		mock_init.assert_called_once()
 		mock_view.add_conversation_tab.assert_called_once()

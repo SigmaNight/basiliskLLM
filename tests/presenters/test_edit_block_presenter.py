@@ -1,6 +1,6 @@
 """Tests for EditBlockPresenter."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -13,10 +13,6 @@ from basilisk.conversation import (
 )
 from basilisk.presenters.edit_block_presenter import EditBlockPresenter
 from basilisk.provider_ai_model import AIModelInfo
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -37,47 +33,17 @@ def conversation():
 
 
 @pytest.fixture
-def mock_view(conversation):
+def mock_view(conversation_view_base):
 	"""Return a mock EditBlockDialog view."""
-	view = MagicMock()
-
-	# prompt_panel
+	view = conversation_view_base
 	view.prompt_panel.prompt_text = "Hello"
-	view.prompt_panel.attachment_files = []
 	view.prompt_panel.ensure_model_compatibility.return_value = MagicMock(
 		id="gpt-4"
 	)
-	view.prompt_panel.check_attachments_valid.return_value = True
-
-	# account
-	view.current_account = MagicMock()
-	view.current_account.provider.id = "openai"
-
-	# model / engine
-	view.current_model = MagicMock()
-	view.current_model.id = "gpt-4"
-	view.current_engine = MagicMock()
-
-	# generation parameters
-	view.system_prompt_txt.GetValue.return_value = ""
 	view.temperature_spinner.GetValue.return_value = 0.7
-	view.top_p_spinner.GetValue.return_value = 1.0
 	view.max_tokens_spin_ctrl.GetValue.return_value = 256
-	view.stream_mode.GetValue.return_value = True
-
-	# response widget
-	view.response_txt = MagicMock()
 	view.response_txt.GetValue.return_value = "Hi"
-
-	# UI controls
-	view.regenerate_btn = MagicMock()
-	view.stop_btn = MagicMock()
-	view.a_output = MagicMock()
-
-	# TTS
 	view.should_speak_response = False
-
-	view._is_destroying = False
 	return view
 
 
@@ -87,11 +53,6 @@ def presenter(mock_view, conversation):
 	return EditBlockPresenter(
 		view=mock_view, conversation=conversation, block_index=0
 	)
-
-
-# ---------------------------------------------------------------------------
-# save_block
-# ---------------------------------------------------------------------------
 
 
 class TestSaveBlock:
@@ -119,26 +80,25 @@ class TestSaveBlock:
 		assert block.stream is False
 		assert block.response.content == "Updated response"
 
-	def test_returns_false_when_no_account(self, presenter, mock_view):
-		"""save_block should return False when no account is selected."""
-		mock_view.current_account = None
-		# ensure_model_compatibility returns a model but account is None
-		result = presenter.save_block()
-		assert result is False
-
-	def test_returns_false_when_model_validation_fails(
-		self, presenter, mock_view
+	@pytest.mark.parametrize(
+		"mutate",
+		[
+			lambda v: setattr(v, "current_account", None),
+			lambda v: setattr(
+				v.prompt_panel.ensure_model_compatibility, "return_value", None
+			),
+			lambda v: setattr(
+				v.prompt_panel.check_attachments_valid, "return_value", False
+			),
+		],
+		ids=["no_account", "model_validation_fails", "attachments_invalid"],
+	)
+	def test_returns_false_on_validation_failure(
+		self, presenter, mock_view, mutate
 	):
-		"""save_block should return False when model compatibility fails."""
-		mock_view.prompt_panel.ensure_model_compatibility.return_value = None
-		result = presenter.save_block()
-		assert result is False
-
-	def test_returns_false_when_attachments_invalid(self, presenter, mock_view):
-		"""save_block should return False when attachments are invalid."""
-		mock_view.prompt_panel.check_attachments_valid.return_value = False
-		result = presenter.save_block()
-		assert result is False
+		"""save_block returns False when validation conditions are not met."""
+		mutate(mock_view)
+		assert presenter.save_block() is False
 
 	def test_system_index_set_when_prompt_present(
 		self, presenter, mock_view, conversation
@@ -217,40 +177,37 @@ class TestSaveBlock:
 		assert block.updated_at >= original_updated_at
 
 
-# ---------------------------------------------------------------------------
-# start_regenerate
-# ---------------------------------------------------------------------------
-
-
 class TestStartRegenerate:
 	"""Tests for EditBlockPresenter.start_regenerate."""
 
-	def test_returns_false_when_model_validation_fails(
-		self, presenter, mock_view
+	@pytest.mark.parametrize(
+		"mutate",
+		[
+			lambda v: setattr(v, "current_account", None),
+			lambda v: setattr(
+				v.prompt_panel.ensure_model_compatibility, "return_value", None
+			),
+			lambda v: setattr(
+				v.prompt_panel.check_attachments_valid, "return_value", False
+			),
+		],
+		ids=["no_account", "model_validation_fails", "attachments_invalid"],
+	)
+	def test_returns_false_on_validation_failure(
+		self, presenter, mock_view, mutate
 	):
-		"""start_regenerate should return False on model validation failure."""
-		mock_view.prompt_panel.ensure_model_compatibility.return_value = None
-		result = presenter.start_regenerate()
-		assert result is False
+		"""start_regenerate returns False when validation conditions are not met."""
+		mutate(mock_view)
+		assert presenter.start_regenerate() is False
 
-	def test_returns_false_when_no_account(self, presenter, mock_view):
-		"""start_regenerate should return False when account is None."""
-		mock_view.current_account = None
-		result = presenter.start_regenerate()
-		assert result is False
-
-	def test_returns_false_when_attachments_invalid(self, presenter, mock_view):
-		"""start_regenerate should return False on invalid attachments."""
-		mock_view.prompt_panel.check_attachments_valid.return_value = False
-		result = presenter.start_regenerate()
-		assert result is False
-
-	def test_calls_start_completion_with_temp_block(self, presenter, mock_view):
+	def test_calls_start_completion_with_temp_block(
+		self, presenter, mock_view, mocker
+	):
 		"""start_regenerate should call start_completion with a temp block."""
-		with patch.object(
+		mock_start = mocker.patch.object(
 			presenter.completion_handler, "start_completion"
-		) as mock_start:
-			result = presenter.start_regenerate()
+		)
+		result = presenter.start_regenerate()
 
 		assert result is True
 		mock_start.assert_called_once()
@@ -258,53 +215,45 @@ class TestStartRegenerate:
 		assert kwargs["stop_block_index"] == 0
 		assert kwargs["engine"] is mock_view.current_engine
 
-	def test_system_message_absent_when_no_prompt(self, presenter, mock_view):
+	def test_system_message_absent_when_no_prompt(
+		self, presenter, mock_view, mocker
+	):
 		"""start_regenerate passes system_message=None when prompt is empty."""
 		mock_view.system_prompt_txt.GetValue.return_value = ""
-
-		with patch.object(
+		mock_start = mocker.patch.object(
 			presenter.completion_handler, "start_completion"
-		) as mock_start:
-			presenter.start_regenerate()
+		)
+		presenter.start_regenerate()
 
 		kwargs = mock_start.call_args.kwargs
 		assert kwargs["system_message"] is None
 
-	def test_system_message_present_when_prompt_set(self, presenter, mock_view):
+	def test_system_message_present_when_prompt_set(
+		self, presenter, mock_view, mocker
+	):
 		"""start_regenerate passes a SystemMessage when prompt is non-empty."""
 		mock_view.system_prompt_txt.GetValue.return_value = "Be concise"
-
-		with patch.object(
+		mock_start = mocker.patch.object(
 			presenter.completion_handler, "start_completion"
-		) as mock_start:
-			presenter.start_regenerate()
+		)
+		presenter.start_regenerate()
 
 		kwargs = mock_start.call_args.kwargs
 		assert isinstance(kwargs["system_message"], SystemMessage)
 		assert kwargs["system_message"].content == "Be concise"
 
 
-# ---------------------------------------------------------------------------
-# stop_regenerate
-# ---------------------------------------------------------------------------
-
-
 class TestStopRegenerate:
 	"""Tests for EditBlockPresenter.stop_regenerate."""
 
-	def test_delegates_to_completion_handler(self, presenter):
+	def test_delegates_to_completion_handler(self, presenter, mocker):
 		"""stop_regenerate should call stop_completion on the handler."""
-		with patch.object(
+		mock_stop = mocker.patch.object(
 			presenter.completion_handler, "stop_completion"
-		) as mock_stop:
-			presenter.stop_regenerate()
+		)
+		presenter.stop_regenerate()
 
 		mock_stop.assert_called_once()
-
-
-# ---------------------------------------------------------------------------
-# _on_regenerate_start
-# ---------------------------------------------------------------------------
 
 
 class TestOnRegenerateStart:
@@ -322,45 +271,32 @@ class TestOnRegenerateStart:
 		mock_view.Layout.assert_called_once()
 
 
-# ---------------------------------------------------------------------------
-# _on_regenerate_end
-# ---------------------------------------------------------------------------
-
-
 class TestOnRegenerateEnd:
 	"""Tests for EditBlockPresenter._on_regenerate_end."""
 
-	def test_success_shows_regenerate_hides_stop(self, presenter, mock_view):
-		"""_on_regenerate_end(True) should restore the regenerate button."""
-		with patch("basilisk.presenters.edit_block_presenter.config") as mc:
-			mc.conf.return_value.conversation.focus_history_after_send = False
-			presenter._on_regenerate_end(True)
-
-		mock_view.stop_btn.Hide.assert_called_once()
-		mock_view.regenerate_btn.Show.assert_called_once()
-
-	def test_failure_does_not_focus_response(self, presenter, mock_view):
-		"""_on_regenerate_end(False) should not focus the response control."""
-		with patch("basilisk.presenters.edit_block_presenter.config") as mc:
-			mc.conf.return_value.conversation.focus_history_after_send = True
-			presenter._on_regenerate_end(False)
-
-		mock_view.response_txt.SetFocus.assert_not_called()
-
-	def test_success_with_focus_config_focuses_response(
-		self, presenter, mock_view
+	@pytest.mark.parametrize(
+		("success", "focus_config", "expect_focus"),
+		[(True, False, False), (False, True, False), (True, True, True)],
+		ids=["success_no_focus", "failure_no_focus", "success_with_focus"],
+	)
+	def test_on_regenerate_end(
+		self, presenter, mock_view, mocker, success, focus_config, expect_focus
 	):
-		"""_on_regenerate_end(True) should focus response when config says so."""
-		with patch("basilisk.presenters.edit_block_presenter.config") as mc:
-			mc.conf.return_value.conversation.focus_history_after_send = True
-			presenter._on_regenerate_end(True)
+		"""_on_regenerate_end shows buttons on success and optionally focuses response."""
+		mc = mocker.patch("basilisk.presenters.edit_block_presenter.config")
+		mc.conf.return_value.conversation.focus_history_after_send = (
+			focus_config
+		)
 
-		mock_view.response_txt.SetFocus.assert_called_once()
+		presenter._on_regenerate_end(success)
 
-
-# ---------------------------------------------------------------------------
-# _on_non_stream_finish
-# ---------------------------------------------------------------------------
+		if success:
+			mock_view.stop_btn.Hide.assert_called_once()
+			mock_view.regenerate_btn.Show.assert_called_once()
+		if expect_focus:
+			mock_view.response_txt.SetFocus.assert_called_once()
+		else:
+			mock_view.response_txt.SetFocus.assert_not_called()
 
 
 class TestOnNonStreamFinish:
@@ -394,11 +330,6 @@ class TestOnNonStreamFinish:
 		presenter._on_non_stream_finish(block, None)
 
 		mock_view.a_output.handle.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# _on_stream_chunk
-# ---------------------------------------------------------------------------
 
 
 class TestOnStreamChunk:
@@ -435,11 +366,6 @@ class TestOnStreamChunk:
 		presenter._on_stream_chunk("chunk")
 
 		mock_view.a_output.handle_stream_buffer.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# _on_stream_finish
-# ---------------------------------------------------------------------------
 
 
 class TestOnStreamFinish:
