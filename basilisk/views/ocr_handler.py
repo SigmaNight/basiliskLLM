@@ -125,13 +125,11 @@ class OCRHandler(ErrorDisplayMixin):
 				or any other value (shown as a generic completion notice).
 		"""
 		if isinstance(data, list) and data:
-			msg = (
-				_("OCR completed successfully. Text extracted to:")
-				+ "\n"
-				+ "\n".join(data)
-				+ "\n\n"
-				+ _("Do you want to open the files?")
-			)
+			# Translators: Shown when OCR succeeds; %s is replaced with the
+			# output file paths, one per line
+			msg = _(
+				"OCR completed successfully. Text extracted to:\n%s\n\nDo you want to open the files?"
+			) % "\n".join(data)
 			if (
 				wx.MessageBox(msg, _("Result"), wx.YES_NO | wx.ICON_INFORMATION)
 				== wx.YES
@@ -146,6 +144,7 @@ class OCRHandler(ErrorDisplayMixin):
 				type(data),
 				data,
 			)
+			# Translators: Shown when OCR completes but extracted no text
 			wx.MessageBox(
 				_("OCR completed, but no text was extracted."),
 				_("Result"),

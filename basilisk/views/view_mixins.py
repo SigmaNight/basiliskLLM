@@ -30,6 +30,7 @@ class ErrorDisplayMixin:
 			title: Dialog title.  Defaults to the localised "Error" string.
 		"""
 		if title is None:
+			# Translators: Short dialog title for an error message
 			title = _("Error")
 		wx.MessageBox(message, title, wx.OK | wx.ICON_ERROR)
 

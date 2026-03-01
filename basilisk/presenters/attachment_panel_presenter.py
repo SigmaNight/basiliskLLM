@@ -87,6 +87,14 @@ class PromptAttachmentPresenter:
 		"""Reset the attachment list."""
 		self.attachment_files = []
 
+	def remove_attachment(self, attachment: AttachmentFile | ImageFile) -> None:
+		"""Remove an attachment from the list.
+
+		Args:
+			attachment: The attachment object to remove.
+		"""
+		self.attachment_files.remove(attachment)
+
 	def refresh_view(self) -> None:
 		"""Push current attachment state to the view."""
 		self.view.refresh_attachments_display(self.attachment_files)

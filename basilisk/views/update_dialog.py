@@ -357,11 +357,12 @@ class UpdateDialog(wx.Dialog, ErrorDisplayMixin):
 		"""
 		from basilisk.presenters.update_presenter import DownloadPresenter
 
+		# Translators: Title of the download progress dialog window
 		dlg = DownloadUpdateDialog(
 			parent=self.Parent, title=_("Downloading update")
 		)
 		try:
-			# Store latest_version for the update_label
+			# Translators: Label shown in the download dialog; %s is the version number
 			dlg.update_label.SetLabel(
 				_("Update basiliskLLM version: %s") % updater.latest_version
 			)

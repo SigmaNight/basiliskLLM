@@ -98,8 +98,8 @@ class SearchDialog(wx.Dialog, ErrorDisplayMixin):
 		)
 		self._mode_radio_extended = wx.RadioButton(
 			self,
-			# Translators: Search dialog label
-			label=_("E&xtended") + r" (\n, \t, \r...)",
+			# Translators: Search dialog label; \n, \t, \r are escape sequences
+			label=_(r"E&xtended (\n, \t, \r...)"),
 		)
 		self._mode_radio_regex = wx.RadioButton(
 			self,
@@ -239,7 +239,7 @@ class SearchDialog(wx.Dialog, ErrorDisplayMixin):
 		"""
 		wx.MessageBox(
 			# Translators: Search dialog message when text is not found
-			_('"{search_text}" not found.').format(search_text=text),
+			_('"%s" not found.') % text,
 			# Translators: Search dialog result title
 			_("Search Result"),
 			wx.OK | wx.ICON_INFORMATION,

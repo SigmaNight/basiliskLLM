@@ -86,6 +86,13 @@ class TestPromptAttachmentPresenterState:
 		presenter.clear()
 		assert presenter.attachment_files == []
 
+	def test_remove_attachment_removes_item(self, presenter):
+		"""remove_attachment() removes the given attachment from the list."""
+		att = MagicMock()
+		presenter.attachment_files = [att]
+		presenter.remove_attachment(att)
+		assert presenter.attachment_files == []
+
 	def test_refresh_view_calls_display(self, presenter, mock_view):
 		"""refresh_view() calls view.refresh_attachments_display with the current files."""
 		sentinel = [MagicMock()]

@@ -644,7 +644,7 @@ class PromptAttachmentsPanel(wx.Panel, ErrorDisplayMixin):
 		if not current_attachment:
 			return
 
-		self.presenter.attachment_files.remove(current_attachment)
+		self.presenter.remove_attachment(current_attachment)
 		self.refresh_attachments_list()
 
 		if selection >= self.attachments_list.GetItemCount():
