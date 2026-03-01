@@ -38,9 +38,9 @@ class TestMessagePositionManagerBasics:
 
 	def test_out_of_bounds_positions(self, segment_manager):
 		"""Test position bounds checking."""
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"Invalid current index"):
 			segment_manager.position = -1
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"Invalid current index"):
 			segment_manager.position = len(segment_manager.segments)
 
 	def test_empty_segments(self):
@@ -137,7 +137,7 @@ class TestNavigationMethods:
 		assert segment_manager.absolute_position == 42
 
 		# Test invalid negative value
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"Invalid absolute position"):
 			segment_manager.absolute_position = -1
 
 		# Test too large value (should clamp to max)

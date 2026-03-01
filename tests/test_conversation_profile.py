@@ -235,7 +235,9 @@ class TestConversationProfile:
 	def test_profile_initialization_error_handling(self):
 		"""Test error handling in profile initialization."""
 		# Test with invalid data that would cause validation errors
-		with pytest.raises(Exception):
+		with pytest.raises(
+			Exception, match=r"Max tokens must be None without model"
+		):
 			ConversationProfile(
 				name="Test",
 				max_tokens=100,  # max_tokens without ai_model_info should fail
@@ -343,10 +345,37 @@ class TestConversationProfile:
 
 	def test_invalid_ai_model_string_format(self):
 		"""Test handling of invalid ai_model string formats."""
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"not enough values to unpack"):
 			ConversationProfile(
 				name="Test", ai_model_info="invalid_format_no_slash"
 			)
+
+	def test_to_summary_text_minimal(self):
+		"""Test to_summary_text with minimal profile."""
+		profile = ConversationProfile(name="Test")
+		summary = profile.to_summary_text()
+		assert "Name:" in summary
+		assert "Test" in summary
+		assert "Stream mode:" in summary
+
+	def test_to_summary_text_with_all_fields(self):
+		"""Test to_summary_text includes all set fields."""
+		profile = ConversationProfile(
+			name="Full",
+			ai_model_info="openai/gpt-4",
+			max_tokens=100,
+			temperature=0.7,
+			top_p=0.9,
+			stream_mode=False,
+			system_prompt="Be helpful",
+		)
+		summary = profile.to_summary_text()
+		assert "Full" in summary
+		assert "100" in summary
+		assert "0.7" in summary
+		assert "0.9" in summary
+		assert "Be helpful" in summary
+		assert "Model:" in summary
 
 
 class TestConversationProfileManagerCollectionOperations:
@@ -618,7 +647,9 @@ class TestConversationProfileAdvancedValidation:
 		profile.ai_model_info = None
 
 		# This should trigger revalidation and fail
-		with pytest.raises(Exception):
+		with pytest.raises(
+			Exception, match=r"Max tokens must be None without model"
+		):
 			profile.model_validate(profile.model_dump())
 
 	def test_all_model_params_together(self):
@@ -738,7 +769,7 @@ class TestConversationProfileManagerComplexScenarios:
 		manager = clean_config_manager(profiles=[profile1])
 
 		# This should raise ValueError since profile2 is not in the list
-		with pytest.raises(ValueError):
+		with pytest.raises(ValueError, match=r"not in list"):
 			manager.remove(profile2)
 
 	def test_large_profile_collection(self, clean_config_manager):

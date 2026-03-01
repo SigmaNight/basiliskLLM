@@ -165,27 +165,6 @@ class MessageBlock(BaseModel):
 			raise ValueError("Response messages cannot have attachments.")
 		return value
 
-	def __init__(self, /, **data):
-		"""Initialize a MessageBlock instance with optional provider and model information.
-
-		This constructor allows flexible initialization of a MessageBlock by automatically
-		creating an AIModelInfo instance if provider_id and model_id are provided without
-		an existing model.
-
-		Args:
-			data: Keyword arguments for MessageBlock initialization
-		"""
-		provider_id = data.pop("provider_id", None)
-		model_id = data.pop("model_id", None)
-		model = data.get("model", None)
-		if provider_id and model_id and not model:
-			data["model"] = AIModelInfo(
-				provider_id=provider_id, model_id=model_id
-			)
-		super().__init__(**data)
-
-	__init__.__pydantic_base_init__ = True
-
 	@model_validator(mode="after")
 	def validate_roles(self) -> MessageBlock:
 		"""Validates that the roles of the request and response messages are correct.

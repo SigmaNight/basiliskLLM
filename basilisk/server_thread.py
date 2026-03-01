@@ -13,7 +13,7 @@ import wx
 from basilisk.screen_capture_thread import CaptureMode
 
 if TYPE_CHECKING:
-	from basilisk.gui.main_frame import MainFrame
+	from basilisk.views.main_frame import MainFrame
 
 log = logging.getLogger(__name__)
 

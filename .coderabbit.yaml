@@ -26,10 +26,19 @@ reviews:
         - Use **type hints** for all public classes and functions
         - Use **google style** for docstrings
         ## Strings
-        - Always use **double quotes** for strings
-        - Use **percent formatting** for string
+        - Preserve existing quote style; prefer double quotes for new code
         - Use **\_("string")** for translatable strings
-        - Use \*\*# translator: \*\* with context for translatable strings
+        - Use **# Translators:** comment (capital T) before translatable strings to provide context for translators
+        ## Imports
+        - Use **from __future__ import annotations** in all presenter and service modules
+        - Group imports: standard library → third-party → local (basilisk), alphabetically sorted
+        ## MVP Architecture
+        - **Views** live in `basilisk/views/` (wxPython UI, no business logic)
+        - **Presenters** live in `basilisk/presenters/` (business logic, no wx imports where possible)
+        - **Services** live in `basilisk/services/` (reusable logic, thread-safe async operations)
+        - Presenters receive a view via injection; do not access wx directly in presenters
+        - Use `DestroyGuardMixin` + `@_guard_destroying` for presenter callbacks that may fire after view destruction
+        - Use `ErrorDisplayMixin` on views; call `view.show_error()` / `view.show_enhanced_error()` from presenters
 
   tools:
     github-checks:

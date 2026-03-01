@@ -48,6 +48,7 @@ test = [
     "pytest (>=9.0)",
     "pytest-cov (>=7.0.0)",
     "pytest-httpx (>=0.36)",
+    "pytest-mock (>=3.15)",
 ]
 
 style = [
@@ -102,7 +103,7 @@ quote-style = "preserve"
 skip-magic-trailing-comma = true
 
 [tool.ruff.lint]
-extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004","Q"]
+extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004","Q","PT"]
 extend-ignore = ["D206"]
 
 [tool.ruff.lint.mccabe]

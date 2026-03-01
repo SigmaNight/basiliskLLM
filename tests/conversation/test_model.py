@@ -19,11 +19,10 @@ class TestAIModelAndMessages:
 
 	def test_invalid_ai_model(self):
 		"""Test invalid AI model."""
-		with pytest.raises(ValidationError) as exc_info:
+		with pytest.raises(ValidationError):
 			AIModelInfo(
 				provider_id="invalid_provider", model_id="invalid_model"
 			)
-			assert exc_info.group_contains(ValueError, "No provider found")
 
 	def test_invalid_msg_role(self):
 		"""Test invalid message role."""
@@ -57,21 +56,15 @@ class TestMessageBlockValidation:
 
 	def test_invalid_request_role(self, ai_model, assistant_message):
 		"""Test invalid request role."""
-		with pytest.raises(ValidationError) as exc_info:
+		with pytest.raises(ValidationError):
 			MessageBlock(request=assistant_message, model=ai_model)
-			assert exc_info.group_contains(
-				ValueError, "Request message must be from the user."
-			)
 
 	def test_invalid_response_role(self, ai_model, user_message):
 		"""Test invalid response role."""
-		with pytest.raises(ValidationError) as exc_info:
+		with pytest.raises(ValidationError):
 			# Using user message as response (invalid)
 			MessageBlock(
 				request=user_message, response=user_message, model=ai_model
-			)
-			assert exc_info.group_contains(
-				ValueError, "Response message must be from the assistant."
 			)
 
 	def test_message_block_no_request(self, ai_model, assistant_message):
@@ -90,11 +83,8 @@ class TestMessageBlockValidation:
 			attachments=[attachment],
 		)
 
-		with pytest.raises(ValidationError) as exc_info:
+		with pytest.raises(ValidationError):
 			MessageBlock(request=req_msg, response=res_msg, model=ai_model)
-			assert exc_info.group_contains(
-				ValueError, "Response messages cannot have attachments."
-			)
 
 
 class TestConversationBasics:

@@ -96,7 +96,7 @@ class MainApp(wx.App):
 
 		Creates an instance of the MainFrame class and sets it as the top window for the application. The frame is then shown, and the application is set to the top window.
 		"""
-		from basilisk.gui.main_frame import MainFrame
+		from basilisk.views.main_frame import MainFrame
 
 		frame_style = wx.DEFAULT_FRAME_STYLE
 		if global_vars.args.minimize:

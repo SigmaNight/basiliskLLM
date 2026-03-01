@@ -24,8 +24,8 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.gui.enhanced_error_dialog import show_enhanced_error_dialog
 from basilisk.sound_manager import play_sound, stop_sound
+from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine

@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
 
 	from upath import UPath
 
-	from basilisk.gui.main_frame import MainFrame
+	from basilisk.views.main_frame import MainFrame
 
 
 class CaptureMode(enum.StrEnum):

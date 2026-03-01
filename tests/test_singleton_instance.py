@@ -9,7 +9,7 @@ import os
 import sys
 import tempfile
 import uuid
-from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -20,8 +20,8 @@ TEST_LOCK_PATH = os.path.join(
 )
 
 # Apply the patches before importing the module
-with mock.patch("basilisk.consts.APP_NAME", TEST_APP_NAME):
-	with mock.patch("basilisk.consts.FILE_LOCK_PATH", TEST_LOCK_PATH):
+with patch("basilisk.consts.APP_NAME", TEST_APP_NAME):
+	with patch("basilisk.consts.FILE_LOCK_PATH", TEST_LOCK_PATH):
 		from basilisk.singleton_instance import SingletonInstance
 
 
