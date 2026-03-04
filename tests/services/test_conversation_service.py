@@ -175,8 +175,38 @@ class TestGenerateTitle:
 		mock_engine = MagicMock()
 		mock_response = MagicMock()
 		mock_engine.completion.return_value = mock_response
+		mock_engine.completion_response_with_stream.return_value = iter(
+			["My ", "Title"]
+		)
+
+		conv = Conversation()
+		conv.add_block(
+			MessageBlock(
+				request=Message(role=MessageRoleEnum.USER, content="Hi"),
+				response=Message(
+					role=MessageRoleEnum.ASSISTANT, content="Hello"
+				),
+				model=AIModelInfo(provider_id="openai", model_id="test"),
+			)
+		)
+		title = service.generate_title(
+			engine=mock_engine,
+			conversation=conv,
+			provider_id="openai",
+			model_id="test",
+			temperature=0.5,
+			top_p=1.0,
+			max_tokens=100,
+		)
+		assert title == "My Title"
+
+	def test_returns_content_without_stream(self, service):
+		"""generate_title with stream=False should use non-streaming path."""
+		mock_engine = MagicMock()
+		mock_response = MagicMock()
+		mock_engine.completion.return_value = mock_response
 		result_block = MagicMock()
-		result_block.response.content = "My Title"
+		result_block.response.content = "Non-Stream Title"
 		mock_engine.completion_response_without_stream.return_value = (
 			result_block
 		)
@@ -201,7 +231,7 @@ class TestGenerateTitle:
 			max_tokens=100,
 			stream=False,
 		)
-		assert title == "My Title"
+		assert title == "Non-Stream Title"
 
 	def test_returns_none_on_error(self, service):
 		"""generate_title should return None on exception."""
@@ -217,6 +247,5 @@ class TestGenerateTitle:
 			temperature=0.5,
 			top_p=1.0,
 			max_tokens=100,
-			stream=False,
 		)
 		assert title is None

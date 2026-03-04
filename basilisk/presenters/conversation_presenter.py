@@ -460,7 +460,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			temperature=self.view.temperature_spinner.GetValue(),
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=True,  # Required for Anthropic: long requests must use streaming
+			stream=self.view.stream_mode.GetValue(),
 		)
 		if title is None and self.conversation.messages:
 			self.view.show_enhanced_error(

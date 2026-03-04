@@ -208,9 +208,13 @@ class ConversationService:
 		temperature: float,
 		top_p: float,
 		max_tokens: int,
-		stream: bool,
+		stream: bool = True,
 	) -> Optional[str]:
 		"""Generate a conversation title using the AI model.
+
+		Streaming is used by default; some providers (e.g. Anthropic) require
+		streaming for long requests to avoid timeouts. Pass stream=False for
+		models that do not support streaming.
 
 		Args:
 			engine: The provider engine to use.
@@ -220,7 +224,8 @@ class ConversationService:
 			temperature: Temperature setting.
 			top_p: Top-p setting.
 			max_tokens: Max tokens setting.
-			stream: Stream mode setting.
+			stream: Whether to use streaming (default True). Use False for
+				models that do not support streaming.
 
 		Returns:
 			The generated title string, or None on failure.
@@ -235,15 +240,21 @@ class ConversationService:
 				temperature=temperature,
 				top_p=top_p,
 				max_tokens=max_tokens,
-				stream=False,
+				stream=stream,
 			)
 			completion_kw = {
 				"system_message": None,
 				"conversation": conversation,
 				"new_block": new_block,
-				"stream": False,
+				"stream": stream,
 			}
 			response = engine.completion(**completion_kw)
+			if stream:
+				content_parts = []
+				for chunk in engine.completion_response_with_stream(response):
+					if isinstance(chunk, str):
+						content_parts.append(chunk)
+				return "".join(content_parts).strip()
 			new_block = engine.completion_response_without_stream(
 				response=response, **completion_kw
 			)
