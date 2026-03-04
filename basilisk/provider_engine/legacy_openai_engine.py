@@ -199,6 +199,10 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 	):
 		"""Processes a streaming completion response.
 
+		Skips chunks with empty choices (e.g. OpenRouter SSE comments,
+		processing indicators, or final usage-only chunks). This is
+		standard for OpenAI-compatible streaming APIs.
+
 		Args:
 			stream: Generator of chat completion chunks.
 
@@ -206,6 +210,8 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			Content from each chunk in the stream.
 		"""
 		for chunk in stream:
+			if not chunk.choices:
+				continue
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
 				yield delta.content
