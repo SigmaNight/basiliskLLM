@@ -404,7 +404,7 @@ class TestGenerateConversationTitle:
 			model=AIModelInfo(provider_id="openai", model_id="test"),
 		)
 		presenter.conversation.add_block(block, None)
-		mock_service.generate_title.return_value = "My Conversation"
+		mock_service.generate_title.return_value = ("My Conversation", None)
 
 		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=False
@@ -416,14 +416,19 @@ class TestGenerateConversationTitle:
 	def test_shows_error_when_title_none_but_messages_exist(
 		self, presenter, mock_view, mock_service, mocker
 	):
-		"""Shows enhanced error dialog when service returns None but messages exist."""
+		"""Shows enhanced error dialog with error details when service fails."""
 		block = MessageBlock(
 			request=Message(role=MessageRoleEnum.USER, content="Hi"),
 			response=Message(role=MessageRoleEnum.ASSISTANT, content="Hello"),
 			model=AIModelInfo(provider_id="openai", model_id="test"),
 		)
 		presenter.conversation.add_block(block, None)
-		mock_service.generate_title.return_value = None
+		mock_service.generate_title.return_value = (
+			None,
+			ValueError(
+				"Streaming is required for operations that may take longer than 10 minutes."
+			),
+		)
 
 		mocker.patch.object(
 			presenter.completion_handler, "is_running", return_value=False
@@ -432,3 +437,5 @@ class TestGenerateConversationTitle:
 
 		assert result is None
 		mock_view.show_enhanced_error.assert_called_once()
+		call_args = mock_view.show_enhanced_error.call_args
+		assert "Streaming is required" in call_args[0][0]

@@ -452,7 +452,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		model = self.view.current_model
 		if not model:
 			return
-		title = self.service.generate_title(
+		title, error = self.service.generate_title(
 			engine=self.view.current_engine,
 			conversation=self.conversation,
 			provider_id=self.view.current_account.provider.id,
@@ -463,10 +463,13 @@ class ConversationPresenter(DestroyGuardMixin):
 			stream=self.view.stream_mode.GetValue(),
 		)
 		if title is None and self.conversation.messages:
+			message = (
+				_("An error occurred during title generation: %s") % error
+				if error
+				else _("An error occurred during title generation")
+			)
 			self.view.show_enhanced_error(
-				_("An error occurred during title generation"),
-				_("Title Generation Error"),
-				is_completion_error=True,
+				message, _("Title Generation Error"), is_completion_error=True
 			)
 		return title
 

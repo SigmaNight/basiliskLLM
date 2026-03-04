@@ -209,7 +209,7 @@ class ConversationService:
 		top_p: float,
 		max_tokens: int,
 		stream: bool = True,
-	) -> Optional[str]:
+	) -> tuple[Optional[str], Optional[Exception]]:
 		"""Generate a conversation title using the AI model.
 
 		Streaming is used by default; some providers (e.g. Anthropic) require
@@ -228,7 +228,8 @@ class ConversationService:
 				models that do not support streaming.
 
 		Returns:
-			The generated title string, or None on failure.
+			A tuple of (title, error). On success: (title_string, None).
+			On failure: (None, exception).
 		"""
 		play_sound("progress", loop=True)
 		try:
@@ -254,13 +255,13 @@ class ConversationService:
 				for chunk in engine.completion_response_with_stream(response):
 					if isinstance(chunk, str):
 						content_parts.append(chunk)
-				return "".join(content_parts).strip()
+				return "".join(content_parts).strip(), None
 			new_block = engine.completion_response_without_stream(
 				response=response, **completion_kw
 			)
-			return new_block.response.content
-		except Exception:
+			return new_block.response.content, None
+		except Exception as e:
 			log.error("Title generation failed", exc_info=True)
-			return None
+			return None, e
 		finally:
 			stop_sound()

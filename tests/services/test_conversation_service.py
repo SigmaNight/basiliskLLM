@@ -189,7 +189,7 @@ class TestGenerateTitle:
 				model=AIModelInfo(provider_id="openai", model_id="test"),
 			)
 		)
-		title = service.generate_title(
+		title, error = service.generate_title(
 			engine=mock_engine,
 			conversation=conv,
 			provider_id="openai",
@@ -199,6 +199,7 @@ class TestGenerateTitle:
 			max_tokens=100,
 		)
 		assert title == "My Title"
+		assert error is None
 
 	def test_returns_content_without_stream(self, service):
 		"""generate_title with stream=False should use non-streaming path."""
@@ -221,7 +222,7 @@ class TestGenerateTitle:
 				model=AIModelInfo(provider_id="openai", model_id="test"),
 			)
 		)
-		title = service.generate_title(
+		title, error = service.generate_title(
 			engine=mock_engine,
 			conversation=conv,
 			provider_id="openai",
@@ -232,14 +233,15 @@ class TestGenerateTitle:
 			stream=False,
 		)
 		assert title == "Non-Stream Title"
+		assert error is None
 
 	def test_returns_none_on_error(self, service):
-		"""generate_title should return None on exception."""
+		"""generate_title should return (None, exception) on exception."""
 		mock_engine = MagicMock()
 		mock_engine.completion.side_effect = RuntimeError("API down")
 
 		conv = Conversation()
-		title = service.generate_title(
+		title, error = service.generate_title(
 			engine=mock_engine,
 			conversation=conv,
 			provider_id="openai",
@@ -249,3 +251,5 @@ class TestGenerateTitle:
 			max_tokens=100,
 		)
 		assert title is None
+		assert error is not None
+		assert str(error) == "API down"
