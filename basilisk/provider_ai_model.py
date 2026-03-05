@@ -20,8 +20,11 @@ class ProviderAIModel:
 		max_output_tokens: The maximum number of output tokens for the AI model.
 		max_temperature: The maximum temperature for the AI model.
 		default_temperature: The default temperature for the AI model.
-		reasoning: Whether the AI model supports reasoning.
+		reasoning: Whether the AI model is reasoning-only (always on).
+		reasoning_capable: Whether the model supports optional reasoning via param.
 		vision: Whether the AI model supports vision.
+		created: Unix timestamp for model creation (for UI sort order).
+		supported_parameters: List of API parameter names the model accepts.
 		extra_info: Additional information for the AI model.
 	"""
 
@@ -34,6 +37,9 @@ class ProviderAIModel:
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	reasoning_capable: bool = field(default=False)
+	created: int = field(default=0)
+	supported_parameters: list[str] = field(default_factory=list)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property

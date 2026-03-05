@@ -35,6 +35,9 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
+from .dynamic_model_loader import load_models_from_url
+
+OPENAI_MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/openai.json"
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -95,251 +98,23 @@ class OpenAIEngine(BaseEngine):
 			or str(self.account.provider.base_url),
 		)
 
+	_REASONING_ONLY_IDS = frozenset({"o1", "o3", "o3-mini", "o4-mini"})
+
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models.
+		"""Retrieves available OpenAI models from model-metadata JSON.
 
 		Returns:
-			List of supported OpenAI models with their configurations.
+			List of supported OpenAI models, sorted by created (newest first).
 		"""
 		super().models
-		log.debug("Getting openAI models")
-		# See <https://platform.openai.com/docs/models>
-		return [
-			ProviderAIModel(
-				id="gpt-5.2",
-				name="GPT-5.2",
-				# Translators: This is a model description
-				description=_(
-					"The best model for coding and agentic tasks across industries"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.2-pro",
-				name="GPT-5.2 Pro",
-				# Translators: This is a model description
-				description=_(
-					"Version of GPT-5.2 that produces smarter and more precise responses"
-				),
-				context_window=400000,
-				max_output_tokens=272000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.2-chat-latest",
-				name="GPT-5.2 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5.2 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.1",
-				name="GPT-5.1",
-				# Translators: This is a model description
-				description=_(
-					"Best model for coding and agentic tasks with configurable reasoning effort"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.1-chat-latest",
-				name="GPT-5.1 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5.1 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5",
-				name="GPT-5",
-				# Translators: This is a model description
-				description=_(
-					"Previous intelligent reasoning model for coding and agentic tasks"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-mini",
-				name="GPT-5 mini",
-				# Translators: This is a model description
-				description=_(
-					"A faster, more cost-efficient version of GPT-5 for well-defined tasks"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-nano",
-				name="GPT-5 nano",
-				# Translators: This is a model description
-				description=_("Fastest, most cost-efficient version of GPT-5"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-chat-latest",
-				name="GPT-5 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-pro",
-				name="GPT-5 Pro",
-				# Translators: This is a model description
-				description=_(
-					"Version of GPT-5 that produces smarter and more precise responses"
-				),
-				context_window=400000,
-				max_output_tokens=272000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1",
-				name="GPT-4.1",
-				# Translators: This is a model description
-				description=_("Flagship GPT model for complex tasks"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1-mini",
-				name="GPT-4.1 mini",
-				# Translators: This is a model description
-				description=_("Balanced for intelligence, speed, and cost"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1-nano",
-				name="GPT-4.1 nano",
-				# Translators: This is a model description
-				description=_("Fastest, most cost-effective GPT-4.1 model"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o4-mini",
-				name="o4-mini",
-				# Translators: This is a model description
-				description=_(
-					"Fast, cost-efficient reasoning model, succeeded by GPT-5 mini"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o3",
-				name="o3",
-				# Translators: This is a model description
-				description=_(
-					"Reasoning model for complex tasks, succeeded by GPT-5"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o",
-				name="GPT 4o",
-				# Translators: This is a model description
-				description=_("Fast, intelligent, flexible GPT model"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-mini",
-				name="GPT 4o Mini",
-				# Translators: This is a model description
-				description=_("Fast, affordable small model for focused tasks"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o3-mini",
-				name="o3 Mini",
-				# Translators: This is a model description
-				description=_(
-					"Small reasoning model for science, math and coding with Structured Outputs and function calling"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o1",
-				name="o1",
-				# Translators: This is a model description
-				description=_("Previous full o-series reasoning model"),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-turbo",
-				name="GPT 4 Turbo",
-				# Translators: This is a model description
-				description=_(
-					"Older high-intelligence GPT model with vision capabilities"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo",
-				name="GPT 3.5 Turbo",
-				# Translators: This is a model description
-				description=_(
-					"Legacy GPT model for cheaper chat and non-chat tasks"
-				),
-				context_window=16385,
-				max_temperature=2.0,
-			),
-		]
+		log.debug("Getting OpenAI models")
+		models = load_models_from_url(OPENAI_MODELS_JSON_URL)
+		for m in models:
+			if m.id in self._REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
+		return models
 
 	def prepare_message_request(
 		self, message: Message

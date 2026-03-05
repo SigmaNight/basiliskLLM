@@ -95,17 +95,29 @@ def _has_reasoning_capable(supported: list[str] | None) -> bool:
 	return "reasoning" in supported or "include_reasoning" in supported
 
 
+def _get_created(model: dict[str, Any]) -> int:
+	"""Extract created Unix timestamp, or 0 if absent."""
+	val = model.get("created")
+	if val is None:
+		return 0
+	try:
+		return int(val)
+	except TypeError, ValueError:
+		return 0
+
+
 def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	"""Parse model-metadata JSON into ProviderAIModel list.
 
 	Excludes :thinking and _reasoning variant entries (duplicates of base).
 	Uses top_provider for context_length and max_completion_tokens.
+	Sorts by created descending (newest first) for UI display.
 
 	Args:
 		raw: JSON dict with "data" key containing model objects.
 
 	Returns:
-		List of ProviderAIModel instances.
+		List of ProviderAIModel instances, sorted by created desc.
 	"""
 	models: list[ProviderAIModel] = []
 	data = raw.get("data")
@@ -137,11 +149,6 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		reasoning_capable = _has_reasoning_capable(supported)
 		reasoning_only = False  # Provider-specific; set by engine if needed
 
-		extra_info: dict[str, Any] = {}
-		if supported:
-			extra_info["supported_parameters"] = supported
-		extra_info["reasoning_capable"] = reasoning_capable
-
 		models.append(
 			ProviderAIModel(
 				id=model_id,
@@ -152,10 +159,14 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				max_temperature=2.0,
 				vision=_has_vision(modality),
 				reasoning=reasoning_only,
-				extra_info=extra_info,
+				reasoning_capable=reasoning_capable,
+				created=_get_created(item),
+				supported_parameters=supported,
+				extra_info={},
 			)
 		)
 
+	models.sort(key=lambda m: m.created, reverse=True)
 	return models
 
 

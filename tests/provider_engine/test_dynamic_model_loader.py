@@ -46,8 +46,8 @@ def test_parse_model_metadata_openai_structure():
 	assert m.context_window == 400000
 	assert m.max_output_tokens == 128000
 	assert m.vision is True
-	assert m.extra_info["reasoning_capable"] is True
-	assert "supported_parameters" in m.extra_info
+	assert m.reasoning_capable is True
+	assert "include_reasoning" in m.supported_parameters
 
 
 def test_parse_model_metadata_excludes_thinking_variants():
@@ -131,11 +131,9 @@ def test_parse_model_metadata_reasoning_capable_from_supported_parameters():
 	}
 	models = parse_model_metadata(raw)
 	by_id = {m.id: m for m in models}
-	assert by_id["with-reasoning"].extra_info["reasoning_capable"] is True
-	assert (
-		by_id["with-include-reasoning"].extra_info["reasoning_capable"] is True
-	)
-	assert by_id["no-reasoning"].extra_info["reasoning_capable"] is False
+	assert by_id["with-reasoning"].reasoning_capable is True
+	assert by_id["with-include-reasoning"].reasoning_capable is True
+	assert by_id["no-reasoning"].reasoning_capable is False
 
 
 def test_fetch_models_json_success(httpx_mock):
@@ -157,6 +155,19 @@ def test_fetch_models_json_network_error(httpx_mock):
 
 	with pytest.raises(httpx.HTTPStatusError):
 		fetch_models_json("https://example.com/models.json")
+
+
+def test_parse_model_metadata_sorts_by_created_desc():
+	"""parse_model_metadata sorts models by created descending (newest first)."""
+	raw = {
+		"data": [
+			{"id": "old", "created": 1000},
+			{"id": "new", "created": 3000},
+			{"id": "mid", "created": 2000},
+		]
+	}
+	models = parse_model_metadata(raw)
+	assert [m.id for m in models] == ["new", "mid", "old"]
 
 
 def test_load_models_from_url_success(httpx_mock):
