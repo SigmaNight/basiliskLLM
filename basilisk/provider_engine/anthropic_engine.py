@@ -225,12 +225,22 @@ class AnthropicEngine(BaseEngine):
 			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
-			params["model"] = model.id.replace("_reasoning", "")
 			params["thinking"] = {
 				"type": "enabled",
-				"budget_tokens": kwargs.get("budget_tokens", 16000),
+				"budget_tokens": new_block.reasoning_budget_tokens or 16000,
 			}
+		elif model.reasoning_capable and new_block.reasoning_mode:
+			params.pop("top_p", None)
+			_supports_adaptive = "4.6" in (model.id or "")
+			if new_block.reasoning_adaptive and _supports_adaptive:
+				params["thinking"] = {"type": "adaptive"}
+			else:
+				params["thinking"] = {
+					"type": "enabled",
+					"budget_tokens": new_block.reasoning_budget_tokens or 16000,
+				}
 		params.update(kwargs)
+		params = self._filter_params_for_model(model, params)
 		response = self.client.messages.create(**params)
 		return response
 

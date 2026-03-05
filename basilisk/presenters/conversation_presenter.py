@@ -154,6 +154,27 @@ class ConversationPresenter(DestroyGuardMixin):
 		if not model:
 			return None
 		view.prompt_panel.resize_all_attachments()
+		reasoning_mode = False
+		reasoning_budget_tokens = None
+		reasoning_effort = None
+		reasoning_adaptive = False
+		if hasattr(view, "reasoning_mode") and view.reasoning_mode.IsShown():
+			val = view.reasoning_mode.GetValue()
+			reasoning_mode = bool(val) if isinstance(val, bool) else False
+			if hasattr(view, "reasoning_adaptive"):
+				val = view.reasoning_adaptive.GetValue()
+				reasoning_adaptive = (
+					bool(val) if isinstance(val, bool) else False
+				)
+			if hasattr(view, "reasoning_budget_spin"):
+				val = view.reasoning_budget_spin.GetValue()
+				reasoning_budget_tokens = val if isinstance(val, int) else None
+			if hasattr(view, "reasoning_effort_choice"):
+				effort_idx = view.reasoning_effort_choice.GetSelection()
+				if isinstance(effort_idx, int):
+					reasoning_effort = ["low", "medium", "high"][
+						min(effort_idx, 2)
+					]
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -167,6 +188,10 @@ class ConversationPresenter(DestroyGuardMixin):
 			top_p=view.top_p_spinner.GetValue(),
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
 			stream=view.stream_mode.GetValue(),
+			reasoning_mode=reasoning_mode,
+			reasoning_budget_tokens=reasoning_budget_tokens,
+			reasoning_effort=reasoning_effort,
+			reasoning_adaptive=reasoning_adaptive,
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:

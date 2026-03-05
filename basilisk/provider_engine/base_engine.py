@@ -75,6 +75,45 @@ class BaseEngine(ABC):
 			return True
 		return model.supports_parameter("tools")
 
+	# Param keys that may be filtered by model.supported_parameters
+	_FILTERABLE_PARAMS = frozenset(
+		{
+			"temperature",
+			"top_p",
+			"max_tokens",
+			"frequency_penalty",
+			"presence_penalty",
+			"seed",
+			"top_k",
+		}
+	)
+
+	def _filter_params_for_model(
+		self, model: ProviderAIModel, params: dict[str, Any]
+	) -> dict[str, Any]:
+		"""Filter generation params to only those the model supports.
+
+		Structural params (model, input, messages, stream, tools, etc.) are
+		always included. When supported_parameters is empty (legacy), returns
+		params unchanged.
+
+		Args:
+			model: The model to filter for.
+			params: Raw params dict.
+
+		Returns:
+			Filtered params dict.
+		"""
+		supported = model.supported_parameters
+		if not supported:
+			return params
+		result = {}
+		for k, v in params.items():
+			if k in self._FILTERABLE_PARAMS and k not in supported:
+				continue
+			result[k] = v
+		return result
+
 	def get_web_search_tool_definitions(
 		self, model: ProviderAIModel
 	) -> list[Any]:

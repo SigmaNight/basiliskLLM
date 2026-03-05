@@ -4,13 +4,21 @@ This module provides the XAIEngine class for interacting with the xAI API,
 implementing capabilities for both text and image generation.
 """
 
+from __future__ import annotations
+
 import logging
 from functools import cached_property
+from typing import TYPE_CHECKING, Generator
 
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .legacy_openai_engine import LegacyOpenAIEngine
+
+if TYPE_CHECKING:
+	from openai.types.chat import ChatCompletion, ChatCompletionChunk
+
+	from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 
 log = logging.getLogger(__name__)
 
@@ -103,6 +111,7 @@ class XAIEngine(LegacyOpenAIEngine):
 				context_window=131072,
 				max_temperature=2.0,
 				default_temperature=1.0,
+				reasoning_capable=True,
 			),
 			ProviderAIModel(
 				id="grok-2-vision-1212",
@@ -117,3 +126,22 @@ class XAIEngine(LegacyOpenAIEngine):
 			),
 		]
 		return models
+
+	def completion(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: SystemMessage | None,
+		stop_block_index: int | None = None,
+		**kwargs,
+	) -> ChatCompletion | Generator[ChatCompletionChunk, None, None]:
+		"""Add reasoning_effort for grok-3-mini when reasoning_mode is on."""
+		model = self.get_model(new_block.model.model_id)
+		if model and model.id == "grok-3-mini" and new_block.reasoning_mode:
+			effort = new_block.reasoning_effort or "high"
+			if effort == "medium":
+				effort = "high"
+			kwargs["reasoning_effort"] = effort
+		return super().completion(
+			new_block, conversation, system_message, stop_block_index, **kwargs
+		)

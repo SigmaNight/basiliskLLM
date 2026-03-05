@@ -277,6 +277,13 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.create_reasoning_widget()
+		sizer.Add(self.reasoning_mode, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.reasoning_adaptive, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.reasoning_budget_label, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.reasoning_budget_spin, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.reasoning_effort_label, proportion=0, flag=wx.EXPAND)
+		sizer.Add(self.reasoning_effort_choice, proportion=0, flag=wx.EXPAND)
 		self.create_web_search_widget()
 		sizer.Add(self.web_search_mode, proportion=0, flag=wx.EXPAND)
 		self.create_max_tokens_widget()
@@ -489,6 +496,18 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
+		if hasattr(self, "reasoning_mode"):
+			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
+			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
+			if draft_block.reasoning_budget_tokens is not None:
+				self.reasoning_budget_spin.SetValue(
+					draft_block.reasoning_budget_tokens
+				)
+			if draft_block.reasoning_effort:
+				effort_map = {"low": 0, "medium": 1, "high": 2}
+				self.reasoning_effort_choice.SetSelection(
+					effort_map.get(draft_block.reasoning_effort.lower(), 1)
+				)
 
 		try:
 			provider_id = draft_block.model.provider_id
@@ -503,6 +522,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				model = engine.get_model(model_id)
 				if model:
 					self.set_model_list(model)
+			self.update_parameter_controls_visibility()
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 

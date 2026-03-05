@@ -92,6 +92,29 @@ class EditConversationProfilePresenter:
 			self.profile.top_p = None
 
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
+		if hasattr(self.view, "reasoning_mode"):
+			val = self.view.reasoning_mode.GetValue()
+			self.profile.reasoning_mode = (
+				bool(val) if isinstance(val, bool) else False
+			)
+			val = self.view.reasoning_adaptive.GetValue()
+			self.profile.reasoning_adaptive = (
+				bool(val) if isinstance(val, bool) else False
+			)
+			if model and self.profile.reasoning_mode:
+				val = self.view.reasoning_budget_spin.GetValue()
+				self.profile.reasoning_budget_tokens = (
+					val if isinstance(val, int) else None
+				)
+				effort_idx = self.view.reasoning_effort_choice.GetSelection()
+				self.profile.reasoning_effort = (
+					["low", "medium", "high"][min(effort_idx, 2)]
+					if isinstance(effort_idx, int)
+					else None
+				)
+			else:
+				self.profile.reasoning_budget_tokens = None
+				self.profile.reasoning_effort = None
 		try:
 			ConversationProfile.model_validate(self.profile)
 		except ValidationError as e:
