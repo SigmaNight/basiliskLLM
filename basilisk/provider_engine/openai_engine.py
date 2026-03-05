@@ -229,7 +229,12 @@ class OpenAIEngine(BaseEngine):
 			params["max_tokens"] = new_block.max_tokens
 		if tools:
 			params["tools"] = tools
+		if model.reasoning_capable and new_block.reasoning_mode:
+			params["reasoning"] = {
+				"effort": new_block.reasoning_effort or "medium"
+			}
 		params.update(kwargs)
+		params = self._filter_params_for_model(model, params)
 		response = self.client.responses.create(**params)
 		return response
 

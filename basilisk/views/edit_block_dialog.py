@@ -210,6 +210,43 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
 			border=10,
 		)
+		self.create_reasoning_widget()
+		sizer.Add(
+			self.reasoning_mode,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+		sizer.Add(
+			self.reasoning_adaptive,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+		sizer.Add(
+			self.reasoning_budget_label,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+		sizer.Add(
+			self.reasoning_budget_spin,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+		sizer.Add(
+			self.reasoning_effort_label,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+		sizer.Add(
+			self.reasoning_effort_choice,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
 
 		btn_sizer = wx.StdDialogButtonSizer()
 
@@ -289,6 +326,19 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
+		if hasattr(self, "reasoning_mode"):
+			self.reasoning_mode.SetValue(self.block.reasoning_mode)
+			self.reasoning_adaptive.SetValue(self.block.reasoning_adaptive)
+			if self.block.reasoning_budget_tokens is not None:
+				self.reasoning_budget_spin.SetValue(
+					self.block.reasoning_budget_tokens
+				)
+			if self.block.reasoning_effort:
+				effort_map = {"low": 0, "medium": 1, "high": 2}
+				self.reasoning_effort_choice.SetSelection(
+					effort_map.get(self.block.reasoning_effort.lower(), 1)
+				)
+			self.update_parameter_controls_visibility()
 
 	def on_account_change(self, event):
 		"""Handle account selection changes.
