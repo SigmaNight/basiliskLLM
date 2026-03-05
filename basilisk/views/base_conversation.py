@@ -271,12 +271,12 @@ class BaseConversation:
 			event: The event triggering the model change
 		"""
 		model = self.current_model
-		if not model:
-			return
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
+		if model:
+			self.temperature_spinner.SetMax(model.max_temperature)
+			self.temperature_spinner.SetValue(model.default_temperature)
+			self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
+			self.max_tokens_spin_ctrl.SetValue(0)
+		self.update_parameter_controls_visibility()
 
 	def set_account_and_model_from_profile(
 		self,
@@ -470,20 +470,73 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		self.update_parameter_controls_visibility()
+
+	def update_parameter_controls_visibility(self):
+		"""Show/hide parameter controls based on selected model and advanced mode.
+
+		Each control is shown only when:
+		- A model is selected
+		- Advanced mode is on (for temp, top_p, max_tokens, stream)
+		- The model supports the parameter (from supported_parameters)
+		- For web search: engine has WEB_SEARCH and model supports "tools"
+		"""
+		advanced_mode = config.conf().general.advanced_mode
+		model = self.current_model
+		engine = self.current_engine
+
+		def show_temp() -> bool:
+			return (
+				advanced_mode
+				and model is not None
+				and model.supports_parameter("temperature")
+			)
+
+		def show_top_p() -> bool:
+			return (
+				advanced_mode
+				and model is not None
+				and model.supports_parameter("top_p")
+			)
+
+		def show_max_tokens() -> bool:
+			return (
+				advanced_mode
+				and model is not None
+				and model.supports_parameter("max_tokens")
+			)
+
+		def show_stream() -> bool:
+			return advanced_mode and model is not None
+
+		def show_web_search() -> bool:
+			if model is None or engine is None:
+				return False
+			return engine.model_supports_web_search(model)
+
+		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
+			visible = show_temp()
+			ctrl.Enable(visible)
+			ctrl.Show(visible)
+		for ctrl in (self.top_p_spinner_label, self.top_p_spinner):
+			visible = show_top_p()
+			ctrl.Enable(visible)
+			ctrl.Show(visible)
+		for ctrl in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
+			visible = show_max_tokens()
+			ctrl.Enable(visible)
+			ctrl.Show(visible)
+		stream_visible = show_stream()
+		self.stream_mode.Enable(stream_visible)
+		self.stream_mode.Show(stream_visible)
+
+		if hasattr(self, "web_search_mode"):
+			web_visible = show_web_search()
+			self.web_search_mode.Enable(web_visible)
+			self.web_search_mode.Show(web_visible)
+
+		self.Layout()
 
 	def adjust_advanced_mode_setting(self):
-		"""Update UI controls visibility based on advanced mode setting."""
-		controls = (
-			self.max_tokens_spin_label,
-			self.max_tokens_spin_ctrl,
-			self.temperature_spinner_label,
-			self.temperature_spinner,
-			self.top_p_spinner_label,
-			self.top_p_spinner,
-			self.stream_mode,
-		)
-		advanced_mode = config.conf().general.advanced_mode
-		for control in controls:
-			control.Enable(advanced_mode)
-			control.Show(advanced_mode)
-		self.Layout()
+		"""Update UI controls visibility based on advanced mode and model support."""
+		self.update_parameter_controls_visibility()

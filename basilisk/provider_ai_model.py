@@ -38,6 +38,7 @@ class ProviderAIModel:
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
 	reasoning_capable: bool = field(default=False)
+	web_search_capable: bool = field(default=False)
 	created: int = field(default=0)
 	supported_parameters: list[str] = field(default_factory=list)
 	extra_info: dict[str, Any] = field(default_factory=dict)
@@ -87,6 +88,22 @@ class ProviderAIModel:
 				f"{k}: {v}" for k, v in self.extra_info.items()
 			)
 		return details
+
+	def supports_parameter(self, param: str) -> bool:
+		"""Return True if model supports this API parameter.
+
+		When supported_parameters is empty (legacy models), returns True for
+		all params to preserve backward compatibility.
+
+		Args:
+			param: API parameter name (e.g. "temperature", "top_p", "tools").
+
+		Returns:
+			True if the model supports the parameter.
+		"""
+		if not self.supported_parameters:
+			return True
+		return param in self.supported_parameters
 
 	@property
 	def effective_max_output_tokens(self) -> int:

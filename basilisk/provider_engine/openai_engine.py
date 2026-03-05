@@ -99,6 +99,7 @@ class OpenAIEngine(BaseEngine):
 		)
 
 	_REASONING_ONLY_IDS = frozenset({"o1", "o3", "o3-mini", "o4-mini"})
+	_WEB_SEARCH_EXCLUDED_IDS = frozenset({"gpt-4.1-nano"})
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
@@ -115,6 +116,22 @@ class OpenAIEngine(BaseEngine):
 				m.reasoning = True
 				m.reasoning_capable = False
 		return models
+
+	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
+		"""Exclude gpt-4.1-nano and gpt-5 (minimal reasoning) per OpenAI docs."""
+		if model.id in self._WEB_SEARCH_EXCLUDED_IDS:
+			return False
+		return super().model_supports_web_search(model)
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[WebSearchToolParam]:
+		"""Return web_search_preview tool for Responses API."""
+		return [
+			WebSearchToolParam(
+				type="web_search_preview", search_context_size="medium"
+			)
+		]
 
 	def prepare_message_request(
 		self, message: Message
@@ -190,15 +207,11 @@ class OpenAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		tools = []
 		web_search = kwargs.pop("web_search_mode", False)
-		if web_search:
-			tools.append(
-				WebSearchToolParam(
-					type="web_search_preview", search_context_size="medium"
-				)
-			)
-		model = self.get_model(new_block.model.model_id)
+		if web_search and model and self.model_supports_web_search(model):
+			tools.extend(self.get_web_search_tool_definitions(model))
 		params = {
 			"model": model.id,
 			"input": self.get_messages(
