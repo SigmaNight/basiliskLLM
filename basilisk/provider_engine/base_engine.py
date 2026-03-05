@@ -57,6 +57,37 @@ class BaseEngine(ABC):
 		"""
 		pass
 
+	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
+		"""Return True if this model supports web search.
+
+		Override in engines for provider-specific exclusions (e.g. OpenAI
+		gpt-4.1-nano, gpt-5 with minimal reasoning).
+
+		Args:
+			model: The model to check.
+
+		Returns:
+			True if web search can be used with this model.
+		"""
+		if ProviderCapability.WEB_SEARCH not in self.capabilities:
+			return False
+		if model.web_search_capable:
+			return True
+		return model.supports_parameter("tools")
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[Any]:
+		"""Return tool definitions for web search. Override in each engine.
+
+		Args:
+			model: The model (for provider-specific tool variants).
+
+		Returns:
+			List of tool dicts or objects to add to the API request.
+		"""
+		return []
+
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
 

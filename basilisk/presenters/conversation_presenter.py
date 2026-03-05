@@ -122,10 +122,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		view.prompt_panel.clear(refresh=True)
 
 		completion_kwargs = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in view.current_account.provider.engine_cls.capabilities
-		):
+		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
 			completion_kwargs["web_search_mode"] = (
 				view.web_search_mode.GetValue()
 			)
@@ -179,10 +176,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		view = self.view
 		completion_args = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in view.current_account.provider.engine_cls.capabilities
-		):
+		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
 			completion_args["web_search_mode"] = view.web_search_mode.GetValue()
 
 		return completion_args | {

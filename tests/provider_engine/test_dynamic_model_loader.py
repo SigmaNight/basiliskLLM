@@ -197,3 +197,42 @@ def test_load_models_from_url_network_error_returns_empty(httpx_mock):
 	)
 	models = load_models_from_url("https://example.com/nonexistent.json")
 	assert models == []
+
+
+def test_parse_model_metadata_web_search_capable_from_json():
+	"""parse_model_metadata sets web_search_capable from supports_web_search."""
+	raw = {
+		"data": [
+			{
+				"id": "with-web-search",
+				"supports_web_search": True,
+				"supported_parameters": [],
+			},
+			{
+				"id": "without-web-search",
+				"supports_web_search": False,
+				"supported_parameters": ["tools"],
+			},
+		]
+	}
+	models = parse_model_metadata(raw)
+	by_id = {m.id: m for m in models}
+	assert by_id["with-web-search"].web_search_capable is True
+	assert by_id["without-web-search"].web_search_capable is False
+
+
+def test_parse_model_metadata_web_search_capable_fallback_tools():
+	"""parse_model_metadata uses tools in supported_parameters when supports_web_search absent."""
+	raw = {
+		"data": [
+			{
+				"id": "with-tools",
+				"supported_parameters": ["tools", "max_tokens"],
+			},
+			{"id": "no-tools", "supported_parameters": ["temperature"]},
+		]
+	}
+	models = parse_model_metadata(raw)
+	by_id = {m.id: m for m in models}
+	assert by_id["with-tools"].web_search_capable is True
+	assert by_id["no-tools"].web_search_capable is False

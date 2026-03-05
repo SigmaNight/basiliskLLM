@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
@@ -82,6 +82,12 @@ class AnthropicEngine(BaseEngine):
 		"""
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[dict[str, Any]]:
+		"""Return web_search_20250305 tool for Anthropic Messages API."""
+		return [{"type": "web_search_20250305", "name": "web_search"}]
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
@@ -195,11 +201,11 @@ class AnthropicEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		tools = []
 		web_search = kwargs.pop("web_search_mode", False)
-		if web_search:
-			tools.append({"type": "web_search_20250305", "name": "web_search"})
-		model = self.get_model(new_block.model.model_id)
+		if web_search and model and self.model_supports_web_search(model):
+			tools.extend(self.get_web_search_tool_definitions(model))
 		params = {
 			"model": model.id,
 			"messages": self.get_messages(

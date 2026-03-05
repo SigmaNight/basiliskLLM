@@ -95,6 +95,20 @@ def _has_reasoning_capable(supported: list[str] | None) -> bool:
 	return "reasoning" in supported or "include_reasoning" in supported
 
 
+def _has_web_search_capable(item: dict[str, Any], supported: list[str]) -> bool:
+	"""Return True if model supports web search.
+
+	Uses JSON supports_web_search if present; else fallback to "tools" in
+	supported_parameters. Engines can override via model_supports_web_search.
+	"""
+	explicit = item.get("supports_web_search")
+	if explicit is True:
+		return True
+	if explicit is False:
+		return False
+	return "tools" in supported
+
+
 def _get_created(model: dict[str, Any]) -> int:
 	"""Extract created Unix timestamp, or 0 if absent."""
 	val = model.get("created")
@@ -148,6 +162,7 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 
 		reasoning_capable = _has_reasoning_capable(supported)
 		reasoning_only = False  # Provider-specific; set by engine if needed
+		web_search_capable = _has_web_search_capable(item, supported)
 
 		models.append(
 			ProviderAIModel(
@@ -160,6 +175,7 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				vision=_has_vision(modality),
 				reasoning=reasoning_only,
 				reasoning_capable=reasoning_capable,
+				web_search_capable=web_search_capable,
 				created=_get_created(item),
 				supported_parameters=supported,
 				extra_info={},

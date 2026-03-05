@@ -392,10 +392,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.ocr_button.Enable(
 			ProviderCapability.OCR in account.provider.engine_cls.capabilities
 		)
-		self.web_search_mode.Enable(
-			ProviderCapability.WEB_SEARCH
-			in account.provider.engine_cls.capabilities
-		)
+		self.update_parameter_controls_visibility()
 		self.prompt_panel.set_engine(self.current_engine)
 
 	def refresh_accounts(self):
