@@ -31,6 +31,9 @@ if TYPE_CHECKING:
 
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .dynamic_model_loader import load_models_from_url
+
+ANTHROPIC_MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
 
 log = logging.getLogger(__name__)
 
@@ -82,201 +85,14 @@ class AnthropicEngine(BaseEngine):
 
 	@cached_property
 	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the Anthropic ai provider.
+		"""Get models available for the Anthropic ai provider from model-metadata JSON.
 
 		Returns:
-			List of Anthropic models.
+			List of Anthropic models, sorted by created (newest first).
 		"""
 		super().models
 		log.debug("Getting Anthropic models")
-		# See <https://docs.anthropic.com/en/docs/about-claude/models/overview>
-		return [
-			ProviderAIModel(
-				id="claude-opus-4-6",
-				name="Claude Opus 4.6",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-6_reasoning",
-				name="Claude Opus 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6",
-				name="Claude Sonnet 4.6",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6_reasoning",
-				name="Claude Sonnet 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5",
-				name="Claude Haiku 4.5",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5_reasoning",
-				name="Claude Haiku 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5",
-				name="Claude Sonnet 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5_reasoning",
-				name="Claude Sonnet 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5",
-				name="Claude Opus 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5_reasoning",
-				name="Claude Opus 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1",
-				name="Claude Opus 4.1",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1_reasoning",
-				name="Claude Opus 4.1 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0",
-				name="Claude Sonnet 4",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0_reasoning",
-				name="Claude Sonnet 4 (thinking)",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0",
-				name="Claude Opus 4",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0_reasoning",
-				name="Claude Opus 4 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-sonnet-latest",
-				name="Claude 3.5 Sonnet",
-				# Translators: This is a model description
-				description=_("Previous intelligent model"),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-		]
+		return load_models_from_url(ANTHROPIC_MODELS_JSON_URL)
 
 	def get_attachment_source(
 		self, attachment: AttachmentFile | ImageFile
