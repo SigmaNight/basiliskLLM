@@ -6,21 +6,28 @@ EditConversationProfilePresenter to avoid duplication.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from basilisk.provider_engine.reasoning_config import get_effort_options
+if TYPE_CHECKING:
+	from basilisk.provider_ai_model import ProviderAIModel
+	from basilisk.provider_engine.base_engine import BaseEngine
 
 
 def get_reasoning_params_from_view(
-	view: Any, provider_id: str = "", model_id: str = ""
+	view: Any,
+	engine: BaseEngine | None = None,
+	model: ProviderAIModel | None = None,
 ) -> dict[str, Any]:
 	"""Extract reasoning params from view widgets for MessageBlock/ConversationProfile.
+
+	Uses engine.get_reasoning_ui_spec(model) for effort options when available.
+	No provider_id—engine injects its settings.
 
 	Args:
 		view: View with reasoning_mode, reasoning_adaptive, reasoning_budget_spin,
 			reasoning_effort_choice widgets (or subset).
-		provider_id: Provider ID for effort options (fallback if view has no account).
-		model_id: Model ID for effort options (fallback if view has no model).
+		engine: Engine for effort options (uses view.current_engine if not passed).
+		model: Model for effort options (uses view.current_model if not passed).
 
 	Returns:
 		Dict with keys: reasoning_mode, reasoning_budget_tokens, reasoning_effort,
@@ -51,30 +58,47 @@ def get_reasoning_params_from_view(
 		)
 
 	if hasattr(view, "reasoning_effort_choice"):
-		pid = (
-			view.current_account.provider.id
-			if view.current_account
-			else provider_id
-		)
-		mid = view.current_model.id if view.current_model else model_id
-		options = get_effort_options(pid, mid)
+		eng = engine or getattr(view, "current_engine", None)
+		mod = model or getattr(view, "current_model", None)
+		options = ()
+		if eng and mod:
+			spec = eng.get_reasoning_ui_spec(mod)
+			opts = getattr(spec, "effort_options", ())
+			if isinstance(opts, (tuple, list)) and all(
+				isinstance(s, str) for s in opts
+			):
+				options = tuple(opts)
+		if not options:
+			options = ("low", "medium", "high")
 		effort_idx = view.reasoning_effort_choice.GetSelection()
+		effort_val = None
 		if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
-			result["reasoning_effort"] = options[effort_idx]
+			effort_val = options[effort_idx]
 		elif options:
-			result["reasoning_effort"] = options[-1]
+			effort_val = options[-1]
+		result["reasoning_effort"] = (
+			effort_val if isinstance(effort_val, str) else None
+		)
 
 	return result
 
 
-def get_audio_params_from_view(view: Any) -> dict[str, Any]:
+def get_audio_params_from_view(
+	view: Any,
+	engine: BaseEngine | None = None,
+	model: ProviderAIModel | None = None,
+) -> dict[str, Any]:
 	"""Extract audio output params from view for MessageBlock/ConversationProfile.
+
+	Uses engine.get_audio_output_spec(model) for voice list when available.
 
 	Args:
 		view: View with output_modality_choice, audio_voice_choice (or subset).
+		engine: Engine for voice options (uses view.current_engine if not passed).
+		model: Model for voice options (uses view.current_model if not passed).
 
-		Returns:
-			Dict with keys: output_modality, audio_voice, audio_format (always "wav").
+	Returns:
+		Dict with keys: output_modality, audio_voice, audio_format (always "wav").
 	"""
 	result: dict[str, Any] = {
 		"output_modality": "text",
@@ -90,21 +114,13 @@ def get_audio_params_from_view(view: Any) -> dict[str, Any]:
 	)
 
 	if hasattr(view, "audio_voice_choice"):
-		voices = [
-			"alloy",
-			"ash",
-			"ballad",
-			"coral",
-			"echo",
-			"fable",
-			"onyx",
-			"nova",
-			"sage",
-			"shimmer",
-			"verse",
-			"marin",
-			"cedar",
-		]
+		eng = engine or getattr(view, "current_engine", None)
+		mod = model or getattr(view, "current_model", None)
+		voices = ("alloy",)
+		if eng and mod:
+			spec = eng.get_audio_output_spec(mod)
+			if spec:
+				voices = spec.voices
 		idx = view.audio_voice_choice.GetSelection()
 		if isinstance(idx, int) and 0 <= idx < len(voices):
 			result["audio_voice"] = voices[idx]

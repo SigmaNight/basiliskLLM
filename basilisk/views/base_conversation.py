@@ -15,7 +15,6 @@ from basilisk.presenters.base_conversation_presenter import (
 	ParameterVisibilityState,
 )
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_engine.reasoning_config import get_effort_options
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -309,6 +308,7 @@ class BaseConversation:
 			model = engine.get_model(model_id)
 			if model:
 				self.set_model_list(model)
+		self.update_parameter_controls_visibility()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
@@ -482,30 +482,17 @@ class BaseConversation:
 		self.output_modality_choice.SetSelection(0)
 
 	def create_audio_voice_widget(self):
-		"""Create voice selection for audio output."""
+		"""Create voice selection for audio output.
+
+		Initial choices are minimal; populated from engine in
+		_apply_parameter_visibility_state when model supports audio.
+		"""
 		self.audio_voice_label = wx.StaticText(
 			self,
 			# Translators: Label for voice selection in audio output
 			label=_("Audio voice:"),
 		)
-		voices = [
-			"alloy",
-			"ash",
-			"ballad",
-			"coral",
-			"echo",
-			"fable",
-			"onyx",
-			"nova",
-			"sage",
-			"shimmer",
-			"verse",
-			"marin",
-			"cedar",
-		]
-		self.audio_voice_choice = wx.Choice(
-			self, choices=[v.capitalize() for v in voices]
-		)
+		self.audio_voice_choice = wx.Choice(self, choices=[_("Alloy")])
 		self.audio_voice_choice.SetSelection(0)
 
 	def create_reasoning_widget(self):
@@ -576,6 +563,12 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		self._apply_profile_audio(profile)
+		self._apply_profile_reasoning(profile)
+		self.update_parameter_controls_visibility()
+
+	def _apply_profile_audio(self, profile: config.ConversationProfile) -> None:
+		"""Apply audio output settings from profile."""
 		if hasattr(self, "output_modality_choice"):
 			modality = getattr(profile, "output_modality", "text")
 			self.output_modality_choice.SetSelection(
@@ -583,42 +576,37 @@ class BaseConversation:
 			)
 		if hasattr(self, "audio_voice_choice"):
 			voice = getattr(profile, "audio_voice", "alloy")
-			voices = [
-				"alloy",
-				"ash",
-				"ballad",
-				"coral",
-				"echo",
-				"fable",
-				"onyx",
-				"nova",
-				"sage",
-				"shimmer",
-				"verse",
-				"marin",
-				"cedar",
-			]
+			engine = self.current_engine
+			model = self.current_model
+			voices = ("alloy",)
+			if engine and model:
+				spec = engine.get_audio_output_spec(model)
+				if spec:
+					voices = spec.voices
 			idx = voices.index(voice) if voice in voices else 0
 			self.audio_voice_choice.SetSelection(idx)
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.SetValue(profile.reasoning_mode)
-			self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
-			if profile.reasoning_budget_tokens is not None:
-				self.reasoning_budget_spin.SetValue(
-					profile.reasoning_budget_tokens
-				)
-			if profile.reasoning_effort is not None:
-				provider_id = (
-					self.current_account.provider.id
-					if self.current_account
-					else ""
-				)
-				model_id = self.current_model.id if self.current_model else ""
-				options = get_effort_options(provider_id, model_id)
-				val = profile.reasoning_effort.lower()
-				idx = options.index(val) if val in options else len(options) - 1
-				self.reasoning_effort_choice.SetSelection(idx)
-		self.update_parameter_controls_visibility()
+
+	def _apply_profile_reasoning(
+		self, profile: config.ConversationProfile
+	) -> None:
+		"""Apply reasoning settings from profile."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(profile.reasoning_mode)
+		self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
+		if profile.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(profile.reasoning_budget_tokens)
+		if profile.reasoning_effort is not None:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = profile.reasoning_effort.lower()
+			idx = options.index(val) if val in options else len(options) - 1
+			self.reasoning_effort_choice.SetSelection(idx)
 
 	def update_parameter_controls_visibility(self):
 		"""Show/hide parameter controls based on selected model and advanced mode.
@@ -670,58 +658,75 @@ class BaseConversation:
 		self.stream_mode.Enable(state.stream_visible)
 		self.stream_mode.Show(state.stream_visible)
 
-		if hasattr(self, "audio_output_group_box"):
-			visible = state.output_modality_visible
-			self.audio_output_group_box.Show(visible)
-			for ctrl in (
-				self.output_modality_label,
-				self.output_modality_choice,
-			):
-				ctrl.Enable(visible)
-				ctrl.Show(visible)
-			for ctrl in (self.audio_voice_label, self.audio_voice_choice):
-				ctrl.Enable(visible and state.audio_settings_visible)
-				ctrl.Show(visible and state.audio_settings_visible)
+		self._apply_audio_visibility(state)
+		self._apply_web_search_visibility(state)
+		self._apply_reasoning_visibility(state)
 
+	def _apply_audio_visibility(self, state: ParameterVisibilityState) -> None:
+		"""Apply audio output visibility state."""
+		if not hasattr(self, "audio_output_group_box"):
+			return
+		visible = state.output_modality_visible
+		self.audio_output_group_box.Show(visible)
+		for ctrl in (self.output_modality_label, self.output_modality_choice):
+			ctrl.Enable(visible)
+			ctrl.Show(visible)
+		for ctrl in (self.audio_voice_label, self.audio_voice_choice):
+			ctrl.Enable(visible and state.audio_settings_visible)
+			ctrl.Show(visible and state.audio_settings_visible)
+		if visible and state.voice_options:
+			voices = state.voice_options
+			display = [_(v.capitalize()) for v in voices]
+			sel = self.audio_voice_choice.GetSelection()
+			old_val = voices[sel] if 0 <= sel < len(voices) else voices[0]
+			self.audio_voice_choice.SetItems(display)
+			idx = voices.index(old_val) if old_val in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
+
+	def _apply_web_search_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply web search visibility state."""
 		if hasattr(self, "web_search_mode"):
 			self.web_search_mode.Enable(state.web_search_visible)
 			self.web_search_mode.Show(state.web_search_visible)
 
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.Enable(state.reasoning_mode_visible)
-			self.reasoning_mode.Show(state.reasoning_mode_visible)
-			self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
-			self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
-			self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
-			self.reasoning_budget_label.Show(state.reasoning_budget_visible)
-			self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
-			self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
+	def _apply_reasoning_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply reasoning controls visibility state."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.Enable(state.reasoning_mode_visible)
+		self.reasoning_mode.Show(state.reasoning_mode_visible)
+		self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
+		self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
+		self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_label.Show(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
 
-			for ctrl in (
-				self.reasoning_effort_label,
-				self.reasoning_effort_choice,
-			):
-				ctrl.Enable(state.reasoning_effort_visible)
-				ctrl.Show(state.reasoning_effort_visible)
+		for ctrl in (self.reasoning_effort_label, self.reasoning_effort_choice):
+			ctrl.Enable(state.reasoning_effort_visible)
+			ctrl.Show(state.reasoning_effort_visible)
 
-			if state.reasoning_effort_visible and state.effort_display:
-				display = [_(s) for s in state.effort_display]
-				# Preserve selection when switching providers
-				try:
-					sel = self.reasoning_effort_choice.GetSelection()
-					old_val = state.effort_options[
-						min(sel, len(state.effort_options) - 1)
-					]
-				except IndexError, TypeError:
-					old_val = state.effort_options[-1]
-				self.reasoning_effort_choice.SetItems(display)
-				idx = (
-					state.effort_options.index(old_val)
-					if old_val in state.effort_options
-					else len(state.effort_options) - 1
-				)
-				self.reasoning_effort_choice.SetSelection(idx)
-				self.reasoning_effort_label.SetLabel(_(state.effort_label))
+		if state.reasoning_effort_visible and state.effort_display:
+			display = [_(s) for s in state.effort_display]
+			try:
+				sel = self.reasoning_effort_choice.GetSelection()
+				old_val = state.effort_options[
+					min(sel, len(state.effort_options) - 1)
+				]
+			except IndexError, TypeError:
+				old_val = state.effort_options[-1]
+			self.reasoning_effort_choice.SetItems(display)
+			idx = (
+				state.effort_options.index(old_val)
+				if old_val in state.effort_options
+				else len(state.effort_options) - 1
+			)
+			self.reasoning_effort_choice.SetSelection(idx)
+			self.reasoning_effort_label.SetLabel(_(state.effort_label))
 
 	def adjust_advanced_mode_setting(self):
 		"""Update UI controls visibility based on advanced mode and model support."""

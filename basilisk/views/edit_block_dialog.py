@@ -324,21 +324,13 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			)
 		if hasattr(self, "audio_voice_choice"):
 			voice = getattr(self.block, "audio_voice", "alloy")
-			voices = [
-				"alloy",
-				"ash",
-				"ballad",
-				"coral",
-				"echo",
-				"fable",
-				"onyx",
-				"nova",
-				"sage",
-				"shimmer",
-				"verse",
-				"marin",
-				"cedar",
-			]
+			engine = self.current_engine
+			model = self.current_model
+			voices = ("alloy",)
+			if engine and model:
+				spec = engine.get_audio_output_spec(model)
+				if spec:
+					voices = spec.voices
 			idx = voices.index(voice) if voice in voices else 0
 			self.audio_voice_choice.SetSelection(idx)
 
@@ -353,13 +345,13 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 				self.block.reasoning_budget_tokens
 			)
 		if self.block.reasoning_effort:
-			from basilisk.provider_engine.reasoning_config import (
-				get_effort_options,
-			)
-
-			provider_id = self.block.model.provider_id
-			model_id = self.block.model.model_id
-			options = get_effort_options(provider_id, model_id)
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
 			val = self.block.reasoning_effort.lower()
 			idx = options.index(val) if val in options else len(options) - 1
 			self.reasoning_effort_choice.SetSelection(idx)

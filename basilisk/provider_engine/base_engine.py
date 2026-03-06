@@ -14,6 +14,10 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.provider_ui_spec import (
+	AudioOutputUISpec,
+	ReasoningUISpec,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -148,6 +152,36 @@ class BaseEngine(ABC):
 			List of tool dicts or objects to add to the API request.
 		"""
 		return []
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Return UI spec for reasoning mode controls. Override per provider.
+
+		Engine injects its own settings—no provider_id checks in presenter.
+
+		Args:
+			model: The selected model.
+
+		Returns:
+			ReasoningUISpec describing what controls to show.
+		"""
+		if not model.reasoning_capable or model.reasoning:
+			return ReasoningUISpec(show=False)
+		return ReasoningUISpec(show=True)
+
+	def get_audio_output_spec(
+		self, model: ProviderAIModel
+	) -> AudioOutputUISpec | None:
+		"""Return UI spec for audio output (TTS) controls. Override per provider.
+
+		Returns None when model does not support audio output.
+
+		Args:
+			model: The selected model.
+
+		Returns:
+			AudioOutputUISpec with voices, or None.
+		"""
+		return None
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
