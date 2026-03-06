@@ -19,6 +19,15 @@ if TYPE_CHECKING:
 	from basilisk.config import Account
 
 
+def _load_models_from_json_url(url: str) -> list[ProviderAIModel]:
+	"""Load models from model-metadata JSON URL. Deferred import to avoid circular deps."""
+	from basilisk.provider_engine.dynamic_model_loader import (
+		load_models_from_url,
+	)
+
+	return load_models_from_url(url)
+
+
 class BaseEngine(ABC):
 	"""Abstract base class for AI provider engines.
 
@@ -32,6 +41,9 @@ class BaseEngine(ABC):
 
 	capabilities: set[ProviderCapability] = set()
 	supported_attachment_formats: set[str] = set()
+
+	# Override in subclasses that load from model-metadata JSON; None for custom loaders (OpenRouter, Ollama, etc.)
+	MODELS_JSON_URL: str | None = None
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
@@ -47,15 +59,25 @@ class BaseEngine(ABC):
 		"""Property to return the provider client object."""
 		pass
 
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		"""Optional hook to mutate models after loading from JSON. Override in subclasses."""
+		return models
+
 	@cached_property
-	@abstractmethod
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
-		Returns:
-			List of supported provider models with their configurations.
+		When MODELS_JSON_URL is set, loads from that URL and applies _postprocess_models.
+		Otherwise the subclass must override this property (e.g. OpenRouter, Ollama).
 		"""
-		pass
+		url = self.MODELS_JSON_URL
+		if url:
+			return self._postprocess_models(_load_models_from_json_url(url))
+		raise NotImplementedError(
+			"Subclass must implement models() or set MODELS_JSON_URL"
+		)
 
 	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
 		"""Return True if this model supports web search.

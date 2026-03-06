@@ -14,6 +14,10 @@ from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_engine.reasoning_config import (
+	get_effort_label,
+	get_effort_options,
+)
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -470,11 +474,11 @@ class BaseConversation:
 			label=_("Thinking budget (tokens):"),
 		)
 		self.reasoning_budget_spin = wx.SpinCtrl(
-			self, value="16000", min=1, max=128000
+			self, value="16000", min=0, max=128000
 		)
 		self.reasoning_effort_label = wx.StaticText(
 			self,
-			# Translators: Label for reasoning effort level
+			# Translators: Label for reasoning effort level (OpenAI, xAI)
 			label=_("Reasoning effort:"),
 		)
 		self.reasoning_effort_choice = wx.Choice(
@@ -520,8 +524,15 @@ class BaseConversation:
 					profile.reasoning_budget_tokens
 				)
 			if profile.reasoning_effort is not None:
-				effort_map = {"low": 0, "medium": 1, "high": 2}
-				idx = effort_map.get(profile.reasoning_effort.lower(), 1)
+				provider_id = (
+					self.current_account.provider.id
+					if self.current_account
+					else ""
+				)
+				model_id = self.current_model.id if self.current_model else ""
+				options = get_effort_options(provider_id, model_id)
+				val = profile.reasoning_effort.lower()
+				idx = options.index(val) if val in options else len(options) - 1
 				self.reasoning_effort_choice.SetSelection(idx)
 		self.update_parameter_controls_visibility()
 
@@ -597,15 +608,52 @@ class BaseConversation:
 			and engine is not None
 		)
 		provider_id = engine.account.provider.id if engine else ""
+		model_id = (model.id or "").lower() if model else ""
 		show_anthropic = controls_visible and provider_id == "anthropic"
 		self.reasoning_adaptive.Enable(show_anthropic)
 		self.reasoning_adaptive.Show(show_anthropic)
-		show_budget = show_anthropic and not self.reasoning_adaptive.GetValue()
+		show_budget = (
+			show_anthropic and not self.reasoning_adaptive.GetValue()
+		) or (
+			controls_visible
+			and provider_id == "google"
+			and "gemini-2" in model_id
+		)
 		self.reasoning_budget_label.Enable(show_budget)
 		self.reasoning_budget_label.Show(show_budget)
 		self.reasoning_budget_spin.Enable(show_budget)
 		self.reasoning_budget_spin.Show(show_budget)
-		show_effort = controls_visible and provider_id in ("openai", "xai")
+		show_effort = controls_visible and (
+			provider_id in ("openai", "xai")
+			or (provider_id == "google" and "gemini-3" in model_id)
+		)
+		if show_effort:
+			options = get_effort_options(provider_id, model_id)
+			display = (
+				[_("Low"), _("High")]
+				if options == ("low", "high")
+				else [_("Low"), _("Medium"), _("High")]
+			)
+			# Preserve selection when switching providers
+			try:
+				old_val = options[
+					min(
+						self.reasoning_effort_choice.GetSelection(),
+						len(options) - 1,
+					)
+				]
+			except Exception:
+				old_val = options[-1]
+			self.reasoning_effort_choice.SetItems(display)
+			idx = (
+				options.index(old_val)
+				if old_val in options
+				else len(options) - 1
+			)
+			self.reasoning_effort_choice.SetSelection(idx)
+			self.reasoning_effort_label.SetLabel(
+				_(get_effort_label(provider_id, model_id))
+			)
 		for ctrl in (self.reasoning_effort_label, self.reasoning_effort_choice):
 			ctrl.Enable(show_effort)
 			ctrl.Show(show_effort)

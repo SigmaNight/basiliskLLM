@@ -492,23 +492,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			self.prompt_panel.attachment_files = draft_block.request.attachments
 			self.prompt_panel.refresh_attachments_list()
 
-		self.temperature_spinner.SetValue(draft_block.temperature)
-		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
-		self.top_p_spinner.SetValue(draft_block.top_p)
-		self.stream_mode.SetValue(draft_block.stream)
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
-			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
-			if draft_block.reasoning_budget_tokens is not None:
-				self.reasoning_budget_spin.SetValue(
-					draft_block.reasoning_budget_tokens
-				)
-			if draft_block.reasoning_effort:
-				effort_map = {"low": 0, "medium": 1, "high": 2}
-				self.reasoning_effort_choice.SetSelection(
-					effort_map.get(draft_block.reasoning_effort.lower(), 1)
-				)
-
+		# Restore provider/model first so effort choice has correct options
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
@@ -525,6 +509,29 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			self.update_parameter_controls_visibility()
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
+
+		self.temperature_spinner.SetValue(draft_block.temperature)
+		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
+		self.top_p_spinner.SetValue(draft_block.top_p)
+		self.stream_mode.SetValue(draft_block.stream)
+		if hasattr(self, "reasoning_mode"):
+			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
+			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
+			if draft_block.reasoning_budget_tokens is not None:
+				self.reasoning_budget_spin.SetValue(
+					draft_block.reasoning_budget_tokens
+				)
+			if draft_block.reasoning_effort:
+				from basilisk.provider_engine.reasoning_config import (
+					get_effort_options,
+				)
+
+				provider_id = draft_block.model.provider_id
+				model_id = draft_block.model.model_id
+				options = get_effort_options(provider_id, model_id)
+				val = draft_block.reasoning_effort.lower()
+				idx = options.index(val) if val in options else len(options) - 1
+				self.reasoning_effort_choice.SetSelection(idx)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.

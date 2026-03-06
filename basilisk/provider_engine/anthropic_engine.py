@@ -31,9 +31,6 @@ if TYPE_CHECKING:
 
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
-from .dynamic_model_loader import load_models_from_url
-
-ANTHROPIC_MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
 
 log = logging.getLogger(__name__)
 
@@ -83,22 +80,13 @@ class AnthropicEngine(BaseEngine):
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
+
 	def get_web_search_tool_definitions(
 		self, model: ProviderAIModel
 	) -> list[dict[str, Any]]:
 		"""Return web_search_20250305 tool for Anthropic Messages API."""
 		return [{"type": "web_search_20250305", "name": "web_search"}]
-
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the Anthropic ai provider from model-metadata JSON.
-
-		Returns:
-			List of Anthropic models, sorted by created (newest first).
-		"""
-		super().models
-		log.debug("Getting Anthropic models")
-		return load_models_from_url(ANTHROPIC_MODELS_JSON_URL)
 
 	def get_attachment_source(
 		self, attachment: AttachmentFile | ImageFile
