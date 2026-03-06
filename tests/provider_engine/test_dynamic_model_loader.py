@@ -50,8 +50,12 @@ def test_parse_model_metadata_openai_structure():
 	assert "include_reasoning" in m.supported_parameters
 
 
-def test_parse_model_metadata_excludes_thinking_variants():
-	"""parse_model_metadata excludes :thinking and _reasoning variants."""
+def test_parse_model_metadata_includes_all_models_from_json():
+	"""parse_model_metadata includes all models; no ID-based filtering.
+
+	Reasoning support comes from supported_parameters. Each engine handles
+	provider-specific logic (e.g. :thinking variants) in _postprocess_models.
+	"""
 	raw = {
 		"data": [
 			{"id": "claude-sonnet-4.6", "name": "Base", "context_length": 1000},
@@ -59,6 +63,7 @@ def test_parse_model_metadata_excludes_thinking_variants():
 				"id": "claude-3.7-sonnet:thinking",
 				"name": "Thinking",
 				"context_length": 1000,
+				"supported_parameters": ["reasoning", "include_reasoning"],
 			},
 			{
 				"id": "claude-opus-4-6_reasoning",
@@ -70,8 +75,11 @@ def test_parse_model_metadata_excludes_thinking_variants():
 	models = parse_model_metadata(raw)
 	ids = [m.id for m in models]
 	assert "claude-sonnet-4.6" in ids
-	assert "claude-3.7-sonnet:thinking" not in ids
-	assert "claude-opus-4-6_reasoning" not in ids
+	assert "claude-3.7-sonnet:thinking" in ids
+	assert "claude-opus-4-6_reasoning" in ids
+	# reasoning_capable from JSON supported_parameters
+	by_id = {m.id: m for m in models}
+	assert by_id["claude-3.7-sonnet:thinking"].reasoning_capable is True
 
 
 def test_parse_model_metadata_top_provider_overrides_root():

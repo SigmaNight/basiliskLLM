@@ -30,6 +30,10 @@ from basilisk.presenters.reasoning_params_helper import (
 	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
@@ -137,9 +141,9 @@ class ConversationPresenter(DestroyGuardMixin):
 		view.prompt_panel.clear(refresh=True)
 
 		completion_kwargs = {}
-		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
-			completion_kwargs["web_search_mode"] = (
-				view.web_search_mode.GetValue()
+		if view_has_web_search_control(view):
+			completion_kwargs["web_search_mode"] = view_get_web_search_value(
+				view
 			)
 
 		self.completion_handler.start_completion(
@@ -174,9 +178,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		stream = view.stream_mode.GetValue()
 		if audio_params.get("output_modality") == "audio":
 			stream = False
-		web_search = False
-		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
-			web_search = view.web_search_mode.GetValue()
+		web_search = view_get_web_search_value(view)
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -202,8 +204,8 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		view = self.view
 		completion_args = {}
-		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
-			completion_args["web_search_mode"] = view.web_search_mode.GetValue()
+		if view_has_web_search_control(view):
+			completion_args["web_search_mode"] = view_get_web_search_value(view)
 
 		return completion_args | {
 			"engine": view.current_engine,
@@ -575,9 +577,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		reasoning_params = get_reasoning_params_from_view(view)
 		audio_params = get_audio_params_from_view(view)
-		web_search = False
-		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
-			web_search = view.web_search_mode.GetValue()
+		web_search = view_get_web_search_value(view)
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,

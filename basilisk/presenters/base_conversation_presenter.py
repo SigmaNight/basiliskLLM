@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import basilisk.config as config
+from basilisk.provider_engine.provider_ui_spec import DEFAULT_AUDIO_VOICES
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -204,6 +205,6 @@ class BaseConversationPresenter:
 		# Engine-injected voice list for audio output (no hard-coded UI values)
 		if state.output_modality_visible:
 			spec = engine.get_audio_output_spec(model)
-			state.voice_options = spec.voices if spec else ("alloy",)
+			state.voice_options = spec.voices if spec else DEFAULT_AUDIO_VOICES
 
 		return state

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from basilisk.provider_engine.provider_ui_spec import DEFAULT_AUDIO_VOICES
+
 if TYPE_CHECKING:
 	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -69,16 +71,17 @@ def get_reasoning_params_from_view(
 			):
 				options = tuple(opts)
 		if not options:
-			options = ("low", "medium", "high")
-		effort_idx = view.reasoning_effort_choice.GetSelection()
-		effort_val = None
-		if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
-			effort_val = options[effort_idx]
-		elif options:
-			effort_val = options[-1]
-		result["reasoning_effort"] = (
-			effort_val if isinstance(effort_val, str) else None
-		)
+			result["reasoning_effort"] = None
+		else:
+			effort_idx = view.reasoning_effort_choice.GetSelection()
+			effort_val = None
+			if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
+				effort_val = options[effort_idx]
+			elif options:
+				effort_val = options[-1]
+			result["reasoning_effort"] = (
+				effort_val if isinstance(effort_val, str) else None
+			)
 
 	return result
 
@@ -102,7 +105,9 @@ def get_audio_params_from_view(
 	"""
 	result: dict[str, Any] = {
 		"output_modality": "text",
-		"audio_voice": "alloy",
+		"audio_voice": DEFAULT_AUDIO_VOICES[0]
+		if DEFAULT_AUDIO_VOICES
+		else "default",
 		"audio_format": "wav",
 	}
 	if not hasattr(view, "output_modality_choice"):
@@ -116,7 +121,7 @@ def get_audio_params_from_view(
 	if hasattr(view, "audio_voice_choice"):
 		eng = engine or getattr(view, "current_engine", None)
 		mod = model or getattr(view, "current_model", None)
-		voices = ("alloy",)
+		voices = DEFAULT_AUDIO_VOICES
 		if eng and mod:
 			spec = eng.get_audio_output_spec(mod)
 			if spec:

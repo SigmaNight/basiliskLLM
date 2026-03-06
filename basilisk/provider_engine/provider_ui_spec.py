@@ -8,6 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# Generic fallback when engine returns None for audio spec (model.audio True
+# but no provider-specific voices). Avoid provider-specific defaults like "alloy".
+DEFAULT_AUDIO_VOICES: tuple[str, ...] = ("default",)
+
 
 @dataclass
 class ReasoningUISpec:
@@ -32,7 +36,8 @@ class AudioOutputUISpec:
 	"""Descriptor for audio output controls. Engine provides this.
 
 	When model supports audio output (TTS), engine returns voices and default.
+	Use default_voice=None to mean "first voice in list".
 	"""
 
 	voices: tuple[str, ...]
-	default_voice: str = "alloy"
+	default_voice: str | None = None  # None = use first voice

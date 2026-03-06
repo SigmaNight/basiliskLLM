@@ -192,10 +192,15 @@ class ResponsesAPIEngine(BaseEngine):
 		new_block: MessageBlock,
 		**kwargs,
 	):
-		"""Processes a streaming Responses API response."""
+		"""Processes a streaming Responses API response.
+
+		Yields ("content", delta) tuples for CompletionHandler compatibility.
+		Subclasses that support reasoning/audio override to yield additional
+		chunk types ("reasoning", "citation", etc.).
+		"""
 		for event in stream:
-			if isinstance(event, ResponseTextDeltaEvent):
-				yield event.delta
+			if isinstance(event, ResponseTextDeltaEvent) and event.delta:
+				yield ("content", event.delta)
 			elif isinstance(event, ResponseCompletedEvent) and event.response:
 				resp = event.response
 				if hasattr(resp, "usage") and resp.usage:

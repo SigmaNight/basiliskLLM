@@ -29,6 +29,10 @@ from basilisk.presenters.reasoning_params_helper import (
 	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -120,12 +124,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		stream = self.view.stream_mode.GetValue()
 		if audio_params.get("output_modality") == "audio":
 			stream = False
-		web_search = False
-		if (
-			hasattr(self.view, "web_search_mode")
-			and self.view.web_search_mode.IsShown()
-		):
-			web_search = self.view.web_search_mode.GetValue()
+		web_search = view_get_web_search_value(self.view)
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -212,11 +211,8 @@ class EditBlockPresenter(DestroyGuardMixin):
 				"reasoning_budget_tokens"
 			]
 			self.block.reasoning_effort = params["reasoning_effort"]
-		if (
-			hasattr(self.view, "web_search_mode")
-			and self.view.web_search_mode.IsShown()
-		):
-			self.block.web_search_mode = self.view.web_search_mode.GetValue()
+		if view_has_web_search_control(self.view):
+			self.block.web_search_mode = view_get_web_search_value(self.view)
 
 		# Update response if present
 		if self.block.response:

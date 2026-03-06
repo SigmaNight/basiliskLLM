@@ -308,6 +308,10 @@ class AnthropicEngine(BaseEngine):
 	) -> MessageBlock:
 		"""Processes non-streaming response from Anthropic API.
 
+		Response content is an array of blocks: ThinkingBlock (type=thinking)
+		and TextBlock (type=text). Per API docs, there is no top-level
+		thinking field—thinking lives inside content blocks.
+
 		Args:
 			response: Complete message from the API.
 			new_block: Message block to update.
@@ -317,16 +321,20 @@ class AnthropicEngine(BaseEngine):
 			Updated message block with response.
 		"""
 		citations = []
-		text = []
-		reasoning = None
-		if hasattr(response, "thinking") and response.thinking:
-			reasoning = response.thinking
-		for content in response.content:
-			if content.citations:
-				for citation in content.citations:
+		text_parts = []
+		reasoning_parts = []
+		for block in response.content:
+			block_type = getattr(block, "type", None)
+			if block_type == "thinking":
+				thinking = getattr(block, "thinking", None) or ""
+				if thinking:
+					reasoning_parts.append(thinking)
+			elif block_type == "text":
+				text_parts.append(getattr(block, "text", None) or "")
+				for citation in getattr(block, "citations", None) or []:
 					citations.append(self._handle_citation(citation))
-			text.append(content.text)
-		content = "".join(text)
+		content = "".join(text_parts)
+		reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
 			content=content,

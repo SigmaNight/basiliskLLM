@@ -703,16 +703,20 @@ class ConversationDatabase:
 		if getattr(db_block, "usage_json", None):
 			try:
 				usage = TokenUsage.model_validate_json(db_block.usage_json)
-			except Exception:
-				pass
+			except (ValueError, KeyError) as e:
+				log.warning(
+					"Invalid usage_json for block %d: %s", db_block.id, e
+				)
 		timing = None
 		if getattr(db_block, "timing_json", None):
 			try:
 				timing = ResponseTiming.model_validate_json(
 					db_block.timing_json
 				)
-			except Exception:
-				pass
+			except (ValueError, KeyError) as e:
+				log.warning(
+					"Invalid timing_json for block %d: %s", db_block.id, e
+				)
 
 		block = MessageBlock(
 			request=request_msg,
