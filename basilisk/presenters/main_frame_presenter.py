@@ -334,7 +334,7 @@ class MainFramePresenter:
 		now = datetime.datetime.now()
 		capture_name = f"capture_{now.isoformat(timespec='seconds')}.png"
 		capture_path = (
-			conv_tab.conv_storage_path / f"attachments/{capture_name}"
+			conv_tab.conv_storage_path() / f"attachments/{capture_name}"
 		)
 		name = name or capture_name
 		log.debug("Capture file URL: %s", capture_path)
