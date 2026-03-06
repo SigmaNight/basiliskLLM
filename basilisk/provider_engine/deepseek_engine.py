@@ -5,7 +5,6 @@ implementing capabilities for text generation using various DeepSeek models.
 """
 
 import logging
-from functools import cached_property
 from typing import Generator
 
 from openai.types.chat import (
@@ -15,12 +14,22 @@ from openai.types.chat import (
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
-from .base_engine import ProviderAIModel
 from .legacy_openai_engine import LegacyOpenAIEngine
 
 log = logging.getLogger(__name__)
+
+# Reasoning-only models (always-on thinking; no toggle)
+_DEEPSEEK_REASONING_ONLY_IDS = frozenset(
+	{
+		"deepseek-reasoner-latest",
+		"deepseek-v3.2-speciale",
+		"deepseek-r1",
+		"deepseek-r1-0528",
+	}
+)
 
 
 class DeepSeekAIEngine(LegacyOpenAIEngine):
@@ -35,42 +44,15 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available DeepSeek models.
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/deepseek.json"
 
-		Returns:
-			List of supported DeepSeek models with their configurations.
-		"""
-		log.debug("Getting DeepSeek models")
-		# See <https://api-docs.deepseek.com/quick_start/pricing>
-		models = [
-			ProviderAIModel(
-				id="deepseek-chat",
-				name="DeepSeek-V3.2",
-				# Translators: This is a model description
-				description=_(
-					"Non-thinking mode for general chat, code and writing"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=8000,
-			),
-			ProviderAIModel(
-				id="deepseek-reasoner",
-				name="DeepSeek-R1",
-				# Translators: This is a model description
-				description=_(
-					"Thinking mode for chain-of-thought, research and logic"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=64000,
-				reasoning=True,
-			),
-		]
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		for m in models:
+			if m.id in _DEEPSEEK_REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
 		return models
 
 	def completion_response_with_stream(

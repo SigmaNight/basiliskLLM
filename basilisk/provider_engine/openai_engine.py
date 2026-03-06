@@ -35,9 +35,6 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
-from .dynamic_model_loader import load_models_from_url
-
-OPENAI_MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/openai.json"
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -98,19 +95,13 @@ class OpenAIEngine(BaseEngine):
 			or str(self.account.provider.base_url),
 		)
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/openai.json"
 	_REASONING_ONLY_IDS = frozenset({"o1", "o3", "o3-mini", "o4-mini"})
 	_WEB_SEARCH_EXCLUDED_IDS = frozenset({"gpt-4.1-nano"})
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models from model-metadata JSON.
-
-		Returns:
-			List of supported OpenAI models, sorted by created (newest first).
-		"""
-		super().models
-		log.debug("Getting OpenAI models")
-		models = load_models_from_url(OPENAI_MODELS_JSON_URL)
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
 		for m in models:
 			if m.id in self._REASONING_ONLY_IDS:
 				m.reasoning = True

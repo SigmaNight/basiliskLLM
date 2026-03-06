@@ -121,12 +121,26 @@ class EditBlockPresenter(DestroyGuardMixin):
 			reasoning_adaptive = bool(val) if isinstance(val, bool) else False
 			val = self.view.reasoning_budget_spin.GetValue()
 			reasoning_budget_tokens = val if isinstance(val, int) else None
-			effort_idx = self.view.reasoning_effort_choice.GetSelection()
-			reasoning_effort = (
-				["low", "medium", "high"][min(effort_idx, 2)]
-				if isinstance(effort_idx, int)
-				else None
+			from basilisk.provider_engine.reasoning_config import (
+				get_effort_options,
 			)
+
+			provider_id = (
+				self.view.current_account.provider.id
+				if self.view.current_account
+				else ""
+			)
+			model_id = (
+				self.view.current_model.id if self.view.current_model else ""
+			)
+			options = get_effort_options(provider_id, model_id)
+			effort_idx = self.view.reasoning_effort_choice.GetSelection()
+			if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
+				reasoning_effort = options[effort_idx]
+			elif options:
+				reasoning_effort = options[-1]
+			else:
+				reasoning_effort = None
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -217,12 +231,20 @@ class EditBlockPresenter(DestroyGuardMixin):
 			self.block.reasoning_budget_tokens = (
 				val if isinstance(val, int) else None
 			)
-			effort_idx = self.view.reasoning_effort_choice.GetSelection()
-			self.block.reasoning_effort = (
-				["low", "medium", "high"][min(effort_idx, 2)]
-				if isinstance(effort_idx, int)
-				else None
+			from basilisk.provider_engine.reasoning_config import (
+				get_effort_options,
 			)
+
+			provider_id = account.provider.id if account else ""
+			model_id = model.id if model else ""
+			options = get_effort_options(provider_id, model_id)
+			effort_idx = self.view.reasoning_effort_choice.GetSelection()
+			if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
+				self.block.reasoning_effort = options[effort_idx]
+			elif options:
+				self.block.reasoning_effort = options[-1]
+			else:
+				self.block.reasoning_effort = None
 
 		# Update response if present
 		if self.block.response:

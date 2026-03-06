@@ -7,7 +7,6 @@ implementing capabilities for both text and image generation.
 from __future__ import annotations
 
 import logging
-from functools import cached_property
 from typing import TYPE_CHECKING, Generator
 
 from basilisk.provider_ai_model import ProviderAIModel
@@ -21,6 +20,19 @@ if TYPE_CHECKING:
 	from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 
 log = logging.getLogger(__name__)
+
+# Reasoning-only models (always-on; no reasoning_effort toggle)
+_XAI_REASONING_ONLY_IDS = frozenset(
+	{
+		"grok-4-1-fast-reasoning",
+		"grok-4-fast-reasoning",
+		"grok-4-0709",
+		"grok-code-fast-1",
+	}
+)
+
+# Models that support reasoning_effort param (low/high)
+_XAI_REASONING_EFFORT_IDS = frozenset({"grok-3-mini", "grok-3-mini-beta"})
 
 
 class XAIEngine(LegacyOpenAIEngine):
@@ -38,93 +50,17 @@ class XAIEngine(LegacyOpenAIEngine):
 		ProviderCapability.TEXT,
 	}
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available xAI models.
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/x-ai.json"
 
-		Returns:
-			List of supported xAI models with their configurations, sorted from most recent to least recent.
-		"""
-		log.debug("Getting xAI models")
-		# See <https://docs.x.ai/docs/models>
-		models = [
-			ProviderAIModel(
-				id="grok-4-0709",
-				# Translators: This is a model description
-				description=_(
-					"Flagship frontier model for complex tasks with 256K context, tool use and structured output."
-				),
-				context_window=256000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="grok-4-fast-reasoning",
-				# Translators: This is a model description
-				description=_(
-					"High-throughput reasoning with 2M token context for rapid completions."
-				),
-				context_window=2000000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="grok-4-fast-non-reasoning",
-				# Translators: This is a model description
-				description=_(
-					"Fast completions without reasoning tokens, cost-efficient with 2M context."
-				),
-				context_window=2000000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="grok-code-fast-1",
-				# Translators: This is a model description
-				description=_(
-					"Optimized for agentic coding tasks with 256K context."
-				),
-				context_window=256000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="grok-3",
-				# Translators: This is a model description
-				description=_(
-					"Flagship model for enterprise tasks, extraction and coding."
-				),
-				context_window=131072,
-				max_temperature=2.0,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="grok-3-mini",
-				# Translators: This is a model description
-				description=_(
-					"Cost-efficient, faster than Grok 3 for well-defined tasks."
-				),
-				context_window=131072,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				reasoning_capable=True,
-			),
-			ProviderAIModel(
-				id="grok-2-vision-1212",
-				# Translators: This is a model description
-				description=_(
-					"Multimodal image understanding with 32K context."
-				),
-				context_window=32768,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-		]
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		for m in models:
+			if m.id in _XAI_REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
+			elif m.id in _XAI_REASONING_EFFORT_IDS:
+				m.reasoning_capable = True
 		return models
 
 	def completion(
@@ -137,7 +73,11 @@ class XAIEngine(LegacyOpenAIEngine):
 	) -> ChatCompletion | Generator[ChatCompletionChunk, None, None]:
 		"""Add reasoning_effort for grok-3-mini when reasoning_mode is on."""
 		model = self.get_model(new_block.model.model_id)
-		if model and model.id == "grok-3-mini" and new_block.reasoning_mode:
+		if (
+			model
+			and model.id in _XAI_REASONING_EFFORT_IDS
+			and new_block.reasoning_mode
+		):
 			effort = new_block.reasoning_effort or "high"
 			if effort == "medium":
 				effort = "high"

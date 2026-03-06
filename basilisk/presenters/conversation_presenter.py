@@ -170,11 +170,24 @@ class ConversationPresenter(DestroyGuardMixin):
 				val = view.reasoning_budget_spin.GetValue()
 				reasoning_budget_tokens = val if isinstance(val, int) else None
 			if hasattr(view, "reasoning_effort_choice"):
+				from basilisk.provider_engine.reasoning_config import (
+					get_effort_options,
+				)
+
+				provider_id = (
+					view.current_account.provider.id
+					if view.current_account
+					else ""
+				)
+				model_id = view.current_model.id if view.current_model else ""
+				options = get_effort_options(provider_id, model_id)
 				effort_idx = view.reasoning_effort_choice.GetSelection()
-				if isinstance(effort_idx, int):
-					reasoning_effort = ["low", "medium", "high"][
-						min(effort_idx, 2)
-					]
+				if isinstance(effort_idx, int) and 0 <= effort_idx < len(
+					options
+				):
+					reasoning_effort = options[effort_idx]
+				elif options:
+					reasoning_effort = options[-1]
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,

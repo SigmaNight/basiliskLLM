@@ -334,10 +334,16 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 					self.block.reasoning_budget_tokens
 				)
 			if self.block.reasoning_effort:
-				effort_map = {"low": 0, "medium": 1, "high": 2}
-				self.reasoning_effort_choice.SetSelection(
-					effort_map.get(self.block.reasoning_effort.lower(), 1)
+				from basilisk.provider_engine.reasoning_config import (
+					get_effort_options,
 				)
+
+				provider_id = self.block.model.provider_id
+				model_id = self.block.model.model_id
+				options = get_effort_options(provider_id, model_id)
+				val = self.block.reasoning_effort.lower()
+				idx = options.index(val) if val in options else len(options) - 1
+				self.reasoning_effort_choice.SetSelection(idx)
 			self.update_parameter_controls_visibility()
 
 	def on_account_change(self, event):
