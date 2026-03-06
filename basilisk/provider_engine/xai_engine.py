@@ -66,7 +66,6 @@ class XAIEngine(ResponsesAPIEngine):
 	@cached_property
 	def client(self) -> OpenAI:
 		"""Create and configure the OpenAI client for xAI API."""
-		super().client
 		return OpenAI(
 			api_key=self.account.api_key.get_secret_value(),
 			base_url=self.account.custom_base_url

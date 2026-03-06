@@ -24,6 +24,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.provider_engine.usage_utils import token_usage_anthropic
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
@@ -78,7 +79,6 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			The client object for the Anthropic API initialized with the account API key.
 		"""
-		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
 	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
@@ -263,110 +263,53 @@ class AnthropicEngine(BaseEngine):
 			log.warning("Unsupported citation type: %s", citation.type)
 		return citation_chunk_data
 
-	def _handle_thinking(
-		self, started: bool, event: MessageStreamEvent
-	) -> tuple[str, bool]:
-		"""Handles the 'thinking' content in the API response.
-
-		Args:
-			started: Flag indicating if thinking content has started.
-			event: Event data from the API response.
-
-		Returns:
-			Tuple containing the thinking content and updated started flag.
-		"""
-		if not started:
-			started = True
-			content = f"```think\n {event.delta.thinking}"
-			return content, started
-		else:
-			return event.delta.thinking, started
-
-	def _handle_content_block_stop(
-		self, thinking_content_started: bool, current_block_type: str
-	) -> tuple[str | None, bool]:
-		"""Handles content block stop events from the stream.
-
-		Args:
-			thinking_content_started: Flag indicating if thinking content has started.
-			current_block_type: Type of the current content block.
-
-		Returns:
-			Tuple containing optional yield content and updated thinking_started flag.
-		"""
-		if thinking_content_started and current_block_type == "thinking":
-			return "\n```\n\n", False
-		return None, thinking_content_started
-
 	def _handle_content_block_delta(
-		self, event: MessageStreamEvent, thinking_content_started: bool
-	) -> tuple[str | tuple[str, dict] | None, bool]:
-		"""Handles content block delta events from the stream.
-
-		Args:
-			event: The stream event to process.
-			thinking_content_started: Flag indicating if thinking content has started.
-
-		Returns:
-			Tuple containing yield content and updated thinking_started flag.
-		"""
+		self, event: MessageStreamEvent
+	) -> str | tuple[str, Any] | None:
+		"""Handles content block delta events from the stream."""
 		match event.delta.type:
 			case "text_delta":
-				return event.delta.text, thinking_content_started
+				return event.delta.text
 			case "thinking_delta":
-				text, updated_started = self._handle_thinking(
-					thinking_content_started, event
-				)
-				return text, updated_started
+				return ("reasoning", event.delta.thinking)
 			case "citations_delta":
-				return (
-					("citation", self._handle_citation(event.delta.citation)),
-					thinking_content_started,
-				)
-		return None, thinking_content_started
+				return ("citation", self._handle_citation(event.delta.citation))
+		return None
 
 	def completion_response_with_stream(
-		self, stream: Stream[MessageStreamEvent]
-	) -> Iterator[TextBlock | dict]:
+		self,
+		stream: Stream[MessageStreamEvent],
+		new_block: MessageBlock,
+		**kwargs,
+	) -> Iterator[str | tuple[str, Any]]:
 		"""Processes streaming response from Anthropic API.
 
-		Args:
-			stream: Stream of message events from the API.
-
-		Yields:
-			Text content from each event or thinking content.
+		Yields ("reasoning", chunk), ("content", chunk), or ("citation", data).
+		Extracts usage from message_delta and sets new_block.usage.
 		"""
-		thinking_content_started = False
-		current_block_type = None
 		for event in stream:
 			match event.type:
-				case "content_block_start":
-					current_block_type = event.content_block.type
-				case "content_block_stop":
-					content, thinking_content_started = (
-						self._handle_content_block_stop(
-							thinking_content_started, current_block_type
-						)
-					)
-					if content:
-						yield content
 				case "content_block_delta":
-					content, thinking_content_started = (
-						self._handle_content_block_delta(
-							event, thinking_content_started
-						)
-					)
-					if content:
-						yield content
+					content = self._handle_content_block_delta(event)
+					if content is not None:
+						if isinstance(content, tuple):
+							yield content
+						else:
+							yield ("content", content)
+				case "message_delta":
+					if hasattr(event, "usage") and event.usage:
+						new_block.usage = token_usage_anthropic(event.usage)
 				case "message_stop":
-					if thinking_content_started:
-						yield "\n```\n"
 					break
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes non-streaming response from Anthropic API.
+
+		Response content is an array of blocks: ThinkingBlock (type=thinking)
+		and TextBlock (type=text). Per API docs, there is no top-level
+		thinking field—thinking lives inside content blocks.
 
 		Args:
 			response: Complete message from the API.
@@ -377,23 +320,26 @@ class AnthropicEngine(BaseEngine):
 			Updated message block with response.
 		"""
 		citations = []
-		text = []
-		thinking_content = None
-		if hasattr(response, "thinking") and response.thinking:
-			thinking_content = response.thinking
-		for content in response.content:
-			if content.citations:
-				for citation in content.citations:
+		text_parts = []
+		reasoning_parts = []
+		for block in response.content:
+			block_type = getattr(block, "type", None)
+			if block_type == "thinking":
+				thinking = getattr(block, "thinking", None) or ""
+				if thinking:
+					reasoning_parts.append(thinking)
+			elif block_type == "text":
+				text_parts.append(getattr(block, "text", None) or "")
+				for citation in getattr(block, "citations", None) or []:
 					citations.append(self._handle_citation(citation))
-			text.append(content.text)
-		final_content = "".join(text)
-		if thinking_content:
-			final_content = (
-				f"```think\n{thinking_content}\n```\n\n{final_content}"
-			)
+		content = "".join(text_parts)
+		reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=final_content,
+			content=content,
+			reasoning=reasoning,
 			citations=citations,
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_anthropic(response.usage)
 		return new_block

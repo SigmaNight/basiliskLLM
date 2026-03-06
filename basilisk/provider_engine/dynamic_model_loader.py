@@ -18,7 +18,6 @@ from basilisk.provider_ai_model import ProviderAIModel
 log = logging.getLogger(__name__)
 
 _CACHE: dict[str, tuple[list[ProviderAIModel], float]] = {}
-_CACHE_TTL_SECONDS = 3600
 
 
 def _get_user_agent() -> str:
@@ -43,11 +42,6 @@ def fetch_models_json(url: str) -> dict[str, Any]:
 	)
 	response.raise_for_status()
 	return response.json()
-
-
-def _is_thinking_variant(model_id: str) -> bool:
-	"""Return True if model id is a reasoning/thinking duplicate variant."""
-	return ":thinking" in model_id or "_reasoning" in model_id
 
 
 def _get_max_completion_tokens(model: dict[str, Any]) -> int:
@@ -81,25 +75,26 @@ def _get_context_length(model: dict[str, Any]) -> int:
 		return 0
 
 
-def _has_vision(modality: str | None) -> bool:
-	"""Return True if modality indicates vision (image) support."""
-	if not modality:
-		return False
-	return "image" in modality
+def _modality_flags(architecture: dict[str, Any]) -> dict[str, bool]:
+	"""Extract modality flags from architecture. Extensible for new modalities.
 
+	Args:
+		architecture: JSON architecture dict with modality, input_modalities.
 
-def _has_audio(modality: str | None) -> bool:
-	"""Return True if modality indicates audio input support."""
-	if not modality:
-		return False
-	return "audio" in modality
-
-
-def _has_document(modality: str | None) -> bool:
-	"""Return True if modality indicates document/file input support."""
-	if not modality:
-		return False
-	return "file" in modality
+	Returns:
+		Dict with vision, audio, document booleans.
+	"""
+	modality = (architecture.get("modality") or "").lower()
+	input_mods = architecture.get("input_modalities") or []
+	if isinstance(input_mods, list):
+		input_mods = [str(m).lower() for m in input_mods]
+	else:
+		input_mods = []
+	return {
+		"vision": "image" in modality or "image" in input_mods,
+		"audio": "audio" in modality or "audio" in input_mods,
+		"document": "file" in modality or "file" in input_mods,
+	}
 
 
 def _has_reasoning_capable(supported: list[str] | None) -> bool:
@@ -137,8 +132,9 @@ def _get_created(model: dict[str, Any]) -> int:
 def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	"""Parse model-metadata JSON into ProviderAIModel list.
 
-	Excludes :thinking and _reasoning variant entries (duplicates of base).
-	Uses top_provider for context_length and max_completion_tokens.
+	Uses JSON supported_parameters for reasoning_capable; top_provider for
+	context_length and max_completion_tokens. No ID-based filtering—each
+	engine handles provider-specific logic in _postprocess_models.
 	Sorts by created descending (newest first) for UI display.
 
 	Args:
@@ -158,8 +154,6 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		model_id = item.get("id")
 		if not model_id or not isinstance(model_id, str):
 			continue
-		if _is_thinking_variant(model_id):
-			continue
 
 		supported = item.get("supported_parameters")
 		if isinstance(supported, list):
@@ -170,15 +164,11 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		architecture = item.get("architecture") or {}
 		if not isinstance(architecture, dict):
 			architecture = {}
-		modality = architecture.get("modality")
-		input_modalities = architecture.get("input_modalities")
-		if isinstance(input_modalities, list):
-			input_modalities = [str(m) for m in input_modalities]
-		else:
-			input_modalities = []
+		modalities = _modality_flags(architecture)
 
 		reasoning_capable = _has_reasoning_capable(supported)
-		reasoning_only = False  # Provider-specific; set by engine if needed
+		# reasoning_only: set by each engine in _postprocess_models (OpenAI o3,
+		# xAI grok-4, etc.). Loader stays generic—no provider-specific logic.
 		web_search_capable = _has_web_search_capable(item, supported)
 
 		models.append(
@@ -189,10 +179,10 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				context_window=_get_context_length(item),
 				max_output_tokens=_get_max_completion_tokens(item),
 				max_temperature=2.0,
-				vision=_has_vision(modality) or "image" in input_modalities,
-				audio=_has_audio(modality) or "audio" in input_modalities,
-				document=_has_document(modality) or "file" in input_modalities,
-				reasoning=reasoning_only,
+				vision=modalities["vision"],
+				audio=modalities["audio"],
+				document=modalities["document"],
+				reasoning=False,
 				reasoning_capable=reasoning_capable,
 				web_search_capable=web_search_capable,
 				created=_get_created(item),
@@ -205,6 +195,13 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	return models
 
 
+def _get_cache_ttl_seconds() -> int:
+	"""Return cache TTL from config. Deferred import to avoid circular deps."""
+	import basilisk.config as config
+
+	return config.conf().general.model_metadata_cache_ttl_seconds
+
+
 def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	"""Fetch and parse models from URL, with caching.
 
@@ -215,9 +212,10 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 		List of ProviderAIModel. Empty list on fetch/parse error.
 	"""
 	now = time.monotonic()
+	ttl = _get_cache_ttl_seconds()
 	if url in _CACHE:
 		cached_models, cached_at = _CACHE[url]
-		if now - cached_at < _CACHE_TTL_SECONDS:
+		if now - cached_at < ttl:
 			return cached_models
 
 	try:

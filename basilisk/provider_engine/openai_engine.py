@@ -96,7 +96,6 @@ class OpenAIEngine(ResponsesAPIEngine):
 		Returns:
 			Configured OpenAI client instance.
 		"""
-		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
 			if self.account.active_organization_key
@@ -323,24 +322,39 @@ class OpenAIEngine(ResponsesAPIEngine):
 				"GPT-5 and similar models do not accept audio files. "
 				"Use gpt-audio or gpt-audio-mini for audio, or transcribe first (Ctrl+R)."
 			)
-		use_chat_completions = model.audio and has_audio
+		output_modality = getattr(new_block, "output_modality", "text")
+		want_audio_output = output_modality == "audio"
+		use_chat_completions = model.audio and (has_audio or want_audio_output)
 		if use_chat_completions:
 			self._last_used_chat_completions = True
 			messages = self._get_chat_completion_messages(
 				new_block, conversation, system_message, stop_block_index
 			)
+
 			params: dict[str, Any] = {
 				"model": model.id,
 				"messages": messages,
-				"modalities": ["text", "audio"],
-				"stream": new_block.stream,
+				"modalities": ["text", "audio"]
+				if want_audio_output
+				else ["text"],
+				"stream": new_block.stream and not want_audio_output,
 				"temperature": new_block.temperature,
 				"top_p": new_block.top_p,
 			}
+			# Chat Completions API supports stream_options.include_usage
+			if new_block.stream and not want_audio_output:
+				params["stream_options"] = {"include_usage": True}
+			if want_audio_output:
+				params["audio"] = {
+					"voice": getattr(new_block, "audio_voice", "alloy"),
+					"format": "wav",
+				}
 			if new_block.max_tokens:
 				params["max_tokens"] = new_block.max_tokens
 			params["store"] = False
 			params.update(kwargs)
+			if want_audio_output:
+				params["stream"] = False
 			return self.client.chat.completions.create(**params)
 		self._last_used_chat_completions = False
 		return super().completion(
@@ -350,18 +364,27 @@ class OpenAIEngine(ResponsesAPIEngine):
 	def completion_response_with_stream(
 		self,
 		stream: Generator[ChatCompletionChunk, None, None] | Any,
+		new_block: MessageBlock,
 		**kwargs: Any,
 	) -> Generator[str, None, None]:
 		"""Handle streaming response from Chat or Responses API."""
 		if getattr(self, "_last_used_chat_completions", False):
 			for chunk in stream:
 				if not chunk.choices:
+					if hasattr(chunk, "usage") and chunk.usage:
+						from basilisk.provider_engine.usage_utils import (
+							token_usage_openai_style,
+						)
+
+						new_block.usage = token_usage_openai_style(chunk.usage)
 					continue
 				delta = chunk.choices[0].delta
 				if delta and delta.content:
 					yield delta.content
 		else:
-			yield from super().completion_response_with_stream(stream, **kwargs)
+			yield from super().completion_response_with_stream(
+				stream, new_block=new_block, **kwargs
+			)
 
 	def completion_response_without_stream(
 		self,
@@ -371,11 +394,24 @@ class OpenAIEngine(ResponsesAPIEngine):
 	) -> MessageBlock:
 		"""Handle non-streaming response from Chat or Responses API."""
 		if isinstance(response, ChatCompletion):
-			content = response.choices[0].message.content
-			new_block.response = Message(
-				role=MessageRoleEnum.ASSISTANT,
-				content=content if content is not None else "",
-			)
+			msg = response.choices[0].message
+			audio = getattr(msg, "audio", None)
+			if audio and getattr(audio, "data", None):
+				fmt = getattr(audio, "format", None) or getattr(
+					new_block, "audio_format", "wav"
+				)
+				audio_marker = _("<audio response>")
+				new_block.response = Message(
+					role=MessageRoleEnum.ASSISTANT,
+					content=audio_marker,
+					audio_data=audio.data,
+					audio_format=fmt,
+				)
+			else:
+				content = msg.content if msg.content is not None else ""
+				new_block.response = Message(
+					role=MessageRoleEnum.ASSISTANT, content=content
+				)
 			return new_block
 		return super().completion_response_without_stream(
 			response, new_block, **kwargs

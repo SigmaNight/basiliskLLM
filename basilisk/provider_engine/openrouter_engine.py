@@ -35,6 +35,10 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		capabilities: Set of supported capabilities including text and image generation.
 	"""
 
+	def _supports_stream_usage_options(self) -> bool:
+		"""OpenRouter deprecates stream_options.include_usage and may reject it."""
+		return False
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,

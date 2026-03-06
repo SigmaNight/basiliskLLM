@@ -101,7 +101,8 @@ class BaseEngine(ABC):
 			return True
 		return model.supports_parameter("tools")
 
-	# Param keys that may be filtered by model.supported_parameters
+	# Param keys that may be filtered by model.supported_parameters.
+	# Override _get_filterable_params() in subclasses to extend.
 	_FILTERABLE_PARAMS = frozenset(
 		{
 			"temperature",
@@ -113,6 +114,13 @@ class BaseEngine(ABC):
 			"top_k",
 		}
 	)
+
+	def _get_filterable_params(self) -> frozenset[str]:
+		"""Params that may be filtered by model.supported_parameters.
+
+		Override in subclasses to add provider-specific params.
+		"""
+		return self._FILTERABLE_PARAMS
 
 	def _filter_params_for_model(
 		self, model: ProviderAIModel, params: dict[str, Any]
@@ -133,9 +141,10 @@ class BaseEngine(ABC):
 		supported = model.supported_parameters
 		if not supported:
 			return params
+		filterable = self._get_filterable_params()
 		result = {}
 		for k, v in params.items():
-			if k in self._FILTERABLE_PARAMS and k not in supported:
+			if k in filterable and k not in supported:
 				continue
 			result[k] = v
 		return result
