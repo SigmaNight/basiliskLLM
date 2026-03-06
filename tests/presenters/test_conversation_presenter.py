@@ -1,6 +1,6 @@
 """Tests for ConversationPresenter."""
 
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 
@@ -107,7 +107,7 @@ class TestOnStreamStart:
 
 		assert block in presenter.conversation.messages
 		mock_view.messages.display_new_block.assert_called_once_with(
-			block, streaming=True
+			block, streaming=True, show_reasoning_blocks=ANY
 		)
 		mock_view.messages.SetInsertionPointEnd.assert_called_once()
 
@@ -270,7 +270,9 @@ class TestOnNonStreamFinish:
 		system_msg = SystemMessage(content="Be helpful")
 		presenter._on_non_stream_finish(block, system_msg)
 		assert block in presenter.conversation.messages
-		mock_view.messages.display_new_block.assert_called_once_with(block)
+		mock_view.messages.display_new_block.assert_called_once_with(
+			block, show_reasoning_blocks=ANY
+		)
 		mock_service.auto_save_to_db.assert_called_once_with(
 			presenter.conversation, block
 		)

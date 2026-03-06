@@ -11,11 +11,17 @@ import logging
 import re
 import threading
 import time
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import wx
 
 from basilisk import global_vars
+from basilisk.conversation.content_utils import (
+	END_REASONING,
+	START_BLOCK_REASONING,
+	split_reasoning_and_content,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -77,8 +83,10 @@ class CompletionHandler:
 		self.on_non_stream_finish = on_non_stream_finish
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
+		self._last_completed_block: Optional[MessageBlock] = None
 		self.last_time = 0
 		self.stream_buffer: str = ""
+		self._stream_reasoning_started: bool = False
 
 	@ensure_no_task_running
 	def start_completion(
@@ -146,6 +154,7 @@ class CompletionHandler:
 			engine: The engine to use for completion
 			kwargs: The keyword arguments for the completion request
 		"""
+		started_at = datetime.now()
 		try:
 			play_sound("progress", loop=True)
 			response = engine.completion(**kwargs)
@@ -154,13 +163,21 @@ class CompletionHandler:
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
+		# Request is fully sent when completion() returns (streaming: we have the stream)
+		request_sent_at = (
+			datetime.now() if kwargs.get("stream", False) else None
+		)
+
 		handle_func = (
 			self._handle_streaming_completion
 			if kwargs.get("stream", False)
 			else self._handle_non_streaming_completion
 		)
+		self._last_completed_block = None
 		kwargs["engine"] = engine
 		kwargs["response"] = response
+		kwargs["started_at"] = started_at
+		kwargs["request_sent_at"] = request_sent_at
 		try:
 			success = handle_func(**kwargs)
 		except Exception as e:
@@ -182,6 +199,28 @@ class CompletionHandler:
 				if not message_block.response.citations:
 					message_block.response.citations = []
 				message_block.response.citations.append(chunk_data)
+			elif chunk_type == "reasoning":
+				message_block.response.reasoning = (
+					message_block.response.reasoning or ""
+				) + chunk_data
+				if not self._stream_reasoning_started:
+					self._stream_reasoning_started = True
+					wx.CallAfter(
+						self._handle_stream_buffer,
+						f"{START_BLOCK_REASONING}\n{chunk_data}",
+					)
+				else:
+					wx.CallAfter(self._handle_stream_buffer, chunk_data)
+			elif chunk_type == "content":
+				message_block.response.content += chunk_data
+				if self._stream_reasoning_started:
+					self._stream_reasoning_started = False
+					wx.CallAfter(
+						self._handle_stream_buffer,
+						f"\n{END_REASONING}\n\n{chunk_data}",
+					)
+				else:
+					wx.CallAfter(self._handle_stream_buffer, chunk_data)
 			else:
 				logger.warning(
 					"Unknown chunk type in streaming response: %s", chunk_type
@@ -196,6 +235,20 @@ class CompletionHandler:
 			message_block.response.content += self.stream_buffer
 			wx.CallAfter(self._handle_stream_buffer, self.stream_buffer)
 			self.stream_buffer = ""
+
+	def _split_reasoning_from_content(
+		self, message_block: MessageBlock
+	) -> None:
+		"""Parse legacy ```think...``` format into reasoning and content."""
+		if not message_block.response:
+			return
+		reasoning, content = split_reasoning_and_content(
+			message_block.response.content
+		)
+		if reasoning is not None:
+			message_block.response = message_block.response.model_copy(
+				update={"reasoning": reasoning, "content": content}
+			)
 
 	def _handle_streaming_completion(
 		self,
@@ -217,13 +270,21 @@ class CompletionHandler:
 		Returns:
 			True if streaming was handled successfully, False if stopped
 		"""
-		new_block.response = Message(role=MessageRoleEnum.ASSISTANT, content="")
+		new_block.response = Message(
+			role=MessageRoleEnum.ASSISTANT, content="", reasoning=None
+		)
+		self._stream_reasoning_started = False
 
 		# Notify that streaming has started
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
-		for chunk in engine.completion_response_with_stream(response):
+		first_token_at: datetime | None = None
+		for chunk in engine.completion_response_with_stream(
+			response, new_block=new_block
+		):
+			if first_token_at is None:
+				first_token_at = datetime.now()
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
@@ -231,6 +292,21 @@ class CompletionHandler:
 
 		# Notify that streaming has finished
 		self.flush_stream_buffer(new_block)
+		if self._stream_reasoning_started:
+			wx.CallAfter(self._handle_stream_buffer, f"\n{END_REASONING}\n\n")
+		# Parse legacy ```think...``` format into reasoning + content
+		self._split_reasoning_from_content(new_block)
+		started_at = kwargs.get("started_at")
+		request_sent_at = kwargs.get("request_sent_at")
+		if started_at is not None:
+			from basilisk.conversation.conversation_model import ResponseTiming
+
+			new_block.timing = ResponseTiming(
+				started_at=started_at,
+				request_sent_at=request_sent_at,
+				first_token_at=first_token_at,
+				finished_at=datetime.now(),
+			)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
 		return True
@@ -255,9 +331,16 @@ class CompletionHandler:
 		Returns:
 			True if non-streaming completion was handled successfully, False if stopped
 		"""
+		from basilisk.conversation.conversation_model import ResponseTiming
+
 		completed_block = engine.completion_response_without_stream(
 			response=response, new_block=new_block, **kwargs
 		)
+		started_at = kwargs.get("started_at")
+		if started_at is not None:
+			completed_block.timing = ResponseTiming(
+				started_at=started_at, finished_at=datetime.now()
+			)
 
 		# Notify that non-streaming completion has finished
 		if self.on_non_stream_finish:
@@ -265,6 +348,10 @@ class CompletionHandler:
 				self.on_non_stream_finish, completed_block, system_message
 			)
 
+		# Pass block so _completion_finished_success can skip completion sound
+		# when response is audio (play_sound in on_non_stream_finish already
+		# stopped progress; we must not stop_sound again or we interrupt audio)
+		self._last_completed_block = completed_block
 		return True
 
 	def _handle_stream_buffer(self, buffer: str):
@@ -284,8 +371,18 @@ class CompletionHandler:
 
 	def _completion_finished_success(self):
 		"""Handle completion finish in success on the main thread."""
-		stop_sound()
-		play_sound("chat_response_received")
+		block = getattr(self, "_last_completed_block", None)
+		has_audio = (
+			block
+			and block.response
+			and getattr(block.response, "audio_data", None)
+		)
+		if not has_audio:
+			stop_sound()
+			play_sound("chat_response_received")
+		# When has_audio: progress was already stopped when audio started;
+		# do not call stop_sound() or play chime, or we'd interrupt playback
+		self._last_completed_block = None
 		if self.on_completion_end:
 			self.on_completion_end(True)
 		self.task = None

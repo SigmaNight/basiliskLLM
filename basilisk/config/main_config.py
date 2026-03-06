@@ -26,6 +26,12 @@ class GeneralSettings(BaseModel):
 	"""General settings for BasiliskLLM."""
 
 	language: str = Field(default="auto")
+	model_metadata_cache_ttl_seconds: int = Field(
+		default=3600,
+		ge=60,
+		le=86400,
+		description="TTL for model metadata cache",
+	)
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
@@ -49,6 +55,7 @@ class ConversationSettings(BaseModel):
 	auto_save_draft: bool = Field(default=True)
 	reopen_last_conversation: bool = Field(default=False)
 	last_active_conversation_id: int | None = Field(default=None)
+	show_reasoning_blocks: bool = Field(default=True)
 
 
 class ImagesSettings(BaseModel):

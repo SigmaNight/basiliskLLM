@@ -13,6 +13,10 @@ from pydantic import ValidationError
 
 from basilisk.config import ConversationProfile
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
+	get_reasoning_params_from_view,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config.conversation_profile import ConversationProfileManager
@@ -59,7 +63,20 @@ class EditConversationProfilePresenter:
 
 		self.profile.name = name
 		self.profile.system_prompt = self.view.system_prompt_txt.GetValue()
+		self._apply_account_and_model()
+		self._apply_generation_params()
+		self._apply_reasoning_params()
+		self._apply_audio_params()
 
+		try:
+			ConversationProfile.model_validate(self.profile)
+		except ValidationError as e:
+			log.error("Profile validation failed: %s", e)
+			return None
+		return self.profile
+
+	def _apply_account_and_model(self) -> None:
+		"""Set account and model info from view."""
 		account = self.view.current_account
 		model = self.view.current_model
 
@@ -73,31 +90,52 @@ class EditConversationProfilePresenter:
 		else:
 			self.profile.ai_model_info = None
 
+	def _apply_generation_params(self) -> None:
+		"""Set max_tokens, temperature, top_p, stream from view."""
+		model = self.view.current_model
+
 		max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
-		if model and max_tokens > 0:
-			self.profile.max_tokens = max_tokens
-		else:
-			self.profile.max_tokens = None
+		self.profile.max_tokens = (
+			max_tokens if (model and max_tokens > 0) else None
+		)
 
 		temperature = self.view.temperature_spinner.GetValue()
-		if model and temperature != model.default_temperature:
-			self.profile.temperature = temperature
-		else:
-			self.profile.temperature = None
+		self.profile.temperature = (
+			temperature
+			if (model and temperature != model.default_temperature)
+			else None
+		)
 
 		top_p = self.view.top_p_spinner.GetValue()
-		if model and top_p != 1.0:
-			self.profile.top_p = top_p
-		else:
-			self.profile.top_p = None
-
+		self.profile.top_p = top_p if (model and top_p != 1.0) else None
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
-		try:
-			ConversationProfile.model_validate(self.profile)
-		except ValidationError as e:
-			log.error("Profile validation failed: %s", e)
-			return None
-		return self.profile
+
+	def _apply_reasoning_params(self) -> None:
+		"""Set reasoning_mode, adaptive, budget, effort from view."""
+		if not hasattr(self.view, "reasoning_mode"):
+			return
+
+		params = get_reasoning_params_from_view(self.view)
+		self.profile.reasoning_mode = params["reasoning_mode"]
+		self.profile.reasoning_adaptive = params["reasoning_adaptive"]
+
+		model = self.view.current_model
+		if not (model and self.profile.reasoning_mode):
+			self.profile.reasoning_budget_tokens = None
+			self.profile.reasoning_effort = None
+			return
+
+		self.profile.reasoning_budget_tokens = params["reasoning_budget_tokens"]
+		self.profile.reasoning_effort = params["reasoning_effort"]
+
+	def _apply_audio_params(self) -> None:
+		"""Set output_modality, audio_voice, audio_format from view."""
+		if not hasattr(self.view, "output_modality_choice"):
+			return
+		params = get_audio_params_from_view(self.view)
+		self.profile.output_modality = params["output_modality"]
+		self.profile.audio_voice = params["audio_voice"]
+		self.profile.audio_format = params["audio_format"]
 
 
 class ConversationProfilePresenter(ManagerCrudMixin):

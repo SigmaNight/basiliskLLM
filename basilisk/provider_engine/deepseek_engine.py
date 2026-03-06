@@ -5,7 +5,6 @@ implementing capabilities for text generation using various DeepSeek models.
 """
 
 import logging
-from functools import cached_property
 from typing import Generator
 
 from openai.types.chat import (
@@ -15,12 +14,23 @@ from openai.types.chat import (
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
-from .base_engine import ProviderAIModel
 from .legacy_openai_engine import LegacyOpenAIEngine
 
 log = logging.getLogger(__name__)
+
+# Reasoning-only models (always-on thinking; no toggle)
+_DEEPSEEK_REASONING_ONLY_IDS = frozenset(
+	{
+		"deepseek-reasoner-latest",
+		"deepseek-v3.2-speciale",
+		"deepseek-r1",
+		"deepseek-r1-0528",
+	}
+)
 
 
 class DeepSeekAIEngine(LegacyOpenAIEngine):
@@ -35,77 +45,42 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available DeepSeek models.
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/deepseek.json"
 
-		Returns:
-			List of supported DeepSeek models with their configurations.
-		"""
-		log.debug("Getting DeepSeek models")
-		# See <https://api-docs.deepseek.com/quick_start/pricing>
-		models = [
-			ProviderAIModel(
-				id="deepseek-chat",
-				name="DeepSeek-V3.2",
-				# Translators: This is a model description
-				description=_(
-					"Non-thinking mode for general chat, code and writing"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=8000,
-			),
-			ProviderAIModel(
-				id="deepseek-reasoner",
-				name="DeepSeek-R1",
-				# Translators: This is a model description
-				description=_(
-					"Thinking mode for chain-of-thought, research and logic"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=64000,
-				reasoning=True,
-			),
-		]
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		for m in models:
+			if m.id in _DEEPSEEK_REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
 		return models
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self,
+		stream: Generator[ChatCompletionChunk, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes streaming response from DeepSeek API.
 
-		Handles both regular content and reasoning content in the stream,
-		formatting reasoning content within special markdown blocks.
-
-		Args:
-			stream: Generator of chat completion chunks.
-
-		Yields:
-			Formatted text content from each chunk.
+		Yields ("reasoning", chunk) or ("content", chunk).
+		Captures usage from final chunk when stream_options.include_usage is set.
 		"""
-		reasoning_content_tag_sent = False
 		for chunk in stream:
+			if not chunk.choices:
+				if hasattr(chunk, "usage") and chunk.usage:
+					new_block.usage = token_usage_openai_style(chunk.usage)
+				continue
 			delta = chunk.choices[0].delta
 			if delta:
 				if (
 					hasattr(delta, "reasoning_content")
 					and delta.reasoning_content
 				):
-					if not reasoning_content_tag_sent:
-						reasoning_content_tag_sent = True
-						yield f"```think\n{delta.reasoning_content}"
-					else:
-						yield delta.reasoning_content
+					yield ("reasoning", delta.reasoning_content)
 				if delta.content:
-					if reasoning_content_tag_sent:
-						reasoning_content_tag_sent = False
-						yield f"\n```\n\n{delta.content}"
-					else:
-						yield delta.content
+					yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
@@ -123,18 +98,18 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		Returns:
 			Updated message block containing the formatted response.
 		"""
-		reasoning_content = None
+		reasoning = None
 		if (
 			hasattr(response.choices[0].message, "reasoning_content")
 			and response.choices[0].message.reasoning_content
 		):
-			reasoning_content = response.choices[0].message.reasoning_content
-		content = response.choices[0].message.content
-		if reasoning_content:
-			content = f"```think\n{reasoning_content}\n```\n\n{content}"
+			reasoning = response.choices[0].message.reasoning_content
+		content = response.choices[0].message.content or ""
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=content
+			role=MessageRoleEnum.ASSISTANT, content=content, reasoning=reasoning
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
 
 	def prepare_message_response(

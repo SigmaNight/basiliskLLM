@@ -20,8 +20,11 @@ class ProviderAIModel:
 		max_output_tokens: The maximum number of output tokens for the AI model.
 		max_temperature: The maximum temperature for the AI model.
 		default_temperature: The default temperature for the AI model.
-		reasoning: Whether the AI model supports reasoning.
+		reasoning: Whether the AI model is reasoning-only (always on).
+		reasoning_capable: Whether the model supports optional reasoning via param.
 		vision: Whether the AI model supports vision.
+		created: Unix timestamp for model creation (for UI sort order).
+		supported_parameters: List of API parameter names the model accepts.
 		extra_info: Additional information for the AI model.
 	"""
 
@@ -33,7 +36,13 @@ class ProviderAIModel:
 	max_temperature: float = field(default=1.0)
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
+	audio: bool = field(default=False)
+	document: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	reasoning_capable: bool = field(default=False)
+	web_search_capable: bool = field(default=False)
+	created: int = field(default=0)
+	supported_parameters: list[str] = field(default_factory=list)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
@@ -70,6 +79,12 @@ class ProviderAIModel:
 		vision_value = _("yes") if self.vision else _("no")
 		# Translators: AI model details
 		details += _("Vision:") + f" {vision_value}\n"
+		audio_value = _("yes") if self.audio else _("no")
+		# Translators: AI model details
+		details += _("Audio:") + f" {audio_value}\n"
+		document_value = _("yes") if self.document else _("no")
+		# Translators: AI model details
+		details += _("Document:") + f" {document_value}\n"
 		# Translators: AI model details
 		details += _("Context window:") + f" {self.context_window}\n"
 		if self.max_output_tokens > 0:
@@ -81,6 +96,22 @@ class ProviderAIModel:
 				f"{k}: {v}" for k, v in self.extra_info.items()
 			)
 		return details
+
+	def supports_parameter(self, param: str) -> bool:
+		"""Return True if model supports this API parameter.
+
+		When supported_parameters is empty (legacy models), returns True for
+		all params to preserve backward compatibility.
+
+		Args:
+			param: API parameter name (e.g. "temperature", "top_p", "tools").
+
+		Returns:
+			True if the model supports the parameter.
+		"""
+		if not self.supported_parameters:
+			return True
+		return param in self.supported_parameters
 
 	@property
 	def effective_max_output_tokens(self) -> int:
