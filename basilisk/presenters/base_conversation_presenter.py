@@ -8,15 +8,35 @@ conversation panel.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import basilisk.config as config
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
+	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class ParameterVisibilityState:
+	"""Visibility state for parameter controls. View applies this to widgets."""
+
+	temperature_visible: bool = False
+	top_p_visible: bool = False
+	max_tokens_visible: bool = False
+	stream_visible: bool = False
+	web_search_visible: bool = False
+	reasoning_mode_visible: bool = False
+	reasoning_adaptive_visible: bool = False
+	reasoning_budget_visible: bool = False
+	reasoning_effort_visible: bool = False
+	effort_options: tuple[str, ...] = ()
+	effort_display: tuple[str, ...] = ()
+	effort_label: str = ""
 
 
 class BaseConversationPresenter:
@@ -104,3 +124,86 @@ class BaseConversationPresenter:
 		return self.account_model_service.resolve_account_and_model(
 			profile, fall_back_default_account
 		)
+
+	def get_parameter_visibility_state(
+		self,
+		advanced_mode: bool,
+		model: ProviderAIModel | None,
+		engine: BaseEngine | None,
+		reasoning_mode_checked: bool = False,
+		reasoning_adaptive_checked: bool = False,
+	) -> ParameterVisibilityState:
+		"""Compute visibility state for parameter controls.
+
+		Business logic for which controls to show based on model, engine,
+		and provider. View applies result to widgets.
+
+		Args:
+			advanced_mode: Whether advanced mode is enabled.
+			model: Current model, or None.
+			engine: Current engine, or None.
+			reasoning_mode_checked: Current value of reasoning_mode checkbox.
+			reasoning_adaptive_checked: Current value of reasoning_adaptive.
+
+		Returns:
+			ParameterVisibilityState to apply to view widgets.
+		"""
+		state = ParameterVisibilityState()
+		if model is None or engine is None:
+			return state
+
+		has_model = advanced_mode and model is not None
+		state.temperature_visible = has_model and model.supports_parameter(
+			"temperature"
+		)
+		state.top_p_visible = has_model and model.supports_parameter("top_p")
+		state.max_tokens_visible = has_model and model.supports_parameter(
+			"max_tokens"
+		)
+		state.stream_visible = has_model
+
+		state.web_search_visible = engine.model_supports_web_search(model)
+
+		reasoning_visible = (
+			advanced_mode and model.reasoning_capable and not model.reasoning
+		)
+		state.reasoning_mode_visible = reasoning_visible
+
+		controls_visible = (
+			reasoning_visible and reasoning_mode_checked and engine is not None
+		)
+		provider_id = engine.account.provider.id if engine else ""
+		model_id = (model.id or "").lower() if model else ""
+
+		show_anthropic = controls_visible and provider_id == "anthropic"
+		state.reasoning_adaptive_visible = show_anthropic
+
+		state.reasoning_budget_visible = (
+			show_anthropic and not reasoning_adaptive_checked
+		) or (
+			controls_visible
+			and provider_id == "google"
+			and "gemini-2" in model_id
+		)
+
+		show_effort = controls_visible and (
+			provider_id in ("openai", "xai")
+			or (provider_id == "google" and "gemini-3" in model_id)
+		)
+		state.reasoning_effort_visible = show_effort
+
+		if show_effort:
+			from basilisk.provider_engine.reasoning_config import (
+				get_effort_label,
+				get_effort_options,
+			)
+
+			state.effort_options = get_effort_options(provider_id, model_id)
+			state.effort_label = get_effort_label(provider_id, model_id)
+			state.effort_display = (
+				("Low", "High")
+				if state.effort_options == ("low", "high")
+				else ("Low", "Medium", "High")
+			)
+
+		return state
