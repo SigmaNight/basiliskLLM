@@ -73,6 +73,7 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._show_reasoning_blocks_override: bool | None = None
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -445,6 +446,37 @@ class BaseConversation:
 			label=_("&Stream mode"),
 		)
 		self.stream_mode.SetValue(True)
+
+	def get_effective_show_reasoning_blocks(self) -> bool:
+		"""Effective value: per-tab override if set, else default from config."""
+		if self._show_reasoning_blocks_override is not None:
+			return self._show_reasoning_blocks_override
+		return config.conf().conversation.show_reasoning_blocks
+
+	def create_show_reasoning_blocks_widget(self):
+		"""Create checkbox to show/hide reasoning (think) blocks in responses.
+
+		Always visible. Per-tab override; default comes from Preferences.
+		"""
+		self.show_reasoning_blocks = wx.CheckBox(
+			self,
+			# Translators: Label for showing reasoning blocks in the main window
+			label=_("Show &reasoning blocks in responses"),
+		)
+		self.show_reasoning_blocks.SetValue(
+			self.get_effective_show_reasoning_blocks()
+		)
+		self.show_reasoning_blocks.Bind(
+			wx.EVT_CHECKBOX, self._on_show_reasoning_blocks_change
+		)
+
+	def _on_show_reasoning_blocks_change(self, event: wx.Event | None):
+		"""Set per-tab override and refresh message display."""
+		self._show_reasoning_blocks_override = (
+			self.show_reasoning_blocks.GetValue()
+		)
+		if hasattr(self, "refresh_messages"):
+			self.refresh_messages(need_clear=True, preserve_prompt=True)
 
 	def create_audio_output_group(self):
 		"""Create grouped audio output settings (modality, voice, format, speed).

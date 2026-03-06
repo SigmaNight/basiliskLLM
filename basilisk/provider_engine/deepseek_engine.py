@@ -60,16 +60,8 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	):
 		"""Processes streaming response from DeepSeek API.
 
-		Handles both regular content and reasoning content in the stream,
-		formatting reasoning content within special markdown blocks.
-
-		Args:
-			stream: Generator of chat completion chunks.
-
-		Yields:
-			Formatted text content from each chunk.
+		Yields ("reasoning", chunk) or ("content", chunk).
 		"""
-		reasoning_content_tag_sent = False
 		for chunk in stream:
 			delta = chunk.choices[0].delta
 			if delta:
@@ -77,17 +69,9 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 					hasattr(delta, "reasoning_content")
 					and delta.reasoning_content
 				):
-					if not reasoning_content_tag_sent:
-						reasoning_content_tag_sent = True
-						yield f"```think\n{delta.reasoning_content}"
-					else:
-						yield delta.reasoning_content
+					yield ("reasoning", delta.reasoning_content)
 				if delta.content:
-					if reasoning_content_tag_sent:
-						reasoning_content_tag_sent = False
-						yield f"\n```\n\n{delta.content}"
-					else:
-						yield delta.content
+					yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
@@ -105,17 +89,15 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		Returns:
 			Updated message block containing the formatted response.
 		"""
-		reasoning_content = None
+		reasoning = None
 		if (
 			hasattr(response.choices[0].message, "reasoning_content")
 			and response.choices[0].message.reasoning_content
 		):
-			reasoning_content = response.choices[0].message.reasoning_content
-		content = response.choices[0].message.content
-		if reasoning_content:
-			content = f"```think\n{reasoning_content}\n```\n\n{content}"
+			reasoning = response.choices[0].message.reasoning_content
+		content = response.choices[0].message.content or ""
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=content
+			role=MessageRoleEnum.ASSISTANT, content=content, reasoning=reasoning
 		)
 		return new_block
 

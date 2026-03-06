@@ -260,7 +260,11 @@ class ConversationPresenter(DestroyGuardMixin):
 	):
 		"""Called when streaming starts."""
 		self.conversation.add_block(new_block, system_message)
-		self.view.messages.display_new_block(new_block, streaming=True)
+		self.view.messages.display_new_block(
+			new_block,
+			streaming=True,
+			show_reasoning_blocks=self.view.get_effective_show_reasoning_blocks(),
+		)
 		self.view.messages.SetInsertionPointEnd()
 
 	@_guard_destroying
@@ -276,7 +280,10 @@ class ConversationPresenter(DestroyGuardMixin):
 	):
 		"""Called when non-streaming completion finishes."""
 		self.conversation.add_block(new_block, system_message)
-		self.view.messages.display_new_block(new_block)
+		self.view.messages.display_new_block(
+			new_block,
+			show_reasoning_blocks=self.view.get_effective_show_reasoning_blocks(),
+		)
 		audio_data = getattr(new_block.response, "audio_data", None)
 		if audio_data:
 			from basilisk.audio_utils import play_audio_from_base64

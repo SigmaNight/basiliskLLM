@@ -17,6 +17,7 @@ from basilisk.conversation.attached_file import (
 	AttachmentFileTypes,
 	ImageFile,
 )
+from basilisk.conversation.content_utils import split_reasoning_and_content
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -234,6 +235,7 @@ class ConversationDatabase:
 			message_block_id=block_id,
 			role=role,
 			content=message.content,
+			reasoning=getattr(message, "reasoning", None),
 			audio_data=getattr(message, "audio_data", None),
 			audio_format=getattr(message, "audio_format", None),
 		)
@@ -740,6 +742,52 @@ class ConversationDatabase:
 				version=BSKC_VERSION,
 			)
 
+	def _load_message_attachments(
+		self, db_msg: DBMessage
+	) -> list[AttachmentFile | ImageFile] | None:
+		"""Load attachments from a DB message."""
+		if not db_msg.attachment_links:
+			return None
+		attachments = []
+		for link in sorted(db_msg.attachment_links, key=lambda x: x.position):
+			attachment = self._load_attachment(
+				link.attachment, link.description
+			)
+			if attachment:
+				attachments.append(attachment)
+		return attachments or None
+
+	def _load_message_citations(self, db_msg: DBMessage) -> list[dict] | None:
+		"""Load citations from a DB message."""
+		if not db_msg.citations:
+			return None
+		citations = []
+		for db_cit in sorted(db_msg.citations, key=lambda x: x.position):
+			citation = {}
+			if db_cit.cited_text is not None:
+				citation["cited_text"] = db_cit.cited_text
+			if db_cit.source_title is not None:
+				citation["source_title"] = db_cit.source_title
+			if db_cit.source_url is not None:
+				citation["source_url"] = db_cit.source_url
+			if db_cit.start_index is not None:
+				citation["start_index"] = db_cit.start_index
+			if db_cit.end_index is not None:
+				citation["end_index"] = db_cit.end_index
+			citations.append(citation)
+		return citations
+
+	def _resolve_reasoning_and_content(
+		self, reasoning: str | None, content: str
+	) -> tuple[str | None, str]:
+		"""Resolve reasoning and content, parsing legacy format if needed."""
+		if reasoning is not None or not content:
+			return reasoning, content
+		parsed_reasoning, parsed_content = split_reasoning_and_content(content)
+		if parsed_reasoning is not None:
+			return parsed_reasoning, parsed_content
+		return reasoning, content
+
 	def _load_message(self, db_msg: DBMessage) -> Message:
 		"""Convert a DB message to a Pydantic message."""
 		role = (
@@ -747,49 +795,19 @@ class ConversationDatabase:
 			if db_msg.role == "user"
 			else MessageRoleEnum.ASSISTANT
 		)
-
-		# Load attachments
-		attachments = None
-		if db_msg.attachment_links:
-			attachments = []
-			sorted_links = sorted(
-				db_msg.attachment_links, key=lambda x: x.position
-			)
-			for link in sorted_links:
-				db_att = link.attachment
-				attachment = self._load_attachment(db_att, link.description)
-				if attachment:
-					attachments.append(attachment)
-
-		# Load citations
-		citations = None
-		if db_msg.citations:
-			citations = []
-			sorted_cites = sorted(db_msg.citations, key=lambda x: x.position)
-			for db_cit in sorted_cites:
-				citation = {}
-				if db_cit.cited_text is not None:
-					citation["cited_text"] = db_cit.cited_text
-				if db_cit.source_title is not None:
-					citation["source_title"] = db_cit.source_title
-				if db_cit.source_url is not None:
-					citation["source_url"] = db_cit.source_url
-				if db_cit.start_index is not None:
-					citation["start_index"] = db_cit.start_index
-				if db_cit.end_index is not None:
-					citation["end_index"] = db_cit.end_index
-				citations.append(citation)
-
-		audio_data = getattr(db_msg, "audio_data", None)
-		audio_format = getattr(db_msg, "audio_format", None)
-
+		attachments = self._load_message_attachments(db_msg)
+		citations = self._load_message_citations(db_msg)
+		reasoning, content = self._resolve_reasoning_and_content(
+			getattr(db_msg, "reasoning", None), db_msg.content
+		)
 		return Message(
 			role=role,
-			content=db_msg.content,
-			attachments=attachments or None,
-			citations=citations or None,
-			audio_data=audio_data,
-			audio_format=audio_format,
+			content=content,
+			reasoning=reasoning,
+			attachments=attachments,
+			citations=citations,
+			audio_data=getattr(db_msg, "audio_data", None),
+			audio_format=getattr(db_msg, "audio_format", None),
 		)
 
 	@staticmethod

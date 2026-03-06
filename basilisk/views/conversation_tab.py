@@ -299,6 +299,8 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
 		self.create_stream_widget()
 		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
+		self.create_show_reasoning_blocks_widget()
+		sizer.Add(self.show_reasoning_blocks, proportion=0, flag=wx.EXPAND)
 
 		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -429,6 +431,14 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.adjust_advanced_mode_setting()
+		if (
+			hasattr(self, "show_reasoning_blocks")
+			and self._show_reasoning_blocks_override is None
+		):
+			self.show_reasoning_blocks.SetValue(
+				config.conf().conversation.show_reasoning_blocks
+			)
+		self.refresh_messages(need_clear=True, preserve_prompt=True)
 
 	# -- Display helpers --
 
@@ -481,7 +491,10 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				self.prompt_panel.clear(False)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
-			self.messages.display_new_block(block)
+			self.messages.display_new_block(
+				block,
+				show_reasoning_blocks=self.get_effective_show_reasoning_blocks(),
+			)
 
 	def _restore_draft_block(self, draft_block: MessageBlock):
 		"""Restore a draft block's content to UI controls.
