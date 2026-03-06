@@ -11,6 +11,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 import basilisk.config as config
+from basilisk.accessible_output import AccessibleOutputHandler
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	AttachmentFile,
@@ -38,6 +39,15 @@ if TYPE_CHECKING:
 	from basilisk.views.conversation_tab import ConversationTab
 
 log = logging.getLogger(__name__)
+
+
+def _get_transcription_text(transcription) -> str:
+	"""Extract text from transcription result (OpenAI, Mistral, etc.)."""
+	if transcription is None:
+		return ""
+	if isinstance(transcription, dict):
+		return str(transcription.get("text") or "")
+	return str(getattr(transcription, "text", "") or "")
 
 
 class ConversationPresenter(DestroyGuardMixin):
@@ -88,6 +98,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			None
 		)
 
+		self._a_output = AccessibleOutputHandler()
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
@@ -403,16 +414,20 @@ class ConversationPresenter(DestroyGuardMixin):
 		"""Handle a transcription result.
 
 		Args:
-			transcription: The transcription result.
+			transcription: The transcription result (object with .text or dict).
 		"""
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
-		self.view.prompt_panel.prompt.AppendText(transcription.text)
-		if (
-			self.view.prompt_panel.prompt.HasFocus()
-			and self.view.GetTopLevelParent().IsShown()
-		):
-			self.view._handle_accessible_output(transcription.text)
+		text = _get_transcription_text(transcription)
+		if text:
+			self.view.prompt_panel.prompt.AppendText(text)
+			if (
+				self.view.prompt_panel.prompt.HasFocus()
+				and self.view.GetTopLevelParent().IsShown()
+			):
+				self._a_output.handle(text)
+		else:
+			log.debug("Transcription returned empty text")
 		self.view.prompt_panel.prompt.SetInsertionPointEnd()
 		self.view.prompt_panel.set_prompt_focus()
 

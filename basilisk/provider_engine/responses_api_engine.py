@@ -12,6 +12,7 @@ from typing import Any, Generator
 from openai.types.responses import (
 	EasyInputMessageParam,
 	Response,
+	ResponseInputFileContentParam,
 	ResponseInputImageParam,
 	ResponseInputTextParam,
 	ResponseOutputMessage,
@@ -23,16 +24,58 @@ from openai.types.responses import (
 )
 
 from basilisk.conversation import (
+	AttachmentFile,
 	Conversation,
+	ImageFile,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
+
+
+def _audio_mime_to_format(mime_type: str) -> str | None:
+	"""Map audio MIME type to OpenAI InputAudio format (mp3 or wav)."""
+	if not mime_type or not mime_type.startswith("audio/"):
+		return None
+	if "mpeg" in mime_type or "mp3" in mime_type:
+		return "mp3"
+	if "wav" in mime_type:
+		return "wav"
+	return None
+
+
+def _attachment_to_input_item(
+	attachment: AttachmentFile | ImageFile,
+	capabilities: set[ProviderCapability],
+) -> ResponseInputImageParam | ResponseInputFileContentParam | None:
+	"""Convert attachment to Responses API input item based on MIME type."""
+	mime_type = attachment.mime_type or ""
+	url = attachment.url
+
+	if mime_type.startswith("image/"):
+		return ResponseInputImageParam(
+			image_url=url, detail="auto", type="input_image"
+		)
+
+	if mime_type.startswith("audio/"):
+		# Responses API does not support input_audio. Use Chat Completions
+		# (OpenAI gpt-audio) or transcribe first.
+		return None
+
+	if (
+		mime_type.startswith("application/") or mime_type.startswith("text/")
+	) and ProviderCapability.DOCUMENT in capabilities:
+		return ResponseInputFileContentParam(
+			type="input_file", file_url=url, filename=attachment.name
+		)
+
+	return None
 
 
 class ResponsesAPIEngine(BaseEngine):
@@ -47,18 +90,23 @@ class ResponsesAPIEngine(BaseEngine):
 	) -> EasyInputMessageParam:
 		"""Prepares a message for Responses API input format."""
 		super().prepare_message_request(message)
-		content: list[ResponseInputTextParam | ResponseInputImageParam] = [
-			ResponseInputTextParam(text=message.content, type="input_text")
-		]
+		content: list[
+			ResponseInputTextParam
+			| ResponseInputImageParam
+			| ResponseInputFileContentParam
+		] = [ResponseInputTextParam(text=message.content, type="input_text")]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				content.append(
-					ResponseInputImageParam(
-						image_url=attachment.url,
-						detail="auto",
-						type="input_image",
-					)
-				)
+				item = _attachment_to_input_item(attachment, self.capabilities)
+				if item is None:
+					mime = attachment.mime_type or ""
+					if mime.startswith("audio/"):
+						raise ValueError(
+							"Audio attachments are not supported in the Responses API. "
+							"Use a provider that supports audio in chat, or transcribe first (Ctrl+R)."
+						)
+					raise ValueError(f"Unsupported attachment format: {mime}")
+				content.append(item)
 		return EasyInputMessageParam(
 			role=message.role.value, content=content, type="message"
 		)

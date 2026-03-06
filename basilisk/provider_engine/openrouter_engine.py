@@ -106,6 +106,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							if v is None:
 								continue
 							extra_info[k.replace("_", " ")] = v
+				modality = model.get("architecture", {}).get("modality", "")
 				models.append(
 					ProviderAIModel(
 						id=model["id"],
@@ -117,8 +118,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						)
 						or -1,
 						max_temperature=2.0,
-						vision="text+image->text"
-						in model.get("architecture", {}).get("modality", ""),
+						vision="image" in modality,
+						audio="audio" in modality,
+						document="file" in modality,
 						extra_info=extra_info,
 					)
 				)

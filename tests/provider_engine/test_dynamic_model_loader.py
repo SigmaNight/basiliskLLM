@@ -111,6 +111,41 @@ def test_parse_model_metadata_vision_from_modality():
 	assert by_id["no-vision"].vision is False
 
 
+def test_parse_model_metadata_audio_from_modality():
+	"""parse_model_metadata derives audio from architecture.modality."""
+	raw = {
+		"data": [
+			{
+				"id": "with-audio",
+				"architecture": {"modality": "text+audio->text"},
+			},
+			{"id": "no-audio", "architecture": {"modality": "text->text"}},
+		]
+	}
+	models = parse_model_metadata(raw)
+	by_id = {m.id: m for m in models}
+	assert by_id["with-audio"].audio is True
+	assert by_id["no-audio"].audio is False
+
+
+def test_parse_model_metadata_audio_from_input_modalities():
+	"""parse_model_metadata derives audio from input_modalities when modality lacks it."""
+	raw = {
+		"data": [
+			{
+				"id": "audio-via-input-modalities",
+				"architecture": {
+					"modality": "text->text",
+					"input_modalities": ["text", "audio"],
+				},
+			}
+		]
+	}
+	models = parse_model_metadata(raw)
+	by_id = {m.id: m for m in models}
+	assert by_id["audio-via-input-modalities"].audio is True
+
+
 def test_parse_model_metadata_reasoning_capable_from_supported_parameters():
 	"""parse_model_metadata sets reasoning_capable when reasoning in supported_parameters."""
 	raw = {

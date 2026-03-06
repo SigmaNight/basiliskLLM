@@ -7,7 +7,9 @@ implementing capabilities for text and image generation/processing.
 from __future__ import annotations
 
 import logging
+import os
 from functools import cached_property
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Generator
 
 from mistralai import Mistral
@@ -41,11 +43,16 @@ class MistralAIEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text, image, document, and OCR.
 	"""
 
+	# Voxtral models support audio in chat; transcription uses dedicated endpoint
+	_STT_MODEL = "voxtral-mini-latest"
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.AUDIO,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.OCR,
+		ProviderCapability.STT,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
@@ -53,6 +60,10 @@ class MistralAIEngine(BaseEngine):
 		"image/png",
 		"image/webp",
 		"application/pdf",
+		"audio/mpeg",
+		"audio/wav",
+		"audio/mp4",
+		"audio/webm",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -92,10 +103,20 @@ class MistralAIEngine(BaseEngine):
 		content = [{"type": "text", "text": message.content}]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				mime_type = attachment.mime_type
+				mime_type = attachment.mime_type or ""
 				if mime_type.startswith("image/"):
 					content.append(
 						{"type": "image_url", "image_url": attachment.url}
+					)
+				elif mime_type.startswith("audio/"):
+					url = attachment.url
+					if url.startswith("data:"):
+						parts = url.split(",", 1)
+						audio_data = parts[1] if len(parts) == 2 else url
+					else:
+						audio_data = url
+					content.append(
+						{"type": "input_audio", "input_audio": audio_data}
 					)
 				else:
 					content.append(
@@ -197,6 +218,33 @@ class MistralAIEngine(BaseEngine):
 			content=response.choices[0].message.content,
 		)
 		return new_block
+
+	def get_transcription(
+		self, audio_file_path: str, response_format: str = "json"
+	):
+		"""Transcribe audio using Mistral's Voxtral transcription API.
+
+		Uses POST /v1/audio/transcriptions with voxtral-mini-latest.
+		Supports WAV (from recording) and other formats per Mistral docs.
+
+		Args:
+			audio_file_path: Path to the audio file.
+			response_format: Ignored; Mistral returns text directly.
+
+		Returns:
+			Object with .text attribute (matches OpenAI Whisper interface).
+		"""
+		with open(audio_file_path, "rb") as f:
+			result = self.client.audio.transcriptions.complete(
+				model=self._STT_MODEL,
+				file={
+					"file_name": os.path.basename(audio_file_path),
+					"content": f,
+				},
+			)
+		# Normalize to match OpenAI interface: object with .text
+		text = getattr(result, "text", None) or ""
+		return SimpleNamespace(text=text)
 
 	@staticmethod
 	def handle_ocr(

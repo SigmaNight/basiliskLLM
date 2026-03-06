@@ -36,6 +36,8 @@ class ProviderAIModel:
 	max_temperature: float = field(default=1.0)
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
+	audio: bool = field(default=False)
+	document: bool = field(default=False)
 	reasoning: bool = field(default=False)
 	reasoning_capable: bool = field(default=False)
 	web_search_capable: bool = field(default=False)
@@ -77,6 +79,12 @@ class ProviderAIModel:
 		vision_value = _("yes") if self.vision else _("no")
 		# Translators: AI model details
 		details += _("Vision:") + f" {vision_value}\n"
+		audio_value = _("yes") if self.audio else _("no")
+		# Translators: AI model details
+		details += _("Audio:") + f" {audio_value}\n"
+		document_value = _("yes") if self.document else _("no")
+		# Translators: AI model details
+		details += _("Document:") + f" {document_value}\n"
 		# Translators: AI model details
 		details += _("Context window:") + f" {self.context_window}\n"
 		if self.max_output_tokens > 0:
