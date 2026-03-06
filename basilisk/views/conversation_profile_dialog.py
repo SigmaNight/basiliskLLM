@@ -78,6 +78,8 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = self.create_model_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
+		self.create_audio_output_group()
+		self.sizer.Add(self.audio_output_group_sizer, 0, wx.ALL | wx.EXPAND, 5)
 		self.create_max_tokens_widget()
 		self.sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 5)
 		self.sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 5)

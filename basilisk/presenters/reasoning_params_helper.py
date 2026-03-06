@@ -65,3 +65,48 @@ def get_reasoning_params_from_view(
 			result["reasoning_effort"] = options[-1]
 
 	return result
+
+
+def get_audio_params_from_view(view: Any) -> dict[str, Any]:
+	"""Extract audio output params from view for MessageBlock/ConversationProfile.
+
+	Args:
+		view: View with output_modality_choice, audio_voice_choice (or subset).
+
+		Returns:
+			Dict with keys: output_modality, audio_voice, audio_format (always "wav").
+	"""
+	result: dict[str, Any] = {
+		"output_modality": "text",
+		"audio_voice": "alloy",
+		"audio_format": "wav",
+	}
+	if not hasattr(view, "output_modality_choice"):
+		return result
+
+	sel = view.output_modality_choice.GetSelection()
+	result["output_modality"] = (
+		"audio" if isinstance(sel, int) and sel == 1 else "text"
+	)
+
+	if hasattr(view, "audio_voice_choice"):
+		voices = [
+			"alloy",
+			"ash",
+			"ballad",
+			"coral",
+			"echo",
+			"fable",
+			"onyx",
+			"nova",
+			"sage",
+			"shimmer",
+			"verse",
+			"marin",
+			"cedar",
+		]
+		idx = view.audio_voice_choice.GetSelection()
+		if isinstance(idx, int) and 0 <= idx < len(voices):
+			result["audio_voice"] = voices[idx]
+
+	return result

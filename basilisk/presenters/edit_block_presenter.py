@@ -22,6 +22,7 @@ from basilisk.conversation.conversation_model import (
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
 from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
 from basilisk.provider_ai_model import AIModelInfo
@@ -111,6 +112,10 @@ class EditBlockPresenter(DestroyGuardMixin):
 			system_message = SystemMessage(content=system_prompt)
 
 		reasoning_params = get_reasoning_params_from_view(self.view)
+		audio_params = get_audio_params_from_view(self.view)
+		stream = self.view.stream_mode.GetValue()
+		if audio_params.get("output_modality") == "audio":
+			stream = False
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -124,8 +129,9 @@ class EditBlockPresenter(DestroyGuardMixin):
 			temperature=self.view.temperature_spinner.GetValue(),
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=self.view.stream_mode.GetValue(),
+			stream=stream,
 			**reasoning_params,
+			**audio_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -252,14 +258,24 @@ class EditBlockPresenter(DestroyGuardMixin):
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	) -> None:
-		"""Display the completed response and optionally speak it.
+		"""Display the completed response and optionally speak or play it.
+
+		Persists the new response (including audio_data) to self.block so
+		save_block will have the correct data when the user clicks OK.
 
 		Args:
 			new_block: The completed temporary block with response content.
 			system_message: Optional system message used for this completion.
 		"""
+		self.block.response = new_block.response
 		self.view.response_txt.SetValue(new_block.response.content)
-		if self.view.should_speak_response:
+		audio_data = getattr(new_block.response, "audio_data", None)
+		if audio_data:
+			from basilisk.audio_utils import play_audio_from_base64
+
+			fmt = getattr(new_block.response, "audio_format", None) or "wav"
+			play_audio_from_base64(audio_data, fmt)
+		elif self.view.should_speak_response:
 			self.view.a_output.handle(new_block.response.content)
 
 	def _on_stream_chunk(self, chunk: str) -> None:

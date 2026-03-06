@@ -446,6 +446,68 @@ class BaseConversation:
 		)
 		self.stream_mode.SetValue(True)
 
+	def create_audio_output_group(self):
+		"""Create grouped audio output settings (modality, voice, format, speed).
+
+		Returns a StaticBoxSizer containing the audio output widgets. Add to
+		layout after model list. Visibility controlled by update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for audio output settings
+		box = wx.StaticBox(self, label=_("Audio output"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_output_modality_widget()
+		sizer.Add(self.output_modality_label, 0, wx.ALL, 2)
+		sizer.Add(self.output_modality_choice, 0, wx.ALL | wx.EXPAND, 2)
+		self.output_modality_choice.Bind(
+			wx.EVT_CHOICE, lambda e: self.update_parameter_controls_visibility()
+		)
+		self.create_audio_voice_widget()
+		sizer.Add(self.audio_voice_label, 0, wx.ALL, 2)
+		sizer.Add(self.audio_voice_choice, 0, wx.ALL | wx.EXPAND, 2)
+
+		self.audio_output_group_box = box
+		self.audio_output_group_sizer = sizer
+		return sizer
+
+	def create_output_modality_widget(self):
+		"""Create output modality choice (text vs audio) for gpt-audio models."""
+		self.output_modality_label = wx.StaticText(
+			self,
+			# Translators: Label for output modality (text or audio response)
+			label=_("Output modality:"),
+		)
+		self.output_modality_choice = wx.Choice(
+			self, choices=[_("Text"), _("Audio")]
+		)
+		self.output_modality_choice.SetSelection(0)
+
+	def create_audio_voice_widget(self):
+		"""Create voice selection for audio output."""
+		self.audio_voice_label = wx.StaticText(
+			self,
+			# Translators: Label for voice selection in audio output
+			label=_("Audio voice:"),
+		)
+		voices = [
+			"alloy",
+			"ash",
+			"ballad",
+			"coral",
+			"echo",
+			"fable",
+			"onyx",
+			"nova",
+			"sage",
+			"shimmer",
+			"verse",
+			"marin",
+			"cedar",
+		]
+		self.audio_voice_choice = wx.Choice(
+			self, choices=[v.capitalize() for v in voices]
+		)
+		self.audio_voice_choice.SetSelection(0)
+
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
 		self.reasoning_mode = wx.CheckBox(
@@ -514,6 +576,30 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		if hasattr(self, "output_modality_choice"):
+			modality = getattr(profile, "output_modality", "text")
+			self.output_modality_choice.SetSelection(
+				1 if modality == "audio" else 0
+			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(profile, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
 		if hasattr(self, "reasoning_mode"):
 			self.reasoning_mode.SetValue(profile.reasoning_mode)
 			self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
@@ -545,11 +631,16 @@ class BaseConversation:
 
 		reasoning_mode_checked = False
 		reasoning_adaptive_checked = False
+		output_modality_audio = False
 		if hasattr(self, "reasoning_mode"):
 			reasoning_mode_checked = bool(self.reasoning_mode.GetValue())
 		if hasattr(self, "reasoning_adaptive"):
 			reasoning_adaptive_checked = bool(
 				self.reasoning_adaptive.GetValue()
+			)
+		if hasattr(self, "output_modality_choice"):
+			output_modality_audio = (
+				self.output_modality_choice.GetSelection() == 1
 			)
 
 		state = self.base_conv_presenter.get_parameter_visibility_state(
@@ -558,6 +649,7 @@ class BaseConversation:
 			engine,
 			reasoning_mode_checked=reasoning_mode_checked,
 			reasoning_adaptive_checked=reasoning_adaptive_checked,
+			output_modality_audio=output_modality_audio,
 		)
 		self._apply_parameter_visibility_state(state)
 		self.Layout()
@@ -577,6 +669,19 @@ class BaseConversation:
 			ctrl.Show(state.max_tokens_visible)
 		self.stream_mode.Enable(state.stream_visible)
 		self.stream_mode.Show(state.stream_visible)
+
+		if hasattr(self, "audio_output_group_box"):
+			visible = state.output_modality_visible
+			self.audio_output_group_box.Show(visible)
+			for ctrl in (
+				self.output_modality_label,
+				self.output_modality_choice,
+			):
+				ctrl.Enable(visible)
+				ctrl.Show(visible)
+			for ctrl in (self.audio_voice_label, self.audio_voice_choice):
+				ctrl.Enable(visible and state.audio_settings_visible)
+				ctrl.Show(visible and state.audio_settings_visible)
 
 		if hasattr(self, "web_search_mode"):
 			self.web_search_mode.Enable(state.web_search_visible)

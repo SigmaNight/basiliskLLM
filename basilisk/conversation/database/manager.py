@@ -231,7 +231,11 @@ class ConversationDatabase:
 	):
 		"""Save a message with its attachments and citations."""
 		db_msg = DBMessage(
-			message_block_id=block_id, role=role, content=message.content
+			message_block_id=block_id,
+			role=role,
+			content=message.content,
+			audio_data=getattr(message, "audio_data", None),
+			audio_format=getattr(message, "audio_format", None),
 		)
 		session.add(db_msg)
 		session.flush()
@@ -776,11 +780,16 @@ class ConversationDatabase:
 					citation["end_index"] = db_cit.end_index
 				citations.append(citation)
 
+		audio_data = getattr(db_msg, "audio_data", None)
+		audio_format = getattr(db_msg, "audio_format", None)
+
 		return Message(
 			role=role,
 			content=db_msg.content,
 			attachments=attachments or None,
 			citations=citations or None,
+			audio_data=audio_data,
+			audio_format=audio_format,
 		)
 
 	@staticmethod

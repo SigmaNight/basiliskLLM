@@ -27,6 +27,7 @@ from basilisk.presenters.presenter_mixins import (
 	_guard_destroying,
 )
 from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
 from basilisk.provider_ai_model import AIModelInfo
@@ -169,6 +170,10 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		view.prompt_panel.resize_all_attachments()
 		reasoning_params = get_reasoning_params_from_view(view)
+		audio_params = get_audio_params_from_view(view)
+		stream = view.stream_mode.GetValue()
+		if audio_params.get("output_modality") == "audio":
+			stream = False
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -181,8 +186,9 @@ class ConversationPresenter(DestroyGuardMixin):
 			temperature=view.temperature_spinner.GetValue(),
 			top_p=view.top_p_spinner.GetValue(),
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
-			stream=view.stream_mode.GetValue(),
+			stream=stream,
 			**reasoning_params,
+			**audio_params,
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:
@@ -271,7 +277,13 @@ class ConversationPresenter(DestroyGuardMixin):
 		"""Called when non-streaming completion finishes."""
 		self.conversation.add_block(new_block, system_message)
 		self.view.messages.display_new_block(new_block)
-		if self.view.messages.should_speak_response:
+		audio_data = getattr(new_block.response, "audio_data", None)
+		if audio_data:
+			from basilisk.audio_utils import play_audio_from_base64
+
+			fmt = getattr(new_block.response, "audio_format", None) or "wav"
+			play_audio_from_base64(audio_data, fmt)
+		elif self.view.messages.should_speak_response:
 			self.view.messages.a_output.handle(new_block.response.content)
 		self.service.auto_save_to_db(self.conversation, new_block)
 
@@ -550,6 +562,8 @@ class ConversationPresenter(DestroyGuardMixin):
 		attachments = view.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			return None
+		reasoning_params = get_reasoning_params_from_view(view)
+		audio_params = get_audio_params_from_view(view)
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -564,6 +578,8 @@ class ConversationPresenter(DestroyGuardMixin):
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
 			top_p=view.top_p_spinner.GetValue(),
 			stream=view.stream_mode.GetValue(),
+			**reasoning_params,
+			**audio_params,
 		)
 		system_msg = self.get_system_message()
 		if system_msg and system_msg in self.conversation.systems:

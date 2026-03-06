@@ -66,6 +66,8 @@ class Message(BaseMessage):
 
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+	audio_data: str | None = Field(default=None)
+	audio_format: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -147,6 +149,9 @@ class MessageBlock(BaseModel):
 	reasoning_budget_tokens: int | None = Field(default=None)
 	reasoning_effort: str | None = Field(default=None)
 	reasoning_adaptive: bool = Field(default=False)
+	output_modality: str = Field(default="text")
+	audio_voice: str = Field(default="alloy")
+	audio_format: str = Field(default="wav")
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 	db_id: int | None = Field(default=None, exclude=True)

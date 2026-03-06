@@ -37,6 +37,8 @@ class ParameterVisibilityState:
 	effort_options: tuple[str, ...] = ()
 	effort_display: tuple[str, ...] = ()
 	effort_label: str = ""
+	output_modality_visible: bool = False
+	audio_settings_visible: bool = False
 
 
 class BaseConversationPresenter:
@@ -132,6 +134,7 @@ class BaseConversationPresenter:
 		engine: BaseEngine | None,
 		reasoning_mode_checked: bool = False,
 		reasoning_adaptive_checked: bool = False,
+		output_modality_audio: bool = False,
 	) -> ParameterVisibilityState:
 		"""Compute visibility state for parameter controls.
 
@@ -205,5 +208,10 @@ class BaseConversationPresenter:
 				if state.effort_options == ("low", "high")
 				else ("Low", "Medium", "High")
 			)
+
+		state.output_modality_visible = has_model and bool(model.audio)
+		state.audio_settings_visible = (
+			state.output_modality_visible and output_modality_audio
+		)
 
 		return state

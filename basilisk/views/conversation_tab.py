@@ -277,6 +277,8 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		label = self.create_model_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
+		self.create_audio_output_group()
+		sizer.Add(self.audio_output_group_sizer, proportion=0, flag=wx.EXPAND)
 		self.create_reasoning_widget()
 		sizer.Add(self.reasoning_mode, proportion=0, flag=wx.EXPAND)
 		sizer.Add(self.reasoning_adaptive, proportion=0, flag=wx.EXPAND)
@@ -514,6 +516,31 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
+		if hasattr(self, "output_modality_choice"):
+			self.output_modality_choice.SetSelection(
+				1
+				if getattr(draft_block, "output_modality", "text") == "audio"
+				else 0
+			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(draft_block, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
 		if hasattr(self, "reasoning_mode"):
 			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
 			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
