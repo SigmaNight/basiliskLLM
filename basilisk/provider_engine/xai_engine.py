@@ -1,23 +1,25 @@
 """Module for xAI API integration.
 
-This module provides the XAIEngine class for interacting with the xAI API,
-implementing capabilities for both text and image generation.
+This module provides the XAIEngine class for interacting with the xAI API
+via the Responses API, with support for text, image, and web search.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Generator
+from functools import cached_property
+from typing import TYPE_CHECKING, Any
 
+from openai import OpenAI
+
+from basilisk.conversation import Conversation, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
-from .legacy_openai_engine import LegacyOpenAIEngine
+from .responses_api_engine import ResponsesAPIEngine
 
 if TYPE_CHECKING:
-	from openai.types.chat import ChatCompletion, ChatCompletionChunk
-
-	from basilisk.conversation import Conversation, MessageBlock, SystemMessage
+	from basilisk.config import Account
 
 log = logging.getLogger(__name__)
 
@@ -35,22 +37,44 @@ _XAI_REASONING_ONLY_IDS = frozenset(
 _XAI_REASONING_EFFORT_IDS = frozenset({"grok-3-mini", "grok-3-mini-beta"})
 
 
-class XAIEngine(LegacyOpenAIEngine):
+class XAIEngine(ResponsesAPIEngine):
 	"""Engine implementation for xAI API integration.
 
-	Extends LegacyOpenAIEngine to provide xAI-specific model configurations and capabilities.
-	Supports both text and image generation through the xAI API.
-
-	Attributes:
-		capabilities: Set of supported capabilities including text and image generation.
+	Uses the Responses API (client.responses.create) for web search support.
+	Extends ResponsesAPIEngine with xAI-specific model config and reasoning.
 	"""
 
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
+		ProviderCapability.WEB_SEARCH,
 	}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/x-ai.json"
+	supported_attachment_formats: set[str] = {
+		"image/gif",
+		"image/jpeg",
+		"image/png",
+		"image/webp",
+	}
+
+	def __init__(self, account: Account) -> None:
+		"""Initialize the xAI engine."""
+		super().__init__(account)
+
+	@cached_property
+	def client(self) -> OpenAI:
+		"""Create and configure the OpenAI client for xAI API."""
+		super().client
+		return OpenAI(
+			api_key=self.account.api_key.get_secret_value(),
+			base_url=self.account.custom_base_url
+			or str(self.account.provider.base_url),
+		)
+
+	MODELS_JSON_URL = (
+		"https://raw.githubusercontent.com/SigmaNight/model-metadata/"
+		"master/data/x-ai.json"
+	)
 
 	def _postprocess_models(
 		self, models: list[ProviderAIModel]
@@ -63,25 +87,32 @@ class XAIEngine(LegacyOpenAIEngine):
 				m.reasoning_capable = True
 		return models
 
-	def completion(
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[dict[str, str]]:
+		"""Return web_search tool for xAI Responses API."""
+		return [{"type": "web_search"}]
+
+	def _build_completion_params(
 		self,
 		new_block: MessageBlock,
 		conversation: Conversation,
-		system_message: SystemMessage | None,
-		stop_block_index: int | None = None,
-		**kwargs,
-	) -> ChatCompletion | Generator[ChatCompletionChunk, None, None]:
-		"""Add reasoning_effort for grok-3-mini when reasoning_mode is on."""
-		model = self.get_model(new_block.model.model_id)
-		if (
-			model
-			and model.id in _XAI_REASONING_EFFORT_IDS
-			and new_block.reasoning_mode
-		):
+		system_message: Any,
+		stop_block_index: int | None,
+		model: ProviderAIModel,
+		kwargs: dict[str, Any],
+	) -> dict[str, Any]:
+		params = super()._build_completion_params(
+			new_block,
+			conversation,
+			system_message,
+			stop_block_index,
+			model,
+			kwargs,
+		)
+		if model.id in _XAI_REASONING_EFFORT_IDS and new_block.reasoning_mode:
 			effort = new_block.reasoning_effort or "high"
 			if effort == "medium":
 				effort = "high"
-			kwargs["reasoning_effort"] = effort
-		return super().completion(
-			new_block, conversation, system_message, stop_block_index, **kwargs
-		)
+			params["reasoning"] = {"effort": effort}
+		return params
