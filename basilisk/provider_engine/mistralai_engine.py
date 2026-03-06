@@ -23,6 +23,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.conversation.attached_file import AttachmentFile
+from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
 from .mistralai_ocr import handle_ocr
 
@@ -182,18 +183,27 @@ class MistralAIEngine(BaseEngine):
 		return self.client.chat.complete(**params)
 
 	def completion_response_with_stream(
-		self, stream: Generator[CompletionEvent, None, None]
+		self,
+		stream: Generator[CompletionEvent, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes a streaming completion response.
 
 		Args:
 			stream: Generator of chat completion chunks.
+			new_block: Block to set usage on when available.
 
 		Yields:
 			Content from each chunk in the stream.
 		"""
 		for chunk in stream:
-			delta = chunk.data.choices[0].delta
+			data = chunk.data
+			if not data.choices:
+				if hasattr(data, "usage") and data.usage:
+					new_block.usage = token_usage_openai_style(data.usage)
+				continue
+			delta = data.choices[0].delta
 			if delta and delta.content:
 				yield delta.content
 
@@ -217,6 +227,8 @@ class MistralAIEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content,
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
 
 	def get_transcription(

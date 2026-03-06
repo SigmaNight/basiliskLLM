@@ -16,6 +16,7 @@ from openai.types.chat import (
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
 from .legacy_openai_engine import LegacyOpenAIEngine
 
@@ -56,13 +57,21 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		return models
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self,
+		stream: Generator[ChatCompletionChunk, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes streaming response from DeepSeek API.
 
 		Yields ("reasoning", chunk) or ("content", chunk).
+		Captures usage from final chunk when stream_options.include_usage is set.
 		"""
 		for chunk in stream:
+			if not chunk.choices:
+				if hasattr(chunk, "usage") and chunk.usage:
+					new_block.usage = token_usage_openai_style(chunk.usage)
+				continue
 			delta = chunk.choices[0].delta
 			if delta:
 				if (
@@ -99,6 +108,8 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content=content, reasoning=reasoning
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
 
 	def prepare_message_response(

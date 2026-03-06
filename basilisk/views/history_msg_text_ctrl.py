@@ -368,6 +368,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 					[],
 				),
 				MenuItemInfo(
+					_("Properties"),
+					"(Alt+Enter)",
+					self.on_show_block_properties,
+					[],
+				),
+				MenuItemInfo(
 					_("Remove message block"),
 					"(Shift+Del)",
 					self.on_remove_message_block,
@@ -674,6 +680,27 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.a_output.handle(_("Message block updated"), braille=True)
 		dlg.Destroy()
 
+	def on_show_block_properties(self, event: wx.CommandEvent | None = None):
+		"""Show properties dialog for the current message block.
+
+		Displays request info (model, parameters), response consumption
+		(usage), and timing.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		block = self.current_msg_block
+		if not block:
+			wx.Bell()
+			return
+		from .message_block_properties_dialog import (
+			MessageBlockPropertiesDialog,
+		)
+
+		dlg = MessageBlockPropertiesDialog(self.GetParent(), block)
+		dlg.ShowModal()
+		dlg.Destroy()
+
 	def _on_space_key(self, event: wx.KeyEvent):
 		"""Handle Space: play/pause audio if block has audio, else read message."""
 		if self._current_block_has_audio():
@@ -695,6 +722,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		(wx.MOD_NONE, ord("B")): move_to_start_of_message,
 		(wx.MOD_NONE, ord("N")): move_to_end_of_message,
 		(wx.MOD_NONE, ord("E")): on_edit_message_block,
+		(wx.MOD_ALT, wx.WXK_RETURN): on_show_block_properties,
 		(wx.MOD_SHIFT, wx.WXK_DELETE): on_remove_message_block,
 		(wx.MOD_NONE, wx.WXK_F3): on_search_next,
 		(wx.MOD_NONE, ord("F")): on_search,
@@ -718,6 +746,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- N: Move to end of message
 		- Q: Show citations for current message
 		- E: Edit current message block
+		- Alt+Enter: Show message block properties
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)

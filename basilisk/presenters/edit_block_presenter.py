@@ -120,6 +120,12 @@ class EditBlockPresenter(DestroyGuardMixin):
 		stream = self.view.stream_mode.GetValue()
 		if audio_params.get("output_modality") == "audio":
 			stream = False
+		web_search = False
+		if (
+			hasattr(self.view, "web_search_mode")
+			and self.view.web_search_mode.IsShown()
+		):
+			web_search = self.view.web_search_mode.GetValue()
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -134,6 +140,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
 			stream=stream,
+			web_search_mode=web_search,
 			**reasoning_params,
 			**audio_params,
 		)
@@ -205,6 +212,11 @@ class EditBlockPresenter(DestroyGuardMixin):
 				"reasoning_budget_tokens"
 			]
 			self.block.reasoning_effort = params["reasoning_effort"]
+		if (
+			hasattr(self.view, "web_search_mode")
+			and self.view.web_search_mode.IsShown()
+		):
+			self.block.web_search_mode = self.view.web_search_mode.GetValue()
 
 		# Update response if present
 		if self.block.response:

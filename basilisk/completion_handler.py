@@ -11,6 +11,7 @@ import logging
 import re
 import threading
 import time
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import wx
@@ -153,6 +154,7 @@ class CompletionHandler:
 			engine: The engine to use for completion
 			kwargs: The keyword arguments for the completion request
 		"""
+		started_at = datetime.now()
 		try:
 			play_sound("progress", loop=True)
 			response = engine.completion(**kwargs)
@@ -160,6 +162,11 @@ class CompletionHandler:
 			logger.error("Error during completion", exc_info=True)
 			wx.CallAfter(self._handle_error, str(e))
 			return
+
+		# Request is fully sent when completion() returns (streaming: we have the stream)
+		request_sent_at = (
+			datetime.now() if kwargs.get("stream", False) else None
+		)
 
 		handle_func = (
 			self._handle_streaming_completion
@@ -169,6 +176,8 @@ class CompletionHandler:
 		self._last_completed_block = None
 		kwargs["engine"] = engine
 		kwargs["response"] = response
+		kwargs["started_at"] = started_at
+		kwargs["request_sent_at"] = request_sent_at
 		try:
 			success = handle_func(**kwargs)
 		except Exception as e:
@@ -270,7 +279,12 @@ class CompletionHandler:
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
-		for chunk in engine.completion_response_with_stream(response):
+		first_token_at: datetime | None = None
+		for chunk in engine.completion_response_with_stream(
+			response, new_block=new_block
+		):
+			if first_token_at is None:
+				first_token_at = datetime.now()
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
@@ -282,6 +296,17 @@ class CompletionHandler:
 			wx.CallAfter(self._handle_stream_buffer, f"\n{END_REASONING}\n\n")
 		# Parse legacy ```think...``` format into reasoning + content
 		self._split_reasoning_from_content(new_block)
+		started_at = kwargs.get("started_at")
+		request_sent_at = kwargs.get("request_sent_at")
+		if started_at is not None:
+			from basilisk.conversation.conversation_model import ResponseTiming
+
+			new_block.timing = ResponseTiming(
+				started_at=started_at,
+				request_sent_at=request_sent_at,
+				first_token_at=first_token_at,
+				finished_at=datetime.now(),
+			)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
 		return True
@@ -306,9 +331,16 @@ class CompletionHandler:
 		Returns:
 			True if non-streaming completion was handled successfully, False if stopped
 		"""
+		from basilisk.conversation.conversation_model import ResponseTiming
+
 		completed_block = engine.completion_response_without_stream(
 			response=response, new_block=new_block, **kwargs
 		)
+		started_at = kwargs.get("started_at")
+		if started_at is not None:
+			completed_block.timing = ResponseTiming(
+				started_at=started_at, finished_at=datetime.now()
+			)
 
 		# Notify that non-streaming completion has finished
 		if self.on_non_stream_finish:

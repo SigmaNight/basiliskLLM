@@ -323,6 +323,10 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
+		if hasattr(self, "web_search_mode"):
+			self.web_search_mode.SetValue(
+				getattr(self.block, "web_search_mode", False)
+			)
 		self._load_audio_params()
 		self._load_reasoning_params()
 

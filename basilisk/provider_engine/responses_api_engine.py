@@ -12,6 +12,7 @@ from typing import Any, Generator
 from openai.types.responses import (
 	EasyInputMessageParam,
 	Response,
+	ResponseCompletedEvent,
 	ResponseInputFileContentParam,
 	ResponseInputImageParam,
 	ResponseInputTextParam,
@@ -33,6 +34,7 @@ from basilisk.conversation import (
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_responses_api
 
 from .base_engine import BaseEngine
 
@@ -148,6 +150,8 @@ class ResponsesAPIEngine(BaseEngine):
 			"temperature": new_block.temperature,
 			"top_p": new_block.top_p,
 		}
+		if new_block.stream:
+			params["stream_options"] = {"include_usage": True}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		web_search = kwargs.pop("web_search_mode", False)
@@ -183,12 +187,19 @@ class ResponsesAPIEngine(BaseEngine):
 		return self.client.responses.create(**params)
 
 	def completion_response_with_stream(
-		self, stream: Generator[ResponseStreamEvent, None, None], **kwargs
+		self,
+		stream: Generator[ResponseStreamEvent, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes a streaming Responses API response."""
 		for event in stream:
 			if isinstance(event, ResponseTextDeltaEvent):
 				yield event.delta
+			elif isinstance(event, ResponseCompletedEvent) and event.response:
+				resp = event.response
+				if hasattr(resp, "usage") and resp.usage:
+					new_block.usage = token_usage_responses_api(resp.usage)
 			else:
 				log.warning(
 					"Received unexpected event type: %s", type(event).__name__
@@ -218,4 +229,6 @@ class ResponsesAPIEngine(BaseEngine):
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content="".join(txt_parts)
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_responses_api(response.usage)
 		return new_block

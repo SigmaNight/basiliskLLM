@@ -342,6 +342,8 @@ class OpenAIEngine(ResponsesAPIEngine):
 				"temperature": new_block.temperature,
 				"top_p": new_block.top_p,
 			}
+			if new_block.stream and not want_audio_output:
+				params["stream_options"] = {"include_usage": True}
 			if want_audio_output:
 				params["audio"] = {
 					"voice": getattr(new_block, "audio_voice", "alloy"),
@@ -362,18 +364,27 @@ class OpenAIEngine(ResponsesAPIEngine):
 	def completion_response_with_stream(
 		self,
 		stream: Generator[ChatCompletionChunk, None, None] | Any,
+		new_block: MessageBlock,
 		**kwargs: Any,
 	) -> Generator[str, None, None]:
 		"""Handle streaming response from Chat or Responses API."""
 		if getattr(self, "_last_used_chat_completions", False):
 			for chunk in stream:
 				if not chunk.choices:
+					if hasattr(chunk, "usage") and chunk.usage:
+						from basilisk.provider_engine.usage_utils import (
+							token_usage_openai_style,
+						)
+
+						new_block.usage = token_usage_openai_style(chunk.usage)
 					continue
 				delta = chunk.choices[0].delta
 				if delta and delta.content:
 					yield delta.content
 		else:
-			yield from super().completion_response_with_stream(stream, **kwargs)
+			yield from super().completion_response_with_stream(
+				stream, new_block=new_block, **kwargs
+			)
 
 	def completion_response_without_stream(
 		self,

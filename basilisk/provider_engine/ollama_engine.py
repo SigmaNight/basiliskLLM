@@ -148,16 +148,25 @@ class OllamaEngine(BaseEngine):
 
 	prepare_message_response = prepare_message_request
 
-	def completion_response_with_stream(self, stream):
+	def completion_response_with_stream(
+		self, stream, new_block: MessageBlock, **kwargs
+	):
 		"""Process a streaming completion response.
 
 		Args:
 			stream: The stream of chat completion responses.
+			new_block: Block to set usage on when available.
 
 		Returns:
 			An iterator of the completion response content.
 		"""
+		from basilisk.provider_engine.usage_utils import token_usage_ollama
+
 		for chunk in stream:
+			if chunk.get("done") and (
+				"prompt_eval_count" in chunk or "eval_count" in chunk
+			):
+				new_block.usage = token_usage_ollama(chunk)
 			content = chunk.get("message", {}).get("content")
 			if content:
 				yield content
@@ -179,4 +188,8 @@ class OllamaEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response["message"]["content"],
 		)
+		if "prompt_eval_count" in response or "eval_count" in response:
+			from basilisk.provider_engine.usage_utils import token_usage_ollama
+
+			new_block.usage = token_usage_ollama(response)
 		return new_block
