@@ -23,6 +23,7 @@ from basilisk.conversation import (
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
+from .provider_ui_spec import AudioOutputUISpec, ReasoningUISpec
 from .responses_api_engine import ResponsesAPIEngine, _audio_mime_to_format
 
 if TYPE_CHECKING:
@@ -136,6 +137,47 @@ class OpenAIEngine(ResponsesAPIEngine):
 				type="web_search_preview", search_context_size="medium"
 			)
 		]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""OpenAI: effort dropdown (low/medium/high). No adaptive or budget."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=False,
+			show_effort=True,
+			effort_options=("low", "medium", "high"),
+			effort_label="Reasoning effort:",
+		)
+
+	# OpenAI TTS voices (https://platform.openai.com/docs/guides/text-to-speech)
+	_AUDIO_VOICES = (
+		"alloy",
+		"ash",
+		"ballad",
+		"cedar",
+		"coral",
+		"echo",
+		"fable",
+		"marin",
+		"nova",
+		"onyx",
+		"sage",
+		"shimmer",
+		"verse",
+	)
+
+	def get_audio_output_spec(
+		self, model: ProviderAIModel
+	) -> AudioOutputUISpec | None:
+		"""OpenAI: TTS voices for audio output models."""
+		if not model.audio:
+			return None
+		return AudioOutputUISpec(
+			voices=self._AUDIO_VOICES, default_voice="alloy"
+		)
 
 	def _build_completion_params(
 		self,

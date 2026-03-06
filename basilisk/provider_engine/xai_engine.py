@@ -16,6 +16,7 @@ from basilisk.conversation import Conversation, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
+from .provider_ui_spec import ReasoningUISpec
 from .responses_api_engine import ResponsesAPIEngine
 
 log = logging.getLogger(__name__)
@@ -93,6 +94,20 @@ class XAIEngine(ResponsesAPIEngine):
 	) -> list[dict[str, str]]:
 		"""Return web_search tool for xAI Responses API."""
 		return [{"type": "web_search"}]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""xAI: effort dropdown (low/high) for grok-3-mini. No adaptive or budget."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=False,
+			show_effort=True,
+			effort_options=("low", "high"),
+			effort_label="Reasoning effort:",
+		)
 
 	def _build_completion_params(
 		self,

@@ -492,7 +492,12 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			self.prompt_panel.attachment_files = draft_block.request.attachments
 			self.prompt_panel.refresh_attachments_list()
 
-		# Restore provider/model first so effort choice has correct options
+		self._restore_draft_block_model(draft_block)
+		self._restore_draft_block_params(draft_block)
+		self._restore_draft_block_reasoning(draft_block)
+
+	def _restore_draft_block_model(self, draft_block: MessageBlock) -> None:
+		"""Restore account/model selection from draft block."""
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
@@ -510,28 +515,34 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 
+	def _restore_draft_block_params(self, draft_block: MessageBlock) -> None:
+		"""Restore temperature, tokens, top_p, stream from draft block."""
 		self.temperature_spinner.SetValue(draft_block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
-			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
-			if draft_block.reasoning_budget_tokens is not None:
-				self.reasoning_budget_spin.SetValue(
-					draft_block.reasoning_budget_tokens
-				)
-			if draft_block.reasoning_effort:
-				from basilisk.provider_engine.reasoning_config import (
-					get_effort_options,
-				)
 
-				provider_id = draft_block.model.provider_id
-				model_id = draft_block.model.model_id
-				options = get_effort_options(provider_id, model_id)
-				val = draft_block.reasoning_effort.lower()
-				idx = options.index(val) if val in options else len(options) - 1
-				self.reasoning_effort_choice.SetSelection(idx)
+	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
+		"""Restore reasoning settings from draft block."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(draft_block.reasoning_mode)
+		self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
+		if draft_block.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(
+				draft_block.reasoning_budget_tokens
+			)
+		if draft_block.reasoning_effort:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = draft_block.reasoning_effort.lower()
+			idx = options.index(val) if val in options else len(options) - 1
+			self.reasoning_effort_choice.SetSelection(idx)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.

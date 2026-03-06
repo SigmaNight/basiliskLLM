@@ -76,3 +76,31 @@ def test_filter_params_empty_list_passthrough(engine):
 	params = {"model": "test", "temperature": 0.7, "top_p": 1.0}
 	result = engine._filter_params_for_model(model, params)
 	assert result == params
+
+
+def test_get_reasoning_ui_spec_hidden_when_not_capable(engine):
+	"""Reasoning spec shows=False when model is not reasoning_capable."""
+	model = ProviderAIModel(id="test", reasoning_capable=False, reasoning=False)
+	spec = engine.get_reasoning_ui_spec(model)
+	assert spec.show is False
+
+
+def test_get_reasoning_ui_spec_hidden_when_reasoning_only(engine):
+	"""Reasoning spec shows=False when model is reasoning-only (always on)."""
+	model = ProviderAIModel(id="test", reasoning_capable=True, reasoning=True)
+	spec = engine.get_reasoning_ui_spec(model)
+	assert spec.show is False
+
+
+def test_get_reasoning_ui_spec_show_when_capable(engine):
+	"""Reasoning spec shows=True when model is reasoning_capable and not reasoning."""
+	model = ProviderAIModel(id="test", reasoning_capable=True, reasoning=False)
+	spec = engine.get_reasoning_ui_spec(model)
+	assert spec.show is True
+	assert spec.effort_options == ()
+
+
+def test_get_audio_output_spec_returns_none_by_default(engine):
+	"""Base engine returns None for audio output spec."""
+	model = ProviderAIModel(id="test", audio=True)
+	assert engine.get_audio_output_spec(model) is None

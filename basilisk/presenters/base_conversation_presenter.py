@@ -144,6 +144,8 @@ class BaseConversationPresenter:
 			engine: Current engine, or None.
 			reasoning_mode_checked: Current value of reasoning_mode checkbox.
 			reasoning_adaptive_checked: Current value of reasoning_adaptive.
+			output_modality_audio: True when output modality is audio (for
+				audio voice controls visibility).
 
 		Returns:
 			ParameterVisibilityState to apply to view widgets.
@@ -164,46 +166,30 @@ class BaseConversationPresenter:
 
 		state.web_search_visible = engine.model_supports_web_search(model)
 
-		reasoning_visible = (
-			advanced_mode and model.reasoning_capable and not model.reasoning
-		)
-		state.reasoning_mode_visible = reasoning_visible
+		# Delegate to engine for reasoning visibility—no provider_id checks
+		reasoning_spec = engine.get_reasoning_ui_spec(model)
+		state.reasoning_mode_visible = reasoning_spec.show
 
 		controls_visible = (
-			reasoning_visible and reasoning_mode_checked and engine is not None
+			reasoning_spec.show
+			and reasoning_mode_checked
+			and engine is not None
 		)
-		provider_id = engine.account.provider.id if engine else ""
-		model_id = (model.id or "").lower() if model else ""
-
-		show_anthropic = controls_visible and provider_id == "anthropic"
-		state.reasoning_adaptive_visible = show_anthropic
-
+		state.reasoning_adaptive_visible = (
+			controls_visible and reasoning_spec.show_adaptive
+		)
 		state.reasoning_budget_visible = (
-			show_anthropic and not reasoning_adaptive_checked
-		) or (
 			controls_visible
-			and provider_id == "google"
-			and "gemini-2" in model_id
+			and reasoning_spec.show_budget
+			and not reasoning_adaptive_checked
 		)
-
-		show_effort = controls_visible and (
-			provider_id in ("openai", "xai")
-			or (provider_id == "google" and "gemini-3" in model_id)
+		state.reasoning_effort_visible = (
+			controls_visible and reasoning_spec.show_effort
 		)
-		state.reasoning_effort_visible = show_effort
-
-		if show_effort:
-			from basilisk.provider_engine.reasoning_config import (
-				get_effort_label,
-				get_effort_options,
-			)
-
-			state.effort_options = get_effort_options(provider_id, model_id)
-			state.effort_label = get_effort_label(provider_id, model_id)
-			state.effort_display = (
-				("Low", "High")
-				if state.effort_options == ("low", "high")
-				else ("Low", "Medium", "High")
-			)
+		state.effort_options = reasoning_spec.effort_options
+		state.effort_label = reasoning_spec.effort_label
+		state.effort_display = tuple(
+			s.capitalize() for s in reasoning_spec.effort_options
+		)
 
 		return state

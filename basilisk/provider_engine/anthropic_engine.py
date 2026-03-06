@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .provider_ui_spec import ReasoningUISpec
 
 log = logging.getLogger(__name__)
 
@@ -87,6 +88,20 @@ class AnthropicEngine(BaseEngine):
 	) -> list[dict[str, Any]]:
 		"""Return web_search_20250305 tool for Anthropic Messages API."""
 		return [{"type": "web_search_20250305", "name": "web_search"}]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Anthropic: adaptive thinking + budget tokens. No effort dropdown."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=True,
+			show_budget=True,
+			show_effort=False,
+			budget_default=16000,
+			budget_max=128000,
+		)
 
 	def get_attachment_source(
 		self, attachment: AttachmentFile | ImageFile

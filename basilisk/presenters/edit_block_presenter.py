@@ -187,9 +187,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.stream = self.view.stream_mode.GetValue()
 		if hasattr(self.view, "reasoning_mode"):
 			params = get_reasoning_params_from_view(
-				self.view,
-				provider_id=account.provider.id if account else "",
-				model_id=model.id if model else "",
+				self.view, engine=self.view.current_engine, model=model
 			)
 			self.block.reasoning_mode = params["reasoning_mode"]
 			self.block.reasoning_adaptive = params["reasoning_adaptive"]

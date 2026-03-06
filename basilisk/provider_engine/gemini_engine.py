@@ -32,6 +32,7 @@ from basilisk.conversation import (
 )
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .provider_ui_spec import ReasoningUISpec
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,31 @@ class GeminiEngine(BaseEngine):
 	) -> list[Tool]:
 		"""Return Google Search tool for grounding."""
 		return [Tool(google_search=GoogleSearch())]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Gemini: gemini-2 uses budget; gemini-3 uses effort (low/medium/high)."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		model_id = (model.id or "").lower()
+		if "gemini-3" in model_id:
+			return ReasoningUISpec(
+				show=True,
+				show_adaptive=False,
+				show_budget=False,
+				show_effort=True,
+				effort_options=("low", "medium", "high"),
+				effort_label="Thinking level:",
+			)
+		# Gemini 2.5: thinking_budget
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=True,
+			show_effort=False,
+			budget_default=16000,
+			budget_max=128000,
+		)
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.

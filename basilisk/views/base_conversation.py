@@ -15,7 +15,6 @@ from basilisk.presenters.base_conversation_presenter import (
 	ParameterVisibilityState,
 )
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_engine.reasoning_config import get_effort_options
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -309,6 +308,7 @@ class BaseConversation:
 			model = engine.get_model(model_id)
 			if model:
 				self.set_model_list(model)
+		self.update_parameter_controls_visibility()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
@@ -514,25 +514,30 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.SetValue(profile.reasoning_mode)
-			self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
-			if profile.reasoning_budget_tokens is not None:
-				self.reasoning_budget_spin.SetValue(
-					profile.reasoning_budget_tokens
-				)
-			if profile.reasoning_effort is not None:
-				provider_id = (
-					self.current_account.provider.id
-					if self.current_account
-					else ""
-				)
-				model_id = self.current_model.id if self.current_model else ""
-				options = get_effort_options(provider_id, model_id)
-				val = profile.reasoning_effort.lower()
-				idx = options.index(val) if val in options else len(options) - 1
-				self.reasoning_effort_choice.SetSelection(idx)
+		self._apply_profile_reasoning(profile)
 		self.update_parameter_controls_visibility()
+
+	def _apply_profile_reasoning(
+		self, profile: config.ConversationProfile
+	) -> None:
+		"""Apply reasoning settings from profile."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(profile.reasoning_mode)
+		self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
+		if profile.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(profile.reasoning_budget_tokens)
+		if profile.reasoning_effort is not None:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = profile.reasoning_effort.lower()
+			idx = options.index(val) if val in options else len(options) - 1
+			self.reasoning_effort_choice.SetSelection(idx)
 
 	def update_parameter_controls_visibility(self):
 		"""Show/hide parameter controls based on selected model and advanced mode.
@@ -578,45 +583,53 @@ class BaseConversation:
 		self.stream_mode.Enable(state.stream_visible)
 		self.stream_mode.Show(state.stream_visible)
 
+		self._apply_web_search_visibility(state)
+		self._apply_reasoning_visibility(state)
+
+	def _apply_web_search_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply web search visibility state."""
 		if hasattr(self, "web_search_mode"):
 			self.web_search_mode.Enable(state.web_search_visible)
 			self.web_search_mode.Show(state.web_search_visible)
 
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.Enable(state.reasoning_mode_visible)
-			self.reasoning_mode.Show(state.reasoning_mode_visible)
-			self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
-			self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
-			self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
-			self.reasoning_budget_label.Show(state.reasoning_budget_visible)
-			self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
-			self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
+	def _apply_reasoning_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply reasoning controls visibility state."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.Enable(state.reasoning_mode_visible)
+		self.reasoning_mode.Show(state.reasoning_mode_visible)
+		self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
+		self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
+		self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_label.Show(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
 
-			for ctrl in (
-				self.reasoning_effort_label,
-				self.reasoning_effort_choice,
-			):
-				ctrl.Enable(state.reasoning_effort_visible)
-				ctrl.Show(state.reasoning_effort_visible)
+		for ctrl in (self.reasoning_effort_label, self.reasoning_effort_choice):
+			ctrl.Enable(state.reasoning_effort_visible)
+			ctrl.Show(state.reasoning_effort_visible)
 
-			if state.reasoning_effort_visible and state.effort_display:
-				display = [_(s) for s in state.effort_display]
-				# Preserve selection when switching providers
-				try:
-					sel = self.reasoning_effort_choice.GetSelection()
-					old_val = state.effort_options[
-						min(sel, len(state.effort_options) - 1)
-					]
-				except IndexError, TypeError:
-					old_val = state.effort_options[-1]
-				self.reasoning_effort_choice.SetItems(display)
-				idx = (
-					state.effort_options.index(old_val)
-					if old_val in state.effort_options
-					else len(state.effort_options) - 1
-				)
-				self.reasoning_effort_choice.SetSelection(idx)
-				self.reasoning_effort_label.SetLabel(_(state.effort_label))
+		if state.reasoning_effort_visible and state.effort_display:
+			display = [_(s) for s in state.effort_display]
+			try:
+				sel = self.reasoning_effort_choice.GetSelection()
+				old_val = state.effort_options[
+					min(sel, len(state.effort_options) - 1)
+				]
+			except IndexError, TypeError:
+				old_val = state.effort_options[-1]
+			self.reasoning_effort_choice.SetItems(display)
+			idx = (
+				state.effort_options.index(old_val)
+				if old_val in state.effort_options
+				else len(state.effort_options) - 1
+			)
+			self.reasoning_effort_choice.SetSelection(idx)
+			self.reasoning_effort_label.SetLabel(_(state.effort_label))
 
 	def adjust_advanced_mode_setting(self):
 		"""Update UI controls visibility based on advanced mode and model support."""

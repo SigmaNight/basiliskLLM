@@ -11,7 +11,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import wx
-from more_itertools import locate
 
 import basilisk.config as config
 from basilisk.conversation.conversation_model import Conversation, SystemMessage
@@ -285,6 +284,51 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 
 		self.SetSizer(sizer)
 
+	def _load_account_and_model(self):
+		"""Restore account and model selection from block."""
+		try:
+			model_id = self.block.model.model_id
+			provider = self.block.model.provider
+			account = next(
+				config.accounts().get_accounts_by_provider(provider.name), None
+			)
+			if account:
+				self.set_account_combo(account)
+			engine = self.current_engine
+			if engine:
+				self.prompt_panel.set_engine(engine)
+				model = engine.get_model(model_id)
+				if model:
+					self.set_model_list(model)
+			self.update_parameter_controls_visibility()
+		except Exception:
+			logger.debug(
+				"Could not restore block account/model selection", exc_info=True
+			)
+
+	def _load_reasoning_params(self):
+		"""Restore reasoning parameters from block."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(self.block.reasoning_mode)
+		self.reasoning_adaptive.SetValue(self.block.reasoning_adaptive)
+		if self.block.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(
+				self.block.reasoning_budget_tokens
+			)
+		if self.block.reasoning_effort:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = self.block.reasoning_effort.lower()
+			idx = options.index(val) if val in options else len(options) - 1
+			self.reasoning_effort_choice.SetSelection(idx)
+		self.update_parameter_controls_visibility()
+
 	def load_message_block_data(self):
 		"""Load data from the message block into the dialog."""
 		if self.system_message:
@@ -300,51 +344,14 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			)
 			self.prompt_panel.refresh_attachments_list()
 
-		# Set account
-		accounts = config.accounts()
-		account_index = next(
-			locate(
-				accounts,
-				lambda acc: acc.provider.id == self.block.model.provider_id,
-			),
-			wx.NOT_FOUND,
-		)
-		if account_index != wx.NOT_FOUND:
-			self.account_combo.SetSelection(account_index)
-			self.on_account_change(None)
-
-			# Set model
-			engine = self.current_engine
-			if engine:
-				self.prompt_panel.set_engine(engine)
-				model = engine.get_model(self.block.model.model_id)
-				if model:
-					self.set_model_list(model)
+		self._load_account_and_model()
 
 		# Set parameters
 		self.temperature_spinner.SetValue(self.block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
-		if hasattr(self, "reasoning_mode"):
-			self.reasoning_mode.SetValue(self.block.reasoning_mode)
-			self.reasoning_adaptive.SetValue(self.block.reasoning_adaptive)
-			if self.block.reasoning_budget_tokens is not None:
-				self.reasoning_budget_spin.SetValue(
-					self.block.reasoning_budget_tokens
-				)
-			if self.block.reasoning_effort:
-				from basilisk.provider_engine.reasoning_config import (
-					get_effort_options,
-				)
-
-				provider_id = self.block.model.provider_id
-				model_id = self.block.model.model_id
-				options = get_effort_options(provider_id, model_id)
-				val = self.block.reasoning_effort.lower()
-				idx = options.index(val) if val in options else len(options) - 1
-				self.reasoning_effort_choice.SetSelection(idx)
-			self.update_parameter_controls_visibility()
+		self._load_reasoning_params()
 
 	def on_account_change(self, event):
 		"""Handle account selection changes.
