@@ -21,6 +21,9 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -107,40 +110,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		if system_prompt:
 			system_message = SystemMessage(content=system_prompt)
 
-		reasoning_mode = False
-		reasoning_budget_tokens = None
-		reasoning_effort = None
-		reasoning_adaptive = False
-		if (
-			hasattr(self.view, "reasoning_mode")
-			and self.view.reasoning_mode.IsShown()
-		):
-			val = self.view.reasoning_mode.GetValue()
-			reasoning_mode = bool(val) if isinstance(val, bool) else False
-			val = self.view.reasoning_adaptive.GetValue()
-			reasoning_adaptive = bool(val) if isinstance(val, bool) else False
-			val = self.view.reasoning_budget_spin.GetValue()
-			reasoning_budget_tokens = val if isinstance(val, int) else None
-			from basilisk.provider_engine.reasoning_config import (
-				get_effort_options,
-			)
-
-			provider_id = (
-				self.view.current_account.provider.id
-				if self.view.current_account
-				else ""
-			)
-			model_id = (
-				self.view.current_model.id if self.view.current_model else ""
-			)
-			options = get_effort_options(provider_id, model_id)
-			effort_idx = self.view.reasoning_effort_choice.GetSelection()
-			if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
-				reasoning_effort = options[effort_idx]
-			elif options:
-				reasoning_effort = options[-1]
-			else:
-				reasoning_effort = None
+		reasoning_params = get_reasoning_params_from_view(self.view)
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -155,10 +125,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
 			stream=self.view.stream_mode.GetValue(),
-			reasoning_mode=reasoning_mode,
-			reasoning_budget_tokens=reasoning_budget_tokens,
-			reasoning_effort=reasoning_effort,
-			reasoning_adaptive=reasoning_adaptive,
+			**reasoning_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -219,32 +186,17 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.top_p = self.view.top_p_spinner.GetValue()
 		self.block.stream = self.view.stream_mode.GetValue()
 		if hasattr(self.view, "reasoning_mode"):
-			val = self.view.reasoning_mode.GetValue()
-			self.block.reasoning_mode = (
-				bool(val) if isinstance(val, bool) else False
+			params = get_reasoning_params_from_view(
+				self.view,
+				provider_id=account.provider.id if account else "",
+				model_id=model.id if model else "",
 			)
-			val = self.view.reasoning_adaptive.GetValue()
-			self.block.reasoning_adaptive = (
-				bool(val) if isinstance(val, bool) else False
-			)
-			val = self.view.reasoning_budget_spin.GetValue()
-			self.block.reasoning_budget_tokens = (
-				val if isinstance(val, int) else None
-			)
-			from basilisk.provider_engine.reasoning_config import (
-				get_effort_options,
-			)
-
-			provider_id = account.provider.id if account else ""
-			model_id = model.id if model else ""
-			options = get_effort_options(provider_id, model_id)
-			effort_idx = self.view.reasoning_effort_choice.GetSelection()
-			if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
-				self.block.reasoning_effort = options[effort_idx]
-			elif options:
-				self.block.reasoning_effort = options[-1]
-			else:
-				self.block.reasoning_effort = None
+			self.block.reasoning_mode = params["reasoning_mode"]
+			self.block.reasoning_adaptive = params["reasoning_adaptive"]
+			self.block.reasoning_budget_tokens = params[
+				"reasoning_budget_tokens"
+			]
+			self.block.reasoning_effort = params["reasoning_effort"]
 
 		# Update response if present
 		if self.block.response:

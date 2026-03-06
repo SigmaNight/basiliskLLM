@@ -25,6 +25,9 @@ from basilisk.presenters.presenter_mixins import (
 	DestroyGuardMixin,
 	_guard_destroying,
 )
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
@@ -154,40 +157,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		if not model:
 			return None
 		view.prompt_panel.resize_all_attachments()
-		reasoning_mode = False
-		reasoning_budget_tokens = None
-		reasoning_effort = None
-		reasoning_adaptive = False
-		if hasattr(view, "reasoning_mode") and view.reasoning_mode.IsShown():
-			val = view.reasoning_mode.GetValue()
-			reasoning_mode = bool(val) if isinstance(val, bool) else False
-			if hasattr(view, "reasoning_adaptive"):
-				val = view.reasoning_adaptive.GetValue()
-				reasoning_adaptive = (
-					bool(val) if isinstance(val, bool) else False
-				)
-			if hasattr(view, "reasoning_budget_spin"):
-				val = view.reasoning_budget_spin.GetValue()
-				reasoning_budget_tokens = val if isinstance(val, int) else None
-			if hasattr(view, "reasoning_effort_choice"):
-				from basilisk.provider_engine.reasoning_config import (
-					get_effort_options,
-				)
-
-				provider_id = (
-					view.current_account.provider.id
-					if view.current_account
-					else ""
-				)
-				model_id = view.current_model.id if view.current_model else ""
-				options = get_effort_options(provider_id, model_id)
-				effort_idx = view.reasoning_effort_choice.GetSelection()
-				if isinstance(effort_idx, int) and 0 <= effort_idx < len(
-					options
-				):
-					reasoning_effort = options[effort_idx]
-				elif options:
-					reasoning_effort = options[-1]
+		reasoning_params = get_reasoning_params_from_view(view)
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -201,10 +171,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			top_p=view.top_p_spinner.GetValue(),
 			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
 			stream=view.stream_mode.GetValue(),
-			reasoning_mode=reasoning_mode,
-			reasoning_budget_tokens=reasoning_budget_tokens,
-			reasoning_effort=reasoning_effort,
-			reasoning_adaptive=reasoning_adaptive,
+			**reasoning_params,
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:

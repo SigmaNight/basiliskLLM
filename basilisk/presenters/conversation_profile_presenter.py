@@ -13,7 +13,9 @@ from pydantic import ValidationError
 
 from basilisk.config import ConversationProfile
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
-from basilisk.provider_engine.reasoning_config import get_effort_options
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config.conversation_profile import ConversationProfileManager
@@ -111,33 +113,18 @@ class EditConversationProfilePresenter:
 		if not hasattr(self.view, "reasoning_mode"):
 			return
 
-		self.profile.reasoning_mode = bool(self.view.reasoning_mode.GetValue())
-		self.profile.reasoning_adaptive = bool(
-			self.view.reasoning_adaptive.GetValue()
-		)
+		params = get_reasoning_params_from_view(self.view)
+		self.profile.reasoning_mode = params["reasoning_mode"]
+		self.profile.reasoning_adaptive = params["reasoning_adaptive"]
 
-		account = self.view.current_account
 		model = self.view.current_model
 		if not (model and self.profile.reasoning_mode):
 			self.profile.reasoning_budget_tokens = None
 			self.profile.reasoning_effort = None
 			return
 
-		val = self.view.reasoning_budget_spin.GetValue()
-		self.profile.reasoning_budget_tokens = (
-			val if isinstance(val, int) else None
-		)
-
-		provider_id = account.provider.id if account else ""
-		model_id = model.id if model else ""
-		options = get_effort_options(provider_id, model_id)
-		effort_idx = self.view.reasoning_effort_choice.GetSelection()
-		if isinstance(effort_idx, int) and 0 <= effort_idx < len(options):
-			self.profile.reasoning_effort = options[effort_idx]
-		elif options:
-			self.profile.reasoning_effort = options[-1]
-		else:
-			self.profile.reasoning_effort = None
+		self.profile.reasoning_budget_tokens = params["reasoning_budget_tokens"]
+		self.profile.reasoning_effort = params["reasoning_effort"]
 
 
 class ConversationProfilePresenter(ManagerCrudMixin):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Optional
 
 import wx
 from more_itertools import locate
@@ -12,12 +12,10 @@ from wx.lib.agw.floatspin import FloatSpin
 import basilisk.config as config
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
+	ParameterVisibilityState,
 )
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_engine.reasoning_config import (
-	get_effort_label,
-	get_effort_options,
-)
+from basilisk.provider_engine.reasoning_config import get_effort_options
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -539,124 +537,86 @@ class BaseConversation:
 	def update_parameter_controls_visibility(self):
 		"""Show/hide parameter controls based on selected model and advanced mode.
 
-		Each control is shown only when:
-		- A model is selected
-		- Advanced mode is on (for temp, top_p, max_tokens, stream)
-		- The model supports the parameter (from supported_parameters)
-		- For web search: engine has WEB_SEARCH and model supports "tools"
+		Delegates to presenter for business logic; applies result to widgets.
 		"""
 		advanced_mode = config.conf().general.advanced_mode
 		model = self.current_model
 		engine = self.current_engine
 
-		self._update_param_visibility(advanced_mode, model, engine)
-		self._update_web_search_visibility(model, engine)
-		self._update_reasoning_visibility(advanced_mode, model, engine)
+		reasoning_mode_checked = False
+		reasoning_adaptive_checked = False
+		if hasattr(self, "reasoning_mode"):
+			reasoning_mode_checked = bool(self.reasoning_mode.GetValue())
+		if hasattr(self, "reasoning_adaptive"):
+			reasoning_adaptive_checked = bool(
+				self.reasoning_adaptive.GetValue()
+			)
 
+		state = self.base_conv_presenter.get_parameter_visibility_state(
+			advanced_mode,
+			model,
+			engine,
+			reasoning_mode_checked=reasoning_mode_checked,
+			reasoning_adaptive_checked=reasoning_adaptive_checked,
+		)
+		self._apply_parameter_visibility_state(state)
 		self.Layout()
 
-	def _update_param_visibility(
-		self, advanced_mode: bool, model: Any, engine: Any
+	def _apply_parameter_visibility_state(
+		self, state: ParameterVisibilityState
 	) -> None:
-		"""Update visibility for temp, top_p, max_tokens, stream."""
-		has_model = advanced_mode and model is not None
+		"""Apply visibility state to widgets. Thin view layer."""
 		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
-			visible = has_model and model.supports_parameter("temperature")
-			ctrl.Enable(visible)
-			ctrl.Show(visible)
+			ctrl.Enable(state.temperature_visible)
+			ctrl.Show(state.temperature_visible)
 		for ctrl in (self.top_p_spinner_label, self.top_p_spinner):
-			visible = has_model and model.supports_parameter("top_p")
-			ctrl.Enable(visible)
-			ctrl.Show(visible)
+			ctrl.Enable(state.top_p_visible)
+			ctrl.Show(state.top_p_visible)
 		for ctrl in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
-			visible = has_model and model.supports_parameter("max_tokens")
-			ctrl.Enable(visible)
-			ctrl.Show(visible)
-		self.stream_mode.Enable(has_model)
-		self.stream_mode.Show(has_model)
+			ctrl.Enable(state.max_tokens_visible)
+			ctrl.Show(state.max_tokens_visible)
+		self.stream_mode.Enable(state.stream_visible)
+		self.stream_mode.Show(state.stream_visible)
 
-	def _update_web_search_visibility(self, model: Any, engine: Any) -> None:
-		"""Update visibility for web search toggle."""
-		if not hasattr(self, "web_search_mode"):
-			return
-		visible = (
-			model is not None
-			and engine is not None
-			and engine.model_supports_web_search(model)
-		)
-		self.web_search_mode.Enable(visible)
-		self.web_search_mode.Show(visible)
+		if hasattr(self, "web_search_mode"):
+			self.web_search_mode.Enable(state.web_search_visible)
+			self.web_search_mode.Show(state.web_search_visible)
 
-	def _update_reasoning_visibility(
-		self, advanced_mode: bool, model: Any, engine: Any
-	) -> None:
-		"""Update visibility for reasoning mode and provider-specific controls."""
-		if not hasattr(self, "reasoning_mode"):
-			return
-		reasoning_visible = (
-			advanced_mode
-			and model is not None
-			and model.reasoning_capable
-			and not model.reasoning
-		)
-		self.reasoning_mode.Enable(reasoning_visible)
-		self.reasoning_mode.Show(reasoning_visible)
+		if hasattr(self, "reasoning_mode"):
+			self.reasoning_mode.Enable(state.reasoning_mode_visible)
+			self.reasoning_mode.Show(state.reasoning_mode_visible)
+			self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
+			self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
+			self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
+			self.reasoning_budget_label.Show(state.reasoning_budget_visible)
+			self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
+			self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
 
-		controls_visible = (
-			reasoning_visible
-			and self.reasoning_mode.GetValue()
-			and engine is not None
-		)
-		provider_id = engine.account.provider.id if engine else ""
-		model_id = (model.id or "").lower() if model else ""
-		show_anthropic = controls_visible and provider_id == "anthropic"
-		self.reasoning_adaptive.Enable(show_anthropic)
-		self.reasoning_adaptive.Show(show_anthropic)
-		show_budget = (
-			show_anthropic and not self.reasoning_adaptive.GetValue()
-		) or (
-			controls_visible
-			and provider_id == "google"
-			and "gemini-2" in model_id
-		)
-		self.reasoning_budget_label.Enable(show_budget)
-		self.reasoning_budget_label.Show(show_budget)
-		self.reasoning_budget_spin.Enable(show_budget)
-		self.reasoning_budget_spin.Show(show_budget)
-		show_effort = controls_visible and (
-			provider_id in ("openai", "xai")
-			or (provider_id == "google" and "gemini-3" in model_id)
-		)
-		if show_effort:
-			options = get_effort_options(provider_id, model_id)
-			display = (
-				[_("Low"), _("High")]
-				if options == ("low", "high")
-				else [_("Low"), _("Medium"), _("High")]
-			)
-			# Preserve selection when switching providers
-			try:
-				old_val = options[
-					min(
-						self.reasoning_effort_choice.GetSelection(),
-						len(options) - 1,
-					)
-				]
-			except Exception:
-				old_val = options[-1]
-			self.reasoning_effort_choice.SetItems(display)
-			idx = (
-				options.index(old_val)
-				if old_val in options
-				else len(options) - 1
-			)
-			self.reasoning_effort_choice.SetSelection(idx)
-			self.reasoning_effort_label.SetLabel(
-				_(get_effort_label(provider_id, model_id))
-			)
-		for ctrl in (self.reasoning_effort_label, self.reasoning_effort_choice):
-			ctrl.Enable(show_effort)
-			ctrl.Show(show_effort)
+			for ctrl in (
+				self.reasoning_effort_label,
+				self.reasoning_effort_choice,
+			):
+				ctrl.Enable(state.reasoning_effort_visible)
+				ctrl.Show(state.reasoning_effort_visible)
+
+			if state.reasoning_effort_visible and state.effort_display:
+				display = [_(s) for s in state.effort_display]
+				# Preserve selection when switching providers
+				try:
+					sel = self.reasoning_effort_choice.GetSelection()
+					old_val = state.effort_options[
+						min(sel, len(state.effort_options) - 1)
+					]
+				except IndexError, TypeError:
+					old_val = state.effort_options[-1]
+				self.reasoning_effort_choice.SetItems(display)
+				idx = (
+					state.effort_options.index(old_val)
+					if old_val in state.effort_options
+					else len(state.effort_options) - 1
+				)
+				self.reasoning_effort_choice.SetSelection(idx)
+				self.reasoning_effort_label.SetLabel(_(state.effort_label))
 
 	def adjust_advanced_mode_setting(self):
 		"""Update UI controls visibility based on advanced mode and model support."""

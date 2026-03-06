@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from openai import OpenAI
 
@@ -17,9 +17,6 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .responses_api_engine import ResponsesAPIEngine
-
-if TYPE_CHECKING:
-	from basilisk.config import Account
 
 log = logging.getLogger(__name__)
 
@@ -56,10 +53,6 @@ class XAIEngine(ResponsesAPIEngine):
 		"image/png",
 		"image/webp",
 	}
-
-	def __init__(self, account: Account) -> None:
-		"""Initialize the xAI engine."""
-		super().__init__(account)
 
 	@cached_property
 	def client(self) -> OpenAI:
