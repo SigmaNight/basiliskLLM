@@ -73,6 +73,7 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._show_reasoning_blocks_override: bool | None = None
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -446,6 +447,102 @@ class BaseConversation:
 		)
 		self.stream_mode.SetValue(True)
 
+	def create_general_group(self):
+		"""Create grouped general settings (max tokens, temperature, top P, stream, web search).
+
+		Returns a StaticBoxSizer containing all general widgets. Add to layout
+		after model list. Visibility controlled by update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for general model settings
+		box = wx.StaticBox(self, label=_("General"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_max_tokens_widget()
+		sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
+		sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_temperature_widget()
+		sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_top_p_widget()
+		sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_stream_widget()
+		sizer.Add(self.stream_mode, 0, wx.ALL, 2)
+
+		self.general_group_box = box
+		self.general_group_sizer = sizer
+		return sizer
+
+	def create_tools_group(self):
+		"""Create grouped tool settings (web search, etc.).
+
+		Returns a StaticBoxSizer containing tool widgets. Add to layout after
+		general group. Visibility controlled by update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for model tools (web search, etc.)
+		box = wx.StaticBox(self, label=_("Tools"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_web_search_widget()
+		sizer.Add(self.web_search_mode, 0, wx.ALL, 2)
+
+		self.tools_group_box = box
+		self.tools_group_sizer = sizer
+		return sizer
+
+	def get_effective_show_reasoning_blocks(self) -> bool:
+		"""Effective value: per-tab override if set, else default from config."""
+		if self._show_reasoning_blocks_override is not None:
+			return self._show_reasoning_blocks_override
+		return config.conf().conversation.show_reasoning_blocks
+
+	def create_reasoning_group(self):
+		"""Create grouped reasoning settings (mode, adaptive, budget, effort, display).
+
+		Returns a StaticBoxSizer containing all reasoning widgets. Add to
+		layout after model list. Visibility of sub-widgets controlled by
+		update_parameter_controls_visibility; show_reasoning_blocks is always visible.
+		"""
+		# Translators: Group label for reasoning/thinking settings
+		box = wx.StaticBox(self, label=_("Reasoning"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_reasoning_widget()
+		sizer.Add(self.reasoning_mode, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_adaptive, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_spin, 0, wx.ALL | wx.EXPAND, 2)
+		sizer.Add(self.reasoning_effort_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_effort_choice, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_show_reasoning_blocks_widget()
+		sizer.Add(self.show_reasoning_blocks, 0, wx.ALL, 2)
+
+		self.reasoning_group_box = box
+		self.reasoning_group_sizer = sizer
+		return sizer
+
+	def create_show_reasoning_blocks_widget(self):
+		"""Create checkbox to show/hide reasoning (think) blocks in responses.
+
+		Always visible. Per-tab override; default comes from Preferences.
+		"""
+		self.show_reasoning_blocks = wx.CheckBox(
+			self,
+			# Translators: Label for showing reasoning blocks in the main window
+			label=_("Show &reasoning blocks in responses"),
+		)
+		self.show_reasoning_blocks.SetValue(
+			self.get_effective_show_reasoning_blocks()
+		)
+		self.show_reasoning_blocks.Bind(
+			wx.EVT_CHECKBOX, self._on_show_reasoning_blocks_change
+		)
+
+	def _on_show_reasoning_blocks_change(self, event: wx.Event | None):
+		"""Set per-tab override and refresh message display."""
+		self._show_reasoning_blocks_override = (
+			self.show_reasoning_blocks.GetValue()
+		)
+		if hasattr(self, "refresh_messages"):
+			self.refresh_messages(need_clear=True, preserve_prompt=True)
+
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
 		self.reasoning_mode = wx.CheckBox(
@@ -571,6 +668,19 @@ class BaseConversation:
 		self, state: ParameterVisibilityState
 	) -> None:
 		"""Apply visibility state to widgets. Thin view layer."""
+		self._apply_general_visibility(state)
+		self._apply_tools_visibility(state)
+		self._apply_reasoning_visibility(state)
+
+	def _apply_general_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply general settings group visibility.
+
+		Hides the entire group when no model is selected or advanced mode is off.
+		"""
+		if hasattr(self, "general_group_box"):
+			self.general_group_box.Show(state.stream_visible)
 		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
 			ctrl.Enable(state.temperature_visible)
 			ctrl.Show(state.temperature_visible)
@@ -583,13 +693,10 @@ class BaseConversation:
 		self.stream_mode.Enable(state.stream_visible)
 		self.stream_mode.Show(state.stream_visible)
 
-		self._apply_web_search_visibility(state)
-		self._apply_reasoning_visibility(state)
-
-	def _apply_web_search_visibility(
-		self, state: ParameterVisibilityState
-	) -> None:
-		"""Apply web search visibility state."""
+	def _apply_tools_visibility(self, state: ParameterVisibilityState) -> None:
+		"""Apply tools group visibility (web search, etc.)."""
+		if hasattr(self, "tools_group_box"):
+			self.tools_group_box.Show(state.web_search_visible)
 		if hasattr(self, "web_search_mode"):
 			self.web_search_mode.Enable(state.web_search_visible)
 			self.web_search_mode.Show(state.web_search_visible)
@@ -597,7 +704,13 @@ class BaseConversation:
 	def _apply_reasoning_visibility(
 		self, state: ParameterVisibilityState
 	) -> None:
-		"""Apply reasoning controls visibility state."""
+		"""Apply reasoning controls visibility state.
+
+		Hides the entire reasoning group when no model is selected or the
+		model does not support reasoning (e.g. web search models).
+		"""
+		if hasattr(self, "reasoning_group_box"):
+			self.reasoning_group_box.Show(state.reasoning_mode_visible)
 		if not hasattr(self, "reasoning_mode"):
 			return
 		self.reasoning_mode.Enable(state.reasoning_mode_visible)
