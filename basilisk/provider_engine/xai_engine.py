@@ -44,6 +44,7 @@ class XAIEngine(ResponsesAPIEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.WEB_SEARCH,
 	}
 
@@ -52,6 +53,13 @@ class XAIEngine(ResponsesAPIEngine):
 		"image/jpeg",
 		"image/png",
 		"image/webp",
+		"application/pdf",
+		"text/plain",
+		"text/csv",
+		"text/markdown",
+		"text/html",
+		"text/xml",
+		"application/json",
 	}
 
 	@cached_property

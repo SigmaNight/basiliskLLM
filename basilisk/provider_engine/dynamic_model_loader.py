@@ -88,6 +88,20 @@ def _has_vision(modality: str | None) -> bool:
 	return "image" in modality
 
 
+def _has_audio(modality: str | None) -> bool:
+	"""Return True if modality indicates audio input support."""
+	if not modality:
+		return False
+	return "audio" in modality
+
+
+def _has_document(modality: str | None) -> bool:
+	"""Return True if modality indicates document/file input support."""
+	if not modality:
+		return False
+	return "file" in modality
+
+
 def _has_reasoning_capable(supported: list[str] | None) -> bool:
 	"""Return True if model supports optional reasoning via parameter."""
 	if not supported:
@@ -154,11 +168,14 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 			supported = []
 
 		architecture = item.get("architecture") or {}
-		modality = (
-			architecture.get("modality")
-			if isinstance(architecture, dict)
-			else None
-		)
+		if not isinstance(architecture, dict):
+			architecture = {}
+		modality = architecture.get("modality")
+		input_modalities = architecture.get("input_modalities")
+		if isinstance(input_modalities, list):
+			input_modalities = [str(m) for m in input_modalities]
+		else:
+			input_modalities = []
 
 		reasoning_capable = _has_reasoning_capable(supported)
 		reasoning_only = False  # Provider-specific; set by engine if needed
@@ -172,7 +189,9 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				context_window=_get_context_length(item),
 				max_output_tokens=_get_max_completion_tokens(item),
 				max_temperature=2.0,
-				vision=_has_vision(modality),
+				vision=_has_vision(modality) or "image" in input_modalities,
+				audio=_has_audio(modality) or "audio" in input_modalities,
+				document=_has_document(modality) or "file" in input_modalities,
 				reasoning=reasoning_only,
 				reasoning_capable=reasoning_capable,
 				web_search_capable=web_search_capable,
