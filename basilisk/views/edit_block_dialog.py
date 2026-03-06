@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 import wx
 
 import basilisk.config as config
+from basilisk.conversation.content_utils import format_response_for_display
 from basilisk.conversation.conversation_model import Conversation, SystemMessage
 from basilisk.presenters.edit_block_presenter import EditBlockPresenter
 
@@ -173,83 +174,23 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			border=10,
 		)
 
-		params_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-		self.create_temperature_widget()
-		temp_sizer = wx.BoxSizer(wx.VERTICAL)
-		temp_sizer.Add(
-			self.temperature_spinner_label, proportion=0, flag=wx.EXPAND
-		)
-		temp_sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
-		params_sizer.Add(
-			temp_sizer, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=10
-		)
-
-		self.create_max_tokens_widget()
-		tokens_sizer = wx.BoxSizer(wx.VERTICAL)
-		tokens_sizer.Add(
-			self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND
-		)
-		tokens_sizer.Add(
-			self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND
-		)
-		params_sizer.Add(
-			tokens_sizer, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=10
-		)
-
-		self.create_top_p_widget()
-		top_p_sizer = wx.BoxSizer(wx.VERTICAL)
-		top_p_sizer.Add(self.top_p_spinner_label, proportion=0, flag=wx.EXPAND)
-		top_p_sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
-		params_sizer.Add(top_p_sizer, proportion=1, flag=wx.EXPAND)
-
+		self.create_tools_group()
 		sizer.Add(
-			params_sizer,
-			proportion=0,
-			flag=wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,
-			border=10,
-		)
-
-		self.create_stream_widget()
-		sizer.Add(
-			self.stream_mode,
+			self.tools_group_sizer,
 			proportion=0,
 			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
 			border=10,
 		)
-		self.create_reasoning_widget()
+		self.create_general_group()
 		sizer.Add(
-			self.reasoning_mode,
+			self.general_group_sizer,
 			proportion=0,
 			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
 			border=10,
 		)
+		self.create_reasoning_group()
 		sizer.Add(
-			self.reasoning_adaptive,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		sizer.Add(
-			self.reasoning_budget_label,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		sizer.Add(
-			self.reasoning_budget_spin,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		sizer.Add(
-			self.reasoning_effort_label,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		sizer.Add(
-			self.reasoning_effort_choice,
+			self.reasoning_group_sizer,
 			proportion=0,
 			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
 			border=10,
@@ -362,7 +303,12 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		if self.system_message:
 			self.system_prompt_txt.SetValue(self.system_message.content)
 		if self.block.response:
-			self.response_txt.SetValue(self.block.response.content)
+			reasoning = getattr(self.block.response, "reasoning", None)
+			content = self.block.response.content
+			display = format_response_for_display(
+				reasoning, content, self.get_effective_show_reasoning_blocks()
+			)
+			self.response_txt.SetValue(display)
 		self.prompt_panel.prompt_text = self.block.request.content
 
 		if self.block.request.attachments:
@@ -379,6 +325,17 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.stream_mode.SetValue(self.block.stream)
 		self._load_audio_params()
 		self._load_reasoning_params()
+
+	def _on_show_reasoning_blocks_change(self, event: wx.Event | None):
+		"""Refresh response display when show reasoning checkbox toggles."""
+		super()._on_show_reasoning_blocks_change(event)
+		if hasattr(self, "response_txt") and self.block and self.block.response:
+			reasoning = getattr(self.block.response, "reasoning", None)
+			content = self.block.response.content
+			display = format_response_for_display(
+				reasoning, content, self.get_effective_show_reasoning_blocks()
+			)
+			self.response_txt.SetValue(display)
 
 	def on_account_change(self, event):
 		"""Handle account selection changes.

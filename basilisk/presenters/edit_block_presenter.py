@@ -13,6 +13,10 @@ from typing import TYPE_CHECKING, Optional
 
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
+from basilisk.conversation.content_utils import (
+	format_response_for_display,
+	split_reasoning_and_content_from_display,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -204,7 +208,11 @@ class EditBlockPresenter(DestroyGuardMixin):
 
 		# Update response if present
 		if self.block.response:
-			self.block.response.content = self.view.response_txt.GetValue()
+			text = self.view.response_txt.GetValue()
+			reasoning, content = split_reasoning_and_content_from_display(text)
+			self.block.response = self.block.response.model_copy(
+				update={"reasoning": reasoning, "content": content}
+			)
 
 		self.block.updated_at = datetime.now()
 		if self.service is not None:
@@ -266,7 +274,12 @@ class EditBlockPresenter(DestroyGuardMixin):
 			system_message: Optional system message used for this completion.
 		"""
 		self.block.response = new_block.response
-		self.view.response_txt.SetValue(new_block.response.content)
+		reasoning = getattr(new_block.response, "reasoning", None)
+		content = new_block.response.content
+		display = format_response_for_display(
+			reasoning, content, self.view.get_effective_show_reasoning_blocks()
+		)
+		self.view.response_txt.SetValue(display)
 		audio_data = getattr(new_block.response, "audio_data", None)
 		if audio_data:
 			from basilisk.audio_utils import play_audio_from_base64
