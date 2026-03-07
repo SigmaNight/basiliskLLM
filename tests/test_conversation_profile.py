@@ -3,10 +3,13 @@
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from basilisk.config.conversation_profile import (
 	ConversationProfile,
 	ConversationProfileManager,
+	ConversationProfileType,
+	VoiceProfileSettings,
 	get_conversation_profile_config,
 )
 
@@ -804,3 +807,229 @@ class TestConversationProfileManagerComplexScenarios:
 
 		assert profile.ai_model_id == "gemini-pro"
 		assert profile.ai_provider.id == "gemini"
+
+
+# ---------------------------------------------------------------------------
+# ConversationProfileType
+# ---------------------------------------------------------------------------
+
+
+class TestConversationProfileType:
+	"""Tests for ConversationProfileType enum."""
+
+	def test_values(self):
+		"""TEXT and VOICE enum values are correct strings."""
+		assert ConversationProfileType.TEXT == "text"
+		assert ConversationProfileType.VOICE == "voice"
+
+	def test_get_labels_returns_both_types(self):
+		"""get_labels() returns a dict with both profile types."""
+		labels = ConversationProfileType.get_labels()
+		assert ConversationProfileType.TEXT in labels
+		assert ConversationProfileType.VOICE in labels
+
+	def test_labels_are_strings(self):
+		"""All label values are non-empty strings."""
+		for label in ConversationProfileType.get_labels().values():
+			assert isinstance(label, str)
+			assert label
+
+
+# ---------------------------------------------------------------------------
+# VoiceProfileSettings
+# ---------------------------------------------------------------------------
+
+
+class TestVoiceProfileSettings:
+	"""Tests for VoiceProfileSettings model."""
+
+	def test_defaults(self):
+		"""Default field values are applied."""
+		settings = VoiceProfileSettings()
+		assert settings.realtime_model == "gpt-realtime"
+		assert settings.voice == "marin"
+		assert settings.transcription_model == "gpt-4o-mini-transcribe"
+		assert settings.transcription_language is None
+		assert settings.transcription_prompt is None
+		assert settings.vad_type == "semantic_vad"
+		assert settings.vad_eagerness == "auto"
+		assert settings.interrupt_response is True
+		assert settings.create_response is True
+		assert settings.output_speed is None
+
+	def test_custom_values(self):
+		"""Custom values are stored."""
+		settings = VoiceProfileSettings(
+			voice="shimmer",
+			transcription_language="fr",
+			transcription_prompt="basilisk",
+			vad_type="server_vad",
+			vad_eagerness="high",
+			interrupt_response=False,
+			create_response=False,
+			output_speed=1.1,
+		)
+		assert settings.voice == "shimmer"
+		assert settings.transcription_language == "fr"
+		assert settings.transcription_prompt == "basilisk"
+		assert settings.vad_type == "server_vad"
+		assert settings.vad_eagerness == "high"
+		assert settings.interrupt_response is False
+		assert settings.create_response is False
+		assert settings.output_speed == 1.1
+
+	def test_output_speed_bounds(self):
+		"""output_speed must be between 0.25 and 1.5."""
+		with pytest.raises(ValidationError):
+			VoiceProfileSettings(output_speed=0.1)
+		with pytest.raises(ValidationError):
+			VoiceProfileSettings(output_speed=2.0)
+		# Boundary values are valid
+		VoiceProfileSettings(output_speed=0.25)
+		VoiceProfileSettings(output_speed=1.5)
+
+
+# ---------------------------------------------------------------------------
+# Voice-related ConversationProfile behaviour
+# ---------------------------------------------------------------------------
+
+
+class TestConversationProfileVoiceSettings:
+	"""Tests for voice settings integration in ConversationProfile."""
+
+	def test_text_profile_has_no_voice_settings(self):
+		"""A TEXT profile always has voice_settings=None."""
+		profile = ConversationProfile(
+			name="Text", profile_type=ConversationProfileType.TEXT
+		)
+		assert profile.voice_settings is None
+
+	def test_voice_profile_auto_creates_voice_settings(self):
+		"""A VOICE profile with no voice_settings gets defaults auto-created."""
+		profile = ConversationProfile(
+			name="Voice", profile_type=ConversationProfileType.VOICE
+		)
+		assert profile.voice_settings is not None
+		assert isinstance(profile.voice_settings, VoiceProfileSettings)
+
+	def test_voice_profile_retains_provided_voice_settings(self):
+		"""A VOICE profile keeps explicitly provided voice_settings."""
+		settings = VoiceProfileSettings(voice="nova")
+		profile = ConversationProfile(
+			name="Voice",
+			profile_type=ConversationProfileType.VOICE,
+			voice_settings=settings,
+		)
+		assert profile.voice_settings.voice == "nova"
+
+	def test_text_profile_clears_voice_settings(self):
+		"""Setting profile_type to TEXT clears voice_settings."""
+		profile = ConversationProfile(
+			name="p", profile_type=ConversationProfileType.VOICE
+		)
+		profile.profile_type = ConversationProfileType.TEXT
+		profile.voice_settings = VoiceProfileSettings()
+		# Re-validate through model_validate to trigger the validator
+		updated = ConversationProfile.model_validate(profile.model_dump())
+		assert updated.voice_settings is None
+
+	def test_voice_profile_summary_includes_voice_info(self):
+		"""Summary of a VOICE profile includes voice and VAD eagerness."""
+		settings = VoiceProfileSettings(voice="shimmer", vad_eagerness="high")
+		profile = ConversationProfile(
+			name="MyVoice",
+			profile_type=ConversationProfileType.VOICE,
+			voice_settings=settings,
+		)
+		summary = profile.to_summary_text()
+		assert "shimmer" in summary
+		assert "high" in summary
+
+	def test_text_profile_summary_includes_type(self):
+		"""Summary of a TEXT profile includes the type label."""
+		profile = ConversationProfile(
+			name="MyText", profile_type=ConversationProfileType.TEXT
+		)
+		summary = profile.to_summary_text()
+		assert "Type:" in summary
+
+
+# ---------------------------------------------------------------------------
+# ConversationProfileManager — default voice profile
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultVoiceProfile:
+	"""Tests for default voice profile management in ConversationProfileManager."""
+
+	def test_no_default_voice_profile_initially(self, clean_config_manager):
+		"""default_voice_profile is None when no ID is set."""
+		manager = clean_config_manager()
+		assert manager.default_voice_profile is None
+
+	def test_set_default_voice_profile(self, clean_config_manager):
+		"""set_default_voice_profile() stores the ID and updates the cached property."""
+		profile = ConversationProfile(
+			name="Voice", profile_type=ConversationProfileType.VOICE
+		)
+		manager = clean_config_manager(profiles=[profile])
+		manager.set_default_voice_profile(profile)
+		assert manager.default_voice_profile_id == profile.id
+		assert manager.default_voice_profile == profile
+
+	def test_set_default_voice_profile_to_none_clears(
+		self, clean_config_manager
+	):
+		"""set_default_voice_profile(None) clears the default voice profile."""
+		profile = ConversationProfile(
+			name="Voice", profile_type=ConversationProfileType.VOICE
+		)
+		manager = clean_config_manager(profiles=[profile])
+		manager.set_default_voice_profile(profile)
+		manager.set_default_voice_profile(None)
+		assert manager.default_voice_profile_id is None
+		assert manager.default_voice_profile is None
+
+	def test_set_default_voice_profile_rejects_text_profile(
+		self, clean_config_manager
+	):
+		"""set_default_voice_profile() ignores non-voice profiles."""
+		text_profile = ConversationProfile(
+			name="Text", profile_type=ConversationProfileType.TEXT
+		)
+		manager = clean_config_manager(profiles=[text_profile])
+		manager.set_default_voice_profile(text_profile)
+		assert manager.default_voice_profile_id is None
+
+	def test_orphaned_voice_profile_id_auto_corrects(
+		self, clean_config_manager
+	):
+		"""Orphaned default_voice_profile_id is auto-corrected to None."""
+		orphaned_id = uuid4()
+		manager = clean_config_manager(
+			profiles=[], default_voice_profile_id=orphaned_id
+		)
+		assert manager.default_voice_profile_id is None
+
+	def test_non_voice_default_voice_profile_id_auto_corrects(
+		self, clean_config_manager
+	):
+		"""A text profile stored as default_voice_profile_id is auto-corrected."""
+		text_profile = ConversationProfile(
+			name="Text", profile_type=ConversationProfileType.TEXT
+		)
+		manager = clean_config_manager(
+			profiles=[text_profile], default_voice_profile_id=text_profile.id
+		)
+		assert manager.default_voice_profile_id is None
+
+	def test_remove_default_voice_profile_clears_id(self, clean_config_manager):
+		"""Removing the default voice profile clears default_voice_profile_id."""
+		profile = ConversationProfile(
+			name="Voice", profile_type=ConversationProfileType.VOICE
+		)
+		manager = clean_config_manager(profiles=[profile])
+		manager.set_default_voice_profile(profile)
+		manager.remove(profile)
+		assert manager.default_voice_profile_id is None
+		assert len(manager.profiles) == 0
