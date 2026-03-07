@@ -5,7 +5,13 @@ from typing import Optional
 
 import wx
 
-from basilisk.config import ConversationProfile, conversation_profiles
+import basilisk.config as config
+from basilisk.config import (
+	ConversationProfile,
+	ConversationProfileType,
+	VoiceProfileSettings,
+	conversation_profiles,
+)
 from basilisk.decorators import require_list_selection
 from basilisk.presenters.conversation_profile_presenter import (
 	ConversationProfilePresenter,
@@ -24,7 +30,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self,
 		parent: wx.Window,
 		title: str,
-		size: tuple[int, int] = (400, 400),
+		size: tuple[int, int] = (520, 720),
 		profile: ConversationProfile | None = None,
 	):
 		"""Initialize the dialog for creating or editing a conversation profile.
@@ -49,6 +55,26 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		"""Get the profile from the presenter."""
 		return self.presenter.profile
 
+	@property
+	def profile_type(self) -> ConversationProfileType:
+		"""Get the selected profile type from the UI."""
+		index = self.profile_type_combo.GetSelection()
+		if index == wx.NOT_FOUND:
+			return ConversationProfileType.TEXT
+		return self._profile_type_items[index][0]
+
+	def on_profile_type_change(self, event: wx.Event | None):
+		"""Handle profile type changes to show/hide voice settings."""
+		self._toggle_voice_settings_visibility(
+			self.profile_type == ConversationProfileType.VOICE
+		)
+		self.Layout()
+
+	def _toggle_voice_settings_visibility(self, show: bool):
+		self.voice_group_box.Show(show)
+		self.voice_group_box.Enable(show)
+		self.voice_group_sizer.ShowItems(show)
+
 	def init_ui(self):
 		"""Initialize the user interface elements of the dialog."""
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -62,6 +88,25 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 
 		self.profile_name_txt = wx.TextCtrl(self)
 		self.sizer.Add(self.profile_name_txt, 0, wx.ALL | wx.EXPAND, 5)
+
+		self._profile_type_items = list(
+			ConversationProfileType.get_labels().items()
+		)
+		label = wx.StaticText(
+			self,
+			# Translators: Label for the profile type of a conversation profile
+			label=_("Profile &type:"),
+		)
+		self.sizer.Add(label, 0, wx.ALL, 5)
+		self.profile_type_combo = wx.ComboBox(
+			self,
+			style=wx.CB_READONLY,
+			choices=[label for _, label in self._profile_type_items],
+		)
+		self.profile_type_combo.Bind(
+			wx.EVT_COMBOBOX, self.on_profile_type_change
+		)
+		self.sizer.Add(self.profile_type_combo, 0, wx.ALL | wx.EXPAND, 5)
 
 		label = self.create_account_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
@@ -89,6 +134,104 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 5)
 		self.create_stream_widget()
 		self.sizer.Add(self.stream_mode, 0, wx.ALL | wx.EXPAND, 5)
+
+		self.voice_group_box = wx.StaticBox(
+			self,
+			# Translators: Label for voice settings in profile dialog
+			label=_("Voice settings"),
+		)
+		self.voice_group_sizer = wx.StaticBoxSizer(
+			self.voice_group_box, wx.VERTICAL
+		)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for voice name setting
+			label=_("Voice"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_name = wx.TextCtrl(self.voice_group_box)
+		self.voice_group_sizer.Add(self.voice_name, 0, wx.ALL | wx.EXPAND, 5)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for transcription model setting
+			label=_("Transcription model"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_transcription_model = wx.TextCtrl(self.voice_group_box)
+		self.voice_group_sizer.Add(
+			self.voice_transcription_model, 0, wx.ALL | wx.EXPAND, 5
+		)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for transcription language setting
+			label=_("Transcription language"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_transcription_language = wx.TextCtrl(self.voice_group_box)
+		self.voice_group_sizer.Add(
+			self.voice_transcription_language, 0, wx.ALL | wx.EXPAND, 5
+		)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for transcription prompt setting
+			label=_("Transcription prompt"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_transcription_prompt = wx.TextCtrl(self.voice_group_box)
+		self.voice_group_sizer.Add(
+			self.voice_transcription_prompt, 0, wx.ALL | wx.EXPAND, 5
+		)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for VAD type setting
+			label=_("VAD type"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_vad_type = wx.ComboBox(
+			self.voice_group_box, style=wx.CB_READONLY, choices=["semantic_vad"]
+		)
+		self.voice_group_sizer.Add(
+			self.voice_vad_type, 0, wx.ALL | wx.EXPAND, 5
+		)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for VAD eagerness setting
+			label=_("VAD eagerness"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_vad_eagerness = wx.ComboBox(
+			self.voice_group_box,
+			style=wx.CB_READONLY,
+			choices=["auto", "low", "medium", "high"],
+		)
+		self.voice_group_sizer.Add(
+			self.voice_vad_eagerness, 0, wx.ALL | wx.EXPAND, 5
+		)
+		self.voice_interrupt_response = wx.CheckBox(
+			self.voice_group_box,
+			# Translators: Label for interrupt response setting
+			label=_("Allow interruption"),
+		)
+		self.voice_group_sizer.Add(self.voice_interrupt_response, 0, wx.ALL, 5)
+		self.voice_create_response = wx.CheckBox(
+			self.voice_group_box,
+			# Translators: Label for create response setting
+			label=_("Auto create responses"),
+		)
+		self.voice_group_sizer.Add(self.voice_create_response, 0, wx.ALL, 5)
+		label = wx.StaticText(
+			self.voice_group_box,
+			# Translators: Label for voice output speed setting
+			label=_("Output speed"),
+		)
+		self.voice_group_sizer.Add(label, 0, wx.ALL, 5)
+		self.voice_output_speed = wx.SpinCtrlDouble(
+			self.voice_group_box, min=0.25, max=1.5, inc=0.05
+		)
+		self.voice_group_sizer.Add(
+			self.voice_output_speed, 0, wx.ALL | wx.EXPAND, 5
+		)
+		self.sizer.Add(self.voice_group_sizer, 0, wx.ALL | wx.EXPAND, 5)
 		self.ok_button = wx.Button(self, wx.ID_OK)
 		self.cancel_button = wx.Button(self, wx.ID_CANCEL)
 		self.Bind(wx.EVT_BUTTON, self.on_ok, self.ok_button)
@@ -111,10 +254,27 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		"""
 		super().apply_profile(profile, fall_back_default_account)
 		if not profile:
+			self.profile_type_combo.SetSelection(0)
+			self._toggle_voice_settings_visibility(False)
+			self._apply_voice_settings(None)
 			return None
 		self.profile_name_txt.SetValue(profile.name)
+		profile_type = profile.profile_type
+		profile_type_index = next(
+			(
+				index
+				for index, (ptype, _) in enumerate(self._profile_type_items)
+				if ptype == profile_type
+			),
+			0,
+		)
+		self.profile_type_combo.SetSelection(profile_type_index)
+		self._toggle_voice_settings_visibility(
+			profile_type == ConversationProfileType.VOICE
+		)
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(profile.account is not None)
+		self._apply_voice_settings(profile.voice_settings)
 
 	def on_ok(self, event: wx.Event | None):
 		"""Handle the OK button click by delegating to the presenter.
@@ -137,6 +297,81 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 	def on_cancel(self, event: wx.Event | None):
 		"""Handle the Cancel button click by closing the dialog without saving."""
 		self.EndModal(wx.ID_CANCEL)
+
+	def _apply_voice_settings(self, settings: VoiceProfileSettings | None):
+		defaults = config.conf().voice
+		self.voice_name.SetValue(
+			(settings.voice if settings else defaults.voice) or ""
+		)
+		self.voice_transcription_model.SetValue(
+			(
+				settings.transcription_model
+				if settings
+				else defaults.transcription_model
+			)
+			or ""
+		)
+		self.voice_transcription_language.SetValue(
+			(
+				settings.transcription_language
+				if settings
+				else defaults.transcription_language
+			)
+			or ""
+		)
+		self.voice_transcription_prompt.SetValue(
+			(
+				settings.transcription_prompt
+				if settings
+				else defaults.transcription_prompt
+			)
+			or ""
+		)
+		self.voice_vad_type.SetValue(
+			(settings.vad_type if settings else defaults.vad_type)
+			or "semantic_vad"
+		)
+		self.voice_vad_eagerness.SetValue(
+			(settings.vad_eagerness if settings else defaults.vad_eagerness)
+			or "auto"
+		)
+		self.voice_interrupt_response.SetValue(
+			settings.interrupt_response
+			if settings is not None
+			else defaults.interrupt_response
+		)
+		self.voice_create_response.SetValue(
+			settings.create_response
+			if settings is not None
+			else defaults.create_response
+		)
+		self.voice_output_speed.SetValue(
+			float(
+				(settings.output_speed if settings else defaults.output_speed)
+				or 1.0
+			)
+		)
+
+	def get_voice_settings(self) -> VoiceProfileSettings:
+		"""Read voice widget values and return a VoiceProfileSettings."""
+		return VoiceProfileSettings(
+			voice=self.voice_name.GetValue().strip() or "marin",
+			transcription_model=(
+				self.voice_transcription_model.GetValue().strip()
+				or "gpt-4o-mini-transcribe"
+			),
+			transcription_language=(
+				self.voice_transcription_language.GetValue().strip() or None
+			),
+			transcription_prompt=(
+				self.voice_transcription_prompt.GetValue().strip() or None
+			),
+			vad_type=self.voice_vad_type.GetValue() or "semantic_vad",
+			vad_eagerness=self.voice_vad_eagerness.GetValue() or "auto",
+			interrupt_response=self.voice_interrupt_response.GetValue(),
+			create_response=self.voice_create_response.GetValue(),
+			output_speed=float(self.voice_output_speed.GetValue()),
+		)
 
 
 class ConversationProfileDialog(wx.Dialog):
@@ -187,6 +422,12 @@ class ConversationProfileDialog(wx.Dialog):
 			_("Profile name"),
 			width=140,
 		)
+		self.list_profile_ctrl.InsertColumn(
+			1,
+			# Translators: Column header for the type of a conversation profile
+			_("Type"),
+			width=80,
+		)
 		self.sizer.Add(self.list_profile_ctrl, 1, wx.ALL | wx.EXPAND, 5)
 		self.list_profile_ctrl.Bind(
 			wx.EVT_KEY_DOWN, self.on_list_profile_key_down
@@ -228,6 +469,12 @@ class ConversationProfileDialog(wx.Dialog):
 			label=_("&Default Profile"),
 		)
 		self.default_btn.Disable()
+		self.default_voice_btn = wx.ToggleButton(
+			self.panel,
+			# Translators: Button label to set a voice conversation profile as the default
+			label=_("Default &Voice Profile"),
+		)
+		self.default_voice_btn.Disable()
 		self.close_button = wx.Button(self.panel, id=wx.ID_CLOSE)
 		self.SetDefaultItem(self.close_button)
 		self.btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -235,6 +482,7 @@ class ConversationProfileDialog(wx.Dialog):
 		self.btn_sizer.Add(self.edit_btn, 0, wx.ALL, 5)
 		self.btn_sizer.Add(self.remove_btn, 0, wx.ALL, 5)
 		self.btn_sizer.Add(self.default_btn, 0, wx.ALL, 5)
+		self.btn_sizer.Add(self.default_voice_btn, 0, wx.ALL, 5)
 		self.btn_sizer.Add(self.close_button, 0, wx.ALL, 5)
 
 		self.sizer.Add(self.btn_sizer, 0, wx.ALL | wx.ALIGN_CENTER, 5)
@@ -244,6 +492,7 @@ class ConversationProfileDialog(wx.Dialog):
 		self.edit_btn.Bind(wx.EVT_BUTTON, self.on_edit)
 		self.remove_btn.Bind(wx.EVT_BUTTON, self.on_remove)
 		self.default_btn.Bind(wx.EVT_TOGGLEBUTTON, self.on_default)
+		self.default_voice_btn.Bind(wx.EVT_TOGGLEBUTTON, self.on_default_voice)
 		self.close_button.Bind(wx.EVT_BUTTON, self.on_close)
 		self.SetEscapeId(self.close_button.GetId())
 
@@ -277,8 +526,14 @@ class ConversationProfileDialog(wx.Dialog):
 	def update_ui(self):
 		"""Update the user interface to reflect the current profiles list."""
 		self.list_profile_ctrl.DeleteAllItems()
-		for profile_name in map(lambda x: x.name, self.profiles):
-			self.list_profile_ctrl.Append([profile_name])
+		type_labels = ConversationProfileType.get_labels()
+		for profile in self.profiles:
+			self.list_profile_ctrl.Append(
+				[
+					profile.name,
+					type_labels.get(profile.profile_type, profile.profile_type),
+				]
+			)
 
 	def on_add(self, event: wx.Event | None):
 		"""Handle adding a new conversation profile.
@@ -364,6 +619,12 @@ class ConversationProfileDialog(wx.Dialog):
 		profile = self.current_profile
 		self.presenter.set_default(profile)
 
+	@require_list_selection("list_profile_ctrl")
+	def on_default_voice(self, event: wx.Event | None):
+		"""Handle setting the selected profile as the default voice profile."""
+		profile = self.current_profile
+		self.presenter.set_default_voice(profile)
+
 	def on_list_item_selected(self, event: wx.Event | None):
 		"""Handle selection changes in the profiles list.
 
@@ -376,9 +637,15 @@ class ConversationProfileDialog(wx.Dialog):
 		self.profile_detail_text.Enable(enable)
 		self.update_profile_detail(profile)
 		self.default_btn.Enable(enable)
+		self.default_voice_btn.Enable(
+			enable and profile.profile_type == ConversationProfileType.VOICE
+		)
 		self.edit_btn.Enable(enable)
 		self.remove_btn.Enable(enable)
 		self.default_btn.SetValue(profile == self.profiles.default_profile)
+		self.default_voice_btn.SetValue(
+			profile == self.profiles.default_voice_profile
+		)
 
 	def on_close(self, event: wx.Event | None):
 		"""Handle the dialog close event.

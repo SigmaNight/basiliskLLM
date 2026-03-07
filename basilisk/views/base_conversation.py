@@ -199,16 +199,19 @@ class BaseConversation:
 		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
 		# Translators: This label appears in the main window's list of models
 		self.model_list.InsertColumn(0, _("Name"))
+		# Translators: This label appears in the main window's list of models
+		self.model_list.InsertColumn(1, _("Mode"))
 		# Translators: This label appears in the main window's list of models to indicate whether the model supports images
-		self.model_list.InsertColumn(1, _("Vision"))
+		self.model_list.InsertColumn(2, _("Vision"))
 		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(2, _("Context window"))
+		self.model_list.InsertColumn(3, _("Context window"))
 		# Translators: This label appears in the main window's list of models
-		self.model_list.InsertColumn(3, _("Max tokens"))
+		self.model_list.InsertColumn(4, _("Max tokens"))
 		self.model_list.SetColumnWidth(0, 200)
-		self.model_list.SetColumnWidth(1, 100)
-		self.model_list.SetColumnWidth(2, 100)
-		self.model_list.SetColumnWidth(3, 100)
+		self.model_list.SetColumnWidth(1, 90)
+		self.model_list.SetColumnWidth(2, 90)
+		self.model_list.SetColumnWidth(3, 110)
+		self.model_list.SetColumnWidth(4, 100)
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
@@ -220,11 +223,12 @@ class BaseConversation:
 		for model in self.get_display_models():
 			self.model_list.Append(model)
 
-	def get_display_models(self) -> list[tuple[str, str, str]]:
+	def get_display_models(self) -> list[tuple[str, str, str, str, str]]:
 		"""Get list of models for display.
 
 		Returns:
-			List of model display information in a tuple format e.g. (name, vision, context window)
+			List of model display information in a tuple format
+			e.g. (name, mode, vision, context window, max tokens)
 		"""
 		return self.base_conv_presenter.get_display_models(self.current_engine)
 

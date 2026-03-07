@@ -10,6 +10,7 @@ import signal
 import sys
 from types import FrameType
 from typing import Callable, Optional
+from uuid import UUID
 
 import wx
 from more_itertools import locate
@@ -63,6 +64,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		log.debug("Initializing main frame")
 
 		self.presenter = MainFramePresenter(self)
+		self._profile_menu_map: dict[int, str] = {}
 
 		self.init_ui()
 		self.init_accelerators()
@@ -288,6 +290,11 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
 			ord("W"),
 		)
+		self.RegisterHotKey(
+			HotkeyAction.VOICE_TOGGLE.value,
+			win32con.MOD_CONTROL | win32con.MOD_ALT | win32con.MOD_SHIFT,
+			ord("V"),
+		)
 
 	def on_hotkey(self, event):
 		"""Handle global hotkey events.
@@ -302,6 +309,8 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 				self.presenter.screen_capture(CaptureMode.WINDOW)
 			case HotkeyAction.CAPTURE_FULL:
 				self.presenter.screen_capture(CaptureMode.FULL)
+			case HotkeyAction.VOICE_TOGGLE:
+				self.presenter.handle_voice_hotkey()
 			case _:
 				log.error("Unknown hotkey action: %s", event.GetId())
 
@@ -367,6 +376,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			self.UnregisterHotKey(HotkeyAction.TOGGLE_VISIBILITY.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_WINDOW.value)
 			self.UnregisterHotKey(HotkeyAction.CAPTURE_FULL.value)
+			self.UnregisterHotKey(HotkeyAction.VOICE_TOGGLE.value)
 			self.tray_icon.RemoveIcon()
 			self.tray_icon.Destroy()
 		self.Destroy()
@@ -703,11 +713,20 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		Returns:
 			The selected profile, or None if not found.
 		"""
-		selected_menu_item: wx.MenuItem = event.GetEventObject().FindItemById(
-			event.GetId()
-		)
-		profile_name = selected_menu_item.GetItemLabelText()
-		profile = config.conversation_profiles().get_profile(name=profile_name)
+		profile_id = self._profile_menu_map.get(event.GetId())
+		profile = None
+		if profile_id:
+			profile = config.conversation_profiles().get_profile(
+				id=UUID(profile_id)
+			)
+		if profile is None:
+			selected_menu_item: wx.MenuItem = (
+				event.GetEventObject().FindItemById(event.GetId())
+			)
+			profile_name = selected_menu_item.GetItemLabelText()
+			profile = config.conversation_profiles().get_profile(
+				name=profile_name
+			)
 		if not profile:
 			wx.MessageBox(
 				# Translators: An error message when a conversation profile is not found
@@ -747,8 +766,14 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			The profile menu.
 		"""
 		profile_menu = wx.Menu()
+		self._profile_menu_map = {}
+		type_labels = config.ConversationProfileType.get_labels()
 		for profile in config.conversation_profiles():
-			profile_item = profile_menu.Append(wx.ID_ANY, profile.name)
+			label = profile.name
+			if profile.profile_type == config.ConversationProfileType.VOICE:
+				label = f"{profile.name} ({type_labels.get(profile.profile_type, profile.profile_type)})"
+			profile_item = profile_menu.Append(wx.ID_ANY, label)
+			self._profile_menu_map[profile_item.GetId()] = str(profile.id)
 			self.Bind(wx.EVT_MENU, event_handler, profile_item)
 		profile_menu.AppendSeparator()
 		profile_menu.Append(self.build_manage_profile_item())

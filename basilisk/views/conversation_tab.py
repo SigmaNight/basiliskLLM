@@ -19,6 +19,7 @@ from upath import UPath
 import basilisk.config as config
 from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 from basilisk.presenters.conversation_presenter import ConversationPresenter
+from basilisk.provider_ai_model import ModelMode
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.account_model_service import AccountModelService
 from basilisk.services.conversation_service import ConversationService
@@ -91,8 +92,8 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 
 	@property
 	def completion_handler(self):
-		"""CompletionHandler instance, owned by the presenter."""
-		return self.presenter.completion_handler
+		"""ConversationOrchestrator instance, owned by the presenter."""
+		return self.presenter.orchestrator
 
 	@property
 	def db_conv_id(self) -> Optional[int]:
@@ -236,6 +237,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			conv_storage_path=resolved_storage,
 			bskc_path=bskc_path,
 		)
+		self.active_profile: Optional[config.ConversationProfile] = None
 
 		self._is_destroying = False
 		self.process: Optional[Any] = None  # multiprocessing.Process
@@ -272,6 +274,77 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		sizer.Add(self.prompt_panel, proportion=1, flag=wx.EXPAND)
 		self.prompt_panel.prompt.Bind(wx.EVT_TEXT, self._on_prompt_text_changed)
 		self.prompt_panel.set_prompt_focus()
+		self.voice_panel = wx.Panel(self)
+		voice_box = wx.StaticBox(
+			self.voice_panel,
+			# Translators: Label for voice quick settings panel
+			label=_("Voice"),
+		)
+		voice_sizer = wx.StaticBoxSizer(voice_box, wx.VERTICAL)
+		self.voice_status_label = wx.StaticText(
+			self.voice_panel,
+			# Translators: Voice status label
+			label=_("Ready"),
+		)
+		voice_sizer.Add(self.voice_status_label, 0, wx.ALL, 5)
+		self.voice_toggle_btn = wx.Button(
+			self.voice_panel,
+			# Translators: Button label to start/stop voice chat
+			label=_("Start voice"),
+		)
+		self.voice_toggle_btn.Bind(wx.EVT_BUTTON, self.toggle_voice_chat)
+		voice_sizer.Add(self.voice_toggle_btn, 0, wx.ALL, 5)
+		voice_form = wx.FlexGridSizer(cols=2, hgap=10, vgap=5)
+		voice_form.AddGrowableCol(1, 1)
+		voice_form.Add(
+			wx.StaticText(self.voice_panel, label=_("Voice")),
+			0,
+			wx.ALIGN_CENTER_VERTICAL,
+		)
+		self.voice_name = wx.TextCtrl(self.voice_panel)
+		voice_form.Add(self.voice_name, 1, wx.EXPAND)
+		voice_form.Add(
+			wx.StaticText(self.voice_panel, label=_("Output speed")),
+			0,
+			wx.ALIGN_CENTER_VERTICAL,
+		)
+		self.voice_output_speed = wx.SpinCtrlDouble(
+			self.voice_panel, min=0.25, max=1.5, inc=0.05
+		)
+		voice_form.Add(self.voice_output_speed, 1, wx.EXPAND)
+		voice_form.Add(
+			wx.StaticText(self.voice_panel, label=_("VAD eagerness")),
+			0,
+			wx.ALIGN_CENTER_VERTICAL,
+		)
+		self.voice_vad_eagerness = wx.ComboBox(
+			self.voice_panel,
+			style=wx.CB_READONLY,
+			choices=["auto", "low", "medium", "high"],
+		)
+		voice_form.Add(self.voice_vad_eagerness, 1, wx.EXPAND)
+		self.voice_interrupt_response = wx.CheckBox(
+			self.voice_panel, label=_("Allow interruption")
+		)
+		voice_form.Add(
+			self.voice_interrupt_response, 0, wx.ALIGN_CENTER_VERTICAL
+		)
+		voice_form.Add((0, 0))
+		self.voice_create_response = wx.CheckBox(
+			self.voice_panel, label=_("Auto create responses")
+		)
+		voice_form.Add(self.voice_create_response, 0, wx.ALIGN_CENTER_VERTICAL)
+		voice_form.Add((0, 0))
+		voice_sizer.Add(voice_form, 0, wx.ALL | wx.EXPAND, 5)
+		self.voice_save_btn = wx.Button(
+			self.voice_panel,
+			# Translators: Button label to save voice settings to profile
+			label=_("Save voice settings to profile"),
+		)
+		self.voice_save_btn.Bind(wx.EVT_BUTTON, self.on_save_voice_settings)
+		voice_sizer.Add(self.voice_save_btn, 0, wx.ALL, 5)
+		self.voice_panel.SetSizer(voice_sizer)
+		sizer.Add(self.voice_panel, proportion=0, flag=wx.EXPAND)
 		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
 		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
 		label = self.create_model_widget()
@@ -321,6 +394,14 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
 		self.Bind(wx.EVT_BUTTON, self.toggle_recording, self.toggle_record_btn)
 
+		self.toggle_voice_btn = wx.Button(
+			self,
+			# Translators: This is a label for voice chat button in the main window
+			label=_("Voice chat"),
+		)
+		btn_sizer.Add(self.toggle_voice_btn, proportion=0, flag=wx.EXPAND)
+		self.Bind(wx.EVT_BUTTON, self.toggle_voice_chat, self.toggle_voice_btn)
+
 		self.apply_profile_btn = wx.Button(
 			self,
 			# Translators: This is a label for apply profile button in the main window
@@ -344,6 +425,131 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.prompt_panel.refresh_attachments_list()
 		self.apply_profile(profile, True)
 		self.refresh_messages(need_clear=False)
+		self._update_voice_mode_ui()
+
+	def apply_profile(
+		self,
+		profile: Optional[config.ConversationProfile],
+		fall_back_default_account: bool = False,
+	):
+		"""Apply a profile and update voice UI state."""
+		self.active_profile = profile
+		super().apply_profile(profile, fall_back_default_account)
+		self._apply_voice_settings(profile.voice_settings if profile else None)
+		self._update_voice_mode_ui()
+
+	def is_voice_mode(self) -> bool:
+		"""Check if the current model is a voice model."""
+		model = self.current_model
+		return bool(model and model.mode == ModelMode.VOICE)
+
+	def _update_voice_mode_ui(self):
+		is_voice = self.is_voice_mode()
+		self.voice_panel.Show(is_voice)
+		self.prompt_panel.Show(not is_voice)
+		self.submit_btn.Show(not is_voice)
+		self.toggle_record_btn.Show(not is_voice)
+		self.toggle_voice_btn.Show(not is_voice)
+		self.ocr_button.Show(not is_voice)
+		self.web_search_mode.Show(not is_voice)
+		self.web_search_mode.Enable(not is_voice)
+		self.voice_save_btn.Enable(
+			is_voice
+			and self.active_profile is not None
+			and self.active_profile.profile_type
+			== config.ConversationProfileType.VOICE
+		)
+		if not is_voice:
+			self.voice_status_label.SetLabel(_("Ready"))
+		self.Layout()
+
+	def _apply_voice_settings(
+		self, settings: config.VoiceProfileSettings | None
+	):
+		defaults = config.conf().voice
+		self.voice_name.SetValue(
+			(settings.voice if settings else defaults.voice) or ""
+		)
+		self.voice_output_speed.SetValue(
+			float(
+				(settings.output_speed if settings else defaults.output_speed)
+				or 1.0
+			)
+		)
+		self.voice_vad_eagerness.SetValue(
+			(settings.vad_eagerness if settings else defaults.vad_eagerness)
+			or "auto"
+		)
+		self.voice_interrupt_response.SetValue(
+			settings.interrupt_response
+			if settings is not None
+			else defaults.interrupt_response
+		)
+		self.voice_create_response.SetValue(
+			settings.create_response
+			if settings is not None
+			else defaults.create_response
+		)
+
+	def get_voice_settings(self) -> config.VoiceProfileSettings:
+		"""Read current voice widget values and return a VoiceProfileSettings."""
+		return config.VoiceProfileSettings(
+			realtime_model=(
+				self.current_model.id if self.current_model else "gpt-realtime"
+			),
+			voice=self.voice_name.GetValue().strip() or "marin",
+			transcription_model=(
+				self.active_profile.voice_settings.transcription_model
+				if self.active_profile
+				and self.active_profile.voice_settings is not None
+				else config.conf().voice.transcription_model
+			),
+			transcription_language=(
+				self.active_profile.voice_settings.transcription_language
+				if self.active_profile
+				and self.active_profile.voice_settings is not None
+				else config.conf().voice.transcription_language
+			),
+			transcription_prompt=(
+				self.active_profile.voice_settings.transcription_prompt
+				if self.active_profile
+				and self.active_profile.voice_settings is not None
+				else config.conf().voice.transcription_prompt
+			),
+			vad_type=(
+				self.active_profile.voice_settings.vad_type
+				if self.active_profile
+				and self.active_profile.voice_settings is not None
+				else config.conf().voice.vad_type
+			),
+			vad_eagerness=self.voice_vad_eagerness.GetValue() or "auto",
+			interrupt_response=self.voice_interrupt_response.GetValue(),
+			create_response=self.voice_create_response.GetValue(),
+			output_speed=float(self.voice_output_speed.GetValue()),
+		)
+
+	def on_save_voice_settings(self, event: wx.CommandEvent):
+		"""Save the current voice widget values to the active voice profile."""
+		if not self.active_profile:
+			self.show_error(
+				_("No profile applied to save voice settings."), _("Error")
+			)
+			return
+		if (
+			self.active_profile.profile_type
+			!= config.ConversationProfileType.VOICE
+		):
+			self.show_error(
+				_("Current profile is not a voice profile."), _("Error")
+			)
+			return
+		self.active_profile.voice_settings = self.get_voice_settings()
+		config.conversation_profiles().save()
+		wx.MessageBox(
+			_("Voice settings saved to profile."),
+			_("Saved"),
+			wx.OK | wx.ICON_INFORMATION,
+		)
 
 	# -- Pure UI event handlers --
 
@@ -389,6 +595,13 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.toggle_record_btn.Enable(
 			ProviderCapability.STT in account.provider.engine_cls.capabilities
 		)
+		voice_supported = (
+			ProviderCapability.VOICE_CHAT
+			in account.provider.engine_cls.capabilities
+		)
+		self.toggle_voice_btn.Enable(voice_supported)
+		self.voice_toggle_btn.Enable(voice_supported)
+		self.voice_save_btn.Enable(voice_supported)
 		self.ocr_button.Enable(
 			ProviderCapability.OCR in account.provider.engine_cls.capabilities
 		)
@@ -397,6 +610,12 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			in account.provider.engine_cls.capabilities
 		)
 		self.prompt_panel.set_engine(self.current_engine)
+		self._update_voice_mode_ui()
+
+	def on_model_change(self, event: wx.Event | None):
+		"""Handle model selection changes and update the voice mode UI."""
+		super().on_model_change(event)
+		self._update_voice_mode_ui()
 
 	def refresh_accounts(self):
 		"""Update the account combo box with current accounts."""
@@ -548,6 +767,14 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			event: The button event.
 		"""
 		self.presenter.toggle_recording()
+
+	def toggle_voice_chat(self, event: wx.CommandEvent):
+		"""Toggle realtime voice chat on/off.
+
+		Args:
+			event: The button event.
+		"""
+		self.presenter.toggle_voice_chat()
 
 	def _on_prompt_text_changed(self, event):
 		"""Handle prompt text changes for draft auto-save debouncing."""
