@@ -1,11 +1,29 @@
 """Module to provide structure for AI model information."""
 
+import enum
 from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 from .provider import Provider, get_provider
+
+
+class ModelMode(enum.StrEnum):
+	"""High-level interaction mode for a model."""
+
+	TEXT = "text"
+	VOICE = "voice"
+	MULTIMODAL = "multimodal"
+
+	@classmethod
+	def get_labels(cls) -> dict["ModelMode", str]:
+		"""Get labels for model modes."""
+		return {
+			cls.TEXT: _("Text"),
+			cls.VOICE: _("Voice"),
+			cls.MULTIMODAL: _("Multimodal"),
+		}
 
 
 @dataclass
@@ -34,6 +52,7 @@ class ProviderAIModel:
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	mode: ModelMode = field(default=ModelMode.TEXT)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
@@ -46,14 +65,17 @@ class ProviderAIModel:
 		return f"{self.name} ({self.id})" if self.name else self.id
 
 	@property
-	def display_model(self) -> tuple[str, str, str]:
+	def display_model(self) -> tuple[str, str, str, str, str]:
 		"""Get the display model information for model list view.
 
 		Returns:
-			A tuple containing the display name, vision support, context window size, and max output tokens.
+			A tuple containing the display name, mode, vision support,
+			context window size, and max output tokens.
 		"""
+		mode_label = ModelMode.get_labels().get(self.mode, str(self.mode))
 		return (
 			self.display_name,
+			mode_label,
 			_("yes") if self.vision else _("no"),
 			str(self.context_window),
 			str(self.max_output_tokens) if self.max_output_tokens > 0 else "",
@@ -67,6 +89,9 @@ class ProviderAIModel:
 			The display details of the AI model.
 		"""
 		details = f"{self.display_name}\n"
+		mode_label = ModelMode.get_labels().get(self.mode, str(self.mode))
+		# Translators: AI model details
+		details += _("Mode:") + f" {mode_label}\n"
 		vision_value = _("yes") if self.vision else _("no")
 		# Translators: AI model details
 		details += _("Vision:") + f" {vision_value}\n"

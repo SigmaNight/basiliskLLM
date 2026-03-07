@@ -26,3 +26,5 @@ class ProviderCapability(enum.StrEnum):
 	VIDEO = enum.auto()
 	# The provider supports web search capabilities
 	WEB_SEARCH = enum.auto()
+	# The provider supports realtime voice chat
+	VOICE_CHAT = enum.auto()
