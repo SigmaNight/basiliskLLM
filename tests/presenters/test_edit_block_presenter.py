@@ -205,7 +205,7 @@ class TestStartRegenerate:
 	):
 		"""start_regenerate should call start_completion with a temp block."""
 		mock_start = mocker.patch.object(
-			presenter.completion_handler, "start_completion"
+			presenter.orchestrator, "start_completion"
 		)
 		result = presenter.start_regenerate()
 
@@ -221,7 +221,7 @@ class TestStartRegenerate:
 		"""start_regenerate passes system_message=None when prompt is empty."""
 		mock_view.system_prompt_txt.GetValue.return_value = ""
 		mock_start = mocker.patch.object(
-			presenter.completion_handler, "start_completion"
+			presenter.orchestrator, "start_completion"
 		)
 		presenter.start_regenerate()
 
@@ -234,7 +234,7 @@ class TestStartRegenerate:
 		"""start_regenerate passes a SystemMessage when prompt is non-empty."""
 		mock_view.system_prompt_txt.GetValue.return_value = "Be concise"
 		mock_start = mocker.patch.object(
-			presenter.completion_handler, "start_completion"
+			presenter.orchestrator, "start_completion"
 		)
 		presenter.start_regenerate()
 
@@ -246,10 +246,10 @@ class TestStartRegenerate:
 class TestStopRegenerate:
 	"""Tests for EditBlockPresenter.stop_regenerate."""
 
-	def test_delegates_to_completion_handler(self, presenter, mocker):
+	def test_delegates_to_orchestrator(self, presenter, mocker):
 		"""stop_regenerate should call stop_completion on the handler."""
 		mock_stop = mocker.patch.object(
-			presenter.completion_handler, "stop_completion"
+			presenter.orchestrator, "stop_completion"
 		)
 		presenter.stop_regenerate()
 

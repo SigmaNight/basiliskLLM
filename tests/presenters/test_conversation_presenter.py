@@ -68,7 +68,7 @@ class TestOnSubmit:
 			mock_view.current_model
 		)
 		mock_start = mocker.patch.object(
-			presenter.completion_handler, "start_completion"
+			presenter.orchestrator, "start_completion"
 		)
 		presenter.on_submit()
 
@@ -168,10 +168,13 @@ class TestCleanup:
 	def test_stops_running_completion(self, presenter, mocker):
 		"""cleanup() stops completion with skip_callbacks=True when running."""
 		mocker.patch.object(
-			presenter.completion_handler, "is_running", return_value=True
+			presenter.orchestrator, "is_completion_running", return_value=True
 		)
 		mock_stop = mocker.patch.object(
-			presenter.completion_handler, "stop_completion"
+			presenter.orchestrator, "stop_completion"
+		)
+		mocker.patch.object(
+			presenter.orchestrator, "is_voice_running", return_value=False
 		)
 		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
 		mocker.patch.object(presenter, "flush_draft")
@@ -379,7 +382,7 @@ class TestGenerateConversationTitle:
 	):
 		"""Returns None and shows error when a completion is in progress."""
 		mocker.patch.object(
-			presenter.completion_handler, "is_running", return_value=True
+			presenter.orchestrator, "is_completion_running", return_value=True
 		)
 		result = presenter.generate_conversation_title()
 
@@ -389,7 +392,7 @@ class TestGenerateConversationTitle:
 	def test_returns_none_when_no_messages(self, presenter, mocker):
 		"""Returns None silently when conversation has no messages."""
 		mocker.patch.object(
-			presenter.completion_handler, "is_running", return_value=False
+			presenter.orchestrator, "is_completion_running", return_value=False
 		)
 		result = presenter.generate_conversation_title()
 		assert result is None
@@ -407,7 +410,7 @@ class TestGenerateConversationTitle:
 		mock_service.generate_title.return_value = ("My Conversation", None)
 
 		mocker.patch.object(
-			presenter.completion_handler, "is_running", return_value=False
+			presenter.orchestrator, "is_completion_running", return_value=False
 		)
 		result = presenter.generate_conversation_title()
 
@@ -431,7 +434,7 @@ class TestGenerateConversationTitle:
 		)
 
 		mocker.patch.object(
-			presenter.completion_handler, "is_running", return_value=False
+			presenter.orchestrator, "is_completion_running", return_value=False
 		)
 		result = presenter.generate_conversation_title()
 

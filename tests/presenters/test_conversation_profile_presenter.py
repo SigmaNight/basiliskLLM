@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from basilisk.config import ConversationProfile
+from basilisk.config import ConversationProfile, ConversationProfileType
 from basilisk.presenters.conversation_profile_presenter import (
 	ConversationProfilePresenter,
 	EditConversationProfilePresenter,
@@ -30,6 +30,8 @@ class TestEditConversationProfilePresenter:
 		view.temperature_spinner.GetValue.return_value = 0.7
 		view.top_p_spinner.GetValue.return_value = 0.9
 		view.stream_mode.GetValue.return_value = True
+		view.profile_type = ConversationProfileType.TEXT
+		view.get_voice_settings.return_value = None
 		return view
 
 	def test_validate_returns_none_on_empty_name(self, mock_view):
