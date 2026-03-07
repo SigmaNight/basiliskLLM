@@ -13,6 +13,7 @@ import threading
 import truststore
 import wx
 
+import basilisk.audio as audio
 import basilisk.config as config
 import basilisk.global_vars as global_vars
 
@@ -27,7 +28,6 @@ from basilisk.logger import (
 	setup_logging,
 )
 from basilisk.server_thread import ServerThread
-from basilisk.sound_manager import initialize_sound_manager
 from basilisk.updater import automatic_update_check, automatic_update_download
 
 log = logging.getLogger(__name__)
@@ -72,8 +72,11 @@ class MainApp(wx.App):
 		self.locale = init_translation(language)
 		log.info("translation initialized")
 		self.init_conversation_db()
-		initialize_sound_manager()
-		log.info("sound manager initialized")
+		audio.initialize(
+			input_device=self.conf.recordings.input_device,
+			output_device=self.conf.recordings.output_device,
+		)
+		log.info("audio manager initialized")
 		self.init_main_frame()
 		log.info("main frame initialized")
 		self.init_system_cert_store()

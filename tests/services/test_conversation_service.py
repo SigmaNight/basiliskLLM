@@ -45,9 +45,9 @@ def conversation_with_block():
 
 @pytest.fixture(autouse=True)
 def mock_sounds(mocker):
-	"""Mock play_sound and stop_sound to prevent sound system init."""
-	mocker.patch("basilisk.services.conversation_service.play_sound")
-	mocker.patch("basilisk.services.conversation_service.stop_sound")
+	"""Mock audio.play and audio.stop to prevent audio system init."""
+	mocker.patch("basilisk.services.conversation_service.audio.play")
+	mocker.patch("basilisk.services.conversation_service.audio.stop")
 
 
 @pytest.fixture

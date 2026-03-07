@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
-import threading
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-import sounddevice as sd
 from openai import AsyncOpenAI
+
+import basilisk.audio as audio
 
 log = logging.getLogger(__name__)
 
@@ -66,100 +66,6 @@ class BaseVoiceSession:
 		raise NotImplementedError
 
 
-class PCM16OutputPlayer:
-	"""Simple PCM16 audio output buffer."""
-
-	def __init__(self, sample_rate: int, channels: int = 1) -> None:
-		"""Initialize the output player with sample rate and channel count."""
-		self.sample_rate = sample_rate
-		self.channels = channels
-		self._buffer = bytearray()
-		self._lock = threading.Lock()
-		self._stream: Optional[sd.RawOutputStream] = None
-
-	def start(self) -> None:
-		"""Start the audio output stream."""
-		if self._stream:
-			return
-		self._stream = sd.RawOutputStream(
-			samplerate=self.sample_rate,
-			channels=self.channels,
-			dtype="int16",
-			callback=self._callback,
-		)
-		self._stream.start()
-
-	def stop(self) -> None:
-		"""Stop and close the audio output stream."""
-		if not self._stream:
-			return
-		self._stream.stop()
-		self._stream.close()
-		self._stream = None
-		self.clear()
-
-	def clear(self) -> None:
-		"""Clear the audio buffer."""
-		with self._lock:
-			self._buffer = bytearray()
-
-	def enqueue(self, data: bytes) -> None:
-		"""Append PCM16 bytes to the playback buffer."""
-		if not data:
-			return
-		with self._lock:
-			self._buffer.extend(data)
-
-	def _callback(self, outdata, frames, time_info, status) -> None:
-		bytes_needed = frames * self.channels * 2
-		with self._lock:
-			if len(self._buffer) >= bytes_needed:
-				chunk = self._buffer[:bytes_needed]
-				del self._buffer[:bytes_needed]
-			else:
-				chunk = bytes(self._buffer)
-				self._buffer = bytearray()
-		if len(chunk) < bytes_needed:
-			chunk = chunk + b"\x00" * (bytes_needed - len(chunk))
-		outdata[:] = chunk
-
-
-class AudioInputStream:
-	"""Captures PCM16 audio and forwards bytes via a callback."""
-
-	def __init__(
-		self, sample_rate: int, channels: int, on_audio: Callable[[bytes], None]
-	) -> None:
-		"""Initialize the input stream with sample rate, channels, and callback."""
-		self.sample_rate = sample_rate
-		self.channels = channels
-		self._on_audio = on_audio
-		self._stream: Optional[sd.InputStream] = None
-
-	def start(self) -> None:
-		"""Start capturing audio from the default input device."""
-		if self._stream:
-			return
-		self._stream = sd.InputStream(
-			samplerate=self.sample_rate,
-			channels=self.channels,
-			dtype="int16",
-			callback=self._callback,
-		)
-		self._stream.start()
-
-	def stop(self) -> None:
-		"""Stop and close the audio input stream."""
-		if not self._stream:
-			return
-		self._stream.stop()
-		self._stream.close()
-		self._stream = None
-
-	def _callback(self, indata, frames, time_info, status) -> None:
-		self._on_audio(indata.tobytes())
-
-
 class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 	"""OpenAI realtime voice session using the official SDK."""
 
@@ -176,8 +82,8 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 		self._connection = None
 		self._stop_event = asyncio.Event()
 		self._audio_queue: Optional[asyncio.Queue] = None
-		self._input_stream: Optional[AudioInputStream] = None
-		self._output_player: Optional[PCM16OutputPlayer] = None
+		self._input_stream = None
+		self._output_stream = None
 		self._loop: Optional[asyncio.AbstractEventLoop] = None
 		self._user_transcript_buffer: str = ""
 
@@ -215,12 +121,13 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 			self._stop_event.set()
 			return
 
-		self._output_player = PCM16OutputPlayer(
+		mgr = audio.get_manager()
+		self._output_stream = mgr.open_output_stream(
 			sample_rate=self.config.output_sample_rate,
 			channels=self.config.output_channels,
 		)
 		try:
-			self._output_player.start()
+			self._output_stream.start()
 		except Exception as exc:
 			log.error("Failed to start audio output: %s", exc)
 			if self.callbacks.on_error:
@@ -228,7 +135,7 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 			self._stop_event.set()
 			return
 
-		self._input_stream = AudioInputStream(
+		self._input_stream = mgr.open_input_stream(
 			sample_rate=self.config.input_sample_rate,
 			channels=self.config.input_channels,
 			on_audio=self._enqueue_audio,
@@ -268,9 +175,9 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 		if self._input_stream:
 			self._input_stream.stop()
 			self._input_stream = None
-		if self._output_player:
-			self._output_player.stop()
-			self._output_player = None
+		if self._output_stream:
+			self._output_stream.stop()
+			self._output_stream = None
 		if self._connection is not None:
 			try:
 				await self._connection.response.cancel()
@@ -373,8 +280,8 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 		"""Handle input audio buffer and transcription events."""
 		match event.type:
 			case "input_audio_buffer.speech_started":
-				if self._output_player:
-					self._output_player.clear()
+				if self._output_stream:
+					self._output_stream.clear()
 				if self.callbacks.on_status:
 					self.callbacks.on_status(_("Listening"))
 			case "input_audio_buffer.speech_stopped":
@@ -400,8 +307,8 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 			self._handle_response_text_event(event)
 		elif etype == "response.output_audio.delta":
 			audio_bytes = base64.b64decode(event.delta)
-			if self._output_player:
-				self._output_player.enqueue(audio_bytes)
+			if self._output_stream:
+				self._output_stream.enqueue(audio_bytes)
 			if self.callbacks.on_audio_chunk:
 				self.callbacks.on_audio_chunk(
 					audio_bytes, self.config.output_sample_rate

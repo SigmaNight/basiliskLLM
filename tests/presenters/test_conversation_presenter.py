@@ -177,7 +177,7 @@ class TestCleanup:
 		mocker.patch.object(
 			presenter.orchestrator, "is_voice_running", return_value=False
 		)
-		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch("basilisk.presenters.conversation_presenter.audio.stop")
 		mocker.patch.object(presenter, "flush_draft")
 		presenter.cleanup()
 		mock_stop.assert_called_once_with(skip_callbacks=True)
@@ -187,7 +187,7 @@ class TestCleanup:
 		mock_thread = MagicMock()
 		mock_thread.is_alive.return_value = True
 		presenter.recording_thread = mock_thread
-		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch("basilisk.presenters.conversation_presenter.audio.stop")
 		mocker.patch.object(presenter, "flush_draft")
 		presenter.cleanup()
 		mock_thread.abort.assert_called_once()
@@ -195,7 +195,7 @@ class TestCleanup:
 	def test_skips_abort_when_no_recording_thread(self, presenter, mocker):
 		"""cleanup() does not raise when recording_thread is None."""
 		presenter.recording_thread = None
-		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch("basilisk.presenters.conversation_presenter.audio.stop")
 		mocker.patch.object(presenter, "flush_draft")
 		presenter.cleanup()  # must not raise
 

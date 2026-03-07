@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import logging
 
+import basilisk.audio as audio
 import basilisk.config as config
+from basilisk.audio.devices import AudioDeviceManager
 from basilisk.config import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
@@ -21,6 +23,8 @@ log = logging.getLogger(__name__)
 LOG_LEVELS = LogLevelEnum.get_labels()
 RELEASE_CHANNELS = ReleaseChannelEnum.get_labels()
 AUTO_UPDATE_MODES = AutomaticUpdateModeEnum.get_labels()
+# Translators: Label for the system default audio device in preferences
+SYSTEM_DEFAULT_DEVICE_LABEL = _("System default")
 
 
 class PreferencesPresenter:
@@ -44,6 +48,42 @@ class PreferencesPresenter:
 		conf = config.conf()
 		app_locale = get_app_locale(conf.general.language)
 		self.languages: dict[str, str] = self._build_languages(app_locale)
+		self._build_device_choices(conf)
+
+	def _build_device_choices(self, conf) -> None:
+		"""Build input/output device choice lists and initial selections.
+
+		Args:
+			conf: The current BasiliskConfig instance.
+		"""
+		input_devices = AudioDeviceManager.get_input_devices()
+		output_devices = AudioDeviceManager.get_output_devices()
+		self._input_device_indices = [None] + [d.index for d in input_devices]
+		self._output_device_indices = [None] + [d.index for d in output_devices]
+		self.input_device_choices = [SYSTEM_DEFAULT_DEVICE_LABEL] + [
+			d.name for d in input_devices
+		]
+		self.output_device_choices = [SYSTEM_DEFAULT_DEVICE_LABEL] + [
+			d.name for d in output_devices
+		]
+		cfg_in = conf.recordings.input_device
+		cfg_out = conf.recordings.output_device
+		try:
+			self.initial_input_device_index = (
+				self._input_device_indices.index(cfg_in)
+				if cfg_in in self._input_device_indices
+				else 0
+			)
+		except ValueError:
+			self.initial_input_device_index = 0
+		try:
+			self.initial_output_device_index = (
+				self._output_device_indices.index(cfg_out)
+				if cfg_out in self._output_device_indices
+				else 0
+			)
+		except ValueError:
+			self.initial_output_device_index = 0
 
 	def _build_languages(self, cur_locale) -> dict[str, str]:
 		"""Build the language display dict.
@@ -117,6 +157,17 @@ class PreferencesPresenter:
 		)
 		conf.server.enable = self.view.server_enable.GetValue()
 		conf.server.port = int(self.view.server_port.GetValue())
+
+		in_sel = self.view.input_device.GetSelection()
+		out_sel = self.view.output_device.GetSelection()
+		conf.recordings.input_device = self._input_device_indices[in_sel]
+		new_output_device = self._output_device_indices[out_sel]
+		if conf.recordings.output_device != new_output_device:
+			conf.recordings.output_device = new_output_device
+			try:
+				audio.get_manager().set_output_device(new_output_device)
+			except RuntimeError:
+				pass
 
 		conf.save()
 		set_log_level(conf.general.log_level.name)

@@ -66,6 +66,8 @@ class RecordingsSettings(BaseModel):
 	sample_rate: int = Field(default=16000, ge=8000, le=48000)
 	channels: int = Field(default=1, ge=1, le=2)
 	dtype: str = Field(default="int16")
+	input_device: int | None = Field(default=None)
+	output_device: int | None = Field(default=None)
 
 
 class VoiceSettings(BaseModel):

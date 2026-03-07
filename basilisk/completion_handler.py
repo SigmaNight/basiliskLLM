@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import wx
 
+import basilisk.audio as audio
 from basilisk import global_vars
 from basilisk.conversation.conversation_model import (
 	Conversation,
@@ -24,7 +25,6 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.decorators import ensure_no_task_running
-from basilisk.sound_manager import play_sound, stop_sound
 from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
 
 if TYPE_CHECKING:
@@ -147,7 +147,7 @@ class CompletionHandler:
 			kwargs: The keyword arguments for the completion request
 		"""
 		try:
-			play_sound("progress", loop=True)
+			audio.play("progress", loop=True)
 			response = engine.completion(**kwargs)
 		except Exception as e:
 			logger.error("Error during completion", exc_info=True)
@@ -279,13 +279,13 @@ class CompletionHandler:
 		# Play periodic sound during streaming
 		new_time = time.time()
 		if new_time - self.last_time > 4:
-			play_sound("chat_response_pending")
+			audio.play("chat_response_pending")
 			self.last_time = new_time
 
 	def _completion_finished_success(self):
 		"""Handle completion finish in success on the main thread."""
-		stop_sound()
-		play_sound("chat_response_received")
+		audio.stop()
+		audio.play("chat_response_received")
 		if self.on_completion_end:
 			self.on_completion_end(True)
 		self.task = None
@@ -296,7 +296,7 @@ class CompletionHandler:
 		Args:
 			error_message: The error message
 		"""
-		stop_sound()
+		audio.stop()
 
 		if self.on_error:
 			self.on_error(error_message)

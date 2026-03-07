@@ -290,6 +290,47 @@ class PreferencesDialog(wx.Dialog):
 		network_sizer.Add(self.use_system_cert_store, 0, wx.ALL, 5)
 		sizer.Add(network_sizer, 0, wx.ALL, 5)
 
+		audio_group = wx.StaticBox(
+			panel,
+			# Translators: a group label in the preferences dialog
+			label=_("Audio devices"),
+		)
+		audio_sizer = wx.StaticBoxSizer(audio_group, wx.VERTICAL)
+
+		label = wx.StaticText(
+			audio_group,
+			# Translators: a label for the input device selector
+			label=_("Input device:"),
+		)
+		audio_sizer.Add(label, 0, wx.ALL, 5)
+		self.input_device = wx.ComboBox(
+			audio_group,
+			choices=self.presenter.input_device_choices,
+			style=wx.CB_READONLY,
+		)
+		self.input_device.SetSelection(
+			self.presenter.initial_input_device_index
+		)
+		audio_sizer.Add(self.input_device, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			audio_group,
+			# Translators: a label for the output device selector
+			label=_("Output device:"),
+		)
+		audio_sizer.Add(label, 0, wx.ALL, 5)
+		self.output_device = wx.ComboBox(
+			audio_group,
+			choices=self.presenter.output_device_choices,
+			style=wx.CB_READONLY,
+		)
+		self.output_device.SetSelection(
+			self.presenter.initial_output_device_index
+		)
+		audio_sizer.Add(self.output_device, 0, wx.ALL, 5)
+
+		sizer.Add(audio_sizer, 0, wx.ALL, 5)
+
 		server_group = wx.StaticBox(panel, label=_("Server"))
 		server_group_sizer = wx.StaticBoxSizer(server_group, wx.VERTICAL)
 

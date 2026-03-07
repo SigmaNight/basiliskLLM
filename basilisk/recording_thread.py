@@ -7,18 +7,13 @@ and process the recording for transcription using a provided engine.
 from __future__ import annotations
 
 import logging
-import os
-import tempfile
 import threading
-import wave
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-import sounddevice as sd
 import wx
-from numpy import append as np_append
-from numpy import array as np_array
 
 if TYPE_CHECKING:
+	from basilisk.audio.streams import AudioRecorder
 	from basilisk.config.main_config import RecordingsSettings
 	from basilisk.presenters.conversation_presenter import ConversationPresenter
 
@@ -68,8 +63,7 @@ class RecordingThread(threading.Thread):
 		self.response_format = response_format
 		self.callbacks = callbacks or conversation_tab
 		self.daemon = True
-		self._recording = False
-		self._stop_record = False
+		self._recorder: Optional[AudioRecorder] = None
 		self._want_abort = False
 
 	def run(self):
@@ -79,23 +73,27 @@ class RecordingThread(threading.Thread):
 		and processes it for transcription. Updates the GUI with status changes.
 		"""
 		if not self.audio_file_path:
-			self.audio_file_path = self.get_filename()
-			self.audio_data = np_array([], dtype=self.recordings_settings.dtype)
-			log.debug("Recording started")
-			if not self._want_abort:
-				wx.CallAfter(self.callbacks.on_recording_started)
-			self.record_audio(self.recordings_settings.sample_rate)
-			if not self._want_abort:
-				wx.CallAfter(self.callbacks.on_recording_stopped)
-			log.debug("Recording stopped")
+			import basilisk.audio as audio
+			from basilisk.audio.streams import AudioRecorder
 
-			if self._want_abort:
-				return
-			self.save_wav(
-				self.audio_file_path,
-				self.audio_data,
+			self.audio_file_path = AudioRecorder.default_path()
+			self._recorder = audio.get_manager().open_recorder(
 				self.recordings_settings.sample_rate,
+				self.recordings_settings.channels,
+				self.recordings_settings.dtype,
 			)
+			# If abort() was called before the recorder was created, propagate it
+			if self._want_abort:
+				self._recorder.abort()
+			else:
+				wx.CallAfter(self.callbacks.on_recording_started)
+			log.debug("Recording started")
+			self._recorder.record()  # blocks until stop() or abort()
+			if self._recorder.was_aborted:
+				return
+			wx.CallAfter(self.callbacks.on_recording_stopped)
+			log.debug("Recording stopped")
+			self._recorder.save_wav(self.audio_file_path)
 			log.debug("Audio file saved to %s", self.audio_file_path)
 
 		if self._want_abort:
@@ -103,57 +101,16 @@ class RecordingThread(threading.Thread):
 		wx.CallAfter(self.callbacks.on_transcription_started)
 		self.process_transcription(self.audio_file_path)
 
-	def record_audio(self, sampleRate: int):
-		"""Record audio from the input device.
-
-		Args:
-			sampleRate: The sample rate for audio recording.
-		"""
-		chunk_size = 1024
-		self._recording = True
-		with sd.InputStream(
-			samplerate=sampleRate,
-			channels=self.recordings_settings.channels,
-			dtype=self.recordings_settings.dtype,
-		) as stream:
-			while not self._stop_record and self._recording:
-				frame, overflowed = stream.read(chunk_size)
-				if overflowed:
-					log.error("Audio buffer has overflowed.")
-				self.audio_data = np_append(self.audio_data, frame)
-				if self._want_abort:
-					break
-		self._recording = False
-
-	def save_wav(self, filename: str, data: np_array, sample_rate: int):
-		"""Save recorded audio data to a WAV file.
-
-		Args:
-			filename: Path where the WAV file will be saved.
-			data: Audio data to be saved.
-			sample_rate: Sample rate of the audio data.
-		"""
-		if self._want_abort:
-			return
-		wavefile = wave.open(filename, "wb")
-		wavefile.setnchannels(self.recordings_settings.channels)
-		wavefile.setsampwidth(2)  # 16 bits
-		wavefile.setframerate(sample_rate)
-		wavefile.writeframes(data.tobytes())
-		wavefile.close()
-
 	def stop(self):
 		"""Stop the current recording process."""
-		self._stop_record = True
-		self._recording = False
+		if self._recorder is not None:
+			self._recorder.stop()
 
-	def get_filename(self):
-		"""Get the default filename for saving the recording.
-
-		Returns:
-			Path to the temporary WAV file.
-		"""
-		return os.path.join(tempfile.gettempdir(), "basilisk_last_record.wav")
+	def abort(self):
+		"""Abort the recording and transcription process."""
+		self._want_abort = True
+		if self._recorder is not None:
+			self._recorder.abort()
 
 	def process_transcription(self, audio_file_path: str):
 		"""Process the audio file for transcription.
@@ -177,8 +134,3 @@ class RecordingThread(threading.Thread):
 		except BaseException as err:
 			log.error("Error getting transcription: %s", err)
 			wx.CallAfter(self.callbacks.on_transcription_error, str(err))
-
-	def abort(self):
-		"""Abort the recording and transcription process."""
-		self._stop_record = True
-		self._want_abort = True

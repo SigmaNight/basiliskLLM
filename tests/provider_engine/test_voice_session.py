@@ -8,12 +8,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from basilisk.audio.streams import AudioInputStream, AudioOutputStream
 from basilisk.provider_engine.voice_session import (
-	AudioInputStream,
 	BaseVoiceSession,
 	GeminiLiveVoiceSession,
 	OpenAIRealtimeVoiceSession,
-	PCM16OutputPlayer,
 	VoiceSessionCallbacks,
 	VoiceSessionConfig,
 )
@@ -163,48 +162,48 @@ class TestBaseVoiceSession:
 
 
 # ---------------------------------------------------------------------------
-# PCM16OutputPlayer
+# AudioOutputStream (formerly PCM16OutputPlayer)
 # ---------------------------------------------------------------------------
 
 
-class TestPCM16OutputPlayer:
-	"""Tests for PCM16OutputPlayer buffer logic (no audio hardware)."""
+class TestAudioOutputStream:
+	"""Tests for AudioOutputStream buffer logic (no audio hardware)."""
 
 	def test_initial_state(self):
 		"""Buffer is empty on construction."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		assert len(player._buffer) == 0
 		assert player._stream is None
 
 	def test_enqueue_adds_to_buffer(self):
 		"""enqueue() appends bytes to the buffer."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		player.enqueue(b"\x01\x02\x03\x04")
 		assert player._buffer == bytearray(b"\x01\x02\x03\x04")
 
 	def test_enqueue_empty_data_ignored(self):
 		"""enqueue() with empty bytes does nothing."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		player.enqueue(b"")
 		assert len(player._buffer) == 0
 
 	def test_enqueue_accumulates(self):
 		"""Multiple enqueue() calls accumulate data."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		player.enqueue(b"\x01\x02")
 		player.enqueue(b"\x03\x04")
 		assert player._buffer == bytearray(b"\x01\x02\x03\x04")
 
 	def test_clear_empties_buffer(self):
 		"""clear() resets the buffer."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		player.enqueue(b"\x01\x02\x03\x04")
 		player.clear()
 		assert len(player._buffer) == 0
 
 	def test_callback_full_buffer(self):
 		"""_callback() drains exactly the requested bytes from the buffer."""
-		player = PCM16OutputPlayer(sample_rate=24000, channels=1)
+		player = AudioOutputStream(sample_rate=24000, channels=1)
 		# 4 frames × 1 channel × 2 bytes = 8 bytes
 		player.enqueue(b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a")
 		outdata = bytearray(8)
@@ -215,7 +214,7 @@ class TestPCM16OutputPlayer:
 
 	def test_callback_partial_buffer_pads_zeros(self):
 		"""_callback() pads with zeros when buffer has fewer bytes than needed."""
-		player = PCM16OutputPlayer(sample_rate=24000, channels=1)
+		player = AudioOutputStream(sample_rate=24000, channels=1)
 		player.enqueue(b"\x01\x02")
 		outdata = bytearray(8)
 		player._callback(outdata, 4, None, None)
@@ -224,14 +223,14 @@ class TestPCM16OutputPlayer:
 
 	def test_callback_empty_buffer_all_zeros(self):
 		"""_callback() fills with zeros when buffer is empty."""
-		player = PCM16OutputPlayer(sample_rate=24000, channels=1)
+		player = AudioOutputStream(sample_rate=24000, channels=1)
 		outdata = bytearray(8)
 		player._callback(outdata, 4, None, None)
 		assert bytes(outdata) == b"\x00" * 8
 
 	def test_stop_when_no_stream(self):
 		"""stop() is a no-op when no stream is active."""
-		player = PCM16OutputPlayer(sample_rate=24000)
+		player = AudioOutputStream(sample_rate=24000)
 		player.stop()  # Should not raise
 		assert player._stream is None
 
@@ -252,6 +251,7 @@ class TestAudioInputStream:
 		assert stream._on_audio is cb
 		assert stream.sample_rate == 24000
 		assert stream.channels == 1
+		assert stream._device is None
 
 	def test_stop_when_no_stream(self):
 		"""stop() is a no-op when no stream is open."""
@@ -485,7 +485,7 @@ class TestHandleInputEvent:
 		cbs = _make_callbacks(on_status=on_status)
 		session = _make_session(callbacks=cbs)
 		player = MagicMock()
-		session._output_player = player
+		session._output_stream = player
 		event = _make_event("input_audio_buffer.speech_started")
 		session._handle_input_event(event)
 		player.clear.assert_called_once()
@@ -495,7 +495,7 @@ class TestHandleInputEvent:
 		"""speech_started without output player still fires on_status."""
 		on_status = MagicMock()
 		session = _make_session(callbacks=_make_callbacks(on_status=on_status))
-		session._output_player = None
+		session._output_stream = None
 		session._handle_input_event(
 			_make_event("input_audio_buffer.speech_started")
 		)
@@ -569,7 +569,7 @@ class TestHandleResponseEvent:
 		cbs = _make_callbacks(on_audio_chunk=on_audio_chunk)
 		session = _make_session(callbacks=cbs)
 		player = MagicMock()
-		session._output_player = player
+		session._output_stream = player
 		raw = b"\x01\x02\x03\x04"
 		encoded = base64.b64encode(raw).decode("ascii")
 		event = _make_event("response.output_audio.delta", delta=encoded)
@@ -585,7 +585,7 @@ class TestHandleResponseEvent:
 		session = _make_session(
 			callbacks=_make_callbacks(on_audio_chunk=on_audio_chunk)
 		)
-		session._output_player = None
+		session._output_stream = None
 		raw = b"\x01\x02"
 		event = _make_event(
 			"response.output_audio.delta", delta=base64.b64encode(raw).decode()

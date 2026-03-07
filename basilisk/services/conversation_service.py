@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Callable, Optional
 
+import basilisk.audio as audio
 import basilisk.config as config
 from basilisk.conversation import (
 	PROMPT_TITLE,
@@ -19,7 +20,6 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 from basilisk.provider_ai_model import AIModelInfo
-from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
 	from basilisk.conversation.database import ConversationDatabase
@@ -231,7 +231,7 @@ class ConversationService:
 			A tuple of (title, error). On success: (title_string, None).
 			On failure: (None, exception).
 		"""
-		play_sound("progress", loop=True)
+		audio.play("progress", loop=True)
 		try:
 			new_block = MessageBlock(
 				request=Message(
@@ -264,4 +264,4 @@ class ConversationService:
 			log.error("Title generation failed", exc_info=True)
 			return None, e
 		finally:
-			stop_sound()
+			audio.stop()

@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
+import basilisk.audio as audio
 import basilisk.config as config
 from basilisk.conversation import (
 	AttachmentFile,
@@ -29,7 +30,6 @@ from basilisk.provider_capability import ProviderCapability
 from basilisk.provider_engine.voice_session import VoiceSessionConfig
 from basilisk.services.conversation_orchestrator import ConversationOrchestrator
 from basilisk.services.conversation_service import ConversationService
-from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
 	from basilisk.recording_thread import RecordingThread
@@ -217,7 +217,7 @@ class ConversationPresenter(DestroyGuardMixin):
 					"Error aborting recording thread: %s", e, exc_info=True
 				)
 			self.recording_thread = None
-		stop_sound()
+		audio.stop()
 		self.flush_draft()
 
 	@_guard_destroying
@@ -391,19 +391,19 @@ class ConversationPresenter(DestroyGuardMixin):
 	@_guard_destroying
 	def on_recording_started(self):
 		"""Handle the start of audio recording."""
-		play_sound("recording_started")
+		audio.play("recording_started")
 		self.view.SetStatusText(_("Recording..."))
 
 	@_guard_destroying
 	def on_recording_stopped(self):
 		"""Handle the end of audio recording."""
-		play_sound("recording_stopped")
+		audio.play("recording_stopped")
 		self.view.SetStatusText(_("Recording stopped"))
 
 	@_guard_destroying
 	def on_transcription_started(self):
 		"""Handle the start of audio transcription."""
-		play_sound("progress", loop=True)
+		audio.play("progress", loop=True)
 		self.view.SetStatusText(_("Transcribing..."))
 
 	@_guard_destroying
@@ -413,7 +413,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		Args:
 			transcription: The transcription result.
 		"""
-		stop_sound()
+		audio.stop()
 		self.view.SetStatusText(_("Ready"))
 		self.view.prompt_panel.prompt.AppendText(transcription.text)
 		if (
@@ -431,7 +431,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		Args:
 			error: The error that occurred.
 		"""
-		stop_sound()
+		audio.stop()
 		self.view.SetStatusText(_("Ready"))
 		self.view.show_enhanced_error(
 			_("An error occurred during transcription: %s") % error,
