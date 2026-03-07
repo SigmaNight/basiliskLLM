@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 import logging
 from functools import cache, cached_property
 from typing import Any, Iterable, Optional
@@ -30,12 +31,42 @@ from .config_helper import (
 log = logging.getLogger(__name__)
 
 
+class ConversationProfileType(enum.StrEnum):
+	"""Profile types for conversation presets."""
+
+	TEXT = "text"
+	VOICE = "voice"
+
+	@classmethod
+	def get_labels(cls) -> dict["ConversationProfileType", str]:
+		"""Get localized labels for profile types."""
+		return {cls.TEXT: _("Text"), cls.VOICE: _("Voice")}
+
+
+class VoiceProfileSettings(BaseModel):
+	"""Voice settings stored in a conversation profile."""
+
+	realtime_model: str = Field(default="gpt-realtime")
+	voice: str = Field(default="marin")
+	transcription_model: str = Field(default="gpt-4o-mini-transcribe")
+	transcription_language: str | None = Field(default=None)
+	transcription_prompt: str | None = Field(default=None)
+	vad_type: str = Field(default="semantic_vad")
+	vad_eagerness: str = Field(default="auto")
+	interrupt_response: bool = Field(default=True)
+	create_response: bool = Field(default=True)
+	output_speed: float | None = Field(default=None, ge=0.25, le=1.5)
+
+
 class ConversationProfile(BaseModel):
 	"""A configuration model for a conversation profile."""
 
 	model_config = ConfigDict(revalidate_instances="always")
 	id: UUID4 = Field(default_factory=uuid4)
 	name: str
+	profile_type: ConversationProfileType = Field(
+		default=ConversationProfileType.TEXT
+	)
 	system_prompt: str = Field(default="")
 	account_info: Optional[AccountInfo] = Field(default=None)
 	ai_model_info: Optional[AIModelInfo] = Field(default=None)
@@ -43,6 +74,7 @@ class ConversationProfile(BaseModel):
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
 	stream_mode: bool = Field(default=True)
+	voice_settings: VoiceProfileSettings | None = Field(default=None)
 
 	def __init__(self, **data: Any):
 		"""Initialize a conversation profile with the provided data.
@@ -179,6 +211,11 @@ class ConversationProfile(BaseModel):
 		"""
 		# Translators: Summary of a conversation profile
 		summary = _("Name:") + f" {self.name}\n"
+		# Translators: Summary of a conversation profile
+		summary += (
+			_("Type:")
+			+ f" {ConversationProfileType.get_labels().get(self.profile_type, self.profile_type)}\n"
+		)
 		if self.account:
 			# Translators: Summary of a conversation profile
 			summary += _("Account name:") + f" {self.account.name}\n"
@@ -201,6 +238,18 @@ class ConversationProfile(BaseModel):
 		if self.system_prompt:
 			# Translators: Summary of a conversation profile
 			summary += _("System prompt:") + f"\n{self.system_prompt}"
+		if (
+			self.profile_type == ConversationProfileType.VOICE
+			and self.voice_settings
+		):
+			# Translators: Summary of a conversation profile
+			summary += "\n" + _("Voice:") + f" {self.voice_settings.voice}"
+			# Translators: Summary of a conversation profile
+			summary += (
+				"\n"
+				+ _("VAD eagerness:")
+				+ f" {self.voice_settings.vad_eagerness}"
+			)
 		return summary
 
 	def __eq__(self, value: ConversationProfile | None) -> bool:
@@ -254,6 +303,17 @@ class ConversationProfile(BaseModel):
 				raise ValueError("Top P must be None without model")
 		return self
 
+	@model_validator(mode="after")
+	def check_voice_settings(self) -> ConversationProfile:
+		"""Ensure voice settings align with profile type."""
+		if self.profile_type == ConversationProfileType.VOICE:
+			if self.voice_settings is None:
+				self.voice_settings = VoiceProfileSettings()
+		else:
+			if self.voice_settings is not None:
+				self.voice_settings = None
+		return self
+
 
 config_file_name = "profiles.yml"
 
@@ -268,6 +328,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 	)
 
 	default_profile_id: Optional[UUID4] = Field(default=None)
+	default_voice_profile_id: Optional[UUID4] = Field(default=None)
 
 	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
 		"""Retrieve a conversation profile based on the provided key-value pairs.
@@ -297,6 +358,13 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			return None
 		return self.get_profile(id=self.default_profile_id)
 
+	@cached_property
+	def default_voice_profile(self) -> ConversationProfile | None:
+		"""Retrieves the default voice conversation profile."""
+		if self.default_voice_profile_id is None:
+			return None
+		return self.get_profile(id=self.default_voice_profile_id)
+
 	def set_default_profile(self, value: ConversationProfile | None):
 		"""Set the default conversation profile.
 
@@ -310,6 +378,21 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		if "default_profile" in self.__dict__:
 			del self.__dict__["default_profile"]
 
+	def set_default_voice_profile(self, value: ConversationProfile | None):
+		"""Set the default voice conversation profile."""
+		if value is None:
+			self.default_voice_profile_id = None
+		elif value.profile_type != ConversationProfileType.VOICE:
+			log.warning(
+				"Attempted to set non-voice profile as default voice: %s",
+				value.name,
+			)
+			return
+		else:
+			self.default_voice_profile_id = value.id
+		if "default_voice_profile" in self.__dict__:
+			del self.__dict__["default_voice_profile"]
+
 	@model_validator(mode="after")
 	def check_default_profile(self) -> ConversationProfileManager:
 		"""Validates that the default profile is set and exists.
@@ -321,8 +404,9 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		The current conversation profile manager instance after validation/correction.
 		"""
 		if self.default_profile_id is None:
-			return self
-		if self.default_profile is None:
+			if self.default_voice_profile_id is None:
+				return self
+		if self.default_profile_id is not None and self.default_profile is None:
 			# Auto-correct invalid default_profile_id instead of failing
 			log.warning(
 				"Unable to load default profile with id: '%s'",
@@ -331,6 +415,29 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			self.default_profile_id = None
 			if "default_profile" in self.__dict__:
 				del self.__dict__["default_profile"]
+		if (
+			self.default_voice_profile_id is not None
+			and self.default_voice_profile is None
+		):
+			log.warning(
+				"Unable to load default voice profile with id: '%s'",
+				self.default_voice_profile_id,
+			)
+			self.default_voice_profile_id = None
+			if "default_voice_profile" in self.__dict__:
+				del self.__dict__["default_voice_profile"]
+		if (
+			self.default_voice_profile is not None
+			and self.default_voice_profile.profile_type
+			!= ConversationProfileType.VOICE
+		):
+			log.warning(
+				"Default voice profile is not a voice profile: %s",
+				self.default_voice_profile.name,
+			)
+			self.default_voice_profile_id = None
+			if "default_voice_profile" in self.__dict__:
+				del self.__dict__["default_voice_profile"]
 		return self
 
 	def __iter__(self) -> Iterable[ConversationProfile]:
@@ -359,6 +466,10 @@ class ConversationProfileManager(BasiliskBaseSettings):
 			self.default_profile_id = None
 			if "default_profile" in self.__dict__:
 				del self.__dict__["default_profile"]
+		if profile == self.default_voice_profile:
+			self.default_voice_profile_id = None
+			if "default_voice_profile" in self.__dict__:
+				del self.__dict__["default_voice_profile"]
 		self.profiles.remove(profile)
 
 	def __len__(self) -> int:

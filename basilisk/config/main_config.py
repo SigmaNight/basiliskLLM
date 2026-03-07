@@ -68,6 +68,21 @@ class RecordingsSettings(BaseModel):
 	dtype: str = Field(default="int16")
 
 
+class VoiceSettings(BaseModel):
+	"""Realtime voice settings for BasiliskLLM."""
+
+	realtime_model: str = Field(default="gpt-realtime")
+	voice: str = Field(default="marin")
+	transcription_model: str = Field(default="gpt-4o-mini-transcribe")
+	transcription_language: str | None = Field(default=None)
+	transcription_prompt: str | None = Field(default=None)
+	vad_type: str = Field(default="semantic_vad")
+	vad_eagerness: str = Field(default="auto")
+	interrupt_response: bool = Field(default=True)
+	create_response: bool = Field(default=True)
+	output_speed: float | None = Field(default=None, ge=0.25, le=1.5)
+
+
 class ServerSettings(BaseModel):
 	"""Server settings for BasiliskLLM."""
 
@@ -92,6 +107,7 @@ class BasiliskConfig(BasiliskBaseSettings):
 	)
 	images: ImagesSettings = Field(default_factory=ImagesSettings)
 	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
+	voice: VoiceSettings = Field(default_factory=VoiceSettings)
 	network: NetworkSettings = Field(default_factory=NetworkSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)
 

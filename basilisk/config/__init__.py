@@ -14,7 +14,11 @@ from .config_enums import (
 	LogLevelEnum,
 	ReleaseChannelEnum,
 )
-from .conversation_profile import ConversationProfile
+from .conversation_profile import (
+	ConversationProfile,
+	ConversationProfileType,
+	VoiceProfileSettings,
+)
 from .conversation_profile import (
 	get_conversation_profile_config as conversation_profiles,
 )
@@ -31,10 +35,12 @@ __all__ = [
 	"BasiliskConfig",
 	"conf",
 	"ConversationProfile",
+	"ConversationProfileType",
 	"conversation_profiles",
 	"CUSTOM_BASE_URL_PATTERN",
 	"get_account_source_labels",
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",
+	"VoiceProfileSettings",
 ]
