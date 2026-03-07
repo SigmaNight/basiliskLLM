@@ -441,6 +441,36 @@ class MainFramePresenter:
 		tab.set_private(not tab.private)
 		self.view.refresh_tab_title(include_frame=True)
 
+	def handle_voice_hotkey(self):
+		"""Handle the global voice hotkey.
+
+		Behavior:
+		- If current tab is already in voice mode, toggle voice start/stop.
+		- If current tab is in text mode, create a new conversation using the
+		  default voice profile and start voice.
+		"""
+		from basilisk.views.conversation_tab import ConversationTab
+
+		current_tab = self.view.current_tab
+		if current_tab and current_tab.is_voice_mode():
+			current_tab.presenter.toggle_voice_chat()
+			return
+		self.handle_no_account_configured()
+		voice_profile = config.conversation_profiles().default_voice_profile
+		if not voice_profile:
+			self.view.show_error(
+				_("No default voice profile configured"), _("Error")
+			)
+			self.manage_conversation_profiles()
+			return
+		new_tab = ConversationTab(
+			self.view.notebook,
+			title=self.get_default_conv_title(),
+			profile=voice_profile,
+		)
+		self.view.add_conversation_tab(new_tab)
+		new_tab.presenter.start_voice_chat()
+
 	# -- NVDA addon --
 
 	def install_nvda_addon(self):

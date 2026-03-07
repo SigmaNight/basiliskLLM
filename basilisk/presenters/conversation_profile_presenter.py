@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from basilisk.config import ConversationProfile
+from basilisk.config import ConversationProfile, ConversationProfileType
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
 
 if TYPE_CHECKING:
@@ -59,6 +59,7 @@ class EditConversationProfilePresenter:
 
 		self.profile.name = name
 		self.profile.system_prompt = self.view.system_prompt_txt.GetValue()
+		self.profile.profile_type = self.view.profile_type
 
 		account = self.view.current_account
 		model = self.view.current_model
@@ -92,6 +93,13 @@ class EditConversationProfilePresenter:
 			self.profile.top_p = None
 
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
+		if self.profile.profile_type == ConversationProfileType.VOICE:
+			voice_settings = self.view.get_voice_settings()
+			if voice_settings and model:
+				voice_settings.realtime_model = model.id
+			self.profile.voice_settings = voice_settings
+		else:
+			self.profile.voice_settings = None
 		try:
 			ConversationProfile.model_validate(self.profile)
 		except ValidationError as e:
@@ -159,5 +167,15 @@ class ConversationProfilePresenter(ManagerCrudMixin):
 			profile: The profile to set as default.
 		"""
 		self.profiles.set_default_profile(profile)
+		self.profiles.save()
+		self.menu_update = True
+
+	def set_default_voice(self, profile: ConversationProfile):
+		"""Set a profile as the default voice profile and save.
+
+		Args:
+			profile: The profile to set as default voice profile.
+		"""
+		self.profiles.set_default_voice_profile(profile)
 		self.profiles.save()
 		self.menu_update = True
