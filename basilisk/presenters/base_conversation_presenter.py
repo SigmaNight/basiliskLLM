@@ -71,7 +71,9 @@ class BaseConversationPresenter:
 			accounts.append(account.display_name)
 		return accounts
 
-	def get_display_models(self, engine: BaseEngine | None) -> list[tuple]:
+	def get_display_models(
+		self, engine: BaseEngine | None
+	) -> list[tuple[str, str, str, str, str]]:
 		"""Return model display tuples for the given engine.
 
 		Args:

@@ -1,8 +1,8 @@
 """Presenter for conversation orchestration logic.
 
-Coordinates between the ConversationTab view, CompletionHandler,
-RecordingThread, and ConversationService. Owns the completion handler,
-recording thread, error-recovery state, and conversation model.
+Coordinates between the ConversationTab view, ConversationOrchestrator,
+RecordingThread, and ConversationService. Owns the orchestrator, recording
+thread, error-recovery state, and conversation model.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 import basilisk.config as config
-from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	AttachmentFile,
 	Conversation,
@@ -25,8 +24,10 @@ from basilisk.presenters.presenter_mixins import (
 	DestroyGuardMixin,
 	_guard_destroying,
 )
-from basilisk.provider_ai_model import AIModelInfo
+from basilisk.provider_ai_model import AIModelInfo, ModelMode
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.voice_session import VoiceSessionConfig
+from basilisk.services.conversation_orchestrator import ConversationOrchestrator
 from basilisk.services.conversation_service import ConversationService
 from basilisk.sound_manager import play_sound, stop_sound
 
@@ -40,7 +41,7 @@ log = logging.getLogger(__name__)
 class ConversationPresenter(DestroyGuardMixin):
 	"""Orchestrates completion, recording, and submission flows.
 
-	The presenter holds the completion handler, recording thread, error
+	The presenter holds the orchestrator, recording thread, error
 	recovery state, and the conversation model. It reads widget values
 	directly from the view (MVP pattern) and delegates persistence to the
 	ConversationService.
@@ -49,7 +50,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		view: The ConversationTab view this presenter drives.
 		service: The ConversationService for persistence.
 		conversation: The active conversation model.
-		completion_handler: Handler for AI completions.
+		orchestrator: Service handling AI completions and voice sessions.
 		recording_thread: Active recording thread, or None.
 		conv_storage_path: Storage path for conversation attachments.
 		bskc_path: Path to the .bskc file, or None.
@@ -85,7 +86,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			None
 		)
 
-		self.completion_handler = CompletionHandler(
+		self.orchestrator = ConversationOrchestrator(
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
 			on_stream_chunk=self._on_stream_chunk,
@@ -93,7 +94,15 @@ class ConversationPresenter(DestroyGuardMixin):
 			on_stream_finish=self._on_stream_finish,
 			on_non_stream_finish=self._on_non_stream_finish,
 			on_error=self._on_completion_error,
+			on_voice_status=self._on_voice_status,
+			on_voice_user_text=self._on_voice_user_text,
+			on_voice_assistant_text=self._on_voice_assistant_text,
+			on_voice_error=self._on_voice_error,
 		)
+		self._voice_active_block: Optional[MessageBlock] = None
+		self._voice_prev_speak_response: Optional[bool] = None
+		self._voice_pending_assistant: str = ""
+		self._voice_pending_assistant_final: bool = False
 
 	# -- Submission flow --
 
@@ -130,7 +139,7 @@ class ConversationPresenter(DestroyGuardMixin):
 				view.web_search_mode.GetValue()
 			)
 
-		self.completion_handler.start_completion(
+		self.orchestrator.start_completion(
 			engine=view.current_engine,
 			system_message=self.get_system_message(),
 			conversation=self.conversation,
@@ -141,7 +150,7 @@ class ConversationPresenter(DestroyGuardMixin):
 
 	def on_stop_completion(self):
 		"""Stop the current completion."""
-		self.completion_handler.stop_completion()
+		self.orchestrator.stop_completion()
 
 	def get_system_message(self) -> SystemMessage | None:
 		"""Get the system message from the view's system prompt input."""
@@ -197,9 +206,7 @@ class ConversationPresenter(DestroyGuardMixin):
 
 	def cleanup(self):
 		"""Stop all active resources before destroying the tab."""
-		if self.completion_handler.is_running():
-			log.debug("Stopping completion handler before closing tab")
-			self.completion_handler.stop_completion(skip_callbacks=True)
+		self.orchestrator.cleanup()
 		if self.recording_thread and self.recording_thread.is_alive():
 			log.debug("Aborting recording thread before closing tab")
 			try:
@@ -431,6 +438,260 @@ class ConversationPresenter(DestroyGuardMixin):
 			_("Transcription Error"),
 		)
 
+	# -- Voice chat coordination --
+
+	def toggle_voice_chat(self):
+		"""Toggle realtime voice chat on/off."""
+		if self.orchestrator.is_voice_running():
+			self.stop_voice_chat()
+		else:
+			self.start_voice_chat()
+
+	def start_voice_chat(self):
+		"""Start realtime voice chat."""
+		if (
+			self.view.current_model is None
+			or self.view.current_model.mode != ModelMode.VOICE
+		):
+			voice_profile = config.conversation_profiles().default_voice_profile
+			if not voice_profile:
+				self.view.show_error(
+					_("No default voice profile configured"), _("Error")
+				)
+				return
+			self.view.apply_profile(voice_profile, True)
+		cur_provider = self.view.current_engine
+		if cur_provider is None:
+			return
+		if self.view.current_model is None or self.view.current_account is None:
+			self.view.show_error(
+				_("No model selected for voice chat."), _("Error")
+			)
+			return
+		if self.view.current_model.mode != ModelMode.VOICE:
+			self.view.show_error(
+				_("Selected model is not a voice model."), _("Error")
+			)
+			return
+		if ProviderCapability.VOICE_CHAT not in cur_provider.capabilities:
+			self.view.show_error(
+				_("The selected provider does not support voice chat"),
+				_("Error"),
+			)
+			return
+		if self.orchestrator.is_completion_running():
+			self.view.show_error(
+				_(
+					"A completion is already in progress. Please wait until it finishes."
+				),
+				_("Error"),
+			)
+			return
+		self._voice_active_block = None
+		self._voice_pending_assistant = ""
+		self._voice_pending_assistant_final = False
+		self._voice_prev_speak_response = (
+			self.view.messages.presenter.speak_response
+		)
+		self.view.messages.presenter.speak_response = False
+		self.view.toggle_voice_btn.SetLabel(_("Stop voice"))
+		if hasattr(self.view, "voice_toggle_btn"):
+			self.view.voice_toggle_btn.SetLabel(_("Stop voice"))
+		self.view.submit_btn.Disable()
+		self.view.toggle_record_btn.Disable()
+		self.view.SetStatusText(_("Connecting..."))
+		if hasattr(self.view, "voice_status_label"):
+			self.view.voice_status_label.SetLabel(_("Connecting..."))
+		voice_config = self._build_voice_config()
+		if not voice_config.model or not voice_config.voice:
+			self.view.show_error(
+				_("Voice settings are incomplete. Check profile settings."),
+				_("Error"),
+			)
+			self.stop_voice_chat()
+			return
+		self.orchestrator.start_voice_session(
+			engine=cur_provider, config=voice_config
+		)
+
+	def stop_voice_chat(self):
+		"""Stop realtime voice chat."""
+		self.orchestrator.stop_voice_session()
+		self._voice_active_block = None
+		self._voice_pending_assistant = ""
+		self._voice_pending_assistant_final = False
+		if self._voice_prev_speak_response is not None:
+			self.view.messages.presenter.speak_response = (
+				self._voice_prev_speak_response
+			)
+			self._voice_prev_speak_response = None
+		self.view.toggle_voice_btn.SetLabel(_("Voice chat"))
+		if hasattr(self.view, "voice_toggle_btn"):
+			self.view.voice_toggle_btn.SetLabel(_("Start voice"))
+		self.view.submit_btn.Enable()
+		account = self.view.current_account
+		self.view.toggle_record_btn.Enable(
+			bool(account)
+			and ProviderCapability.STT
+			in account.provider.engine_cls.capabilities
+		)
+		self.view.SetStatusText(_("Ready"))
+		if hasattr(self.view, "voice_status_label"):
+			self.view.voice_status_label.SetLabel(_("Ready"))
+
+	def _build_voice_config(self) -> VoiceSessionConfig:
+		conf = config.conf().voice
+		voice_settings = None
+		if hasattr(self.view, "get_voice_settings"):
+			voice_settings = self.view.get_voice_settings()
+		system_prompt = self.view.system_prompt_txt.GetValue()
+		current_model = self.view.current_model
+		return VoiceSessionConfig(
+			model=(current_model.id if current_model else "").strip(),
+			voice=(
+				(voice_settings.voice if voice_settings else conf.voice) or ""
+			).strip(),
+			instructions=system_prompt or None,
+			transcription_model=(
+				(
+					voice_settings.transcription_model
+					if voice_settings
+					else conf.transcription_model
+				)
+				or ""
+			).strip()
+			or "gpt-4o-mini-transcribe",
+			transcription_language=(
+				voice_settings.transcription_language
+				if voice_settings
+				else conf.transcription_language
+			)
+			or None,
+			transcription_prompt=(
+				voice_settings.transcription_prompt
+				if voice_settings
+				else conf.transcription_prompt
+			)
+			or None,
+			vad_type=(
+				voice_settings.vad_type if voice_settings else conf.vad_type
+			),
+			vad_eagerness=(
+				voice_settings.vad_eagerness
+				if voice_settings
+				else conf.vad_eagerness
+			),
+			create_response=(
+				voice_settings.create_response
+				if voice_settings
+				else conf.create_response
+			),
+			interrupt_response=(
+				voice_settings.interrupt_response
+				if voice_settings
+				else conf.interrupt_response
+			),
+			output_speed=(
+				voice_settings.output_speed
+				if voice_settings
+				else conf.output_speed
+			),
+		)
+
+	@_guard_destroying
+	def _on_voice_status(self, status: str):
+		self.view.SetStatusText(status)
+		if hasattr(self.view, "voice_status_label"):
+			self.view.voice_status_label.SetLabel(status)
+
+	@_guard_destroying
+	def _on_voice_user_text(self, text: str, is_final: bool):
+		if not is_final or not text.strip():
+			return
+		model = self.view.current_model
+		account = self.view.current_account
+		if not model or not account:
+			return
+		block = self._voice_active_block
+		if block and not block.request.content:
+			block.request.content = text
+			self.view.refresh_messages(preserve_prompt=True)
+		elif not block:
+			block = MessageBlock(
+				request=Message(role=MessageRoleEnum.USER, content=text),
+				response=Message(role=MessageRoleEnum.ASSISTANT, content=""),
+				model=AIModelInfo(
+					provider_id=account.provider.id, model_id=model.id
+				),
+				temperature=self.view.temperature_spinner.GetValue(),
+				top_p=self.view.top_p_spinner.GetValue(),
+				max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
+				stream=True,
+			)
+			system_message = self.get_system_message()
+			self.conversation.add_block(block, system_message)
+			self.view.messages.display_new_block(block, streaming=True)
+			self.view.messages.SetInsertionPointEnd()
+			self._voice_active_block = block
+		if self._voice_pending_assistant:
+			block.response.content += self._voice_pending_assistant
+			self.view.messages.append_stream_chunk(
+				self._voice_pending_assistant
+			)
+			self._voice_pending_assistant = ""
+			if self._voice_pending_assistant_final:
+				self._voice_pending_assistant_final = False
+				self.view.messages.update_last_segment_length()
+				self.service.auto_save_to_db(self.conversation, block)
+				self._voice_active_block = None
+
+	@_guard_destroying
+	def _on_voice_assistant_text(self, text: str, is_final: bool):
+		block = self._voice_active_block
+		if not block or not block.response:
+			model = self.view.current_model
+			account = self.view.current_account
+			if not model or not account:
+				self._voice_pending_assistant += text
+				self._voice_pending_assistant_final = (
+					self._voice_pending_assistant_final or is_final
+				)
+				return
+			block = MessageBlock(
+				request=Message(role=MessageRoleEnum.USER, content=""),
+				response=Message(role=MessageRoleEnum.ASSISTANT, content=""),
+				model=AIModelInfo(
+					provider_id=account.provider.id, model_id=model.id
+				),
+				temperature=self.view.temperature_spinner.GetValue(),
+				top_p=self.view.top_p_spinner.GetValue(),
+				max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
+				stream=True,
+			)
+			system_message = self.get_system_message()
+			self.conversation.add_block(block, system_message)
+			self.view.messages.display_new_block(block, streaming=True)
+			self.view.messages.SetInsertionPointEnd()
+			self._voice_active_block = block
+		if not is_final:
+			block.response.content += text
+			self.view.messages.append_stream_chunk(text)
+			return
+		if not block.response.content:
+			block.response.content = text
+			self.view.messages.append_stream_chunk(text)
+		self.view.messages.update_last_segment_length()
+		self.service.auto_save_to_db(self.conversation, block)
+		self._voice_active_block = None
+
+	@_guard_destroying
+	def _on_voice_error(self, error: str):
+		self.view.show_enhanced_error(
+			_("An error occurred during voice chat: %s") % error,
+			_("Voice Error"),
+		)
+		self.stop_voice_chat()
+
 	# -- Service delegations --
 
 	def generate_conversation_title(self):
@@ -439,7 +700,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		Returns:
 			The generated title, or None on failure.
 		"""
-		if self.completion_handler.is_running():
+		if self.orchestrator.is_completion_running():
 			self.view.show_error(
 				_(
 					"A completion is already in progress. Please wait until it finishes."

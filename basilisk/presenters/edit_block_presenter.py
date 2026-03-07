@@ -1,8 +1,8 @@
 """Presenter for EditBlockDialog orchestration logic.
 
-Coordinates between the EditBlockDialog view, CompletionHandler, and the
-conversation model. Owns the completion handler and exposes the
-start/stop/save interface used by the dialog.
+Coordinates between the EditBlockDialog view, ConversationOrchestrator, and the
+conversation model. Owns the orchestrator and exposes the start/stop/save
+interface used by the dialog.
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 import basilisk.config as config
-from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -22,6 +21,7 @@ from basilisk.conversation.conversation_model import (
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
 from basilisk.provider_ai_model import AIModelInfo
+from basilisk.services.conversation_orchestrator import ConversationOrchestrator
 
 if TYPE_CHECKING:
 	from basilisk.services.conversation_service import ConversationService
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 class EditBlockPresenter(DestroyGuardMixin):
 	"""Orchestrates completion and save flows for EditBlockDialog.
 
-	The presenter holds the CompletionHandler and implements the callbacks
+	The presenter holds the ConversationOrchestrator and implements the callbacks
 	that the handler invokes on completion events.  UI mutations are
 	performed by calling methods / setting properties on ``self.view``
 	(MVP pattern).
@@ -43,7 +43,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		conversation: The conversation model.
 		block_index: Index of the edited block in conversation.messages.
 		block: The MessageBlock being edited.
-		completion_handler: Handler for AI completions.
+		orchestrator: Service handling AI completions.
 	"""
 
 	def __init__(
@@ -67,7 +67,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block: MessageBlock = conversation.messages[block_index]
 		self.service = service
 
-		self.completion_handler = CompletionHandler(
+		self.orchestrator = ConversationOrchestrator(
 			on_completion_start=self._on_regenerate_start,
 			on_completion_end=self._on_regenerate_end,
 			on_stream_chunk=self._on_stream_chunk,
@@ -122,7 +122,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			stream=self.view.stream_mode.GetValue(),
 		)
 
-		self.completion_handler.start_completion(
+		self.orchestrator.start_completion(
 			engine=self.view.current_engine,
 			system_message=system_message,
 			conversation=self.conversation,
@@ -134,7 +134,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 
 	def stop_regenerate(self) -> None:
 		"""Stop any active completion."""
-		self.completion_handler.stop_completion()
+		self.orchestrator.stop_completion()
 
 	def save_block(self) -> bool:
 		"""Validate and persist view state into the edited MessageBlock.
