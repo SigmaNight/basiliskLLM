@@ -12,7 +12,8 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 from basilisk.presenters.conversation_presenter import ConversationPresenter
-from basilisk.provider_ai_model import AIModelInfo
+from basilisk.provider_ai_model import AIModelInfo, ModelMode
+from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
 
 
@@ -442,3 +443,442 @@ class TestGenerateConversationTitle:
 		mock_view.show_enhanced_error.assert_called_once()
 		call_args = mock_view.show_enhanced_error.call_args
 		assert "Streaming is required" in call_args[0][0]
+
+
+# ---------------------------------------------------------------------------
+# Voice chat helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_voice_view(conversation_view_base):
+	"""Return a mock view configured for voice chat."""
+	view = conversation_view_base
+	view._is_destroying = False
+	view.submit_btn.IsEnabled.return_value = True
+	view.messages.should_speak_response = False
+	view.messages.presenter.speak_response = True
+	view.web_search_mode.GetValue.return_value = False
+	model = MagicMock()
+	model.mode = ModelMode.VOICE
+	model.id = "gpt-realtime"
+	view.current_model = model
+	view.current_account.provider.engine_cls.capabilities = {
+		ProviderCapability.VOICE_CHAT
+	}
+	view.current_engine.capabilities = {ProviderCapability.VOICE_CHAT}
+	voice_settings = MagicMock()
+	voice_settings.voice = "marin"
+	voice_settings.transcription_model = "gpt-4o-mini-transcribe"
+	voice_settings.transcription_language = None
+	voice_settings.transcription_prompt = None
+	voice_settings.vad_type = "semantic_vad"
+	voice_settings.vad_eagerness = "auto"
+	voice_settings.create_response = True
+	voice_settings.interrupt_response = True
+	voice_settings.output_speed = None
+	view.get_voice_settings.return_value = voice_settings
+	view.system_prompt_txt.GetValue.return_value = ""
+	return view
+
+
+# ---------------------------------------------------------------------------
+# TestToggleVoiceChat
+# ---------------------------------------------------------------------------
+
+
+class TestToggleVoiceChat:
+	"""Tests for ConversationPresenter.toggle_voice_chat."""
+
+	def test_starts_when_not_running(self, presenter, mocker):
+		"""toggle_voice_chat() calls start_voice_chat when no session is active."""
+		mocker.patch.object(
+			presenter.orchestrator, "is_voice_running", return_value=False
+		)
+		presenter.start_voice_chat = MagicMock()
+		presenter.toggle_voice_chat()
+		presenter.start_voice_chat.assert_called_once()
+
+	def test_stops_when_running(self, presenter, mocker):
+		"""toggle_voice_chat() calls stop_voice_chat when a session is active."""
+		mocker.patch.object(
+			presenter.orchestrator, "is_voice_running", return_value=True
+		)
+		presenter.stop_voice_chat = MagicMock()
+		presenter.toggle_voice_chat()
+		presenter.stop_voice_chat.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# TestStartVoiceChat
+# ---------------------------------------------------------------------------
+
+
+class TestStartVoiceChat:
+	"""Tests for ConversationPresenter.start_voice_chat guard conditions."""
+
+	def test_shows_error_when_no_default_voice_profile_and_no_voice_model(
+		self, mock_view, mock_service, mocker
+	):
+		"""show_error when model is not voice and no default voice profile."""
+		mock_view.current_model.mode = ModelMode.TEXT
+		mocker.patch(
+			"basilisk.presenters.conversation_presenter.config"
+			".conversation_profiles"
+		).return_value.default_voice_profile = None
+		p = ConversationPresenter(
+			view=mock_view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p.start_voice_chat()
+		mock_view.show_error.assert_called_once()
+
+	def test_shows_error_when_model_not_voice(
+		self, mock_view, mock_service, mocker
+	):
+		"""show_error when model mode is TEXT after profile applied."""
+		mock_view.current_model.mode = ModelMode.TEXT
+		mock_view.current_engine.capabilities = {ProviderCapability.VOICE_CHAT}
+		voice_profile = MagicMock()
+		mocker.patch(
+			"basilisk.presenters.conversation_presenter.config"
+			".conversation_profiles"
+		).return_value.default_voice_profile = voice_profile
+		# apply_profile doesn't change the model mock
+		p = ConversationPresenter(
+			view=mock_view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p.start_voice_chat()
+		mock_view.show_error.assert_called()
+
+	def test_shows_error_when_provider_lacks_voice_chat(
+		self, mock_view, mock_service
+	):
+		"""show_error when engine does not have VOICE_CHAT capability."""
+		mock_view.current_model.mode = ModelMode.VOICE
+		mock_view.current_engine.capabilities = set()  # no VOICE_CHAT
+		p = ConversationPresenter(
+			view=mock_view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p.start_voice_chat()
+		mock_view.show_error.assert_called_once()
+
+	def test_shows_error_when_completion_running(
+		self, mock_view, mock_service, mocker
+	):
+		"""show_error when a completion is already in progress."""
+		mock_view.current_model.mode = ModelMode.VOICE
+		mock_view.current_engine.capabilities = {ProviderCapability.VOICE_CHAT}
+		p = ConversationPresenter(
+			view=mock_view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		mocker.patch.object(
+			p.orchestrator, "is_completion_running", return_value=True
+		)
+		p.start_voice_chat()
+		mock_view.show_error.assert_called_once()
+
+	def test_starts_session_when_valid(
+		self, conversation_view_base, mock_service, mocker
+	):
+		"""start_voice_session() is called with correct config when all checks pass."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		mocker.patch.object(
+			p.orchestrator, "is_completion_running", return_value=False
+		)
+		mock_start = mocker.patch.object(p.orchestrator, "start_voice_session")
+		p.start_voice_chat()
+		mock_start.assert_called_once()
+		cfg = mock_start.call_args.kwargs["config"]
+		assert cfg.model == "gpt-realtime"
+		assert cfg.voice == "marin"
+
+
+# ---------------------------------------------------------------------------
+# TestStopVoiceChat
+# ---------------------------------------------------------------------------
+
+
+class TestStopVoiceChat:
+	"""Tests for ConversationPresenter.stop_voice_chat."""
+
+	def test_stops_session_and_restores_state(
+		self, conversation_view_base, mock_service, mocker
+	):
+		"""stop_voice_chat restores speak_response and resets UI."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p._voice_prev_speak_response = True
+		mock_stop = mocker.patch.object(p.orchestrator, "stop_voice_session")
+
+		p.stop_voice_chat()
+
+		mock_stop.assert_called_once()
+		assert p._voice_prev_speak_response is None
+		assert view.messages.presenter.speak_response is True
+
+
+# ---------------------------------------------------------------------------
+# TestBuildVoiceConfig
+# ---------------------------------------------------------------------------
+
+
+class TestBuildVoiceConfig:
+	"""Tests for ConversationPresenter._build_voice_config."""
+
+	def test_uses_view_voice_settings_when_available(
+		self, conversation_view_base, mock_service, mocker
+	):
+		"""_build_voice_config reads voice settings from the view."""
+		view = _make_voice_view(conversation_view_base)
+		mocker.patch(
+			"basilisk.presenters.conversation_presenter.config.conf"
+		).return_value.voice.voice = "fallback"
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		cfg = p._build_voice_config()
+		assert cfg.voice == "marin"  # from view's voice settings
+		assert cfg.model == "gpt-realtime"
+
+	def test_falls_back_to_global_config(
+		self, conversation_view_base, mock_service, mocker
+	):
+		"""_build_voice_config falls back to global config when view has no method."""
+		view = conversation_view_base
+		view._is_destroying = False
+		view.current_model.id = "gpt-realtime"
+		# Remove get_voice_settings so it falls back to global config
+		del view.get_voice_settings
+		mock_conf = mocker.patch(
+			"basilisk.presenters.conversation_presenter.config.conf"
+		).return_value
+		mock_conf.voice.voice = "nova"
+		mock_conf.voice.transcription_model = "whisper-1"
+		mock_conf.voice.transcription_language = None
+		mock_conf.voice.transcription_prompt = None
+		mock_conf.voice.vad_type = "semantic_vad"
+		mock_conf.voice.vad_eagerness = "auto"
+		mock_conf.voice.create_response = True
+		mock_conf.voice.interrupt_response = True
+		mock_conf.voice.output_speed = None
+		view.system_prompt_txt.GetValue.return_value = ""
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		cfg = p._build_voice_config()
+		assert cfg.voice == "nova"
+
+
+# ---------------------------------------------------------------------------
+# TestVoiceCallbacks
+# ---------------------------------------------------------------------------
+
+
+class TestOnVoiceStatus:
+	"""Tests for ConversationPresenter._on_voice_status."""
+
+	def test_updates_status_text(self, conversation_view_base, mock_service):
+		"""_on_voice_status calls SetStatusText on the view."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p._on_voice_status("Listening")
+		view.SetStatusText.assert_called_with("Listening")
+
+
+class TestOnVoiceError:
+	"""Tests for ConversationPresenter._on_voice_error."""
+
+	def test_shows_enhanced_error_and_stops(
+		self, conversation_view_base, mock_service, mocker
+	):
+		"""_on_voice_error shows an error dialog and stops the voice session."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		mock_stop = mocker.patch.object(p, "stop_voice_chat")
+		p._on_voice_error("network failure")
+		view.show_enhanced_error.assert_called_once()
+		assert "network failure" in view.show_enhanced_error.call_args[0][0]
+		mock_stop.assert_called_once()
+
+
+class TestOnVoiceAssistantText:
+	"""Tests for ConversationPresenter._on_voice_assistant_text."""
+
+	def test_appends_delta_to_existing_block(
+		self, conversation_view_base, mock_service
+	):
+		"""Non-final text is appended to the active block's response."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		block = MessageBlock(
+			request=Message(role=MessageRoleEnum.USER, content="hi"),
+			response=Message(role=MessageRoleEnum.ASSISTANT, content=""),
+			model=AIModelInfo(provider_id="openai", model_id="gpt-realtime"),
+		)
+		p.conversation.add_block(block, None)
+		p._voice_active_block = block
+
+		p._on_voice_assistant_text("Hello", False)
+
+		assert block.response.content == "Hello"
+		view.messages.append_stream_chunk.assert_called_with("Hello")
+
+	def test_final_text_saves_and_clears_block(
+		self, conversation_view_base, mock_service
+	):
+		"""Final text triggers auto_save_to_db and clears the active block."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		block = MessageBlock(
+			request=Message(role=MessageRoleEnum.USER, content="hi"),
+			response=Message(
+				role=MessageRoleEnum.ASSISTANT, content="some text"
+			),
+			model=AIModelInfo(provider_id="openai", model_id="gpt-realtime"),
+		)
+		p.conversation.add_block(block, None)
+		p._voice_active_block = block
+
+		p._on_voice_assistant_text("done", True)
+
+		mock_service.auto_save_to_db.assert_called_once()
+		assert p._voice_active_block is None
+
+	def test_pending_text_buffered_when_no_model(
+		self, conversation_view_base, mock_service
+	):
+		"""Text is buffered to _voice_pending_assistant when model/account unavailable."""
+		view = _make_voice_view(conversation_view_base)
+		view.current_model = None
+		view.current_account = None
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p._on_voice_assistant_text("buffered", False)
+		assert p._voice_pending_assistant == "buffered"
+
+
+class TestOnVoiceUserText:
+	"""Tests for ConversationPresenter._on_voice_user_text."""
+
+	def test_non_final_or_empty_is_ignored(
+		self, conversation_view_base, mock_service
+	):
+		"""Non-final or empty text does not create a block."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p._on_voice_user_text("hello", False)
+		assert len(p.conversation.messages) == 0
+
+		p._on_voice_user_text("  ", True)
+		assert len(p.conversation.messages) == 0
+
+	def test_final_text_creates_new_block(
+		self, conversation_view_base, mock_service
+	):
+		"""Final text creates a new MessageBlock in the conversation."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		p._on_voice_user_text("Hello world", True)
+		assert len(p.conversation.messages) == 1
+		assert p.conversation.messages[0].request.content == "Hello world"
+
+	def test_final_text_updates_existing_block_without_request(
+		self, conversation_view_base, mock_service
+	):
+		"""Final text fills request.content of the active block when empty."""
+		view = _make_voice_view(conversation_view_base)
+		p = ConversationPresenter(
+			view=view,
+			service=mock_service,
+			conversation=Conversation(),
+			conv_storage_path="memory://test",
+			bskc_path=None,
+		)
+		block = MessageBlock(
+			request=Message(role=MessageRoleEnum.USER, content=""),
+			response=Message(role=MessageRoleEnum.ASSISTANT, content="hi"),
+			model=AIModelInfo(provider_id="openai", model_id="gpt-realtime"),
+		)
+		p.conversation.add_block(block, None)
+		p._voice_active_block = block
+
+		p._on_voice_user_text("User said this", True)
+
+		assert block.request.content == "User said this"
