@@ -32,6 +32,11 @@ from basilisk.conversation import (
 from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .voice_session import (
+	GeminiLiveVoiceSession,
+	VoiceSessionCallbacks,
+	VoiceSessionConfig,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -284,3 +289,9 @@ class GeminiEngine(BaseEngine):
 			chunk_text = chunk.text
 			if chunk_text:
 				yield chunk_text
+
+	def create_voice_session(
+		self, config: VoiceSessionConfig, callbacks: VoiceSessionCallbacks
+	) -> GeminiLiveVoiceSession:
+		"""Create a realtime voice session for Gemini (placeholder)."""
+		return GeminiLiveVoiceSession(config=config, callbacks=callbacks)

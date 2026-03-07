@@ -17,6 +17,11 @@ from basilisk.provider_capability import ProviderCapability
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
+	from basilisk.provider_engine.voice_session import (
+		BaseVoiceSession,
+		VoiceSessionCallbacks,
+		VoiceSessionConfig,
+	)
 
 
 class BaseEngine(ABC):
@@ -196,4 +201,12 @@ class BaseEngine(ABC):
 		"""Get transcription from audio file."""
 		raise NotImplementedError(
 			"Transcription not implemented for this engine"
+		)
+
+	def create_voice_session(
+		self, config: "VoiceSessionConfig", callbacks: "VoiceSessionCallbacks"
+	) -> "BaseVoiceSession":
+		"""Create a realtime voice session."""
+		raise NotImplementedError(
+			"Voice session not implemented for this engine"
 		)

@@ -25,16 +25,22 @@ from openai.types.responses import (
 	WebSearchToolParam,
 )
 
+import basilisk.config as config
 from basilisk.conversation import (
 	Conversation,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model import ModelMode, ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
+from .voice_session import (
+	OpenAIRealtimeVoiceSession,
+	VoiceSessionCallbacks,
+	VoiceSessionConfig,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -58,6 +64,7 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 		ProviderCapability.WEB_SEARCH,
+		ProviderCapability.VOICE_CHAT,
 	}
 
 	supported_attachment_formats: set[str] = {
@@ -105,7 +112,7 @@ class OpenAIEngine(BaseEngine):
 		super().models
 		log.debug("Getting openAI models")
 		# See <https://platform.openai.com/docs/models>
-		return [
+		models = [
 			ProviderAIModel(
 				id="gpt-5.2",
 				name="GPT-5.2",
@@ -340,6 +347,25 @@ class OpenAIEngine(BaseEngine):
 				max_temperature=2.0,
 			),
 		]
+		voice_model_id = (config.conf().voice.realtime_model or "").strip()
+		if not voice_model_id:
+			voice_model_id = "gpt-realtime"
+		if not any(model.id == voice_model_id for model in models):
+			models.append(
+				ProviderAIModel(
+					id=voice_model_id,
+					name="GPT Realtime",
+					# Translators: This is a model description
+					description=_(
+						"Realtime model for low-latency voice conversations"
+					),
+					context_window=0,
+					max_output_tokens=0,
+					vision=False,
+					mode=ModelMode.VOICE,
+				)
+			)
+		return models
 
 	def prepare_message_request(
 		self, message: Message
@@ -517,3 +543,11 @@ class OpenAIEngine(BaseEngine):
 		)
 		file.close()
 		return transcription
+
+	def create_voice_session(
+		self, config: VoiceSessionConfig, callbacks: VoiceSessionCallbacks
+	) -> OpenAIRealtimeVoiceSession:
+		"""Create a realtime voice session for OpenAI."""
+		return OpenAIRealtimeVoiceSession(
+			account=self.account, config=config, callbacks=callbacks
+		)
