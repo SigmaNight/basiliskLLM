@@ -117,6 +117,12 @@ class PreferencesPresenter:
 		)
 		conf.server.enable = self.view.server_enable.GetValue()
 		conf.server.port = int(self.view.server_port.GetValue())
+		conf.templates.html_message_template_path = (
+			self.view.html_message_template_path.get_path()
+		)
+		conf.templates.html_export_template_path = (
+			self.view.html_export_template_path.get_path()
+		)
 
 		conf.save()
 		set_log_level(conf.general.log_level.name)
