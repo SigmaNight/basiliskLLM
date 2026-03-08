@@ -22,6 +22,8 @@ user_data_path = (
 resource_path = base_path / Path("res")
 # sounds directory (contains sound, etc.)
 sounds_path = resource_path / "sounds"
+# templates directory (contains default Mako templates)
+templates_path = resource_path / "templates"
 
 # command-line arguments parsed by the application
 args = None
