@@ -87,6 +87,35 @@ class TestRenderHtmlMessage:
 		assert "body" in result
 
 
+class TestRenderSystemPrompt:
+	"""Tests for TemplateService.render_system_prompt."""
+
+	def test_injects_standard_context(self):
+		"""profile, account, model and now are available in the template."""
+		profile = MagicMock()
+		profile.name = "TestProfile"
+		account = MagicMock()
+		account.name = "TestAccount"
+		result = TemplateService.render_system_prompt(
+			"${profile.name}/${account.name}", profile, account, None
+		)
+		assert result == "TestProfile/TestAccount"
+
+	def test_now_available(self):
+		"""now variable is injected and usable."""
+		from datetime import datetime
+
+		result = TemplateService.render_system_prompt(
+			"${now.year}", None, None, None
+		)
+		assert str(datetime.now().year) in result
+
+	def test_error_raises_value_error(self):
+		"""Template error raises ValueError."""
+		with pytest.raises(ValueError, match="template"):
+			TemplateService.render_system_prompt("${unclosed", None, None, None)
+
+
 class TestRenderConversationExport:
 	"""Tests for TemplateService.render_conversation_export."""
 

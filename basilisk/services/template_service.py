@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -85,6 +86,35 @@ class TemplateService:
 		Raises:
 			ValueError: On Mako syntax or runtime error.
 		"""
+		return _render_inline(template_str, context)
+
+	@staticmethod
+	def render_system_prompt(
+		template_str: str, profile: Any, account: Any | None, model: Any | None
+	) -> str:
+		"""Render a system prompt template with standard conversation context.
+
+		Builds the standard context (now, profile, account, model) and
+		delegates to render_prompt.
+
+		Args:
+			template_str: Raw template string from ConversationProfile.
+			profile: The conversation profile (available as 'profile').
+			account: Active account (available as 'account').
+			model: Active model (available as 'model').
+
+		Returns:
+			Rendered plain-text prompt.
+
+		Raises:
+			ValueError: On Mako syntax or runtime error.
+		"""
+		context = {
+			"now": datetime.now(),
+			"profile": profile,
+			"account": account,
+			"model": model,
+		}
 		return _render_inline(template_str, context)
 
 	@staticmethod

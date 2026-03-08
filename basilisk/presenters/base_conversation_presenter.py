@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import basilisk.config as config
 from basilisk.services.account_model_service import AccountModelService
+from basilisk.services.template_service import TemplateService
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -102,21 +103,13 @@ class BaseConversationPresenter:
 		Returns:
 			The rendered prompt string, or the original on template error.
 		"""
-		from datetime import datetime
-
-		from basilisk.services.template_service import TemplateService
-
 		template_str = profile.system_prompt or ""
 		if not template_str:
 			return template_str
-		context = {
-			"now": datetime.now(),
-			"profile": profile,
-			"account": account,
-			"model": model,
-		}
 		try:
-			return TemplateService.render_prompt(template_str, context)
+			return TemplateService.render_system_prompt(
+				template_str, profile, account, model
+			)
 		except ValueError:
 			log.warning(
 				"Failed to render system prompt template for profile %r",
