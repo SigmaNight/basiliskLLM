@@ -167,16 +167,17 @@ class OpenAIRealtimeVoiceSession(BaseVoiceSession):
 		if self._stop_event.is_set():
 			return
 		if self._input_stream:
-			self._input_stream.stop()
+			audio.get_manager().close_stream(self._input_stream)
 			self._input_stream = None
 		self._stop_event.set()
 
 	async def _cleanup(self) -> None:
+		mgr = audio.get_manager()
 		if self._input_stream:
-			self._input_stream.stop()
+			mgr.close_stream(self._input_stream)
 			self._input_stream = None
 		if self._output_stream:
-			self._output_stream.stop()
+			mgr.close_stream(self._output_stream)
 			self._output_stream = None
 		if self._connection is not None:
 			try:

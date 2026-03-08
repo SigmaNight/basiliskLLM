@@ -185,15 +185,16 @@ class TestAudioManagerFactories:
 	"""Tests for AudioManager open_* factory methods."""
 
 	def test_open_output_stream_returns_audio_output_stream(self):
-		"""open_output_stream() returns an AudioOutputStream."""
+		"""open_output_stream() returns an AudioOutputStream and tracks it."""
 		mgr = _make_manager(output_device=1)
 		stream = mgr.open_output_stream(sample_rate=24000, channels=1)
 		assert isinstance(stream, AudioOutputStream)
 		assert stream.sample_rate == 24000
 		assert stream._device == 1
+		assert stream in mgr._streams
 
 	def test_open_input_stream_returns_audio_input_stream(self):
-		"""open_input_stream() returns an AudioInputStream."""
+		"""open_input_stream() returns an AudioInputStream and tracks it."""
 		cb = MagicMock()
 		mgr = _make_manager(input_device=2)
 		stream = mgr.open_input_stream(
@@ -202,14 +203,47 @@ class TestAudioManagerFactories:
 		assert isinstance(stream, AudioInputStream)
 		assert stream._on_audio is cb
 		assert stream._device == 2
+		assert stream in mgr._streams
 
 	def test_open_recorder_returns_audio_recorder(self):
-		"""open_recorder() returns an AudioRecorder."""
+		"""open_recorder() returns an AudioRecorder and tracks it."""
 		with patch("basilisk.audio.streams.AudioInputStream"):
 			mgr = _make_manager(input_device=3)
 			rec = mgr.open_recorder(sample_rate=16000, channels=1)
 		assert isinstance(rec, AudioRecorder)
 		assert rec.sample_rate == 16000
+		assert rec in mgr._recorders
+
+
+class TestAudioManagerClose:
+	"""Tests for AudioManager.close_stream() and close_recorder()."""
+
+	def test_close_stream_stops_and_untracks(self):
+		"""close_stream() stops the stream and removes it from tracking."""
+		mgr = _make_manager()
+		stream = mgr.open_output_stream(sample_rate=16000, channels=1)
+		assert stream in mgr._streams
+		stream._stream = MagicMock()  # Simulate started stream
+		mgr.close_stream(stream)
+		assert stream not in mgr._streams
+		assert stream._stream is None  # stop() clears _stream
+
+	def test_close_recorder_stops_and_untracks(self):
+		"""close_recorder() stops the recorder and removes it from tracking."""
+		with patch("basilisk.audio.streams.AudioInputStream"):
+			mgr = _make_manager()
+			rec = mgr.open_recorder(sample_rate=16000, channels=1)
+		assert rec in mgr._recorders
+		mgr.close_recorder(rec)
+		assert rec not in mgr._recorders
+
+	def test_close_recorder_abort_true_aborts(self):
+		"""close_recorder(abort=True) aborts instead of stopping normally."""
+		with patch("basilisk.audio.streams.AudioInputStream"):
+			mgr = _make_manager()
+			rec = mgr.open_recorder(sample_rate=16000, channels=1)
+		mgr.close_recorder(rec, abort=True)
+		assert rec.was_aborted
 
 
 class TestAudioManagerCleanup:
@@ -232,6 +266,29 @@ class TestAudioManagerCleanup:
 		mgr.cleanup()
 		mock_stream.stop.assert_called_once()
 		assert mgr._notification_stream is None
+
+	def test_cleanup_stops_all_managed_streams(self):
+		"""cleanup() stops all open_output_stream / open_input_stream streams."""
+		mgr = _make_manager()
+		out = mgr.open_output_stream(sample_rate=16000, channels=1)
+		cb = MagicMock()
+		inp = mgr.open_input_stream(sample_rate=16000, channels=1, on_audio=cb)
+		# Simulate started streams
+		out._stream = MagicMock()
+		inp._stream = MagicMock()
+		mgr.cleanup()
+		assert out._stream is None
+		assert inp._stream is None
+		assert len(list(mgr._streams)) == 0
+
+	def test_cleanup_aborts_all_managed_recorders(self):
+		"""cleanup() aborts all open_recorder recorders."""
+		with patch("basilisk.audio.streams.AudioInputStream"):
+			mgr = _make_manager()
+			rec = mgr.open_recorder(sample_rate=16000, channels=1)
+		mgr.cleanup()
+		assert rec.was_aborted
+		assert len(list(mgr._recorders)) == 0
 
 	def test_cleanup_when_no_stream_is_noop(self):
 		"""cleanup() does nothing when no stream was created."""

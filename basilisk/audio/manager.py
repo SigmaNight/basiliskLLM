@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import logging
+import weakref
 from pathlib import Path
 from typing import Callable, Optional
 
 from .sounds import SOUND_ALIASES, load_wav_as_pcm16
-from .streams import AudioInputStream, AudioOutputStream, AudioRecorder
+from .streams import (
+	AudioInputStream,
+	AudioOutputStream,
+	AudioRecorder,
+	_BaseAudioStream,
+)
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +40,8 @@ class AudioManager:
 		self._output_device = output_device
 		self._notification_stream: Optional[AudioOutputStream] = None
 		self._wav_cache: dict[Path, tuple[bytes, int, int]] = {}
+		self._streams: weakref.WeakSet[_BaseAudioStream] = weakref.WeakSet()
+		self._recorders: weakref.WeakSet[AudioRecorder] = weakref.WeakSet()
 
 	def set_input_device(self, device: Optional[int]) -> None:
 		"""Set the default input device.
@@ -104,7 +112,7 @@ class AudioManager:
 	def open_output_stream(
 		self, sample_rate: int, channels: int = 1
 	) -> AudioOutputStream:
-		"""Create a new output stream for voice sessions.
+		"""Create and track a new output stream.
 
 		Args:
 			sample_rate: Sample rate in Hz.
@@ -113,16 +121,18 @@ class AudioManager:
 		Returns:
 			A new AudioOutputStream (not yet started).
 		"""
-		return AudioOutputStream(
+		stream = AudioOutputStream(
 			sample_rate=sample_rate,
 			channels=channels,
 			device=self._output_device,
 		)
+		self._streams.add(stream)
+		return stream
 
 	def open_input_stream(
 		self, sample_rate: int, channels: int, on_audio: Callable[[bytes], None]
 	) -> AudioInputStream:
-		"""Create a new input stream for voice sessions.
+		"""Create and track a new input stream.
 
 		Args:
 			sample_rate: Sample rate in Hz.
@@ -132,17 +142,19 @@ class AudioManager:
 		Returns:
 			A new AudioInputStream (not yet started).
 		"""
-		return AudioInputStream(
+		stream = AudioInputStream(
 			sample_rate=sample_rate,
 			channels=channels,
 			on_audio=on_audio,
 			device=self._input_device,
 		)
+		self._streams.add(stream)
+		return stream
 
 	def open_recorder(
 		self, sample_rate: int, channels: int, dtype: str = "int16"
 	) -> AudioRecorder:
-		"""Create a new AudioRecorder using the configured input device.
+		"""Create and track a new AudioRecorder.
 
 		Args:
 			sample_rate: Sample rate in Hz.
@@ -152,15 +164,49 @@ class AudioManager:
 		Returns:
 			A new AudioRecorder (not yet recording).
 		"""
-		return AudioRecorder(
+		recorder = AudioRecorder(
 			sample_rate=sample_rate,
 			channels=channels,
 			dtype=dtype,
 			device=self._input_device,
 		)
+		self._recorders.add(recorder)
+		return recorder
+
+	def close_stream(self, stream: _BaseAudioStream) -> None:
+		"""Stop a managed stream and remove it from tracking.
+
+		Args:
+			stream: Stream previously returned by open_output_stream()
+				or open_input_stream().
+		"""
+		stream.stop()
+		self._streams.discard(stream)
+
+	def close_recorder(
+		self, recorder: AudioRecorder, abort: bool = False
+	) -> None:
+		"""Stop (or abort) a managed recorder and remove it from tracking.
+
+		Args:
+			recorder: Recorder previously returned by open_recorder().
+			abort: If True, abort and discard buffered audio; otherwise
+				stop normally.
+		"""
+		if abort:
+			recorder.abort()
+		else:
+			recorder.stop()
+		self._recorders.discard(recorder)
 
 	def cleanup(self) -> None:
-		"""Stop and release the notification stream."""
+		"""Stop and release all managed streams, recorders, and the notification stream."""
+		for stream in list(self._streams):
+			stream.stop()
+		self._streams = weakref.WeakSet()
+		for recorder in list(self._recorders):
+			recorder.abort()
+		self._recorders = weakref.WeakSet()
 		if self._notification_stream is not None:
 			self._notification_stream.stop()
 			self._notification_stream = None
