@@ -84,6 +84,47 @@ class BaseConversationPresenter:
 			return []
 		return [m.display_model for m in engine.models]
 
+	def render_system_prompt(
+		self,
+		profile: config.ConversationProfile,
+		account: config.Account | None,
+		model,
+	) -> str:
+		"""Render the profile's system_prompt as a Mako template.
+
+		Falls back to the raw string on error, showing a log warning.
+
+		Args:
+			profile: The conversation profile whose system_prompt to render.
+			account: Active account (injected as context variable).
+			model: Active model (injected as context variable).
+
+		Returns:
+			The rendered prompt string, or the original on template error.
+		"""
+		from datetime import datetime
+
+		from basilisk.services.template_service import TemplateService
+
+		template_str = profile.system_prompt or ""
+		if not template_str:
+			return template_str
+		context = {
+			"now": datetime.now(),
+			"profile": profile,
+			"account": account,
+			"model": model,
+		}
+		try:
+			return TemplateService.render_prompt(template_str, context)
+		except ValueError:
+			log.warning(
+				"Failed to render system prompt template for profile %r",
+				profile.name,
+				exc_info=True,
+			)
+			return template_str
+
 	def resolve_account_and_model(
 		self,
 		profile: config.ConversationProfile,

@@ -459,7 +459,10 @@ class BaseConversation:
 			log.debug("no profile, select default account")
 			self.select_default_account()
 			return
-		self.system_prompt_txt.SetValue(profile.system_prompt)
+		rendered = self.base_conv_presenter.render_system_prompt(
+			profile, self.current_account, self.current_model
+		)
+		self.system_prompt_txt.SetValue(rendered)
 		self.set_account_and_model_from_profile(
 			profile, fall_back_default_account
 		)
