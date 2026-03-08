@@ -11,17 +11,10 @@ import markdown2
 import wx
 import wx.html2
 
+import basilisk.config as config
+from basilisk.services.template_service import TemplateService
+
 VALID_FORMATS = ["html", "markdown"]
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="UTF-8">
-		<title>{title}</title>
-	</head>
-	<body>
-		{content}
-	</body>
-</html>"""
 
 
 class HtmlViewWindow(wx.Frame):
@@ -65,7 +58,10 @@ class HtmlViewWindow(wx.Frame):
 				],
 			)
 
-		content = HTML_TEMPLATE.format(title=title, content=content)
+		template_path = config.conf().templates.html_message_template_path
+		content = TemplateService.render_html_message(
+			content, title, template_path
+		)
 		super().__init__(parent, title=title, size=(800, 600))
 
 		self._content = content

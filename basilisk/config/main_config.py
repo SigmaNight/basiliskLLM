@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 from functools import cache
+from pathlib import Path
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -81,6 +82,13 @@ class NetworkSettings(BaseModel):
 	use_system_cert_store: bool = Field(default=True)
 
 
+class TemplatesSettings(BaseModel):
+	"""Template path settings."""
+
+	html_message_template_path: Path | None = Field(default=None)
+	html_export_template_path: Path | None = Field(default=None)
+
+
 class BasiliskConfig(BasiliskBaseSettings):
 	"""BasiliskLLM configuration settings."""
 
@@ -94,6 +102,7 @@ class BasiliskConfig(BasiliskBaseSettings):
 	recordings: RecordingsSettings = Field(default_factory=RecordingsSettings)
 	network: NetworkSettings = Field(default_factory=NetworkSettings)
 	server: ServerSettings = Field(default_factory=ServerSettings)
+	templates: TemplatesSettings = Field(default_factory=TemplatesSettings)
 
 	@model_validator(mode="before")
 	@classmethod
