@@ -269,6 +269,23 @@ class MainFramePresenter:
 			current_tab.bskc_path = file_path
 		return success
 
+	def export_conversation(self) -> None:
+		"""Export the current conversation to an HTML file chosen by the user."""
+		tab = self.view.current_tab
+		if not tab:
+			return
+		title = tab.GetLabel() or _("conversation")
+		with wx.FileDialog(
+			self.view,
+			# Translators: Dialog title when exporting a conversation to HTML
+			_("Export conversation as HTML"),
+			defaultFile=f"{title}.html",
+			wildcard="HTML files (*.html)|*.html",
+			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+		) as dlg:
+			if dlg.ShowModal() == wx.ID_OK:
+				tab.presenter.export_to_html(dlg.GetPath())
+
 	# -- Name conversation --
 
 	def name_conversation(self, auto: bool = False):

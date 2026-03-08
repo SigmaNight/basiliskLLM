@@ -187,6 +187,12 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			lambda e: self.on_transcribe_audio(e, False),
 			transcribe_audio_file_item,
 		)
+		export_html_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: Menu item to export the current conversation as HTML
+			_("Export conversation as &HTML") + "...",
+		)
+		self.Bind(wx.EVT_MENU, self._on_export_conversation, export_html_item)
 		conversation_menu.AppendSeparator()
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
@@ -484,6 +490,10 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			event: The triggering event. Can be None.
 		"""
 		self.presenter.save_current_conversation()
+
+	def _on_export_conversation(self, event: wx.Event):
+		"""Handle export conversation as HTML menu action."""
+		self.presenter.export_conversation()
 
 	def on_save_as_conversation(self, event: wx.Event | None) -> Optional[str]:
 		"""Save the current conversation to a user-specified path.
