@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -102,9 +103,7 @@ class TestRenderSystemPrompt:
 		assert result == "TestProfile/TestAccount"
 
 	def test_now_available(self):
-		"""now variable is injected and usable."""
-		from datetime import datetime
-
+		"""Now variable is injected and usable."""
 		result = TemplateService.render_system_prompt(
 			"${now.year}", None, None, None
 		)
