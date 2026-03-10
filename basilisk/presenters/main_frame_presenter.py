@@ -244,47 +244,10 @@ class MainFramePresenter:
 		If no file path is set, triggers save-as via the view.
 		"""
 		current_tab = self.view.current_tab
-		if not current_tab:
-			self.view.show_error(_("No conversation selected"), _("Error"))
-			return
 		if not current_tab.bskc_path:
 			self.view.on_save_as_conversation(None)
 			return
 		current_tab.save_conversation(current_tab.bskc_path)
-
-	def save_conversation_as(self, file_path: str) -> bool:
-		"""Save the current conversation to a specified file path.
-
-		Args:
-			file_path: The target file path.
-
-		Returns:
-			True if saved successfully.
-		"""
-		current_tab = self.view.current_tab
-		if not current_tab:
-			return False
-		success = current_tab.save_conversation(file_path)
-		if success:
-			current_tab.bskc_path = file_path
-		return success
-
-	def export_conversation(self) -> None:
-		"""Export the current conversation to an HTML file chosen by the user."""
-		tab = self.view.current_tab
-		if not tab:
-			return
-		title = tab.GetLabel() or _("conversation")
-		with wx.FileDialog(
-			self.view,
-			# Translators: Dialog title when exporting a conversation to HTML
-			_("Export conversation as HTML"),
-			defaultFile=f"{title}.html",
-			wildcard="HTML files (*.html)|*.html",
-			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-		) as dlg:
-			if dlg.ShowModal() == wx.ID_OK:
-				tab.presenter.export_to_html(dlg.GetPath())
 
 	# -- Name conversation --
 
