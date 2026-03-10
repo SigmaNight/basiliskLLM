@@ -187,6 +187,12 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			lambda e: self.on_transcribe_audio(e, False),
 			transcribe_audio_file_item,
 		)
+		export_html_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: Menu item to export the current conversation as HTML
+			_("Export conversation as &HTML") + "...",
+		)
+		self.Bind(wx.EVT_MENU, self._on_export_conversation, export_html_item)
 		conversation_menu.AppendSeparator()
 		quit_item = conversation_menu.Append(wx.ID_EXIT)
 		self.Bind(wx.EVT_MENU, self.on_quit, quit_item)
@@ -485,6 +491,10 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		"""
 		self.presenter.save_current_conversation()
 
+	def _on_export_conversation(self, event: wx.Event):
+		"""Handle export conversation as HTML menu action."""
+		self.current_tab.ask_export_html()
+
 	def on_save_as_conversation(self, event: wx.Event | None) -> Optional[str]:
 		"""Save the current conversation to a user-specified path.
 
@@ -494,28 +504,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		Returns:
 			The file path if saved successfully, or None.
 		"""
-		current_tab = self.current_tab
-		if not current_tab:
-			wx.MessageBox(
-				_("No conversation selected"), _("Error"), wx.OK | wx.ICON_ERROR
-			)
-			return None
-		file_dialog = wx.FileDialog(
-			self,
-			# Translators: A title for the save conversation dialog
-			message=_("Save conversation"),
-			wildcard=_("Basilisk conversation files") + "(*.bskc)|*.bskc",
-			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-		)
-		file_path = None
-		if file_dialog.ShowModal() == wx.ID_OK:
-			file_path = file_dialog.GetPath()
-			if self.presenter.save_conversation_as(file_path):
-				file_dialog.Destroy()
-				return file_path
-			file_path = None
-		file_dialog.Destroy()
-		return file_path
+		return self.current_tab.ask_save_as()
 
 	def on_close_conversation(self, event: wx.Event | None):
 		"""Close the current conversation tab.

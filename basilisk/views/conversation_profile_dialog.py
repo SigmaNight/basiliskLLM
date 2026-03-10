@@ -75,6 +75,15 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		label = self.create_system_prompt_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.system_prompt_txt, 0, wx.ALL | wx.EXPAND, 5)
+		self.preview_prompt_btn = wx.Button(
+			self,
+			# Translators: Button to preview the rendered system prompt template
+			label=_("&Preview system prompt"),
+		)
+		self.sizer.Add(self.preview_prompt_btn, 0, wx.ALL, 5)
+		self.Bind(
+			wx.EVT_BUTTON, self._on_preview_prompt, self.preview_prompt_btn
+		)
 		label = self.create_model_widget()
 		self.sizer.Add(label, 0, wx.ALL, 5)
 		self.sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 5)
@@ -115,6 +124,17 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		self.profile_name_txt.SetValue(profile.name)
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(profile.account is not None)
+
+	def _on_preview_prompt(self, event: wx.Event):
+		"""Show the rendered system prompt in a message dialog."""
+		rendered = self.presenter.preview_system_prompt()
+		wx.MessageBox(
+			rendered,
+			# Translators: Title for the system prompt preview dialog
+			_("System prompt preview"),
+			wx.OK | wx.ICON_INFORMATION,
+			self,
+		)
 
 	def on_ok(self, event: wx.Event | None):
 		"""Handle the OK button click by delegating to the presenter.

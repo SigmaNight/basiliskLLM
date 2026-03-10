@@ -1,21 +1,122 @@
 """Preferences dialog for the BasiliskLLM application."""
 
 import logging
+import shutil
+from pathlib import Path
 
 import wx
 
 import basilisk.config as config
+from basilisk import global_vars
 from basilisk.presenters.preferences_presenter import (
 	AUTO_UPDATE_MODES,
 	LOG_LEVELS,
 	RELEASE_CHANNELS,
 	PreferencesPresenter,
 )
+from basilisk.views.view_mixins import ErrorDisplayMixin
 
 log = logging.getLogger(__name__)
 
 
-class PreferencesDialog(wx.Dialog):
+class TemplatePathWidget(wx.Panel, ErrorDisplayMixin):
+	"""A composite panel: label, path field, Browse and Write-default buttons."""
+
+	def __init__(
+		self,
+		parent: wx.Window,
+		label: str,
+		initial_path,
+		default_template_filename: str,
+	):
+		"""Create the widget panel.
+
+		Args:
+			parent: The parent window.
+			label: Label text displayed above the path field.
+			initial_path: Initial Path value (or None).
+			default_template_filename: Filename in the templates resource dir
+				to copy when the user clicks "Write default template".
+		"""
+		super().__init__(parent)
+		self._default_template_filename = default_template_filename
+
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		lbl = wx.StaticText(self, label=label)
+		sizer.Add(lbl, 0, wx.ALL, 5)
+
+		row = wx.BoxSizer(wx.HORIZONTAL)
+		self._path_ctrl = wx.TextCtrl(
+			self, value=str(initial_path) if initial_path else ""
+		)
+		row.Add(self._path_ctrl, 1, wx.EXPAND | wx.RIGHT, 4)
+
+		browse_btn = wx.Button(
+			self,
+			# Translators: Button to browse for a file path
+			label=_("Browse…"),
+		)
+		browse_btn.Bind(wx.EVT_BUTTON, self._on_browse)
+		row.Add(browse_btn, 0)
+
+		write_btn = wx.Button(
+			self,
+			# Translators: Button to write the default template to disk
+			label=_("Write default template…"),
+		)
+		write_btn.Bind(wx.EVT_BUTTON, self._on_write_default)
+		row.Add(write_btn, 0, wx.LEFT, 4)
+
+		sizer.Add(row, 0, wx.EXPAND | wx.ALL, 5)
+		self.SetSizer(sizer)
+
+	def _on_browse(self, event: wx.Event):
+		"""Open a file dialog to select a template file."""
+		with wx.FileDialog(
+			self,
+			# Translators: Dialog title when browsing for a template file
+			_("Select template file"),
+			wildcard="Mako files (*.mako)|*.mako|All files (*.*)|*.*",
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+		) as dlg:
+			if dlg.ShowModal() == wx.ID_OK:
+				self._path_ctrl.SetValue(dlg.GetPath())
+
+	def _on_write_default(self, event: wx.Event):
+		"""Copy the default template to a user-chosen location."""
+		with wx.FileDialog(
+			self,
+			# Translators: Dialog title when saving the default template to disk
+			_("Save default template as"),
+			wildcard="Mako files (*.mako)|*.mako",
+			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+		) as dlg:
+			if dlg.ShowModal() == wx.ID_OK:
+				dest = Path(dlg.GetPath())
+				src = (
+					global_vars.templates_path / self._default_template_filename
+				)
+				try:
+					shutil.copy(src, dest)
+				except OSError as exc:
+					self.show_error(
+						# Translators: Error shown when copying the default template fails
+						_("Failed to write template: {error}").format(error=exc)
+					)
+					return
+				self._path_ctrl.SetValue(str(dest))
+
+	def get_path(self) -> Path | None:
+		"""Return the current path value, or None if the field is empty.
+
+		Returns:
+			A Path object if the field has a value, otherwise None.
+		"""
+		val = self._path_ctrl.GetValue().strip()
+		return Path(val) if val else None
+
+
+class PreferencesDialog(wx.Dialog, ErrorDisplayMixin):
 	"""A dialog to configure the application preferences."""
 
 	def __init__(
@@ -313,6 +414,35 @@ class PreferencesDialog(wx.Dialog):
 		server_group_sizer.Add(self.server_port, 0, wx.ALL, 5)
 
 		sizer.Add(server_group_sizer, 0, wx.ALL, 5)
+
+		templates_group = wx.StaticBox(
+			panel,
+			# Translators: Group label for HTML rendering settings in preferences
+			label=_("HTML rendering"),
+		)
+		templates_sizer = wx.StaticBoxSizer(templates_group, wx.VERTICAL)
+
+		self.html_message_template_path = TemplatePathWidget(
+			templates_group,
+			# Translators: Label for the HTML message template path setting
+			label=_("Message HTML template (.mako):"),
+			initial_path=conf.templates.html_message_template_path,
+			default_template_filename="html_message.mako",
+		)
+		templates_sizer.Add(
+			self.html_message_template_path, 0, wx.EXPAND | wx.ALL, 5
+		)
+		self.html_export_template_path = TemplatePathWidget(
+			templates_group,
+			# Translators: Label for the conversation export template path setting
+			label=_("Conversation export template (.mako):"),
+			initial_path=conf.templates.html_export_template_path,
+			default_template_filename="conversation_export.mako",
+		)
+		templates_sizer.Add(
+			self.html_export_template_path, 0, wx.EXPAND | wx.ALL, 5
+		)
+		sizer.Add(templates_sizer, 0, wx.EXPAND | wx.ALL, 5)
 
 		bSizer = wx.BoxSizer(wx.HORIZONTAL)
 

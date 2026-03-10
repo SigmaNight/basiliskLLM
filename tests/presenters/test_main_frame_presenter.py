@@ -273,27 +273,6 @@ class TestSaveCurrentConversation:
 		)
 
 
-class TestSaveConversationAs:
-	"""Tests for save_conversation_as."""
-
-	def test_saves_and_updates_path(self, presenter, mock_view):
-		"""Should save and update bskc_path on success."""
-		mock_view.current_tab.save_conversation.return_value = True
-
-		result = presenter.save_conversation_as("/new/path.bskc")
-
-		assert result is True
-		assert mock_view.current_tab.bskc_path == "/new/path.bskc"
-
-	def test_returns_false_on_failure(self, presenter, mock_view):
-		"""Should return False on save failure."""
-		mock_view.current_tab.save_conversation.return_value = False
-
-		result = presenter.save_conversation_as("/new/path.bskc")
-
-		assert result is False
-
-
 class TestHandleNoAccountConfigured:
 	"""Tests for handle_no_account_configured."""
 

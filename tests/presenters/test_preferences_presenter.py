@@ -137,3 +137,42 @@ class TestOnOk:
 		presenter.on_ok()
 
 		mock_set_log.assert_called_once_with(mock_conf.general.log_level.name)
+
+	def test_oserror_on_save_shows_error_and_keeps_dialog_open(
+		self, mock_view, make_presenter, mocker
+	):
+		"""OSError from conf.save() shows error and does not close the dialog."""
+		mock_wx = MagicMock()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		presenter, mock_conf = make_presenter(view=mock_view)
+		mock_conf.save.side_effect = OSError("disk full")
+
+		presenter.on_ok()
+
+		mock_view.show_error.assert_called_once()
+		mock_view.EndModal.assert_not_called()
+
+	def test_validation_error_on_save_shows_error_and_keeps_dialog_open(
+		self, mock_view, make_presenter, mocker
+	):
+		"""ValidationError from conf.save() shows error and does not close dialog."""
+		from pydantic import BaseModel, ValidationError
+
+		mock_wx = MagicMock()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		class _M(BaseModel):
+			x: int
+
+		try:
+			_M(x="bad")
+		except ValidationError as exc:
+			mock_conf.save.side_effect = exc
+
+		presenter.on_ok()
+
+		mock_view.show_error.assert_called_once()
+		mock_view.EndModal.assert_not_called()

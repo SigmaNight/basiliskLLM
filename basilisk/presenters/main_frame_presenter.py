@@ -244,30 +244,10 @@ class MainFramePresenter:
 		If no file path is set, triggers save-as via the view.
 		"""
 		current_tab = self.view.current_tab
-		if not current_tab:
-			self.view.show_error(_("No conversation selected"), _("Error"))
-			return
 		if not current_tab.bskc_path:
 			self.view.on_save_as_conversation(None)
 			return
 		current_tab.save_conversation(current_tab.bskc_path)
-
-	def save_conversation_as(self, file_path: str) -> bool:
-		"""Save the current conversation to a specified file path.
-
-		Args:
-			file_path: The target file path.
-
-		Returns:
-			True if saved successfully.
-		"""
-		current_tab = self.view.current_tab
-		if not current_tab:
-			return False
-		success = current_tab.save_conversation(file_path)
-		if success:
-			current_tab.bskc_path = file_path
-		return success
 
 	# -- Name conversation --
 

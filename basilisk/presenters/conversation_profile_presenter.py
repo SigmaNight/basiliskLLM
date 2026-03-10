@@ -13,6 +13,7 @@ from pydantic import ValidationError
 
 from basilisk.config import ConversationProfile
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
+from basilisk.services.template_service import TemplateService
 
 if TYPE_CHECKING:
 	from basilisk.config.conversation_profile import ConversationProfileManager
@@ -40,6 +41,30 @@ class EditConversationProfilePresenter:
 		"""
 		self.view = view
 		self.profile = profile
+
+	def preview_system_prompt(self) -> str:
+		"""Render the current system_prompt field as a Mako template preview.
+
+		Builds the profile from the current form state via
+		validate_and_build_profile so that template variables such as
+		``profile.name`` reflect the unsaved state rather than the
+		(possibly None or stale) stored profile.
+
+		Returns:
+			The rendered string, or an error message if rendering fails.
+		"""
+		template_str = self.view.system_prompt_txt.GetValue()
+		preview_profile = self.validate_and_build_profile() or self.profile
+		try:
+			return TemplateService.render_system_prompt(
+				template_str,
+				preview_profile,
+				self.view.current_account,
+				self.view.current_model,
+			)
+		except ValueError as exc:
+			# Translators: Error message shown in the system prompt preview
+			return _("Template error: {error}").format(error=exc)
 
 	def validate_and_build_profile(self) -> ConversationProfile | None:
 		"""Validate inputs and build a ConversationProfile.

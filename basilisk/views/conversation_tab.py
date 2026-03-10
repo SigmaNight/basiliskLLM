@@ -587,6 +587,58 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		"""
 		return self.presenter.save_conversation(file_path)
 
+	def _ask_save_path(
+		self, message: str, wildcard: str, default_file: str = ""
+	) -> str | None:
+		"""Show a save file dialog and return the chosen path.
+
+		Args:
+			message: Dialog title.
+			wildcard: File type filter string.
+			default_file: Pre-filled filename suggestion.
+
+		Returns:
+			The selected path, or None if the user cancelled.
+		"""
+		with wx.FileDialog(
+			self,
+			message=message,
+			defaultFile=default_file,
+			wildcard=wildcard,
+			style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+		) as dlg:
+			if dlg.ShowModal() == wx.ID_OK:
+				return dlg.GetPath()
+		return None
+
+	def ask_save_as(self) -> str | None:
+		"""Show a save dialog for .bskc and persist on confirmation.
+
+		Returns:
+			The saved file path, or None if cancelled or save failed.
+		"""
+		path = self._ask_save_path(
+			# Translators: Title of the save-conversation-as dialog
+			_("Save conversation"),
+			_("Basilisk conversation files") + "(*.bskc)|*.bskc",
+		)
+		if path and self.save_conversation(path):
+			self.bskc_path = path
+			return path
+		return None
+
+	def ask_export_html(self) -> None:
+		"""Show a save dialog for .html and export the conversation."""
+		default = f"{self.GetLabel() or _('conversation')}.html"
+		path = self._ask_save_path(
+			# Translators: Dialog title when exporting a conversation to HTML
+			_("Export conversation as HTML"),
+			"HTML files (*.html)|*.html",
+			default_file=default,
+		)
+		if path:
+			self.presenter.export_to_html(path)
+
 	def remove_message_block(self, message_block: MessageBlock):
 		"""Remove a message block from the conversation.
 

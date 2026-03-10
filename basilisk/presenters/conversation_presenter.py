@@ -28,6 +28,7 @@ from basilisk.presenters.presenter_mixins import (
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
+from basilisk.services.template_service import TemplateService
 from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
@@ -142,6 +143,28 @@ class ConversationPresenter(DestroyGuardMixin):
 	def on_stop_completion(self):
 		"""Stop the current completion."""
 		self.completion_handler.stop_completion()
+
+	def export_to_html(self, path: str) -> None:
+		"""Export the current conversation to an HTML file.
+
+		Args:
+			path: Destination file path for the HTML export.
+		"""
+		template_path = config.conf().templates.html_export_template_path
+		profile = getattr(self.view, "current_profile", None)
+		try:
+			html = TemplateService.render_conversation_export(
+				self.conversation, profile, template_path
+			)
+			with open(path, "w", encoding="utf-8") as f:
+				f.write(html)
+		except (OSError, ValueError) as exc:
+			self.view.show_error(
+				# Translators: Error shown when conversation export fails
+				_("Failed to export conversation: {error}").format(error=exc),
+				# Translators: Title for the export error dialog
+				_("Export error"),
+			)
 
 	def get_system_message(self) -> SystemMessage | None:
 		"""Get the system message from the view's system prompt input."""

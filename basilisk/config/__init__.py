@@ -18,7 +18,7 @@ from .conversation_profile import ConversationProfile
 from .conversation_profile import (
 	get_conversation_profile_config as conversation_profiles,
 )
-from .main_config import BasiliskConfig
+from .main_config import BasiliskConfig, TemplatesSettings
 from .main_config import get_basilisk_config as conf
 
 __all__ = [
@@ -37,4 +37,5 @@ __all__ = [
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",
+	"TemplatesSettings",
 ]
