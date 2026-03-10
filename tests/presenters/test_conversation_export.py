@@ -54,3 +54,13 @@ class TestExportToHtml:
 		mocker.patch("builtins.open", side_effect=OSError("disk full"))
 		presenter.export_to_html("some/path.html")
 		presenter.view.show_error.assert_called_once()
+
+	def test_template_error_shows_error(self, presenter, mocker):
+		"""ValueError from render_conversation_export calls view.show_error."""
+		mocker.patch(
+			"basilisk.services.template_service.TemplateService"
+			".render_conversation_export",
+			side_effect=ValueError("bad template"),
+		)
+		presenter.export_to_html("some/path.html")
+		presenter.view.show_error.assert_called_once()

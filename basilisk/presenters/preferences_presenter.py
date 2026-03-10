@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import logging
 
+from pydantic import ValidationError
+
 import basilisk.config as config
 from basilisk.config import (
 	AutomaticUpdateModeEnum,
@@ -124,7 +126,16 @@ class PreferencesPresenter:
 			self.view.html_export_template_path.get_path()
 		)
 
-		conf.save()
+		try:
+			conf.save()
+		except (OSError, ValidationError) as exc:
+			self.view.show_error(
+				# Translators: Error shown when saving preferences fails
+				_("Failed to save preferences: {error}").format(error=exc),
+				# Translators: Title for the preferences save error dialog
+				_("Save error"),
+			)
+			return
 		set_log_level(conf.general.log_level.name)
 
 		self.view.EndModal(wx.ID_OK)

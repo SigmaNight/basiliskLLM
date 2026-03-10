@@ -152,13 +152,13 @@ class ConversationPresenter(DestroyGuardMixin):
 		"""
 		template_path = config.conf().templates.html_export_template_path
 		profile = getattr(self.view, "current_profile", None)
-		html = TemplateService.render_conversation_export(
-			self.conversation, profile, template_path
-		)
 		try:
+			html = TemplateService.render_conversation_export(
+				self.conversation, profile, template_path
+			)
 			with open(path, "w", encoding="utf-8") as f:
 				f.write(html)
-		except OSError as exc:
+		except (OSError, ValueError) as exc:
 			self.view.show_error(
 				# Translators: Error shown when conversation export fails
 				_("Failed to export conversation: {error}").format(error=exc),

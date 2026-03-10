@@ -15,6 +15,7 @@ from basilisk.services.account_model_service import AccountModelService
 from basilisk.services.template_service import TemplateService
 
 if TYPE_CHECKING:
+	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class BaseConversationPresenter:
 		self,
 		profile: config.ConversationProfile,
 		account: config.Account | None,
-		model,
+		model: ProviderAIModel | None,
 	) -> str:
 		"""Render the profile's system_prompt as a Mako template.
 
@@ -98,7 +99,7 @@ class BaseConversationPresenter:
 		Args:
 			profile: The conversation profile whose system_prompt to render.
 			account: Active account (injected as context variable).
-			model: Active model (injected as context variable).
+			model: Active AI model (injected as context variable).
 
 		Returns:
 			The rendered prompt string, or the original on template error.
