@@ -19,7 +19,6 @@ class DBConversation(Base):
 
 	id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 	title: Mapped[str | None] = mapped_column(default=None)
-	is_group_chat: Mapped[bool] = mapped_column(default=False)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)
@@ -39,11 +38,6 @@ class DBConversation(Base):
 		back_populates="conversation",
 		cascade="all, delete-orphan",
 		order_by="DBMessageBlock.position",
-	)
-	participants: Mapped[list["DBConversationParticipant"]] = relationship(
-		back_populates="conversation",
-		cascade="all, delete-orphan",
-		order_by="DBConversationParticipant.position",
 	)
 
 	__table_args__ = (Index("ix_conversations_updated", updated_at.desc()),)
@@ -104,10 +98,6 @@ class DBMessageBlock(Base):
 	max_tokens: Mapped[int] = mapped_column(default=4096)
 	top_p: Mapped[float] = mapped_column(default=1.0)
 	stream: Mapped[bool] = mapped_column(default=False)
-	# Group chat fields — NULL for non-group blocks
-	profile_id: Mapped[str | None] = mapped_column(default=None)
-	group_id: Mapped[str | None] = mapped_column(default=None)
-	group_position: Mapped[int | None] = mapped_column(default=None)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)
@@ -220,34 +210,3 @@ class DBCitation(Base):
 	end_index: Mapped[int | None] = mapped_column(default=None)
 
 	message: Mapped["DBMessage"] = relationship(back_populates="citations")
-
-
-class DBConversationParticipant(Base):
-	"""Stores a participant snapshot for a group chat conversation."""
-
-	__tablename__ = "conversation_participants"
-
-	id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-	conversation_id: Mapped[int] = mapped_column(
-		ForeignKey("conversations.id", ondelete="CASCADE")
-	)
-	position: Mapped[int]
-	profile_id: Mapped[str]
-	name: Mapped[str]
-	account_info_json: Mapped[str]
-	provider_id: Mapped[str]
-	model_id: Mapped[str]
-	max_tokens: Mapped[int] = mapped_column(default=4096)
-	temperature: Mapped[float] = mapped_column(default=1.0)
-	top_p: Mapped[float] = mapped_column(default=1.0)
-	stream_mode: Mapped[bool] = mapped_column(default=True)
-	system_prompt: Mapped[str] = mapped_column(default="")
-
-	conversation: Mapped["DBConversation"] = relationship(
-		back_populates="participants"
-	)
-
-	__table_args__ = (
-		UniqueConstraint("conversation_id", "position"),
-		Index("ix_conv_participants_conv", "conversation_id"),
-	)

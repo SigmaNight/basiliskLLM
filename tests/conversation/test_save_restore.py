@@ -38,7 +38,6 @@ class TestBasicSaveRestore:
 					"systems": [],
 					"title": None,
 					"version": BSKC_VERSION,
-					"group_participants": [],
 				}
 
 	def test_restore_empty_conversation(self, bskc_path, storage_path):

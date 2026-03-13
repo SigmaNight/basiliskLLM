@@ -115,12 +115,6 @@ class BaseEngine(ABC):
 	) -> list[Message]:
 		"""Prepares message history for API requests.
 
-		For group chat blocks (``group_position > 0``) the user request is
-		**not** re-emitted because the same prompt was already sent by the
-		block at position 0.  When ``_profile_name_map`` is set on the
-		conversation, assistant responses are prefixed with the participant
-		name so each model knows who said what.
-
 		Args:
 			new_block: Current message block being processed.
 			conversation: Full conversation history.
@@ -133,36 +127,17 @@ class BaseEngine(ABC):
 		messages = []
 		if system_message:
 			messages.append(self.prepare_message_request(system_message))
-		name_map: dict[str, str] = getattr(
-			conversation, "_profile_name_map", {}
-		)
 		for i, block in enumerate(conversation.messages):
 			if stop_block_index is not None and i >= stop_block_index:
 				break
 			if not block.response:
 				continue
-			# For group blocks after the first participant, skip re-emitting
-			# the user request (position 0 already emitted it).
-			skip_user_request = (
-				block.group_position is not None and block.group_position > 0
+			messages.extend(
+				[
+					self.prepare_message_request(block.request),
+					self.prepare_message_response(block.response),
+				]
 			)
-			if not skip_user_request:
-				messages.append(self.prepare_message_request(block.request))
-			# Optionally prefix the response with the participant name.
-			response = block.response
-			if name_map and block.profile_id is not None:
-				profile_name = name_map.get(str(block.profile_id))
-				if profile_name:
-					from basilisk.conversation.conversation_model import (
-						Message,
-						MessageRoleEnum,
-					)
-
-					response = Message(
-						role=MessageRoleEnum.ASSISTANT,
-						content=f"[{profile_name}]: {response.content}",
-					)
-			messages.append(self.prepare_message_response(response))
 		messages.append(self.prepare_message_request(new_block.request))
 		return messages
 

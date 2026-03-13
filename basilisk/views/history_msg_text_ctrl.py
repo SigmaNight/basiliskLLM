@@ -186,27 +186,6 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		segment_type=MessageSegmentType.SUFFIX,
 	)
 
-	def _get_assistant_label(self, new_block: MessageBlock) -> str:
-		"""Return the assistant label for a block, with participant prefix for group chats.
-
-		Args:
-			new_block: The message block to get the label for.
-
-		Returns:
-			The assistant label string, optionally prefixed with participant name.
-		"""
-		base_label = self.role_labels[MessageRoleEnum.ASSISTANT]
-		if new_block.profile_id is None:
-			return base_label
-		from basilisk.config import conversation_profiles
-
-		profiles = conversation_profiles()
-		try:
-			profile = profiles[new_block.profile_id]
-			return f"[{profile.name}] {base_label}"
-		except KeyError, Exception:
-			return base_label
-
 	def display_new_block(
 		self, new_block: MessageBlock, streaming: bool = False
 	):
@@ -221,8 +200,6 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Preserves the original insertion point after displaying the block
 		- Supports both request and optional response messages
 		- In streaming mode, only displays the assistant label, not the content
-		- For group blocks (group_position > 0), the user request is not
-		  displayed again (it was already shown by position 0).
 
 		Args:
 			new_block: The message block to be displayed in the conversation.
@@ -231,28 +208,23 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
-		is_group_followup = (
-			new_block.group_position is not None
-			and new_block.group_position > 0
-		)
 		if not self.IsEmpty():
 			absolute_length = self.append_suffix(new_block_ref, absolute_length)
-		if not is_group_followup:
-			# Show user request only for position-0 (or non-group) blocks
+		absolute_length = self.append_prefix(
+			new_block_ref,
+			absolute_length,
+			self.role_labels[MessageRoleEnum.USER],
+		)
+		absolute_length = self.append_content(
+			new_block_ref, absolute_length, new_block.request.content
+		)
+		absolute_length = self.append_suffix(new_block_ref, absolute_length)
+		pos = self.GetInsertionPoint()
+		if new_block.response:
 			absolute_length = self.append_prefix(
 				new_block_ref,
 				absolute_length,
-				self.role_labels[MessageRoleEnum.USER],
-			)
-			absolute_length = self.append_content(
-				new_block_ref, absolute_length, new_block.request.content
-			)
-			absolute_length = self.append_suffix(new_block_ref, absolute_length)
-		pos = self.GetInsertionPoint()
-		assistant_label = self._get_assistant_label(new_block)
-		if new_block.response:
-			absolute_length = self.append_prefix(
-				new_block_ref, absolute_length, assistant_label
+				self.role_labels[MessageRoleEnum.ASSISTANT],
 			)
 			# Only display response content if not streaming (streaming content
 			# is displayed incrementally via append_stream_chunk)

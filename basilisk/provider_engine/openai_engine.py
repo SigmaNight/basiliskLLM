@@ -438,7 +438,7 @@ class OpenAIEngine(BaseEngine):
 			"store": False,
 		}
 		if new_block.max_tokens:
-			params["max_output_tokens"] = new_block.max_tokens
+			params["max_tokens"] = new_block.max_tokens
 		if tools:
 			params["tools"] = tools
 		params.update(kwargs)

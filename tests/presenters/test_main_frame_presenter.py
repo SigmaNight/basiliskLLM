@@ -72,8 +72,6 @@ class TestTryReopenLastConversation:
 		mock_view.conf.conversation.reopen_last_conversation = True
 		mock_view.conf.conversation.last_active_conversation_id = 42
 		mock_tab = MagicMock()
-		# Empty list so the presenter treats this as a regular conversation
-		mock_tab.conversation.group_participants = []
 		mock_open_from_db = mocker.patch(
 			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
 			return_value=mock_tab,
@@ -161,7 +159,6 @@ class TestOpenConversation:
 	def test_success(self, presenter, mock_view, mocker):
 		"""Should add tab when opening succeeds."""
 		mock_tab = MagicMock()
-		mock_tab.conversation.group_participants = []
 		mocker.patch(
 			"basilisk.views.conversation_tab.ConversationTab.open_conversation",
 			return_value=mock_tab,
@@ -190,7 +187,6 @@ class TestOpenFromDb:
 	def test_success(self, presenter, mock_view, mocker):
 		"""Should add tab when opening from DB succeeds."""
 		mock_tab = MagicMock()
-		mock_tab.conversation.group_participants = []
 		mocker.patch(
 			"basilisk.views.conversation_tab.ConversationTab.open_from_db",
 			return_value=mock_tab,
