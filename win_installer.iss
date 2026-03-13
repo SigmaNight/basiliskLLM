@@ -2,6 +2,12 @@
     #define AppArch "x64"
 #endif
 
+#if AppArch == "arm64"
+    #define ArchInstall64 "arm64"
+#else
+    #define ArchInstall64 "x64compatible"
+#endif
+
 #ifndef MyAppVersion
     #define MyAppVersion GetVersionNumbersString('dist\basilisk.exe')
 #endif
@@ -13,7 +19,7 @@ AppName=basiliskLLM
 AppPublisher=SigmaNight
 AppVerName={#SetupSetting("AppName")} {#SetupSetting("AppVersion")}
 ArchitecturesAllowed={#AppArch}compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesInstallIn64BitMode={#ArchInstall64}
 Output=yes
 OutputDir=output_setup
 OutputBaseFilename=setup_{#SetupSetting("AppName")}_{#SetupSetting("AppVersion")}_{#AppArch}
