@@ -34,10 +34,15 @@ jobs:
         with:
           path: C:\openssl-arm64
           key: openssl-arm64-windows-3.5.0
+      - name: checkout vcpkg (arm64)
+        if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: microsoft/vcpkg
+          path: C:\vcpkg-build
       - name: install OpenSSL via vcpkg (arm64)
         if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg-build --depth 1
           C:\vcpkg-build\bootstrap-vcpkg.bat -disableMetrics
           C:\vcpkg-build\vcpkg.exe install openssl:arm64-windows
           Move-Item C:\vcpkg-build\installed\arm64-windows C:\openssl-arm64
