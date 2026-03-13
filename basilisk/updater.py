@@ -145,8 +145,11 @@ class BaseUpdater(ABC):
 		"""Get the architecture of the application.
 
 		Returns:
-			The architecture of the application as a string (e.g., 'x64' or 'x86').
+			The architecture of the application as a string (e.g., 'x64', 'x86' or 'arm64').
 		"""
+		machine = platform.machine()
+		if machine == "ARM64":
+			return "arm64"
 		arch = platform.architecture()[0]
 		if arch == "64bit":
 			return "x64"
