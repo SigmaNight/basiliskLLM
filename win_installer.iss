@@ -3,8 +3,10 @@
 #endif
 
 #if AppArch == "arm64"
+    #define ArchAllowed "arm64"
     #define ArchInstall64 "arm64"
 #else
+    #define ArchAllowed AppArch + "compatible"
     #define ArchInstall64 "x64compatible"
 #endif
 
@@ -18,7 +20,7 @@ AppVersion={#MyAppVersion}
 AppName=basiliskLLM
 AppPublisher=SigmaNight
 AppVerName={#SetupSetting("AppName")} {#SetupSetting("AppVersion")}
-ArchitecturesAllowed={#AppArch}compatible
+ArchitecturesAllowed={#ArchAllowed}
 ArchitecturesInstallIn64BitMode={#ArchInstall64}
 Output=yes
 OutputDir=output_setup
