@@ -6,13 +6,17 @@ permissions:
 
 jobs:
   build_windows:
-    runs-on: windows-2025
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x86_64
-          - x86
+        include:
+          - arch: x86_64
+            runner: windows-2025
+          - arch: x86
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
 
     steps:
       - name: checkout repository
@@ -38,6 +42,8 @@ jobs:
           echo version_number=$version >> $env:GITHUB_OUTPUT
           if ("${{ matrix.arch }}" -eq "x86_64") {
             echo arch="x64" >> $env:GITHUB_OUTPUT
+          } elseif ("${{ matrix.arch }}" -eq "arm64") {
+            echo arch="arm64" >> $env:GITHUB_OUTPUT
           } else {
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
