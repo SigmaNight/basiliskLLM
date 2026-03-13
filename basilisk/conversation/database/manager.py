@@ -31,6 +31,7 @@ from .models import (
 	DBAttachment,
 	DBCitation,
 	DBConversation,
+	DBConversationParticipant,
 	DBConversationSystemPrompt,
 	DBMessage,
 	DBMessageAttachment,
@@ -131,9 +132,18 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			with session.begin():
-				db_conv = DBConversation(title=conversation.title)
+				is_group = bool(conversation.group_participants)
+				db_conv = DBConversation(
+					title=conversation.title, is_group_chat=is_group
+				)
 				session.add(db_conv)
 				session.flush()
+
+				# Save group participants (if any)
+				if is_group:
+					self._save_participants(
+						session, db_conv.id, conversation.group_participants
+					)
 
 				# Save system prompts
 				csp_map = self._save_system_prompts(
@@ -149,6 +159,35 @@ class ConversationDatabase:
 				conv_id = db_conv.id
 		log.debug("Saved conversation %d", conv_id)
 		return conv_id
+
+	def _save_participants(
+		self, session: Session, conv_id: int, participants: list
+	):
+		"""Save group participant snapshots for a conversation.
+
+		Args:
+			session: The active database session.
+			conv_id: The database conversation ID.
+			participants: List of GroupParticipant pydantic objects.
+		"""
+		import json
+
+		for position, participant in enumerate(participants):
+			db_participant = DBConversationParticipant(
+				conversation_id=conv_id,
+				position=position,
+				profile_id=str(participant.profile_id),
+				name=participant.name,
+				account_info_json=json.dumps(participant.account_info),
+				provider_id=participant.ai_model_info.provider_id,
+				model_id=participant.ai_model_info.model_id,
+				max_tokens=participant.max_tokens,
+				temperature=participant.temperature,
+				top_p=participant.top_p,
+				stream_mode=participant.stream_mode,
+				system_prompt=participant.system_prompt,
+			)
+			session.add(db_participant)
 
 	def _save_system_prompts(
 		self,
@@ -389,6 +428,9 @@ class ConversationDatabase:
 			max_tokens=block.max_tokens,
 			top_p=block.top_p,
 			stream=block.stream,
+			profile_id=str(block.profile_id) if block.profile_id else None,
+			group_id=block.group_id,
+			group_position=block.group_position,
 			created_at=block.created_at,
 			updated_at=block.updated_at,
 		)
@@ -724,17 +766,65 @@ class ConversationDatabase:
 					max_tokens=db_block.max_tokens,
 					top_p=db_block.top_p,
 					stream=db_block.stream,
+					profile_id=db_block.profile_id or None,
+					group_id=db_block.group_id,
+					group_position=db_block.group_position,
 					created_at=db_block.created_at,
 					updated_at=db_block.updated_at,
 				)
 				block.db_id = db_block.id
 				blocks.append(block)
+
+			# Load group participants (if any)
+			group_participants = self._load_participants(db_conv)
+
 			return Conversation(
 				messages=blocks,
 				systems=systems,
 				title=db_conv.title,
 				version=BSKC_VERSION,
+				group_participants=group_participants,
 			)
+
+	def _load_participants(self, db_conv) -> list:
+		"""Load GroupParticipant snapshots from a DBConversation.
+
+		Args:
+			db_conv: The DBConversation ORM object.
+
+		Returns:
+			List of GroupParticipant pydantic instances, or empty list.
+		"""
+		import json
+
+		from basilisk.conversation.conversation_model import GroupParticipant
+
+		if not db_conv.participants:
+			return []
+		participants = []
+		for db_p in sorted(db_conv.participants, key=lambda x: x.position):
+			try:
+				account_info = json.loads(db_p.account_info_json)
+			except json.JSONDecodeError, Exception:
+				account_info = {}
+			try:
+				participant = GroupParticipant(
+					profile_id=db_p.profile_id,
+					name=db_p.name,
+					system_prompt=db_p.system_prompt or "",
+					account_info=account_info,
+					ai_model_info=AIModelInfo(
+						provider_id=db_p.provider_id, model_id=db_p.model_id
+					),
+					max_tokens=db_p.max_tokens,
+					temperature=db_p.temperature,
+					top_p=db_p.top_p,
+					stream_mode=db_p.stream_mode,
+				)
+				participants.append(participant)
+			except Exception as e:
+				log.warning("Could not load participant %s: %s", db_p.name, e)
+		return participants
 
 	def _load_message(self, db_msg: DBMessage) -> Message:
 		"""Convert a DB message to a Pydantic message."""

@@ -13,6 +13,7 @@ from .attached_file import (
 from .conversation_helper import PROMPT_TITLE
 from .conversation_model import (
 	Conversation,
+	GroupParticipant,
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
@@ -25,6 +26,7 @@ __all__ = [
 	"build_from_url",
 	"Conversation",
 	"get_mime_type",
+	"GroupParticipant",
 	"ImageFile",
 	"ImageFileTypes",
 	"Message",

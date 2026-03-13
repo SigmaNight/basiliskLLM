@@ -7,8 +7,10 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import (
+	UUID4,
 	BaseModel,
 	Field,
+	PrivateAttr,
 	ValidationInfo,
 	field_validator,
 	model_validator,
@@ -132,6 +134,25 @@ class SystemMessage(BaseMessage):
 		return self.role == other.role and self.content == other.content
 
 
+class GroupParticipant(BaseModel):
+	"""Snapshot of a conversation profile used in a group chat.
+
+	Stores all relevant parameters at group chat creation time so the group
+	chat continues to work even if the original ConversationProfile is later
+	edited or deleted. ``profile_id`` is a soft reference only.
+	"""
+
+	profile_id: UUID4
+	name: str
+	system_prompt: str = Field(default="")
+	account_info: dict = Field(default_factory=dict)
+	ai_model_info: AIModelInfo
+	max_tokens: int = Field(default=4096)
+	temperature: float = Field(default=1.0)
+	top_p: float = Field(default=1.0)
+	stream_mode: bool = Field(default=True)
+
+
 class MessageBlock(BaseModel):
 	"""Represents a block of messages in a conversation. The block may contain a user message, an AI model request, and an AI model response."""
 
@@ -146,6 +167,10 @@ class MessageBlock(BaseModel):
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 	db_id: int | None = Field(default=None, exclude=True)
+	# Group chat fields — all None for regular (non-group) messages
+	profile_id: UUID4 | None = Field(default=None)
+	group_id: str | None = Field(default=None)
+	group_position: int | None = Field(default=None)
 
 	@field_validator("response", mode="after")
 	@classmethod
@@ -191,6 +216,11 @@ class Conversation(BaseModel):
 	)
 	title: str | None = Field(default=None)
 	version: int = Field(default=BSKC_VERSION, ge=0, le=BSKC_VERSION)
+	group_participants: list[GroupParticipant] = Field(default_factory=list)
+	# Private: populated by GroupConversationPresenter before each chain step.
+	# Maps str(profile_id) -> profile name for display in history.
+	# Excluded from BSKC serialization automatically by PrivateAttr.
+	_profile_name_map: dict[str, str] = PrivateAttr(default_factory=dict)
 
 	@model_validator(mode="before")
 	@classmethod

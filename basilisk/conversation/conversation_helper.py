@@ -275,9 +275,30 @@ def migrate_from_bskc_v2_to_v3(
 	return value
 
 
+def migrate_from_bskc_v3_to_v4(
+	value: dict[str, Any], info: ValidationInfo
+) -> dict[str, Any]:
+	"""Migration function to convert Basilisk Conversation v3 to v4 format.
+
+	Adds the ``group_participants`` key required by v4 (empty list for all
+	existing files — group chat is a new feature introduced in v4).
+
+	Args:
+		value: The original value to be migrated
+		info: Validation information
+
+	Returns:
+		The migrated value in v4 format
+	"""
+	value["version"] = 4
+	value.setdefault("group_participants", [])
+	return value
+
+
 # Migration steps for different versions of the Basilisk Conversation file format
 migration_steps = [
 	migrate_from_bskc_v0_to_v1,
 	migrate_from_bskc_v1_to_v2,
 	migrate_from_bskc_v2_to_v3,
+	migrate_from_bskc_v3_to_v4,
 ]

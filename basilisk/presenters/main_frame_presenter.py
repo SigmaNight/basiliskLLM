@@ -80,6 +80,10 @@ class MainFramePresenter:
 			tab = ConversationTab.open_from_db(
 				self.view.notebook, conv_id, self.get_default_conv_title()
 			)
+			if tab.conversation.group_participants:
+				tab = self._make_group_tab_from_conversation(
+					tab.conversation, db_conv_id=conv_id
+				)
 			self.view.add_conversation_tab(tab)
 			return True
 		except Exception:
@@ -162,8 +166,70 @@ class MainFramePresenter:
 			new_tab.set_private(True)
 		self.view.add_conversation_tab(new_tab)
 
+	def new_group_conversation(self):
+		"""Open the participant selection dialog and create a group chat tab."""
+		from basilisk.config import conversation_profiles
+		from basilisk.conversation import GroupParticipant
+		from basilisk.views.group_conversation_tab import GroupConversationTab
+		from basilisk.views.new_group_chat_dialog import NewGroupChatDialog
+
+		if not list(conversation_profiles().profiles):
+			self.view.show_error(
+				_(
+					"No conversation profiles found. "
+					"Please create at least 2 profiles before starting a group chat."
+				),
+				_("No profiles"),
+			)
+			return
+		dialog = NewGroupChatDialog(self.view)
+		if dialog.ShowModal() != wx.ID_OK:
+			dialog.Destroy()
+			return
+		profiles = dialog.get_selected_profiles()
+		dialog.Destroy()
+		if len(profiles) < 2:
+			return
+		# Build GroupParticipant snapshots from the selected profiles
+		participants = []
+		for profile in profiles:
+			account = profile.account
+			if account is None:
+				self.view.show_error(
+					_("Profile '%s' has no account configured.") % profile.name,
+					_("Error"),
+				)
+				return
+			if profile.ai_model_info is None:
+				self.view.show_error(
+					_("Profile '%s' has no model configured.") % profile.name,
+					_("Error"),
+				)
+				return
+			participants.append(
+				GroupParticipant(
+					profile_id=profile.id,
+					name=profile.name,
+					system_prompt=profile.system_prompt or "",
+					account_info={"id": str(account.id)},
+					ai_model_info=profile.ai_model_info,
+					max_tokens=profile.max_tokens or 4096,
+					temperature=profile.temperature or 1.0,
+					top_p=profile.top_p or 1.0,
+					stream_mode=profile.stream_mode,
+				)
+			)
+		title = self.get_default_conv_title()
+		tab = GroupConversationTab(
+			self.view.notebook, participants=participants, title=title
+		)
+		self.view.add_conversation_tab(tab)
+
 	def open_conversation(self, file_path: str):
 		"""Open a conversation from a file path.
+
+		Dispatches to GroupConversationTab if the file contains group
+		participants, otherwise opens a regular ConversationTab.
 
 		Args:
 			file_path: The path to the conversation file.
@@ -175,6 +241,11 @@ class MainFramePresenter:
 				self.view.notebook, file_path, self.get_default_conv_title()
 			)
 			if new_tab:
+				# Dispatch to group tab if the file is a group chat
+				if new_tab.conversation.group_participants:
+					new_tab = self._make_group_tab_from_conversation(
+						new_tab.conversation, bskc_path=file_path
+					)
 				self.view.add_conversation_tab(new_tab)
 		except Exception as e:
 			self.view.show_error(
@@ -192,6 +263,9 @@ class MainFramePresenter:
 	def open_from_db(self, conv_id: int):
 		"""Open a conversation from the database.
 
+		Dispatches to GroupConversationTab when the conversation is a group
+		chat, otherwise opens a regular ConversationTab.
+
 		Args:
 			conv_id: The database conversation ID.
 		"""
@@ -201,6 +275,10 @@ class MainFramePresenter:
 			tab = ConversationTab.open_from_db(
 				self.view.notebook, conv_id, self.get_default_conv_title()
 			)
+			if tab.conversation.group_participants:
+				tab = self._make_group_tab_from_conversation(
+					tab.conversation, db_conv_id=conv_id
+				)
 			self.view.add_conversation_tab(tab)
 		except Exception as e:
 			log.error(
@@ -211,6 +289,29 @@ class MainFramePresenter:
 			self.view.show_error(
 				_("Failed to open conversation: %s") % str(e), _("Error")
 			)
+
+	def _make_group_tab_from_conversation(
+		self, conversation, bskc_path=None, db_conv_id=None
+	):
+		"""Create a GroupConversationTab from a loaded Conversation.
+
+		Args:
+			conversation: The loaded Conversation with group_participants.
+			bskc_path: Path to the .bskc file, or None.
+			db_conv_id: Database conversation ID, or None.
+
+		Returns:
+			A GroupConversationTab instance.
+		"""
+		from basilisk.views.group_conversation_tab import GroupConversationTab
+
+		return GroupConversationTab.open_from_conversation(
+			parent=self.view.notebook,
+			conversation=conversation,
+			default_title=self.get_default_conv_title(),
+			bskc_path=bskc_path,
+			db_conv_id=db_conv_id,
+		)
 
 	def close_conversation(self):
 		"""Close the currently selected conversation tab.

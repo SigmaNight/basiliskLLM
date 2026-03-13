@@ -109,6 +109,12 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			# Translators: A label for a menu item to create a new conversation from a profile
 			_("New conversation from profile"),
 		)
+		new_group_chat_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to create a new group chat
+			_("New &group chat") + "\tCtrl+Shift+H",
+		)
+		self.Bind(wx.EVT_MENU, self.on_new_group_chat, new_group_chat_item)
 		open_conversation_item = conversation_menu.Append(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to open a conversation
@@ -434,6 +440,14 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			event: The triggering event. Can be None.
 		"""
 		self.presenter.on_new_private_conversation()
+
+	def on_new_group_chat(self, event: wx.Event | None):
+		"""Open the group chat participant dialog and create a group chat.
+
+		Args:
+			event: The triggering event. Can be None.
+		"""
+		self.presenter.new_group_conversation()
 
 	def on_new_conversation(self, event: wx.Event):
 		"""Create a new conversation with the selected profile.
