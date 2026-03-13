@@ -10,7 +10,7 @@ readme = "README.md"
 license = "GPL-2.0-only"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git",
+    "accessible-output3 @ git+https://github.com/SigmaNight/accessible_output3.git ; sys_platform == 'win32' and platform_machine != 'ARM64'",
     "alembic>=1.18,<1.19",
     "anthropic>=0.72.0,<0.85",
     "babel>=2.17,<2.19",
@@ -78,6 +78,11 @@ fallback_version = "0.0.0"
 
 [tool.uv]
 package = false
+environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'win32' and platform_machine == 'x86'",
+    "sys_platform == 'win32' and platform_machine == 'ARM64'",
+]
 
 [tool.coverage.run]
 branch = true

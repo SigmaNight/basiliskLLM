@@ -6,13 +6,17 @@ permissions:
 
 jobs:
   build_windows:
-    runs-on: windows-2025
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x86_64
-          - x86
+        include:
+          - arch: x86_64
+            runner: windows-2025
+          - arch: x86
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
 
     steps:
       - name: checkout repository
@@ -23,6 +27,28 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
+      - name: cache OpenSSL (arm64)
+        if: matrix.arch == 'arm64'
+        uses: actions/cache@v4
+        id: cache-openssl-arm64
+        with:
+          path: C:\openssl-arm64
+          key: openssl-arm64-windows-3.5.0
+      - name: checkout vcpkg (arm64)
+        if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: microsoft/vcpkg
+          path: C:\vcpkg-build
+      - name: install OpenSSL via vcpkg (arm64)
+        if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
+        run: |
+          C:\vcpkg-build\bootstrap-vcpkg.bat -disableMetrics
+          C:\vcpkg-build\vcpkg.exe install openssl:arm64-windows
+          Move-Item C:\vcpkg-build\installed\arm64-windows C:\openssl-arm64
+      - name: set OpenSSL env (arm64)
+        if: matrix.arch == 'arm64'
+        run: echo "OPENSSL_DIR=C:\openssl-arm64" >> $env:GITHUB_ENV
       - name: Install dependencies
         run: uv sync --frozen --no-dev --group build --group test
       - name: run tests
@@ -38,6 +64,8 @@ jobs:
           echo version_number=$version >> $env:GITHUB_OUTPUT
           if ("${{ matrix.arch }}" -eq "x86_64") {
             echo arch="x64" >> $env:GITHUB_OUTPUT
+          } elseif ("${{ matrix.arch }}" -eq "arm64") {
+            echo arch="arm64" >> $env:GITHUB_OUTPUT
           } else {
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
