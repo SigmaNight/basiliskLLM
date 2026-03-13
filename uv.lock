@@ -17,7 +17,7 @@ name = "accessible-output3"
 version = "0.0.0"
 source = { git = "https://github.com/SigmaNight/accessible_output3.git#fa8754da4947d961eaaa73ebc05c030b8a37ea4a" }
 dependencies = [
-    { name = "pywin32", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'ARM64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
+    { name = "pywin32", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
 ]
 
 [[package]]
@@ -96,7 +96,7 @@ wheels = [
 name = "basiliskllm"
 source = { virtual = "." }
 dependencies = [
-    { name = "accessible-output3", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'ARM64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
+    { name = "accessible-output3", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
     { name = "alembic", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'ARM64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
     { name = "anthropic", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'ARM64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
     { name = "babel", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine == 'ARM64' and sys_platform == 'win32') or (platform_machine == 'x86' and sys_platform == 'win32')" },
@@ -156,7 +156,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "accessible-output3", git = "https://github.com/SigmaNight/accessible_output3.git" },
+    { name = "accessible-output3", marker = "platform_machine != 'ARM64' and sys_platform == 'win32'", git = "https://github.com/SigmaNight/accessible_output3.git" },
     { name = "alembic", specifier = ">=1.18,<1.19" },
     { name = "anthropic", specifier = ">=0.72.0,<0.85" },
     { name = "babel", specifier = ">=2.17,<2.19" },

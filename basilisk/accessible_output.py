@@ -1,10 +1,21 @@
 """Functions for interacting with the Accessible Output library."""
 
+from __future__ import annotations
+
 import logging
 import re
 from functools import cached_property
+from typing import TYPE_CHECKING
 
-import accessible_output3.outputs.auto
+try:
+	import accessible_output3.outputs.auto
+
+	_ao3_available = True
+except ImportError:
+	_ao3_available = False
+
+if TYPE_CHECKING:
+	import accessible_output3.outputs.auto
 
 import basilisk.config as config
 from basilisk.completion_handler import COMMON_PATTERN
@@ -55,12 +66,21 @@ class AccessibleOutputHandler:
 
 	@property
 	def use_accessible_output(self) -> bool:
-		"""Check if accessible output is enabled in the configuration."""
-		return config.conf().conversation.use_accessible_output
+		"""Check if accessible output is enabled and available."""
+		return (
+			_ao3_available and config.conf().conversation.use_accessible_output
+		)
 
 	@measure_time
 	def _init_accessible_output(self, display_log: bool) -> None:
 		"""Initialize the Accessible Output library."""
+		if not _ao3_available:
+			if display_log:
+				log.debug(
+					"accessible_output3 is not available on this platform."
+				)
+			self._accessible_output = None
+			return
 		if not self.use_accessible_output:
 			if display_log:
 				log.warning(
