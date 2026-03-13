@@ -231,9 +231,11 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
-		is_group_followup = (
-			new_block.group_position is not None
-			and new_block.group_position > 0
+		# Skip user request for group follow-up blocks:
+		# - any block with group_position > 0 (not the chain opener), or
+		# - position-0 blocks in subsequent rounds (empty sentinel request).
+		is_group_followup = new_block.group_id is not None and (
+			new_block.group_position > 0 or not new_block.request.content
 		)
 		if not self.IsEmpty():
 			absolute_length = self.append_suffix(new_block_ref, absolute_length)

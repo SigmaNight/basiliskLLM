@@ -218,9 +218,12 @@ class Conversation(BaseModel):
 	version: int = Field(default=BSKC_VERSION, ge=0, le=BSKC_VERSION)
 	group_participants: list[GroupParticipant] = Field(default_factory=list)
 	# Private: populated by GroupConversationPresenter before each chain step.
-	# Maps str(profile_id) -> profile name for display in history.
+	# Maps str(profile_id) -> profile name for attribution in group context.
 	# Excluded from BSKC serialization automatically by PrivateAttr.
 	_profile_name_map: dict[str, str] = PrivateAttr(default_factory=dict)
+	# Private: set to str(profile_id) of the participant being called next so
+	# get_messages() can restructure the history from that participant's POV.
+	_current_group_participant_id: str | None = PrivateAttr(default=None)
 
 	@model_validator(mode="before")
 	@classmethod

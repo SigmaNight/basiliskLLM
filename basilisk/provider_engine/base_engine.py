@@ -115,55 +115,80 @@ class BaseEngine(ABC):
 	) -> list[Message]:
 		"""Prepares message history for API requests.
 
-		For group chat blocks (``group_position > 0``) the user request is
-		**not** re-emitted because the same prompt was already sent by the
-		block at position 0.  When ``_profile_name_map`` is set on the
-		conversation, assistant responses are prefixed with the participant
-		name so each model knows who said what.
+		For group chat conversations, the history is restructured from each
+		participant's point of view:
+		- The current participant's own previous responses appear as ASSISTANT
+		  turns (natural continuation).
+		- Other participants' responses appear as USER turns, attributed with
+		  ``[name]: content`` so the model sees them as external input rather
+		  than its own prior output.  This prevents models from imitating the
+		  ``[name]:`` prefix format in their own responses.
 
 		Args:
 			new_block: Current message block being processed.
 			conversation: Full conversation history.
 			system_message: Optional system-level instruction message.
-			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
+			stop_block_index: Stop processing history at this index (exclusive).
 
 		Returns:
 			List of prepared messages in provider-specific format.
 		"""
+		from basilisk.conversation.conversation_model import (
+			Message,
+			MessageRoleEnum,
+		)
+
 		messages = []
 		if system_message:
 			messages.append(self.prepare_message_request(system_message))
 		name_map: dict[str, str] = getattr(
 			conversation, "_profile_name_map", {}
 		)
+		current_pid: str | None = getattr(
+			conversation, "_current_group_participant_id", None
+		)
 		for i, block in enumerate(conversation.messages):
 			if stop_block_index is not None and i >= stop_block_index:
 				break
 			if not block.response:
 				continue
-			# For group blocks after the first participant, skip re-emitting
-			# the user request (position 0 already emitted it).
-			skip_user_request = (
-				block.group_position is not None and block.group_position > 0
-			)
-			if not skip_user_request:
-				messages.append(self.prepare_message_request(block.request))
-			# Optionally prefix the response with the participant name.
-			response = block.response
-			if name_map and block.profile_id is not None:
-				profile_name = name_map.get(str(block.profile_id))
-				if profile_name:
-					from basilisk.conversation.conversation_model import (
-						Message,
-						MessageRoleEnum,
+			if current_pid is not None and block.group_id is not None:
+				# Group block: rebuild history from this participant's POV.
+				pid_str = str(block.profile_id) if block.profile_id else None
+				if pid_str == current_pid:
+					# Own previous response: include request (if non-empty)
+					# then own response as ASSISTANT.
+					if block.request.content:
+						messages.append(
+							self.prepare_message_request(block.request)
+						)
+					messages.append(
+						self.prepare_message_response(block.response)
 					)
-
-					response = Message(
-						role=MessageRoleEnum.ASSISTANT,
-						content=f"[{profile_name}]: {response.content}",
+				else:
+					# Another participant's response: frame as USER turn so
+					# the model doesn't imitate the attribution format.
+					other_name = (
+						name_map.get(pid_str, "Other") if pid_str else "Other"
 					)
-			messages.append(self.prepare_message_response(response))
-		messages.append(self.prepare_message_request(new_block.request))
+					attributed = Message(
+						role=MessageRoleEnum.USER,
+						content=f"[{other_name}]: {block.response.content}",
+					)
+					messages.append(self.prepare_message_request(attributed))
+			else:
+				# Standard (non-group) block.
+				skip_user = (
+					block.group_position is not None
+					and block.group_position > 0
+				)
+				if not skip_user:
+					messages.append(self.prepare_message_request(block.request))
+				messages.append(self.prepare_message_response(block.response))
+		# Append the new block's request only when it carries content.
+		# For group follow-ups the last USER turn is already an attribution.
+		if new_block.request.content:
+			messages.append(self.prepare_message_request(new_block.request))
 		return messages
 
 	@abstractmethod

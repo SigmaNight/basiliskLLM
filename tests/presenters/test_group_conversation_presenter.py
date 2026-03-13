@@ -206,6 +206,32 @@ class TestDebateModeRounds:
 		# Chain done
 		assert not presenter._is_running_chain
 
+	def test_second_participant_in_round_0_uses_empty_request(self, mocker):
+		"""Position > 0 in round 0 must use empty content (no duplicate question)."""
+		presenter = _make_presenter()
+
+		mock_account = MagicMock()
+		mock_account.provider = MagicMock()
+		mock_account.provider.id = "openai"
+		mock_account.provider.engine_cls = MagicMock(return_value=MagicMock())
+
+		mocker.patch.object(
+			presenter, "_resolve_account", return_value=mock_account
+		)
+		mock_start = mocker.patch.object(
+			presenter.completion_handler, "start_completion"
+		)
+
+		presenter.on_submit()
+
+		# Complete round 0, participant 0
+		presenter._on_completion_end(True)
+
+		# Round 0, participant 1 — request must be empty, not the original prompt
+		assert mock_start.call_count == 2
+		call_kwargs = mock_start.call_args.kwargs
+		assert call_kwargs["new_block"].request.content == ""
+
 	def test_debate_uses_empty_sentinel_in_round_1(self, mocker):
 		"""Subsequent debate rounds should use an empty request content."""
 		presenter = _make_presenter()

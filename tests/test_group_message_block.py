@@ -161,6 +161,18 @@ class TestConversationGroupFields:
 		data = json.loads(conv.model_dump_json())
 		assert "_profile_name_map" not in data
 
+	def test_current_group_participant_id_defaults_none(self):
+		"""_current_group_participant_id defaults to None (private attr)."""
+		conv = Conversation()
+		assert conv._current_group_participant_id is None
+
+	def test_current_group_participant_id_not_in_serialization(self):
+		"""_current_group_participant_id is excluded from JSON serialization."""
+		conv = Conversation()
+		conv._current_group_participant_id = "some-uuid"
+		data = json.loads(conv.model_dump_json())
+		assert "_current_group_participant_id" not in data
+
 	def test_group_participants_excluded_from_bskc_when_empty(self):
 		"""group_participants absent from JSON payload when empty is fine."""
 		conv = Conversation()

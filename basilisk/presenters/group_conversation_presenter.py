@@ -156,10 +156,14 @@ class GroupConversationPresenter(DestroyGuardMixin):
 		participant = self.participants[self._current_participant_index]
 		position = self._current_participant_index
 
-		# Populate the profile name map so base_engine prefixes responses.
+		# Tell get_messages() which participant is being called so it can
+		# rebuild history from that participant's point of view.
 		self.conversation._profile_name_map = {
 			str(p.profile_id): p.name for p in self.participants
 		}
+		self.conversation._current_group_participant_id = str(
+			participant.profile_id
+		)
 
 		# Resolve account and engine for this participant
 		account = self._resolve_account(participant)
@@ -178,14 +182,15 @@ class GroupConversationPresenter(DestroyGuardMixin):
 		if participant.system_prompt:
 			system_message = SystemMessage(content=participant.system_prompt)
 
-		# For debate rounds > 0 use an empty sentinel request so the model
-		# responds only based on conversation history.
-		if self._current_round > 0:
-			request_content = ""
-		else:
+		# Only the first participant of the first round gets the original
+		# prompt. All others receive an empty sentinel so the model continues
+		# from the existing conversation history without a duplicate question.
+		if self._current_round == 0 and position == 0:
 			request_content = (
 				self._pending_request.content if self._pending_request else ""
 			)
+		else:
+			request_content = ""
 		request_attachments = (
 			self._pending_request.attachments
 			if (
@@ -336,6 +341,7 @@ class GroupConversationPresenter(DestroyGuardMixin):
 	def _on_chain_complete(self):
 		"""Called when the full chain has completed or been stopped."""
 		self.conversation._profile_name_map = {}
+		self.conversation._current_group_participant_id = None
 		self.view.set_active_participant(None)
 		self.view.on_chain_complete()
 
