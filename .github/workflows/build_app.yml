@@ -27,6 +27,9 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
+      - name: enable vendored OpenSSL for ARM64
+        if: matrix.arch == 'arm64'
+        run: echo "OPENSSL_VENDORED=1" >> $env:GITHUB_ENV
       - name: Install dependencies
         run: uv sync --frozen --no-dev --group build --group test
       - name: run tests

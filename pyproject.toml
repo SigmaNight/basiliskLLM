@@ -78,6 +78,11 @@ fallback_version = "0.0.0"
 
 [tool.uv]
 package = false
+environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'win32' and platform_machine == 'x86'",
+    "sys_platform == 'win32' and platform_machine == 'ARM64'",
+]
 
 [tool.coverage.run]
 branch = true
