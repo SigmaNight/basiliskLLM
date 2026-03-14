@@ -223,7 +223,9 @@ class CompletionHandler:
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
-		for chunk in engine.completion_response_with_stream(response):
+		for chunk in engine.completion_response_with_stream(
+			response, new_block=new_block, **kwargs
+		):
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
