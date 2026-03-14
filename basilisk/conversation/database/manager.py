@@ -231,13 +231,12 @@ class ConversationDatabase:
 		self, session: Session, block_id: int, role: str, message: Message
 	):
 		"""Save a message with its attachments and citations."""
+		content = message.content
+		reasoning = getattr(message, "reasoning", None)
+		if reasoning:
+			content = f"```think\n{reasoning}\n```\n\n{content}"
 		db_msg = DBMessage(
-			message_block_id=block_id,
-			role=role,
-			content=message.content,
-			reasoning=getattr(message, "reasoning", None),
-			audio_data=getattr(message, "audio_data", None),
-			audio_format=getattr(message, "audio_format", None),
+			message_block_id=block_id, role=role, content=content
 		)
 		session.add(db_msg)
 		session.flush()
@@ -779,17 +778,6 @@ class ConversationDatabase:
 			citations.append(citation)
 		return citations
 
-	def _resolve_reasoning_and_content(
-		self, reasoning: str | None, content: str
-	) -> tuple[str | None, str]:
-		"""Resolve reasoning and content, parsing legacy format if needed."""
-		if reasoning is not None or not content:
-			return reasoning, content
-		parsed_reasoning, parsed_content = split_reasoning_and_content(content)
-		if parsed_reasoning is not None:
-			return parsed_reasoning, parsed_content
-		return reasoning, content
-
 	def _load_message(self, db_msg: DBMessage) -> Message:
 		"""Convert a DB message to a Pydantic message."""
 		role = (
@@ -799,17 +787,15 @@ class ConversationDatabase:
 		)
 		attachments = self._load_message_attachments(db_msg)
 		citations = self._load_message_citations(db_msg)
-		reasoning, content = self._resolve_reasoning_and_content(
-			getattr(db_msg, "reasoning", None), db_msg.content
-		)
+		reasoning, content = split_reasoning_and_content(db_msg.content)
 		return Message(
 			role=role,
 			content=content,
 			reasoning=reasoning,
 			attachments=attachments,
 			citations=citations,
-			audio_data=getattr(db_msg, "audio_data", None),
-			audio_format=getattr(db_msg, "audio_format", None),
+			audio_data=None,
+			audio_format=None,
 		)
 
 	@staticmethod
