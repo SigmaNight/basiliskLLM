@@ -215,9 +215,12 @@ class AnthropicEngine(BaseEngine):
 				new_block, conversation, stop_block_index=stop_block_index
 			),
 			"temperature": new_block.temperature,
-			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"stream": new_block.stream,
 		}
+		# When 0, use model max (Anthropic requires max_tokens); else use block value
+		params["max_tokens"] = (
+			new_block.max_tokens or model.effective_max_output_tokens
+		)
 		# Only include top_p if it's not the default value (1.0)
 		# New Claude 4 models don't allow both temperature and top_p
 		if new_block.top_p != 1.0:

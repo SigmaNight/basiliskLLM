@@ -16,6 +16,11 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import wx
 
 from basilisk import global_vars
+from basilisk.conversation.content_utils import (
+	END_REASONING,
+	START_BLOCK_REASONING,
+	split_reasoning_and_content,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -79,6 +84,7 @@ class CompletionHandler:
 		self._stop_completion = False
 		self.last_time = 0
 		self.stream_buffer: str = ""
+		self._stream_reasoning_started: bool = False
 
 	@ensure_no_task_running
 	def start_completion(
@@ -182,10 +188,35 @@ class CompletionHandler:
 				if not message_block.response.citations:
 					message_block.response.citations = []
 				message_block.response.citations.append(chunk_data)
+			elif chunk_type == "reasoning":
+				message_block.response.reasoning = (
+					message_block.response.reasoning or ""
+				) + chunk_data
+				if not self._stream_reasoning_started:
+					self._stream_reasoning_started = True
+					wx.CallAfter(
+						self._handle_stream_buffer,
+						f"{START_BLOCK_REASONING}\n{chunk_data}",
+					)
+				else:
+					wx.CallAfter(self._handle_stream_buffer, chunk_data)
+			elif chunk_type == "content":
+				if self._stream_reasoning_started:
+					self._stream_reasoning_started = False
+					message_block.response.content += chunk_data
+					wx.CallAfter(
+						self._handle_stream_buffer,
+						f"\n{END_REASONING}\n\n{chunk_data}",
+					)
+				else:
+					self.stream_buffer += chunk_data
+					if RE_STREAM_BUFFER.match(self.stream_buffer):
+						self.flush_stream_buffer(message_block)
 			else:
 				logger.warning(
 					"Unknown chunk type in streaming response: %s", chunk_type
 				)
+			return
 
 		if RE_STREAM_BUFFER.match(self.stream_buffer):
 			self.flush_stream_buffer(message_block)
@@ -196,6 +227,20 @@ class CompletionHandler:
 			message_block.response.content += self.stream_buffer
 			wx.CallAfter(self._handle_stream_buffer, self.stream_buffer)
 			self.stream_buffer = ""
+
+	def _split_reasoning_from_content(
+		self, message_block: MessageBlock
+	) -> None:
+		"""Parse legacy ```think...``` format into reasoning and content."""
+		if not message_block.response:
+			return
+		reasoning, content = split_reasoning_and_content(
+			message_block.response.content
+		)
+		if reasoning is not None:
+			message_block.response = message_block.response.model_copy(
+				update={"reasoning": reasoning, "content": content}
+			)
 
 	def _handle_streaming_completion(
 		self,
@@ -217,14 +262,19 @@ class CompletionHandler:
 		Returns:
 			True if streaming was handled successfully, False if stopped
 		"""
-		new_block.response = Message(role=MessageRoleEnum.ASSISTANT, content="")
+		new_block.response = Message(
+			role=MessageRoleEnum.ASSISTANT, content="", reasoning=None
+		)
+		self._stream_reasoning_started = False
 
 		# Notify that streaming has started
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
+		# Pass only stream and new_block; exclude completion kwargs (stream, response,
+		# etc.) that would conflict with engine signature
 		for chunk in engine.completion_response_with_stream(
-			response, new_block=new_block, **kwargs
+			response, new_block
 		):
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
@@ -233,6 +283,9 @@ class CompletionHandler:
 
 		# Notify that streaming has finished
 		self.flush_stream_buffer(new_block)
+		if self._stream_reasoning_started:
+			wx.CallAfter(self._handle_stream_buffer, f"\n{END_REASONING}\n\n")
+		self._split_reasoning_from_content(new_block)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
 		return True
