@@ -2,9 +2,8 @@
 
 from basilisk.conversation.content_utils import (
 	END_REASONING,
-	REASONING_DISPLAY_END,
-	REASONING_DISPLAY_START,
 	START_BLOCK_REASONING,
+	assistant_message_body_for_api,
 	format_response_for_display,
 	split_reasoning_and_content,
 	split_reasoning_and_content_from_display,
@@ -12,19 +11,26 @@ from basilisk.conversation.content_utils import (
 
 
 class TestSplitReasoningAndContent:
-	"""Tests for split_reasoning_and_content (legacy ```think...``` format)."""
+	"""Tests for split_reasoning_and_content (think tags and legacy ```think)."""
 
 	def test_empty_string(self):
 		"""Empty string returns (None, '')."""
 		assert split_reasoning_and_content("") == (None, "")
 
 	def test_no_think_block(self):
-		"""Plain content without think block returns (None, content)."""
+		"""Plain content without reasoning block returns (None, content)."""
 		text = "Hello, world!"
 		assert split_reasoning_and_content(text) == (None, text)
 
+	def test_simple_reasoning_tags(self):
+		"""Leading </think>...</think> block is extracted."""
+		text = f"{START_BLOCK_REASONING}\nLet me reason.\n{END_REASONING}\n\nAnswer."
+		reasoning, content = split_reasoning_and_content(text)
+		assert reasoning == "Let me reason."
+		assert content == "Answer."
+
 	def test_simple_think_block(self):
-		"""Single think block is extracted."""
+		"""Legacy fenced think block is extracted."""
 		text = "```think\nLet me reason about this.\n```\n\nHere is the answer."
 		reasoning, content = split_reasoning_and_content(text)
 		assert reasoning == "Let me reason about this."
@@ -55,7 +61,7 @@ class TestSplitReasoningAndContent:
 
 
 class TestSplitReasoningAndContentFromDisplay:
-	"""Tests for split_reasoning_and_content_from_display (<think>...</think> format)."""
+	"""Tests for split_reasoning_and_content_from_display (alias behavior)."""
 
 	def test_empty_string(self):
 		"""Empty string returns (None, '')."""
@@ -81,6 +87,24 @@ class TestSplitReasoningAndContentFromDisplay:
 		assert content == "content"
 
 
+class TestAssistantMessageBodyForApi:
+	"""Tests for assistant_message_body_for_api (API / history text only)."""
+
+	def test_clean_content_unchanged(self):
+		"""Plain assistant text passes through."""
+		assert assistant_message_body_for_api("hello") == "hello"
+
+	def test_strips_leading_think_tags(self):
+		"""Leading think-tag block is removed from API text."""
+		raw = f"{START_BLOCK_REASONING}\nr\n{END_REASONING}\n\nanswer"
+		assert assistant_message_body_for_api(raw) == "answer"
+
+	def test_strips_legacy_fenced_think(self):
+		"""Legacy fenced think block is removed from API text."""
+		raw = "```think\nr\n```\n\nanswer"
+		assert assistant_message_body_for_api(raw) == "answer"
+
+
 class TestFormatResponseForDisplay:
 	"""Tests for format_response_for_display."""
 
@@ -91,7 +115,7 @@ class TestFormatResponseForDisplay:
 		)
 		assert (
 			result
-			== f"{REASONING_DISPLAY_START}\nthought\n{REASONING_DISPLAY_END}\n\nanswer"
+			== f"{START_BLOCK_REASONING}\nthought\n{END_REASONING}\n\nanswer"
 		)
 
 	def test_show_reasoning_without_reasoning(self):
@@ -121,6 +145,5 @@ class TestFormatResponseForDisplay:
 			reasoning="thought", content="", show_reasoning=True
 		)
 		assert (
-			result
-			== f"{REASONING_DISPLAY_START}\nthought\n{REASONING_DISPLAY_END}\n\n"
+			result == f"{START_BLOCK_REASONING}\nthought\n{END_REASONING}\n\n"
 		)

@@ -23,6 +23,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.conversation.attached_file import AttachmentFile
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 
 from .mistralai_ocr import handle_ocr
 
@@ -135,7 +136,12 @@ class MistralAIEngine(BaseEngine):
 		super().prepare_message_response(response)
 		return {
 			"role": response.role.value,
-			"content": [{"type": "text", "text": response.content}],
+			"content": [
+				{
+					"type": "text",
+					"text": assistant_message_body_for_api(response.content),
+				}
+			],
 		}
 
 	def completion(

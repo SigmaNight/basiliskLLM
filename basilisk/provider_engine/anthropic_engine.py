@@ -24,10 +24,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.conversation.content_utils import (
-	REASONING_DISPLAY_END,
-	REASONING_DISPLAY_START,
-)
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
@@ -175,7 +172,12 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			Message in Anthropic API format with role and content.
 		"""
-		contents = [TextBlock(text=message.content, type="text")]
+		text = (
+			assistant_message_body_for_api(message.content)
+			if message.role == MessageRoleEnum.ASSISTANT
+			else (message.content or "")
+		)
+		contents = [TextBlock(text=text, type="text")]
 		if message.attachments:
 			# TODO: implement "context" and "title" for documents
 			# TODO: add support for custom content document format
@@ -357,14 +359,10 @@ class AnthropicEngine(BaseEngine):
 					citations.append(self._handle_citation(citation))
 		content = "".join(text_parts)
 		reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
-		combined_content = (
-			f"{REASONING_DISPLAY_START}\n{reasoning}\n{REASONING_DISPLAY_END}\n\n{content}"
-			if reasoning
-			else content
-		)
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=combined_content,
+			content=content,
+			reasoning=reasoning,
 			citations=citations,
 		)
 		return new_block
