@@ -178,7 +178,9 @@ class ConversationPresenter(DestroyGuardMixin):
 		stream = view.stream_mode.GetValue()
 		if audio_params.get("output_modality") == "audio":
 			stream = False
-		web_search = view_get_web_search_value(view)
+		web_search = False
+		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
+			web_search = view.web_search_mode.GetValue()
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -577,7 +579,9 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		reasoning_params = get_reasoning_params_from_view(view)
 		audio_params = get_audio_params_from_view(view)
-		web_search = view_get_web_search_value(view)
+		web_search = False
+		if hasattr(view, "web_search_mode") and view.web_search_mode.IsShown():
+			web_search = view.web_search_mode.GetValue()
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
