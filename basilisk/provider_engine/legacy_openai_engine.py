@@ -236,6 +236,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		"""
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
+			content=response.choices[0].message.content or "",
 		)
 		return new_block

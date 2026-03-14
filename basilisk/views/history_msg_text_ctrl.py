@@ -15,10 +15,7 @@ from typing import TYPE_CHECKING
 import wx
 
 import basilisk.config as config
-from basilisk.conversation.content_utils import (
-	END_REASONING,
-	START_BLOCK_REASONING,
-)
+from basilisk.conversation.content_utils import format_response_for_display
 from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
@@ -216,9 +213,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				If None, use config default.
 		"""
 		if show_reasoning_blocks is None:
-			show_reasoning_blocks = (
-				config.conf().conversation.show_reasoning_blocks
-			)
+			show_reasoning_blocks = True
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
 		if not self.IsEmpty():
@@ -244,13 +239,9 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			if not streaming:
 				reasoning = getattr(new_block.response, "reasoning", None)
 				content = new_block.response.content
-				if show_reasoning_blocks and reasoning:
-					display_text = (
-						f"{START_BLOCK_REASONING}\n{reasoning}\n{END_REASONING}\n\n"
-						f"{content}"
-					)
-				else:
-					display_text = content
+				display_text = format_response_for_display(
+					reasoning, content, show_reasoning_blocks
+				)
 				absolute_length = self.append_content(
 					new_block_ref, absolute_length, display_text
 				)

@@ -54,7 +54,7 @@ def _get_max_completion_tokens(model: dict[str, Any]) -> int:
 		return -1
 	try:
 		return int(val)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return -1
 
 
@@ -64,14 +64,14 @@ def _get_context_length(model: dict[str, Any]) -> int:
 	if top and isinstance(top, dict) and top.get("context_length") is not None:
 		try:
 			return int(top["context_length"])
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			pass
 	val = model.get("context_length")
 	if val is None:
 		return 0
 	try:
 		return int(val)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return 0
 
 
@@ -125,7 +125,7 @@ def _get_created(model: dict[str, Any]) -> int:
 		return 0
 	try:
 		return int(val)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return 0
 
 

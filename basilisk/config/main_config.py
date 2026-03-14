@@ -55,7 +55,6 @@ class ConversationSettings(BaseModel):
 	auto_save_draft: bool = Field(default=True)
 	reopen_last_conversation: bool = Field(default=False)
 	last_active_conversation_id: int | None = Field(default=None)
-	show_reasoning_blocks: bool = Field(default=True)
 
 
 class ImagesSettings(BaseModel):

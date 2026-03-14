@@ -2,6 +2,8 @@
 
 from basilisk.conversation.content_utils import (
 	END_REASONING,
+	REASONING_DISPLAY_END,
+	REASONING_DISPLAY_START,
 	START_BLOCK_REASONING,
 	format_response_for_display,
 	split_reasoning_and_content,
@@ -89,7 +91,7 @@ class TestFormatResponseForDisplay:
 		)
 		assert (
 			result
-			== f"{START_BLOCK_REASONING}\nthought\n{END_REASONING}\n\nanswer"
+			== f"{REASONING_DISPLAY_START}\nthought\n{REASONING_DISPLAY_END}\n\nanswer"
 		)
 
 	def test_show_reasoning_without_reasoning(self):

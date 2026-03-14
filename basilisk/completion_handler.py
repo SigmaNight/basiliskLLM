@@ -80,6 +80,7 @@ class CompletionHandler:
 		self._stop_completion = False
 		self.last_time = 0
 		self.stream_buffer: str = ""
+		self._reasoning_started: bool = False
 
 	@ensure_no_task_running
 	def start_completion(
@@ -180,8 +181,21 @@ class CompletionHandler:
 			if not message_block.response.citations:
 				message_block.response.citations = []
 			message_block.response.citations.append(chunk_data)
+		elif chunk_type == "reasoning":
+			# Anthropic thinking_delta: wrap in ```think...``` for display
+			if not self._reasoning_started:
+				self._reasoning_started = True
+				self.stream_buffer += f"```think\n{chunk_data}"
+			else:
+				self.stream_buffer += chunk_data
+			if RE_STREAM_BUFFER.match(self.stream_buffer):
+				self.flush_stream_buffer(message_block)
 		elif chunk_type == "content":
-			self.stream_buffer += chunk_data
+			if self._reasoning_started:
+				self._reasoning_started = False
+				self.stream_buffer += f"\n```\n\n{chunk_data}"
+			else:
+				self.stream_buffer += chunk_data
 			if RE_STREAM_BUFFER.match(self.stream_buffer):
 				self.flush_stream_buffer(message_block)
 		else:
@@ -233,6 +247,7 @@ class CompletionHandler:
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content="", reasoning=None
 		)
+		self._reasoning_started = False
 
 		# Notify that streaming has started
 		if self.on_stream_start:
@@ -249,6 +264,9 @@ class CompletionHandler:
 			self._handle_stream_chunk(chunk, new_block)
 
 		# Notify that streaming has finished
+		if self._reasoning_started:
+			self._reasoning_started = False
+			self.stream_buffer += "\n```"
 		self.flush_stream_buffer(new_block)
 		self._split_reasoning_from_content(new_block)
 		if self.on_stream_finish:

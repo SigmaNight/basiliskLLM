@@ -413,13 +413,6 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.adjust_advanced_mode_setting()
-		if (
-			hasattr(self, "show_reasoning_blocks")
-			and self._show_reasoning_blocks_override is None
-		):
-			self.show_reasoning_blocks.SetValue(
-				config.conf().conversation.show_reasoning_blocks
-			)
 		self.refresh_messages(need_clear=True, preserve_prompt=True)
 
 	# -- Display helpers --

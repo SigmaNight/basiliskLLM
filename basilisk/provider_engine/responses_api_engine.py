@@ -20,6 +20,7 @@ from openai.types.responses import (
 	ResponseOutputRefusal,
 	ResponseOutputText,
 	ResponseOutputTextParam,
+	ResponseReasoningTextDeltaEvent,
 	ResponseStreamEvent,
 	ResponseTextDeltaEvent,
 )
@@ -198,7 +199,12 @@ class ResponsesAPIEngine(BaseEngine):
 		chunk types ("reasoning", "citation", etc.).
 		"""
 		for event in stream:
-			if isinstance(event, ResponseTextDeltaEvent) and event.delta:
+			if (
+				isinstance(event, ResponseReasoningTextDeltaEvent)
+				and event.delta
+			):
+				yield ("reasoning", event.delta)
+			elif isinstance(event, ResponseTextDeltaEvent) and event.delta:
 				yield ("content", event.delta)
 			elif isinstance(event, ResponseCompletedEvent) and event.response:
 				pass

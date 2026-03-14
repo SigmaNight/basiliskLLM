@@ -299,17 +299,6 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.stream_mode.SetValue(self.block.stream)
 		self._load_reasoning_params()
 
-	def _on_show_reasoning_blocks_change(self, event: wx.Event | None):
-		"""Refresh response display when show reasoning checkbox toggles."""
-		super()._on_show_reasoning_blocks_change(event)
-		if hasattr(self, "response_txt") and self.block and self.block.response:
-			reasoning = getattr(self.block.response, "reasoning", None)
-			content = self.block.response.content
-			display = format_response_for_display(
-				reasoning, content, self.get_effective_show_reasoning_blocks()
-			)
-			self.response_txt.SetValue(display)
-
 	def on_account_change(self, event):
 		"""Handle account selection changes.
 

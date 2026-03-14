@@ -73,7 +73,6 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
-		self._show_reasoning_blocks_override: bool | None = None
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -489,17 +488,15 @@ class BaseConversation:
 		return sizer
 
 	def get_effective_show_reasoning_blocks(self) -> bool:
-		"""Effective value: per-tab override if set, else default from config."""
-		if self._show_reasoning_blocks_override is not None:
-			return self._show_reasoning_blocks_override
-		return config.conf().conversation.show_reasoning_blocks
+		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
+		return True
 
 	def create_reasoning_group(self):
-		"""Create grouped reasoning settings (mode, adaptive, budget, effort, display).
+		"""Create grouped reasoning settings (mode, adaptive, budget, effort).
 
 		Returns a StaticBoxSizer containing all reasoning widgets. Add to
 		layout after model list. Visibility of sub-widgets controlled by
-		update_parameter_controls_visibility; show_reasoning_blocks is always visible.
+		update_parameter_controls_visibility.
 		"""
 		# Translators: Group label for reasoning/thinking settings
 		box = wx.StaticBox(self, label=_("Reasoning"))
@@ -511,37 +508,10 @@ class BaseConversation:
 		sizer.Add(self.reasoning_budget_spin, 0, wx.ALL | wx.EXPAND, 2)
 		sizer.Add(self.reasoning_effort_label, 0, wx.ALL, 2)
 		sizer.Add(self.reasoning_effort_choice, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_show_reasoning_blocks_widget()
-		sizer.Add(self.show_reasoning_blocks, 0, wx.ALL, 2)
 
 		self.reasoning_group_box = box
 		self.reasoning_group_sizer = sizer
 		return sizer
-
-	def create_show_reasoning_blocks_widget(self):
-		"""Create checkbox to show/hide reasoning (think) blocks in responses.
-
-		Always visible. Per-tab override; default comes from Preferences.
-		"""
-		self.show_reasoning_blocks = wx.CheckBox(
-			self,
-			# Translators: Label for showing reasoning blocks in the main window
-			label=_("Show &reasoning blocks in responses"),
-		)
-		self.show_reasoning_blocks.SetValue(
-			self.get_effective_show_reasoning_blocks()
-		)
-		self.show_reasoning_blocks.Bind(
-			wx.EVT_CHECKBOX, self._on_show_reasoning_blocks_change
-		)
-
-	def _on_show_reasoning_blocks_change(self, event: wx.Event | None):
-		"""Set per-tab override and refresh message display."""
-		self._show_reasoning_blocks_override = (
-			self.show_reasoning_blocks.GetValue()
-		)
-		if hasattr(self, "refresh_messages"):
-			self.refresh_messages(need_clear=True, preserve_prompt=True)
 
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
@@ -706,13 +676,10 @@ class BaseConversation:
 	) -> None:
 		"""Apply reasoning controls visibility state.
 
-		Keeps reasoning group visible so "Show reasoning blocks" checkbox is
-		always accessible (for toggling display of reasoning in responses).
 		Reasoning mode controls are hidden when model does not support them.
 		"""
 		if hasattr(self, "reasoning_group_box"):
-			# Always show group: contains "Show reasoning blocks" for display toggle
-			self.reasoning_group_box.Show(True)
+			self.reasoning_group_box.Show(state.reasoning_mode_visible)
 		if not hasattr(self, "reasoning_mode"):
 			return
 		self.reasoning_mode.Enable(state.reasoning_mode_visible)
