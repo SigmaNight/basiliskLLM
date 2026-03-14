@@ -153,8 +153,8 @@ class ResponsesAPIEngine(BaseEngine):
 			"temperature": new_block.temperature,
 			"top_p": new_block.top_p,
 		}
-		if new_block.stream:
-			params["stream_options"] = {"include_usage": True}
+		# Responses API does not support stream_options.include_usage; usage comes
+		# automatically in ResponseCompletedEvent.
 		if new_block.max_tokens:
 			params["max_output_tokens"] = new_block.max_tokens
 		params.update(self._get_block_generation_params(new_block, model))
