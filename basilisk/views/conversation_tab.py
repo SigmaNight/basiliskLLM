@@ -502,10 +502,40 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
-		if hasattr(self, "web_search_mode"):
-			self.web_search_mode.SetValue(
-				getattr(draft_block, "web_search_mode", False)
+		if hasattr(self, "output_modality_choice"):
+			self.output_modality_choice.SetSelection(
+				1
+				if getattr(draft_block, "output_modality", "text") == "audio"
+				else 0
 			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(draft_block, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
+		if hasattr(self, "reasoning_mode"):
+			self.reasoning_mode.SetValue(draft_block.reasoning_mode)
+			self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
+			if draft_block.reasoning_budget_tokens is not None:
+				self.reasoning_budget_spin.SetValue(
+					draft_block.reasoning_budget_tokens
+				)
+			if draft_block.reasoning_effort:
+				pass
 
 	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
 		"""Restore reasoning settings from draft block."""
