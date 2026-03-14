@@ -132,6 +132,65 @@ class SystemMessage(BaseMessage):
 		return self.role == other.role and self.content == other.content
 
 
+class TokenUsage(BaseModel):
+	"""Token consumption for a completion request.
+
+	Normalized across providers. All fields optional except where noted.
+	"""
+
+	input_tokens: int = 0
+	output_tokens: int = 0
+	reasoning_tokens: int | None = None
+	cached_input_tokens: int | None = None
+	total_tokens: int | None = None
+
+	@property
+	def effective_total(self) -> int:
+		"""Total tokens (computed if not provided)."""
+		if self.total_tokens is not None:
+			return self.total_tokens
+		return self.input_tokens + self.output_tokens
+
+
+class ResponseTiming(BaseModel):
+	"""Timing for a completion request."""
+
+	started_at: datetime | None = None
+	request_sent_at: datetime | None = None
+	first_token_at: datetime | None = None
+	finished_at: datetime | None = None
+
+	@property
+	def duration_seconds(self) -> float | None:
+		"""Total duration in seconds (start to last token), or None if incomplete."""
+		if self.started_at is None or self.finished_at is None:
+			return None
+		return (self.finished_at - self.started_at).total_seconds()
+
+	@property
+	def time_to_send_request_seconds(self) -> float | None:
+		"""Time from start until request fully sent. None if request_sent_at unknown."""
+		if (
+			self.started_at is None
+			or self.request_sent_at is None
+			or self.request_sent_at < self.started_at
+		):
+			return None
+		return (self.request_sent_at - self.started_at).total_seconds()
+
+	@property
+	def time_to_first_token_seconds(self) -> float | None:
+		"""Time from request sent to first token received (TTFT). None if unknown."""
+		from_ts = (
+			self.request_sent_at
+			if self.request_sent_at is not None
+			else self.started_at
+		)
+		if from_ts is None or self.first_token_at is None or self.first_token_at < from_ts:
+			return None
+		return (self.first_token_at - from_ts).total_seconds()
+
+
 class MessageBlock(BaseModel):
 	"""Represents a block of messages in a conversation. The block may contain a user message, an AI model request, and an AI model response."""
 
@@ -147,6 +206,9 @@ class MessageBlock(BaseModel):
 	reasoning_budget_tokens: int | None = Field(default=None)
 	reasoning_effort: str | None = Field(default=None)
 	reasoning_adaptive: bool = Field(default=False)
+	usage: TokenUsage | None = Field(default=None)
+	timing: ResponseTiming | None = Field(default=None)
+	web_search_mode: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 	db_id: int | None = Field(default=None, exclude=True)
