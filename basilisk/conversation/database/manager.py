@@ -245,6 +245,8 @@ class ConversationDatabase:
 			role=role,
 			content=content,
 			reasoning=reasoning,
+			audio_data=getattr(message, "audio_data", None),
+			audio_format=getattr(message, "audio_format", None),
 		)
 		session.add(db_msg)
 		session.flush()
@@ -825,14 +827,16 @@ class ConversationDatabase:
 			content = db_msg.content
 		else:
 			reasoning, content = split_reasoning_and_content(db_msg.content)
+		audio_data = getattr(db_msg, "audio_data", None)
+		audio_format = getattr(db_msg, "audio_format", None)
 		return Message(
 			role=role,
 			content=content,
 			reasoning=reasoning,
 			attachments=attachments,
 			citations=citations,
-			audio_data=None,
-			audio_format=None,
+			audio_data=audio_data,
+			audio_format=audio_format,
 		)
 
 	@staticmethod

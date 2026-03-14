@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Optional
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation.content_utils import (
-	format_response_for_display,
 	split_reasoning_and_content_from_display,
 )
 from basilisk.conversation.conversation_model import (
@@ -120,12 +119,6 @@ class EditBlockPresenter(DestroyGuardMixin):
 		stream = self.view.stream_mode.GetValue()
 		if audio_params.get("output_modality") == "audio":
 			stream = False
-		web_search = False
-		if (
-			hasattr(self.view, "web_search_mode")
-			and self.view.web_search_mode.IsShown()
-		):
-			web_search = self.view.web_search_mode.GetValue()
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -140,7 +133,6 @@ class EditBlockPresenter(DestroyGuardMixin):
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
 			stream=stream,
-			web_search_mode=web_search,
 			**reasoning_params,
 			**audio_params,
 		)
@@ -286,12 +278,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			system_message: Optional system message used for this completion.
 		"""
 		self.block.response = new_block.response
-		reasoning = getattr(new_block.response, "reasoning", None)
-		content = new_block.response.content
-		display = format_response_for_display(
-			reasoning, content, self.view.get_effective_show_reasoning_blocks()
-		)
-		self.view.response_txt.SetValue(display)
+		self.view.response_txt.SetValue(new_block.response.content)
 		audio_data = getattr(new_block.response, "audio_data", None)
 		if audio_data:
 			from basilisk.audio_utils import play_audio_from_base64

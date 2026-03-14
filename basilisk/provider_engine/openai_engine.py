@@ -342,8 +342,6 @@ class OpenAIEngine(ResponsesAPIEngine):
 				"temperature": new_block.temperature,
 				"top_p": new_block.top_p,
 			}
-			if new_block.stream and not want_audio_output:
-				params["stream_options"] = {"include_usage": True}
 			if want_audio_output:
 				params["audio"] = {
 					"voice": getattr(new_block, "audio_voice", "alloy"),

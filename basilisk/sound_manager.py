@@ -51,6 +51,7 @@ class SoundManager:
 		self.loop = False
 		self.loop_thread = None
 		self._stop_event = threading.Event()
+		self._paused = False
 		self._current_data: np.ndarray | None = None
 		self._current_rate: int | None = None
 		self._current_channels: int | None = None
@@ -176,13 +177,22 @@ class SoundManager:
 				self._play_pos = total_frames
 				raise sd.CallbackStop
 
-	def _play_sound_loop(self, data: np.ndarray, samplerate: int):
-		"""Play a sound (looped or one-shot) using OutputStream."""
+	def _play_sound_loop(
+		self, data: np.ndarray, samplerate: int, start_pos: int = 0
+	):
+		"""Play a sound (looped or one-shot) using OutputStream.
+
+		Args:
+			data: Audio buffer.
+			samplerate: Sample rate.
+			start_pos: Frame index to start from (for resume after pause).
+		"""
 		self._current_data = data
 		self._current_rate = samplerate
 		self._current_channels = data.shape[1]
-		self._play_pos = 0
+		self._play_pos = start_pos
 		self._stop_event.clear()
+		self._paused = False
 		try:
 			stream = sd.OutputStream(
 				samplerate=samplerate,
@@ -196,10 +206,11 @@ class SoundManager:
 		except Exception as exc:
 			log.error("Failed to play sound: %s", exc)
 		finally:
-			self._current_data = None
-			self._current_rate = None
-			self._current_channels = None
-			self._play_pos = 0
+			if not self._paused:
+				self._current_data = None
+				self._current_rate = None
+				self._current_channels = None
+				self._play_pos = 0
 
 	def play_sound(self, file_path: str, loop: bool = False):
 		"""Play a sound effect. If loop is True, the sound will be played in a loop.
@@ -229,9 +240,53 @@ class SoundManager:
 			)
 			self.loop_thread.start()
 
+	def is_playing(self) -> bool:
+		"""Return True if audio is currently playing."""
+		return self.loop_thread is not None and self.loop_thread.is_alive()
+
+	def is_paused(self) -> bool:
+		"""Return True if audio is paused (stopped but retainable for resume)."""
+		return self._paused and self._current_data is not None
+
+	def pause_sound(self):
+		"""Pause playback. Resume with resume_sound()."""
+		with self.thread_lock:
+			if not self.is_playing():
+				return
+			self._paused = True
+			self._stop_event.set()
+			try:
+				sd.stop()
+			except Exception:
+				pass
+			if self.loop_thread is not None:
+				self.loop_thread.join(timeout=1)
+				self.loop_thread = None
+			self._stop_event.clear()
+
+	def resume_sound(self):
+		"""Resume playback from paused position."""
+		with self.thread_lock:
+			if not self.is_paused():
+				return
+			data = self._current_data
+			rate = self._current_rate
+			pos = self._play_pos
+			if data is None or rate is None:
+				return
+			self._paused = False
+			self.loop_thread = threading.Thread(
+				target=self._play_sound_loop,
+				args=(data, rate),
+				kwargs={"start_pos": pos},
+				daemon=True,
+			)
+			self.loop_thread.start()
+
 	def stop_sound(self):
-		"""Stop the currently playing sound effect."""
+		"""Stop the currently playing sound effect (or clear paused state)."""
 		self.loop = False
+		self._paused = False
 		self._stop_event.set()
 		try:
 			sd.stop()
@@ -241,6 +296,11 @@ class SoundManager:
 			self.loop_thread.join(timeout=1)
 			self.loop_thread = None
 		self._stop_event.clear()
+		# Clear paused state so resume won't use stale data
+		self._current_data = None
+		self._current_rate = None
+		self._current_channels = None
+		self._play_pos = 0
 
 
 sound_manager: SoundManager | None = None
@@ -260,3 +320,23 @@ def play_sound(file_path: str, loop: bool = False):
 def stop_sound():
 	"""Stop the currently playing sound effect using the global sound manager."""
 	sound_manager.stop_sound()
+
+
+def is_playing() -> bool:
+	"""Return True if audio is currently playing."""
+	return sound_manager.is_playing()
+
+
+def is_paused() -> bool:
+	"""Return True if audio is paused."""
+	return sound_manager.is_paused()
+
+
+def pause_sound():
+	"""Pause the currently playing sound. Resume with resume_sound()."""
+	sound_manager.pause_sound()
+
+
+def resume_sound():
+	"""Resume playback from paused position."""
+	sound_manager.resume_sound()

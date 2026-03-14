@@ -173,7 +173,44 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			border=10,
 		)
 
-		self.create_tools_group()
+		self.create_audio_output_group()
+		sizer.Add(
+			self.audio_output_group_sizer,
+			proportion=0,
+			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
+			border=10,
+		)
+
+		params_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+		self.create_temperature_widget()
+		temp_sizer = wx.BoxSizer(wx.VERTICAL)
+		temp_sizer.Add(
+			self.temperature_spinner_label, proportion=0, flag=wx.EXPAND
+		)
+		temp_sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
+		params_sizer.Add(
+			temp_sizer, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=10
+		)
+
+		self.create_max_tokens_widget()
+		tokens_sizer = wx.BoxSizer(wx.VERTICAL)
+		tokens_sizer.Add(
+			self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND
+		)
+		tokens_sizer.Add(
+			self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND
+		)
+		params_sizer.Add(
+			tokens_sizer, proportion=1, flag=wx.EXPAND | wx.RIGHT, border=10
+		)
+
+		self.create_top_p_widget()
+		top_p_sizer = wx.BoxSizer(wx.VERTICAL)
+		top_p_sizer.Add(self.top_p_spinner_label, proportion=0, flag=wx.EXPAND)
+		top_p_sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
+		params_sizer.Add(top_p_sizer, proportion=1, flag=wx.EXPAND)
+
 		sizer.Add(
 			self.tools_group_sizer,
 			proportion=0,
@@ -254,6 +291,34 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 				"Could not restore block account/model selection", exc_info=True
 			)
 
+	def _load_audio_params(self):
+		"""Restore output modality and audio voice from block."""
+		if hasattr(self, "output_modality_choice"):
+			self.output_modality_choice.SetSelection(
+				1
+				if getattr(self.block, "output_modality", "text") == "audio"
+				else 0
+			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(self.block, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
+
 	def _load_reasoning_params(self):
 		"""Restore reasoning parameters from block."""
 		if not hasattr(self, "reasoning_mode"):
@@ -265,13 +330,13 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 				self.block.reasoning_budget_tokens
 			)
 		if self.block.reasoning_effort:
-			engine = self.current_engine
-			model = self.current_model
-			options = ("low", "medium", "high")
-			if engine and model:
-				spec = engine.get_reasoning_ui_spec(model)
-				if spec.effort_options:
-					options = spec.effort_options
+			from basilisk.provider_engine.reasoning_config import (
+				get_effort_options,
+			)
+
+			provider_id = self.block.model.provider_id
+			model_id = self.block.model.model_id
+			options = get_effort_options(provider_id, model_id)
 			val = self.block.reasoning_effort.lower()
 			idx = options.index(val) if val in options else len(options) - 1
 			self.reasoning_effort_choice.SetSelection(idx)
@@ -290,7 +355,6 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.response_txt.SetValue(display)
 		self.prompt_panel.prompt_text = self.block.request.content
 
-		# Set attachments if available
 		if self.block.request.attachments:
 			self.prompt_panel.attachment_files = (
 				self.block.request.attachments.copy()
@@ -299,15 +363,10 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 
 		self._load_account_and_model()
 
-		# Set parameters
 		self.temperature_spinner.SetValue(self.block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
-		if hasattr(self, "web_search_mode"):
-			self.web_search_mode.SetValue(
-				getattr(self.block, "web_search_mode", False)
-			)
 		self._load_audio_params()
 		self._load_reasoning_params()
 
