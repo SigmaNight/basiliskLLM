@@ -15,6 +15,10 @@ from typing import TYPE_CHECKING
 import wx
 
 import basilisk.config as config
+from basilisk.conversation.content_utils import (
+	END_REASONING,
+	START_BLOCK_REASONING,
+)
 from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
@@ -187,7 +191,10 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 	)
 
 	def display_new_block(
-		self, new_block: MessageBlock, streaming: bool = False
+		self,
+		new_block: MessageBlock,
+		streaming: bool = False,
+		show_reasoning_blocks: bool | None = None,
 	):
 		"""Displays a new message block in the conversation text control.
 
@@ -205,7 +212,13 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			new_block: The message block to be displayed in the conversation.
 			streaming: If True, indicates that the response content will be streamed
 				and should not be displayed here. Defaults to False.
+			show_reasoning_blocks: If True, show think blocks; if False, strip them.
+				If None, use config default.
 		"""
+		if show_reasoning_blocks is None:
+			show_reasoning_blocks = (
+				config.conf().conversation.show_reasoning_blocks
+			)
 		absolute_length = self.GetLastPosition()
 		new_block_ref = weakref.ref(new_block)
 		if not self.IsEmpty():
@@ -229,8 +242,17 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			# Only display response content if not streaming (streaming content
 			# is displayed incrementally via append_stream_chunk)
 			if not streaming:
+				reasoning = getattr(new_block.response, "reasoning", None)
+				content = new_block.response.content
+				if show_reasoning_blocks and reasoning:
+					display_text = (
+						f"{START_BLOCK_REASONING}\n{reasoning}\n{END_REASONING}\n\n"
+						f"{content}"
+					)
+				else:
+					display_text = content
 				absolute_length = self.append_content(
-					new_block_ref, absolute_length, new_block.response.content
+					new_block_ref, absolute_length, display_text
 				)
 				# Don't add suffix here - next block will add one when it starts
 			else:

@@ -64,8 +64,11 @@ class BaseMessage(BaseModel):
 class Message(BaseMessage):
 	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
 
+	reasoning: str | None = Field(default=None)
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+	audio_data: str | None = Field(default=None)
+	audio_format: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -186,7 +189,11 @@ class ResponseTiming(BaseModel):
 			if self.request_sent_at is not None
 			else self.started_at
 		)
-		if from_ts is None or self.first_token_at is None or self.first_token_at < from_ts:
+		if (
+			from_ts is None
+			or self.first_token_at is None
+			or self.first_token_at < from_ts
+		):
 			return None
 		return (self.first_token_at - from_ts).total_seconds()
 
