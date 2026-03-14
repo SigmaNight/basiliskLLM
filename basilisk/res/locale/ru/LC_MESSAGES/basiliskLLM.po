@@ -323,4 +323,3 @@ msgstr "Экономичная модель, быстрее Grok 3 для чет
 #: basilisk/provider_engine/xai_engine.py:111
 msgid "Multimodal image understanding with 32K context."
 msgstr "Мультимодальное понимание изображений с контекстом 32K токенов."
-
