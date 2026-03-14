@@ -12,8 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from mistralai import Mistral
-from mistralai.models import OCRResponse
+from mistralai.client import Mistral
+from mistralai.client.models import OCRResponse
 from platformdirs import user_documents_dir
 
 from basilisk.conversation.attached_file import (

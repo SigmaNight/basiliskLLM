@@ -10,9 +10,9 @@ import logging
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Generator
 
-from mistralai import Mistral
-from mistralai.models import ChatCompletionResponse, CompletionEvent
-from mistralai.utils.eventstreaming import EventStream
+from mistralai.client import Mistral
+from mistralai.client.models import ChatCompletionResponse, CompletionEvent
+from mistralai.client.utils.eventstreaming import EventStream
 
 from basilisk.conversation import (
 	Conversation,
