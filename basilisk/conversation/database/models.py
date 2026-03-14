@@ -137,6 +137,8 @@ class DBMessage(Base):
 	role: Mapped[str]
 	content: Mapped[str]
 	reasoning: Mapped[str | None] = mapped_column(default=None)
+	audio_data: Mapped[str | None] = mapped_column(default=None)
+	audio_format: Mapped[str | None] = mapped_column(default=None)
 
 	message_block: Mapped["DBMessageBlock"] = relationship(
 		back_populates="messages"

@@ -40,7 +40,6 @@ class ParameterVisibilityState:
 	effort_label: str = ""
 	output_modality_visible: bool = False
 	audio_settings_visible: bool = False
-	voice_options: tuple[str, ...] = ()
 
 
 class BaseConversationPresenter:
@@ -206,5 +205,10 @@ class BaseConversationPresenter:
 		if state.output_modality_visible:
 			spec = engine.get_audio_output_spec(model)
 			state.voice_options = spec.voices if spec else DEFAULT_AUDIO_VOICES
+
+		state.output_modality_visible = has_model and bool(model.audio)
+		state.audio_settings_visible = (
+			state.output_modality_visible and output_modality_audio
+		)
 
 		return state
