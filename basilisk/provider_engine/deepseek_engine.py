@@ -56,18 +56,15 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		return models
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self,
+		stream: Generator[ChatCompletionChunk, None, None],
+		new_block: MessageBlock | None = None,
+		**kwargs,
 	):
 		"""Processes streaming response from DeepSeek API.
 
-		Handles both regular content and reasoning content in the stream,
-		formatting reasoning content within special markdown blocks.
-
-		Args:
-			stream: Generator of chat completion chunks.
-
-		Yields:
-			Formatted text content from each chunk.
+		Yields ("content", chunk) with reasoning mixed into content using
+		```think``` markers. Separate reasoning storage is in feat/reasoning-storage.
 		"""
 		reasoning_content_tag_sent = False
 		for chunk in stream:
@@ -80,11 +77,11 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 					if not reasoning_content_tag_sent:
 						reasoning_content_tag_sent = True
 						yield (
-							"reasoning",
+							"content",
 							f"```think\n{delta.reasoning_content}",
 						)
 					else:
-						yield ("reasoning", delta.reasoning_content)
+						yield ("content", delta.reasoning_content)
 				if delta.content:
 					if reasoning_content_tag_sent:
 						reasoning_content_tag_sent = False
