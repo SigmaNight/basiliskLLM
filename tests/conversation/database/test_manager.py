@@ -151,6 +151,77 @@ class TestSaveMessageBlock:
 		assert citations[0]["cited_text"] == "X is important"
 
 
+class TestReasoningStorage:
+	"""Tests for reasoning save/load in database manager."""
+
+	def test_save_and_load_reasoning_separately(
+		self, db_manager, test_ai_model
+	):
+		"""Response with reasoning stored separately loads with both fields."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		req = Message(role=MessageRoleEnum.USER, content="Think step by step")
+		resp = Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content="The answer is 42.",
+			reasoning="First I considered X. Then I concluded Y.",
+		)
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		conv.add_block(block)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert loaded.messages[0].response.reasoning == (
+			"First I considered X. Then I concluded Y."
+		)
+		assert loaded.messages[0].response.content == "The answer is 42."
+
+	def test_save_legacy_think_block_parses_and_stores(
+		self, db_manager, test_ai_model
+	):
+		"""Legacy ```think...``` in content is parsed and stored as reasoning."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		req = Message(role=MessageRoleEnum.USER, content="Explain")
+		legacy_content = (
+			"```think\nInternal reasoning here\n```\n\nFinal answer"
+		)
+		resp = Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content=legacy_content,
+			reasoning=None,
+		)
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		conv.add_block(block)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert (
+			loaded.messages[0].response.reasoning == "Internal reasoning here"
+		)
+		assert loaded.messages[0].response.content == "Final answer"
+
+	def test_load_legacy_content_without_reasoning_column(
+		self, db_manager, test_ai_model
+	):
+		"""Content without reasoning column parses ```think from content."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		req = Message(role=MessageRoleEnum.USER, content="Q")
+		resp = Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content="```think\nold format\n```\n\nresult",
+			reasoning=None,
+		)
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		conv.add_block(block)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert loaded.messages[0].response.reasoning == "old format"
+		assert loaded.messages[0].response.content == "result"
+
+
 class TestLoadConversation:
 	"""Tests for loading conversations."""
 
