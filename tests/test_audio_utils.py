@@ -1,0 +1,35 @@
+"""Tests for audio_utils."""
+
+import base64
+from unittest.mock import patch
+
+from basilisk.audio_utils import play_audio_from_base64
+
+
+class TestPlayAudioFromBase64:
+	"""Tests for play_audio_from_base64."""
+
+	def test_empty_data_returns_early(self):
+		"""Empty or falsy data returns without calling play_sound."""
+		with patch("basilisk.audio_utils.play_sound") as mock_play:
+			play_audio_from_base64("")
+			play_audio_from_base64(None)
+			mock_play.assert_not_called()
+
+	def test_unsupported_format_returns_early(self):
+		"""Non-wav format returns without playing (only wav supported)."""
+		with patch("basilisk.audio_utils.play_sound") as mock_play:
+			play_audio_from_base64(base64.b64encode(b"fake").decode(), "mp3")
+			mock_play.assert_not_called()
+
+	def test_wav_calls_play_sound_with_temp_file(self):
+		"""WAV data is decoded, written to temp file, and play_sound called."""
+		raw = b"fake wav bytes"
+		data = base64.b64encode(raw).decode()
+		with patch("basilisk.audio_utils.play_sound") as mock_play:
+			play_audio_from_base64(data, "wav")
+			mock_play.assert_called_once()
+			path = mock_play.call_args[0][0]
+			assert path.endswith(".wav")
+			with open(path, "rb") as f:
+				assert f.read() == raw
