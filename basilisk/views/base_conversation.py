@@ -733,7 +733,7 @@ class BaseConversation:
 				old_val = state.effort_options[
 					min(sel, len(state.effort_options) - 1)
 				]
-			except IndexError, TypeError:
+			except (IndexError, TypeError):
 				old_val = state.effort_options[-1]
 			self.reasoning_effort_choice.SetItems(display)
 			idx = (
