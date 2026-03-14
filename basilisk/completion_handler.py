@@ -178,48 +178,41 @@ class CompletionHandler:
 			wx.CallAfter(self._completion_finished_success)
 
 	def _handle_stream_chunk(
-		self, chunk: str | tuple[str, Any], message_block: MessageBlock
+		self, chunk: tuple[str, Any], message_block: MessageBlock
 	):
-		if isinstance(chunk, str):
-			self.stream_buffer += chunk
-		elif isinstance(chunk, tuple):
-			chunk_type, chunk_data = chunk
-			if chunk_type == "citation":
-				if not message_block.response.citations:
-					message_block.response.citations = []
-				message_block.response.citations.append(chunk_data)
-			elif chunk_type == "reasoning":
-				message_block.response.reasoning = (
-					message_block.response.reasoning or ""
-				) + chunk_data
-				if not self._stream_reasoning_started:
-					self._stream_reasoning_started = True
-					wx.CallAfter(
-						self._handle_stream_buffer,
-						f"{START_BLOCK_REASONING}\n{chunk_data}",
-					)
-				else:
-					wx.CallAfter(self._handle_stream_buffer, chunk_data)
-			elif chunk_type == "content":
-				if self._stream_reasoning_started:
-					self._stream_reasoning_started = False
-					message_block.response.content += chunk_data
-					wx.CallAfter(
-						self._handle_stream_buffer,
-						f"\n{END_REASONING}\n\n{chunk_data}",
-					)
-				else:
-					self.stream_buffer += chunk_data
-					if RE_STREAM_BUFFER.match(self.stream_buffer):
-						self.flush_stream_buffer(message_block)
-			else:
-				logger.warning(
-					"Unknown chunk type in streaming response: %s", chunk_type
+		chunk_type, chunk_data = chunk
+		if chunk_type == "citation":
+			if not message_block.response.citations:
+				message_block.response.citations = []
+			message_block.response.citations.append(chunk_data)
+		elif chunk_type == "reasoning":
+			message_block.response.reasoning = (
+				message_block.response.reasoning or ""
+			) + chunk_data
+			if not self._stream_reasoning_started:
+				self._stream_reasoning_started = True
+				wx.CallAfter(
+					self._handle_stream_buffer,
+					f"{START_BLOCK_REASONING}\n{chunk_data}",
 				)
-			return
-
-		if RE_STREAM_BUFFER.match(self.stream_buffer):
-			self.flush_stream_buffer(message_block)
+			else:
+				wx.CallAfter(self._handle_stream_buffer, chunk_data)
+		elif chunk_type == "content":
+			if self._stream_reasoning_started:
+				self._stream_reasoning_started = False
+				message_block.response.content += chunk_data
+				wx.CallAfter(
+					self._handle_stream_buffer,
+					f"\n{END_REASONING}\n\n{chunk_data}",
+				)
+			else:
+				self.stream_buffer += chunk_data
+				if RE_STREAM_BUFFER.match(self.stream_buffer):
+					self.flush_stream_buffer(message_block)
+		else:
+			logger.warning(
+				"Unknown chunk type in streaming response: %s", chunk_type
+			)
 
 	def flush_stream_buffer(self, message_block: MessageBlock) -> None:
 		"""Flush the stream buffer to the message block."""

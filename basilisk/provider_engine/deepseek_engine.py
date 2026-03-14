@@ -79,15 +79,18 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 				):
 					if not reasoning_content_tag_sent:
 						reasoning_content_tag_sent = True
-						yield f"```think\n{delta.reasoning_content}"
+						yield (
+							"reasoning",
+							f"```think\n{delta.reasoning_content}",
+						)
 					else:
-						yield delta.reasoning_content
+						yield ("reasoning", delta.reasoning_content)
 				if delta.content:
 					if reasoning_content_tag_sent:
 						reasoning_content_tag_sent = False
-						yield f"\n```\n\n{delta.content}"
+						yield ("content", f"\n```\n\n{delta.content}")
 					else:
-						yield delta.content
+						yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs

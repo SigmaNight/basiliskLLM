@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import Iterator
+from typing import Any, Iterator
 
 from google import genai
 from google.genai.types import (
@@ -308,7 +308,7 @@ class GeminiEngine(BaseEngine):
 		stream: Iterator[GenerateContentResponse],
 		new_block: MessageBlock,
 		**kwargs,
-	) -> Iterator[str]:
+	) -> Iterator[tuple[str, Any]]:
 		"""Handle completion response with stream.
 
 		Args:
@@ -322,4 +322,4 @@ class GeminiEngine(BaseEngine):
 		for chunk in stream:
 			chunk_text = chunk.text
 			if chunk_text:
-				yield chunk_text
+				yield ("content", chunk_text)

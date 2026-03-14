@@ -306,12 +306,15 @@ class BaseEngine(ABC):
 	def completion_response_with_stream(self, stream: Any, **kwargs) -> Any:
 		"""Handle completion response with stream.
 
+		Must yield ("content", chunk) for text content and optionally
+		("reasoning", chunk) or ("citation", data). Never yield plain strings.
+
 		Args:
 			stream: Stream response from the provider.
 			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Returns:
-			Stream response from the provider.
+			Iterator yielding (chunk_type, chunk_data) tuples.
 		"""
 		pass
 

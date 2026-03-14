@@ -164,7 +164,7 @@ class OllamaEngine(BaseEngine):
 		for chunk in stream:
 			content = chunk.get("message", {}).get("content")
 			if content:
-				yield content
+				yield ("content", content)
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs

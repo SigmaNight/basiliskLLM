@@ -202,7 +202,7 @@ class MistralAIEngine(BaseEngine):
 				continue
 			delta = data.choices[0].delta
 			if delta and delta.content:
-				yield delta.content
+				yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self,

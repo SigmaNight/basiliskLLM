@@ -366,7 +366,7 @@ class OpenAIEngine(ResponsesAPIEngine):
 		stream: Generator[ChatCompletionChunk, None, None] | Any,
 		new_block: MessageBlock,
 		**kwargs: Any,
-	) -> Generator[str, None, None]:
+	) -> Generator[tuple[str, Any], None, None]:
 		"""Handle streaming response from Chat or Responses API."""
 		if getattr(self, "_last_used_chat_completions", False):
 			for chunk in stream:
@@ -374,7 +374,7 @@ class OpenAIEngine(ResponsesAPIEngine):
 					continue
 				delta = chunk.choices[0].delta
 				if delta and delta.content:
-					yield delta.content
+					yield ("content", delta.content)
 		else:
 			yield from super().completion_response_with_stream(
 				stream, new_block=new_block, **kwargs
