@@ -497,11 +497,15 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			log.debug("Could not restore draft model selection", exc_info=True)
 
 	def _restore_draft_block_params(self, draft_block: MessageBlock) -> None:
-		"""Restore temperature, tokens, top_p, stream from draft block."""
+		"""Restore temperature, tokens, top_p, stream, web_search from draft block."""
 		self.temperature_spinner.SetValue(draft_block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
+		if hasattr(self, "web_search_mode"):
+			self.web_search_mode.SetValue(
+				getattr(draft_block, "web_search_mode", False)
+			)
 
 	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
 		"""Restore reasoning settings from draft block."""

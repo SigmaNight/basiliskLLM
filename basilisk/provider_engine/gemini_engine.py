@@ -33,6 +33,7 @@ from basilisk.conversation import (
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
+from .usage_utils import token_usage_gemini
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,8 @@ class GeminiEngine(BaseEngine):
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content=response.text
 		)
+		if hasattr(response, "usage_metadata") and response.usage_metadata:
+			new_block.usage = token_usage_gemini(response.usage_metadata)
 		return new_block
 
 	def completion_response_with_stream(
@@ -323,7 +326,7 @@ class GeminiEngine(BaseEngine):
 		Args:
 			stream: Stream response from the provider
 			new_block: Block to set usage on when available
-			**kwargs: Additional arguments passed through.
+			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Returns:
 			Stream response from the provider
@@ -332,3 +335,5 @@ class GeminiEngine(BaseEngine):
 			chunk_text = chunk.text
 			if chunk_text:
 				yield ("content", chunk_text)
+			if hasattr(chunk, "usage_metadata") and chunk.usage_metadata:
+				new_block.usage = token_usage_gemini(chunk.usage_metadata)
