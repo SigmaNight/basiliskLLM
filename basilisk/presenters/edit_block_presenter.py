@@ -25,6 +25,7 @@ from basilisk.conversation.conversation_model import (
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
 from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
 from basilisk.presenters.view_utils import view_get_web_search_value
@@ -108,6 +109,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			return False
 		if not self.view.prompt_panel.check_attachments_valid():
 			return False
+		audio_params = get_audio_params_from_view(self.view)
 		if getattr(model, "image_output", False) is True:
 			wx.MessageBox(
 				_("Image generation models are not supported yet."),
@@ -124,6 +126,9 @@ class EditBlockPresenter(DestroyGuardMixin):
 		reasoning_params = get_reasoning_params_from_view(
 			self.view, engine=self.view.current_engine, model=model
 		)
+		gen_params = self.view.get_generation_params_from_view()
+		if audio_params.get("output_modality") == "audio":
+			gen_params["stream"] = False
 		web_search = view_get_web_search_value(self.view)
 
 		temp_block = MessageBlock(
@@ -135,9 +140,10 @@ class EditBlockPresenter(DestroyGuardMixin):
 			model=AIModelInfo(
 				provider_id=account.provider.id, model_id=model.id
 			),
-			**self.view.get_generation_params_from_view(),
+			**gen_params,
 			web_search_mode=web_search,
 			**reasoning_params,
+			**audio_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -301,7 +307,13 @@ class EditBlockPresenter(DestroyGuardMixin):
 			update={"content": content, "reasoning": reasoning}
 		)
 		self.view.response_txt.SetValue(content)
-		if self.view.should_speak_response:
+		audio_data = getattr(new_block.response, "audio_data", None)
+		if audio_data:
+			from basilisk.audio_utils import play_audio_from_base64
+
+			fmt = getattr(new_block.response, "audio_format", None) or "wav"
+			play_audio_from_base64(audio_data, fmt)
+		elif self.view.should_speak_response:
 			self.view.a_output.handle(content)
 
 	@DestroyGuardMixin._guard_destroying

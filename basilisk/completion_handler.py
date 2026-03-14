@@ -84,6 +84,7 @@ class CompletionHandler:
 		self.on_non_stream_finish = on_non_stream_finish
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
+		self._last_completed_block: Optional[MessageBlock] = None
 		self.last_time = 0
 		self.stream_buffer: str = ""
 		self._stream_reasoning_started: bool = False
@@ -173,6 +174,7 @@ class CompletionHandler:
 			if kwargs.get("stream", False)
 			else self._handle_non_streaming_completion
 		)
+		self._last_completed_block = None
 		kwargs["engine"] = engine
 		kwargs["response"] = response
 		kwargs["started_at"] = started_at
@@ -358,6 +360,10 @@ class CompletionHandler:
 				self.on_non_stream_finish, completed_block, system_message
 			)
 
+		# Pass block so _completion_finished_success can skip completion sound
+		# when response is audio (play_sound in on_non_stream_finish already
+		# stopped progress; we must not stop_sound again or we interrupt audio)
+		self._last_completed_block = completed_block
 		return True
 
 	def _handle_stream_buffer(self, buffer: str):
@@ -376,8 +382,18 @@ class CompletionHandler:
 
 	def _completion_finished_success(self):
 		"""Handle completion finish in success on the main thread."""
-		stop_sound()
-		play_sound("chat_response_received")
+		block = getattr(self, "_last_completed_block", None)
+		has_audio = (
+			block
+			and block.response
+			and getattr(block.response, "audio_data", None)
+		)
+		if not has_audio:
+			stop_sound()
+			play_sound("chat_response_received")
+		# When has_audio: progress was already stopped when audio started;
+		# do not call stop_sound() or play chime, or we'd interrupt playback
+		self._last_completed_block = None
 		if self.on_completion_end:
 			self.on_completion_end(True)
 		self.task = None
