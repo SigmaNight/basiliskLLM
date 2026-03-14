@@ -24,7 +24,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.provider_engine.usage_utils import token_usage_anthropic
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
@@ -288,7 +287,6 @@ class AnthropicEngine(BaseEngine):
 		"""Processes streaming response from Anthropic API.
 
 		Yields ("reasoning", chunk), ("content", chunk), or ("citation", data).
-		Extracts usage from message_delta and sets new_block.usage.
 		"""
 		for event in stream:
 			match event.type:
@@ -300,8 +298,7 @@ class AnthropicEngine(BaseEngine):
 						else:
 							yield ("content", content)
 				case "message_delta":
-					if hasattr(event, "usage") and event.usage:
-						new_block.usage = token_usage_anthropic(event.usage)
+					pass
 				case "message_stop":
 					break
 
@@ -343,6 +340,4 @@ class AnthropicEngine(BaseEngine):
 			reasoning=reasoning,
 			citations=citations,
 		)
-		if hasattr(response, "usage") and response.usage:
-			new_block.usage = token_usage_anthropic(response.usage)
 		return new_block

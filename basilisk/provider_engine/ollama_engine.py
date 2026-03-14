@@ -161,13 +161,7 @@ class OllamaEngine(BaseEngine):
 		Returns:
 			An iterator of the completion response content.
 		"""
-		from basilisk.provider_engine.usage_utils import token_usage_ollama
-
 		for chunk in stream:
-			if chunk.get("done") and (
-				"prompt_eval_count" in chunk or "eval_count" in chunk
-			):
-				new_block.usage = token_usage_ollama(chunk)
 			content = chunk.get("message", {}).get("content")
 			if content:
 				yield content
@@ -189,8 +183,4 @@ class OllamaEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response["message"]["content"],
 		)
-		if "prompt_eval_count" in response or "eval_count" in response:
-			from basilisk.provider_engine.usage_utils import token_usage_ollama
-
-			new_block.usage = token_usage_ollama(response)
 		return new_block

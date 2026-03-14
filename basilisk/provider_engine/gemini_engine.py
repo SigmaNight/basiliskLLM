@@ -30,7 +30,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_engine.usage_utils import token_usage_gemini
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
@@ -302,9 +301,6 @@ class GeminiEngine(BaseEngine):
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content=response.text
 		)
-		um = getattr(response, "usage_metadata", None)
-		if um:
-			new_block.usage = token_usage_gemini(um)
 		return new_block
 
 	def completion_response_with_stream(
@@ -324,9 +320,6 @@ class GeminiEngine(BaseEngine):
 			Stream response from the provider
 		"""
 		for chunk in stream:
-			um = getattr(chunk, "usage_metadata", None)
-			if um:
-				new_block.usage = token_usage_gemini(um)
 			chunk_text = chunk.text
 			if chunk_text:
 				yield chunk_text

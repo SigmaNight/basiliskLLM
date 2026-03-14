@@ -23,7 +23,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.conversation.attached_file import AttachmentFile
-from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
 from .mistralai_ocr import handle_ocr
 
@@ -200,8 +199,6 @@ class MistralAIEngine(BaseEngine):
 		for chunk in stream:
 			data = chunk.data
 			if not data.choices:
-				if hasattr(data, "usage") and data.usage:
-					new_block.usage = token_usage_openai_style(data.usage)
 				continue
 			delta = data.choices[0].delta
 			if delta and delta.content:
@@ -227,8 +224,6 @@ class MistralAIEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content,
 		)
-		if hasattr(response, "usage") and response.usage:
-			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
 
 	def get_transcription(

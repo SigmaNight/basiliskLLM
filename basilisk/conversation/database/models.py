@@ -99,8 +99,6 @@ class DBMessageBlock(Base):
 	top_p: Mapped[float] = mapped_column(default=1.0)
 	stream: Mapped[bool] = mapped_column(default=False)
 	web_search_mode: Mapped[bool] = mapped_column(default=False)
-	usage_json: Mapped[str | None] = mapped_column(default=None)
-	timing_json: Mapped[str | None] = mapped_column(default=None)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)

@@ -371,12 +371,6 @@ class OpenAIEngine(ResponsesAPIEngine):
 		if getattr(self, "_last_used_chat_completions", False):
 			for chunk in stream:
 				if not chunk.choices:
-					if hasattr(chunk, "usage") and chunk.usage:
-						from basilisk.provider_engine.usage_utils import (
-							token_usage_openai_style,
-						)
-
-						new_block.usage = token_usage_openai_style(chunk.usage)
 					continue
 				delta = chunk.choices[0].delta
 				if delta and delta.content:

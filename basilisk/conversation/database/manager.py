@@ -23,9 +23,7 @@ from basilisk.conversation.conversation_model import (
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
-	ResponseTiming,
 	SystemMessage,
-	TokenUsage,
 )
 from basilisk.custom_types import PydanticOrderedSet
 from basilisk.provider_ai_model import AIModelInfo
@@ -387,13 +385,6 @@ class ConversationDatabase:
 		csp_id: int | None,
 	) -> DBMessageBlock:
 		"""Create and flush a DBMessageBlock, updating block.db_id."""
-		usage_json = None
-		if block.usage:
-			usage_json = block.usage.model_dump_json()
-		timing_json = None
-		if block.timing:
-			timing_json = block.timing.model_dump_json()
-
 		db_block = DBMessageBlock(
 			conversation_id=conv_id,
 			position=block_index,
@@ -405,8 +396,6 @@ class ConversationDatabase:
 			top_p=block.top_p,
 			stream=block.stream,
 			web_search_mode=getattr(block, "web_search_mode", False),
-			usage_json=usage_json,
-			timing_json=timing_json,
 			created_at=block.created_at,
 			updated_at=block.updated_at,
 		)
@@ -699,25 +688,6 @@ class ConversationDatabase:
 		if db_block.system_prompt_link is not None:
 			system_index = db_block.system_prompt_link.position
 
-		usage = None
-		if getattr(db_block, "usage_json", None):
-			try:
-				usage = TokenUsage.model_validate_json(db_block.usage_json)
-			except (ValueError, KeyError) as e:
-				log.warning(
-					"Invalid usage_json for block %d: %s", db_block.id, e
-				)
-		timing = None
-		if getattr(db_block, "timing_json", None):
-			try:
-				timing = ResponseTiming.model_validate_json(
-					db_block.timing_json
-				)
-			except (ValueError, KeyError) as e:
-				log.warning(
-					"Invalid timing_json for block %d: %s", db_block.id, e
-				)
-
 		block = MessageBlock(
 			request=request_msg,
 			response=response_msg,
@@ -730,8 +700,6 @@ class ConversationDatabase:
 			top_p=db_block.top_p,
 			stream=db_block.stream,
 			web_search_mode=getattr(db_block, "web_search_mode", False),
-			usage=usage,
-			timing=timing,
 			created_at=db_block.created_at,
 			updated_at=db_block.updated_at,
 		)
