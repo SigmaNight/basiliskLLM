@@ -238,6 +238,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		)
 
 		self._is_destroying = False
+		self._show_reasoning_blocks_override: bool | None = None
 		self.process: Optional[Any] = None  # multiprocessing.Process
 		self.ocr_handler = OCRHandler(self)
 		self._draft_timer = wx.Timer(self)
@@ -246,6 +247,16 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.init_ui()
 		self.init_data(profile)
 		self.adjust_advanced_mode_setting()
+
+	def get_effective_show_reasoning_blocks(self) -> bool:
+		"""Whether to show reasoning blocks. Uses per-tab override or config default."""
+		if self._show_reasoning_blocks_override is not None:
+			return self._show_reasoning_blocks_override
+		return config.conf().conversation.show_reasoning_blocks
+
+	def set_show_reasoning_blocks(self, value: bool) -> None:
+		"""Set per-conversation override for showing reasoning blocks."""
+		self._show_reasoning_blocks_override = value
 
 	def init_ui(self):
 		"""Initialize and layout all UI components."""
