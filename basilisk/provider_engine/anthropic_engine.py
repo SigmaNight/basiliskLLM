@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 	from basilisk.config import Account
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
+from .usage_utils import token_usage_anthropic
 
 log = logging.getLogger(__name__)
 
@@ -323,7 +324,8 @@ class AnthropicEngine(BaseEngine):
 						else:
 							yield ("content", content)
 				case "message_delta":
-					pass
+					if hasattr(event, "usage") and event.usage:
+						new_block.usage = token_usage_anthropic(event.usage)
 				case "message_stop":
 					break
 
@@ -365,4 +367,6 @@ class AnthropicEngine(BaseEngine):
 			reasoning=reasoning,
 			citations=citations,
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_anthropic(response.usage)
 		return new_block

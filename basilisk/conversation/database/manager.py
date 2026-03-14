@@ -24,7 +24,9 @@ from basilisk.conversation.conversation_model import (
 	Message,
 	MessageBlock,
 	MessageRoleEnum,
+	ResponseTiming,
 	SystemMessage,
+	TokenUsage,
 )
 from basilisk.custom_types import PydanticOrderedSet
 from basilisk.provider_ai_model import AIModelInfo
@@ -393,6 +395,12 @@ class ConversationDatabase:
 		stop_json = (
 			json.dumps(block.stop) if getattr(block, "stop", None) else None
 		)
+		usage_json = None
+		if getattr(block, "usage", None):
+			usage_json = block.usage.model_dump_json()
+		timing_json = None
+		if getattr(block, "timing", None):
+			timing_json = block.timing.model_dump_json()
 		db_block = DBMessageBlock(
 			conversation_id=conv_id,
 			position=block_index,
@@ -409,6 +417,8 @@ class ConversationDatabase:
 			stop_json=stop_json,
 			stream=block.stream,
 			web_search_mode=getattr(block, "web_search_mode", False),
+			usage_json=usage_json,
+			timing_json=timing_json,
 			created_at=block.created_at,
 			updated_at=block.updated_at,
 		)
@@ -707,6 +717,21 @@ class ConversationDatabase:
 				stop_list = json.loads(db_block.stop_json)
 			except TypeError, ValueError, json.JSONDecodeError:
 				pass
+		usage = None
+		if getattr(db_block, "usage_json", None):
+			try:
+				usage = TokenUsage.model_validate_json(db_block.usage_json)
+			except ValueError, KeyError:
+				pass
+		timing = None
+		if getattr(db_block, "timing_json", None):
+			try:
+				timing = ResponseTiming.model_validate_json(
+					db_block.timing_json
+				)
+			except ValueError, KeyError:
+				pass
+
 		block = MessageBlock(
 			request=request_msg,
 			response=response_msg,
@@ -724,6 +749,8 @@ class ConversationDatabase:
 			stop=stop_list,
 			stream=db_block.stream,
 			web_search_mode=getattr(db_block, "web_search_mode", False),
+			usage=usage,
+			timing=timing,
 			created_at=db_block.created_at,
 			updated_at=db_block.updated_at,
 		)

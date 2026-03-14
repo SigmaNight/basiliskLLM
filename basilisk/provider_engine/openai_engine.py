@@ -23,6 +23,7 @@ from basilisk.conversation import (
 from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
 from .provider_ui_spec import AudioOutputUISpec, ReasoningUISpec
 from .responses_api_engine import ResponsesAPIEngine, _audio_mime_to_format
@@ -347,7 +348,6 @@ class OpenAIEngine(ResponsesAPIEngine):
 				"temperature": new_block.temperature,
 				"top_p": new_block.top_p,
 			}
-			# Chat Completions API supports stream_options.include_usage
 			if new_block.stream and not want_audio_output:
 				params["stream_options"] = {"include_usage": True}
 			if want_audio_output:
@@ -378,6 +378,8 @@ class OpenAIEngine(ResponsesAPIEngine):
 		if getattr(self, "_last_used_chat_completions", False):
 			for chunk in stream:
 				if not chunk.choices:
+					if hasattr(chunk, "usage") and chunk.usage:
+						new_block.usage = token_usage_openai_style(chunk.usage)
 					continue
 				delta = chunk.choices[0].delta
 				if delta and delta.content:
@@ -413,6 +415,8 @@ class OpenAIEngine(ResponsesAPIEngine):
 				new_block.response = Message(
 					role=MessageRoleEnum.ASSISTANT, content=content
 				)
+			if hasattr(response, "usage") and response.usage:
+				new_block.usage = token_usage_openai_style(response.usage)
 			return new_block
 		return super().completion_response_without_stream(
 			response, new_block, **kwargs

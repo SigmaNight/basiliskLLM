@@ -26,6 +26,7 @@ from basilisk.conversation.attached_file import AttachmentFile
 from basilisk.conversation.content_utils import assistant_message_body_for_api
 
 from .mistralai_ocr import handle_ocr
+from .usage_utils import token_usage_openai_style
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -199,7 +200,7 @@ class MistralAIEngine(BaseEngine):
 		Args:
 			stream: Generator of chat completion chunks.
 			new_block: Block to set usage on when available.
-			**kwargs: Additional arguments passed through.
+			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Yields:
 			Content from each chunk in the stream.
@@ -207,6 +208,8 @@ class MistralAIEngine(BaseEngine):
 		for chunk in stream:
 			data = chunk.data
 			if not data.choices:
+				if hasattr(data, "usage") and data.usage:
+					new_block.usage = token_usage_openai_style(data.usage)
 				continue
 			delta = data.choices[0].delta
 			if delta and delta.content:
@@ -232,6 +235,8 @@ class MistralAIEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content,
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
 
 	def get_transcription(
