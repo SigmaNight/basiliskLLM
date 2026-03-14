@@ -28,9 +28,9 @@ feat/dynamicModels includes in `DBMessage` and `Message`:
 
 The database manager uses these fields. Splitting requires coordinated changes across branches.
 
-### 3. IPC Test Flakiness
+### 3. IPC Test Flakiness — FIXED
 
-`tests/ipc/test_ipc_architecture.py::TestBasiliskIpc::test_send_signal_no_receiver` and `test_multiple_signals` occasionally fail (likely timing/race on Windows). Tests pass on retry.
+`tests/ipc/test_ipc_architecture.py::TestBasiliskIpc::test_send_signal_no_receiver` and `test_multiple_signals` occasionally failed (timing/race on Windows). Fixed by increasing sleep times (0.1→0.15s for receiver start, 0.05→0.08s between signals, 0.2→0.3s for callback wait).
 
 ### 4. Code Coverage
 
