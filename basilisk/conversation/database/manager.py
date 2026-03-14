@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from basilisk import global_vars
 from basilisk.consts import APP_AUTHOR, APP_NAME, BSKC_VERSION
-from basilisk.conversation.content_utils import split_reasoning_and_content
 from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
