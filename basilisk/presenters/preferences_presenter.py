@@ -119,6 +119,9 @@ class PreferencesPresenter:
 		conf.conversation.reopen_last_conversation = (
 			self.view.reopen_last_conversation.GetValue()
 		)
+		conf.conversation.show_reasoning_blocks = (
+			self.view.show_reasoning_blocks_default.GetValue()
+		)
 		conf.images.resize = self.view.image_resize.GetValue()
 		conf.images.max_height = int(self.view.image_max_height.GetValue())
 		conf.images.max_width = int(self.view.image_max_width.GetValue())

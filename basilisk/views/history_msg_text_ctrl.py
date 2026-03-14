@@ -271,6 +271,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		Provides options for:
 		- Reading the current message
 		- Toggling stream speaking mode
+		- Showing/hiding reasoning blocks
 		- Showing the current message as HTML
 		- Showing the citations for the current message
 		- Copying the current message
@@ -297,6 +298,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				"(Shift+Space)",
 				self.on_toggle_speak_response,
 				[self.speak_response],
+			),
+			MenuItemInfo(
+				_("Show reasoning blocks"),
+				"(Shift+T)",
+				self.on_toggle_show_reasoning_blocks,
+				[self.GetParent().get_effective_show_reasoning_blocks()],
 			),
 			MenuItemInfo(
 				_("Show as HTML (from Markdown)"),
@@ -483,6 +490,20 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			return wx.CallLater(500, self.on_toggle_speak_response)
 		self.presenter.toggle_speak_response()
 
+	def on_toggle_show_reasoning_blocks(self, event: wx.Event | None = None):
+		"""Toggle visibility of reasoning/think blocks in this conversation."""
+		parent = self.GetParent()
+		new_value = not parent.get_effective_show_reasoning_blocks()
+		parent.set_show_reasoning_blocks(new_value)
+		parent.refresh_messages(need_clear=True, preserve_prompt=True)
+		self.a_output.handle(
+			_("Reasoning blocks shown")
+			if new_value
+			else _("Reasoning blocks hidden"),
+			braille=True,
+			clear_for_speak=False,
+		)
+
 	def on_read_current_message(self, event: wx.Event | None = None):
 		"""Read the current message."""
 		if event:
@@ -577,6 +598,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 	# goes here because we need all the methods to be defined before we can assign to the dict
 	key_actions = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
+		(wx.MOD_SHIFT, ord("T")): on_toggle_show_reasoning_blocks,
 		(wx.MOD_NONE, wx.WXK_SPACE): on_read_current_message,
 		(wx.MOD_NONE, ord("J")): go_to_previous_message,
 		(wx.MOD_NONE, ord("K")): go_to_next_message,
@@ -600,6 +622,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		Supports:
 		- Space: Read current message
 		- Shift+Space: Toggle stream speaking mode
+		- Shift+T: Toggle show/hide reasoning blocks
 		- J: Go to previous message
 		- K: Go to next message
 		- S: Select current message

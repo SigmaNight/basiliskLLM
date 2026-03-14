@@ -64,6 +64,7 @@ class BaseMessage(BaseModel):
 class Message(BaseMessage):
 	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
 
+	reasoning: str | None = Field(default=None)
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
 	reasoning: str | None = Field(default=None)

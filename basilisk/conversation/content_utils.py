@@ -7,11 +7,7 @@ import re
 START_BLOCK_REASONING = "<think>"
 END_REASONING = "</think>"
 
-# Display format for reasoning blocks. dynamicModels uses ```think...```;
-# feat/reasoning-storage and above use <think>...</think>.
-REASONING_DISPLAY_START = "```think"
-REASONING_DISPLAY_END = "```"
-
+# Legacy format (parsed when loading from DB or old content).
 _THINK_BLOCK_PATTERN = re.compile(r"```think\s*\n(.*?)\n```\s*", re.DOTALL)
 _REASONING_BLOCK_PATTERN = re.compile(
 	rf"{re.escape(START_BLOCK_REASONING)}\s*\n(.*?)\n{re.escape(END_REASONING)}\s*",
@@ -46,7 +42,7 @@ def format_response_for_display(
 ) -> str:
 	"""Format response for display (reasoning + content or content only)."""
 	if show_reasoning and reasoning:
-		return f"{REASONING_DISPLAY_START}\n{reasoning}\n{REASONING_DISPLAY_END}\n\n{content}"
+		return f"{START_BLOCK_REASONING}\n{reasoning}\n{END_REASONING}\n\n{content}"
 	return content
 
 
@@ -56,6 +52,7 @@ def split_reasoning_and_content_from_display(
 	"""Split display text (<think>...</think> format) into reasoning and content.
 
 	Used when parsing user-edited response text (e.g. in edit block dialog).
+	Parses <think> format first, then legacy ```think for backward compatibility.
 
 	Args:
 		text: Display text that may contain <think>...</think> block.
@@ -65,7 +62,6 @@ def split_reasoning_and_content_from_display(
 	"""
 	if not text:
 		return None, text or ""
-	# Try <think> format first, then legacy ```think
 	match = _REASONING_BLOCK_PATTERN.search(text)
 	if not match:
 		return split_reasoning_and_content(text)
