@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from basilisk.config import ConversationProfile
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
 from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
 
@@ -65,6 +66,7 @@ class EditConversationProfilePresenter:
 		self._apply_account_and_model()
 		self._apply_generation_params()
 		self._apply_reasoning_params()
+		self._apply_audio_params()
 
 		try:
 			ConversationProfile.model_validate(self.profile)
@@ -174,6 +176,15 @@ class EditConversationProfilePresenter:
 		else:
 			self.profile.reasoning_budget_tokens = None
 			self.profile.reasoning_effort = None
+
+	def _apply_audio_params(self) -> None:
+		"""Set output_modality, audio_voice, audio_format from view."""
+		if not hasattr(self.view, "output_modality_choice"):
+			return
+		params = get_audio_params_from_view(self.view)
+		self.profile.output_modality = params["output_modality"]
+		self.profile.audio_voice = params["audio_voice"]
+		self.profile.audio_format = params["audio_format"]
 
 
 class ConversationProfilePresenter(ManagerCrudMixin):
