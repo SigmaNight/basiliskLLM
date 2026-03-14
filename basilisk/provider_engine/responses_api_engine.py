@@ -33,6 +33,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.provider_engine.stream_chunk_type import StreamChunkType
@@ -123,7 +124,8 @@ class ResponsesAPIEngine(BaseEngine):
 			role=response.role.value,
 			content=[
 				ResponseOutputTextParam(
-					text=response.content, type="output_text"
+					text=assistant_message_body_for_api(response.content),
+					type="output_text",
 				)
 			],
 			type="message",

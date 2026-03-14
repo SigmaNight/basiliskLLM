@@ -14,6 +14,7 @@ from openai.types.chat import (
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
@@ -64,9 +65,8 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	):
 		"""Processes streaming response from DeepSeek API.
 
-		Embeds reasoning deltas in content using ```think``` markers.
+		Yields separate reasoning and content chunks for the completion handler.
 		"""
-		reasoning_content_tag_sent = False
 		for chunk in stream:
 			delta = chunk.choices[0].delta
 			if delta:
@@ -74,33 +74,16 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 					hasattr(delta, "reasoning_content")
 					and delta.reasoning_content
 				):
-					if not reasoning_content_tag_sent:
-						reasoning_content_tag_sent = True
-						yield (
-							StreamChunkType.CONTENT,
-							f"```think\n{delta.reasoning_content}",
-						)
-					else:
-						yield (StreamChunkType.CONTENT, delta.reasoning_content)
+					yield (StreamChunkType.REASONING, delta.reasoning_content)
 				if delta.content:
-					if reasoning_content_tag_sent:
-						reasoning_content_tag_sent = False
-						yield (
-							StreamChunkType.CONTENT,
-							f"\n```\n\n{delta.content}",
-						)
-					else:
-						yield (StreamChunkType.CONTENT, delta.content)
-		if reasoning_content_tag_sent:
-			yield (StreamChunkType.CONTENT, "\n```")
+					yield (StreamChunkType.CONTENT, delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes non-streaming response from DeepSeek API.
 
-		Combines reasoning content (if present) and regular content into
-		a formatted message with markdown blocks for reasoning.
+		Stores reasoning and answer text in separate fields.
 
 		Args:
 			response: The chat completion response.
@@ -110,17 +93,15 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		Returns:
 			Updated message block containing the formatted response.
 		"""
-		reasoning_content = None
+		reasoning = None
 		if (
 			hasattr(response.choices[0].message, "reasoning_content")
 			and response.choices[0].message.reasoning_content
 		):
-			reasoning_content = response.choices[0].message.reasoning_content
-		content = response.choices[0].message.content
-		if reasoning_content:
-			content = f"```think\n{reasoning_content}\n```\n\n{content}"
+			reasoning = response.choices[0].message.reasoning_content
+		content = response.choices[0].message.content or ""
 		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=content
+			role=MessageRoleEnum.ASSISTANT, content=content, reasoning=reasoning
 		)
 		return new_block
 
@@ -136,5 +117,6 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 			DeepSeek API compatible message parameter.
 		"""
 		return ChatCompletionAssistantMessageParam(
-			role=message.role.value, content=message.content
+			role=message.role.value,
+			content=assistant_message_body_for_api(message.content),
 		)

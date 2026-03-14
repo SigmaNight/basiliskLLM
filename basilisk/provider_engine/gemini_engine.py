@@ -30,6 +30,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
@@ -186,7 +187,10 @@ class GeminiEngine(BaseEngine):
 			Gemini API compatible content object.
 		"""
 		role = self.convert_role(message.role)
-		parts = [Part(text=message.content)]
+		text = message.content or ""
+		if message.role == MessageRoleEnum.ASSISTANT:
+			text = assistant_message_body_for_api(text)
+		parts = [Part(text=text)]
 		if message.attachments:
 			for attachment in message.attachments:
 				parts.append(self.convert_attachment(attachment))
