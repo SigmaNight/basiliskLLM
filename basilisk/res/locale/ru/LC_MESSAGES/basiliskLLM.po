@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-07 12:36+0000\n"
-"PO-Revision-Date: 2026-03-07 13:41\n"
+"POT-Creation-Date: 2026-03-14 13:48+0000\n"
+"PO-Revision-Date: 2026-03-14 13:49\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -323,3 +323,4 @@ msgstr "Экономичная модель, быстрее Grok 3 для чет
 #: basilisk/provider_engine/xai_engine.py:111
 msgid "Multimodal image understanding with 32K context."
 msgstr "Мультимодальное понимание изображений с контекстом 32K токенов."
+
