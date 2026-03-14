@@ -117,7 +117,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						name=model["name"],
 						description=model["description"],
 						context_window=int(model["context_length"]),
-						max_output_tokens=model.get("top_provider").get(
+						max_output_tokens=(model.get("top_provider") or {}).get(
 							"max_completion_tokens"
 						)
 						or -1,

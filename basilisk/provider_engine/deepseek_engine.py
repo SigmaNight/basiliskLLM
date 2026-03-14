@@ -88,6 +88,8 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 						yield ("content", f"\n```\n\n{delta.content}")
 					else:
 						yield ("content", delta.content)
+		if reasoning_content_tag_sent:
+			yield ("content", "\n```")
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs

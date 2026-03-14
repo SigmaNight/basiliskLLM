@@ -153,7 +153,7 @@ class ResponsesAPIEngine(BaseEngine):
 		# Responses API does not support stream_options.include_usage; usage comes
 		# automatically in ResponseCompletedEvent.
 		if new_block.max_tokens:
-			params["max_tokens"] = new_block.max_tokens
+			params["max_output_tokens"] = new_block.max_tokens
 		web_search = kwargs.pop("web_search_mode", False)
 		if web_search and self.model_supports_web_search(model):
 			tools = self.get_web_search_tool_definitions(model)
