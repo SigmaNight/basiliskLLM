@@ -64,8 +64,11 @@ class BaseMessage(BaseModel):
 class Message(BaseMessage):
 	"""Represents a message in a conversation. The message may contain text content and optional attachments."""
 
+	reasoning: str | None = Field(default=None)
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+	audio_data: str | None = Field(default=None)
+	audio_format: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -143,6 +146,11 @@ class MessageBlock(BaseModel):
 	max_tokens: int = Field(default=4096)
 	top_p: float = Field(default=1)
 	stream: bool = Field(default=False)
+	reasoning_mode: bool = Field(default=False)
+	reasoning_budget_tokens: int | None = Field(default=None)
+	reasoning_effort: str | None = Field(default=None)
+	reasoning_adaptive: bool = Field(default=False)
+	web_search_mode: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 	db_id: int | None = Field(default=None, exclude=True)
