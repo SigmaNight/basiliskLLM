@@ -42,6 +42,7 @@ from .reasoning_api_enums import (
 	AnthropicStreamEventType,
 )
 from .stream_chunk_type import StreamChunkType
+from .usage_utils import token_usage_anthropic
 
 log = logging.getLogger(__name__)
 
@@ -337,7 +338,8 @@ class AnthropicEngine(BaseEngine):
 						else:
 							yield (StreamChunkType.CONTENT, content)
 				case AnthropicStreamEventType.MESSAGE_DELTA:
-					pass
+					if hasattr(event, "usage") and event.usage:
+						new_block.usage = token_usage_anthropic(event.usage)
 				case AnthropicStreamEventType.MESSAGE_STOP:
 					break
 
@@ -379,4 +381,6 @@ class AnthropicEngine(BaseEngine):
 			reasoning=reasoning,
 			citations=citations,
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_anthropic(response.usage)
 		return new_block

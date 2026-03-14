@@ -36,6 +36,7 @@ from .legacy_openai_engine import LegacyOpenAIEngine
 from .provider_ui_spec import ReasoningUISpec
 from .reasoning_api_enums import OpenRouterReasoningEffort
 from .stream_chunk_type import StreamChunkType
+from .usage_utils import token_usage_openrouter
 
 log = logging.getLogger(__name__)
 
@@ -277,8 +278,14 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		new_block: MessageBlock,
 		**kwargs,
 	):
-		"""Process streaming response; yield reasoning and content chunks."""
+		"""Process streaming response; yield reasoning and content chunks.
+
+		OpenRouter returns usage in the final chunk. Per docs: check chunk.usage
+		in every chunk (usage can appear with or without choices).
+		"""
 		for chunk in stream:
+			if hasattr(chunk, "usage") and chunk.usage:
+				new_block.usage = token_usage_openrouter(chunk.usage)
 			if not chunk.choices:
 				continue
 			delta = chunk.choices[0].delta
@@ -293,11 +300,13 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
-		"""Process non-streaming response; extract reasoning and content."""
+		"""Process non-streaming response; extract reasoning, content, and usage."""
 		msg = response.choices[0].message
 		content = msg.content or ""
 		reasoning = getattr(msg, "reasoning", None)
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content=content, reasoning=reasoning
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openrouter(response.usage)
 		return new_block
