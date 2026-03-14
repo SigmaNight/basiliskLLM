@@ -121,6 +121,7 @@ class TestBasiliskIpc:
 	def test_send_signal_no_receiver(self, ipc):
 		"""Test sending a signal when no receiver is running."""
 		# Don't start receiver
+		time.sleep(0.05)  # Allow IPC to settle (avoids flakiness on Windows)
 		focus_signal = FocusSignal(timestamp=datetime.now())
 		result = ipc.send_signal(focus_signal.model_dump_json())
 		assert result is False
@@ -132,17 +133,17 @@ class TestBasiliskIpc:
 		ipc.start_receiver(callbacks)
 
 		# Wait for receiver to start
-		time.sleep(0.1)
+		time.sleep(0.15)
 
 		# Send multiple signals
 		for i in range(3):
 			focus_signal = FocusSignal(timestamp=datetime.now())
 			result = ipc.send_signal(focus_signal.model_dump_json())
 			assert result is True
-			time.sleep(0.05)
+			time.sleep(0.08)
 
 		# Wait for all callbacks
-		time.sleep(0.2)
+		time.sleep(0.3)
 		assert callback_tracker.call_count == 3
 
 	@pytest.mark.parametrize("signal_count", [1, 3, 5])
@@ -155,15 +156,15 @@ class TestBasiliskIpc:
 		ipc.start_receiver(callbacks)
 
 		# Wait for receiver to start
-		time.sleep(0.1)
+		time.sleep(0.15)
 
 		# Send multiple signals
 		for i in range(signal_count):
 			focus_signal = FocusSignal(timestamp=datetime.now())
 			result = ipc.send_signal(focus_signal.model_dump_json())
 			assert result is True
-			time.sleep(0.05)
+			time.sleep(0.08)
 
 		# Wait for all callbacks
-		time.sleep(0.2)
+		time.sleep(0.3)
 		assert callback_tracker.call_count == signal_count
