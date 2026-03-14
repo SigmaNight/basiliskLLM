@@ -12,6 +12,7 @@ from wx.lib.agw.floatspin import FloatSpin
 import basilisk.config as config
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
+	ParameterVisibilityState,
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
@@ -271,12 +272,12 @@ class BaseConversation:
 			event: The event triggering the model change
 		"""
 		model = self.current_model
-		if not model:
-			return
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
+		if model:
+			self.temperature_spinner.SetMax(model.max_temperature)
+			self.temperature_spinner.SetValue(model.default_temperature)
+			self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
+			self.max_tokens_spin_ctrl.SetValue(0)
+		self.update_parameter_controls_visibility()
 
 	def set_account_and_model_from_profile(
 		self,
@@ -307,6 +308,7 @@ class BaseConversation:
 			model = engine.get_model(model_id)
 			if model:
 				self.set_model_list(model)
+		self.update_parameter_controls_visibility()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
@@ -444,6 +446,115 @@ class BaseConversation:
 		)
 		self.stream_mode.SetValue(True)
 
+	def create_general_group(self):
+		"""Create grouped general settings (max tokens, temperature, top P, stream, web search).
+
+		Returns a StaticBoxSizer containing all general widgets. Add to layout
+		after model list. Visibility controlled by update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for general model settings
+		box = wx.StaticBox(self, label=_("General"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_max_tokens_widget()
+		sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
+		sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_temperature_widget()
+		sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_top_p_widget()
+		sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_stream_widget()
+		sizer.Add(self.stream_mode, 0, wx.ALL, 2)
+
+		self.general_group_box = box
+		self.general_group_sizer = sizer
+		return sizer
+
+	def create_tools_group(self):
+		"""Create grouped tool settings (web search, etc.).
+
+		Returns a StaticBoxSizer containing tool widgets. Add to layout after
+		general group. Visibility controlled by update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for model tools (web search, etc.)
+		box = wx.StaticBox(self, label=_("Tools"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_web_search_widget()
+		sizer.Add(self.web_search_mode, 0, wx.ALL, 2)
+
+		self.tools_group_box = box
+		self.tools_group_sizer = sizer
+		return sizer
+
+	def get_effective_show_reasoning_blocks(self) -> bool:
+		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
+		return True
+
+	def create_reasoning_group(self):
+		"""Create grouped reasoning settings (mode, adaptive, budget, effort).
+
+		Returns a StaticBoxSizer containing all reasoning widgets. Add to
+		layout after model list. Visibility of sub-widgets controlled by
+		update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for reasoning/thinking settings
+		box = wx.StaticBox(self, label=_("Reasoning"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_reasoning_widget()
+		sizer.Add(self.reasoning_mode, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_adaptive, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_spin, 0, wx.ALL | wx.EXPAND, 2)
+		sizer.Add(self.reasoning_effort_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_effort_choice, 0, wx.ALL | wx.EXPAND, 2)
+
+		self.reasoning_group_box = box
+		self.reasoning_group_sizer = sizer
+		return sizer
+
+	def create_reasoning_widget(self):
+		"""Create reasoning mode checkbox and provider-adaptive controls."""
+		self.reasoning_mode = wx.CheckBox(
+			self,
+			# Translators: Label for enabling reasoning/thinking mode
+			label=_("Enable &reasoning mode"),
+		)
+		self.reasoning_mode.SetValue(False)
+		self.reasoning_mode.Bind(
+			wx.EVT_CHECKBOX, self._on_reasoning_mode_change
+		)
+		self.reasoning_adaptive = wx.CheckBox(
+			self,
+			# Translators: Use adaptive thinking (Anthropic Claude 4.6+)
+			label=_("Use adaptive thinking"),
+		)
+		self.reasoning_adaptive.SetValue(False)
+		self.reasoning_adaptive.Bind(
+			wx.EVT_CHECKBOX, self._on_reasoning_mode_change
+		)
+		self.reasoning_budget_label = wx.StaticText(
+			self,
+			# Translators: Label for reasoning budget tokens
+			label=_("Thinking budget (tokens):"),
+		)
+		self.reasoning_budget_spin = wx.SpinCtrl(
+			self, value="16000", min=0, max=128000
+		)
+		self.reasoning_effort_label = wx.StaticText(
+			self,
+			# Translators: Label for reasoning effort level (OpenAI, xAI)
+			label=_("Reasoning effort:"),
+		)
+		self.reasoning_effort_choice = wx.Choice(
+			self, choices=[_("Low"), _("Medium"), _("High")]
+		)
+		self.reasoning_effort_choice.SetSelection(1)  # Medium
+
+	def _on_reasoning_mode_change(self, event: wx.Event | None):
+		"""Update visibility of provider-specific reasoning controls."""
+		self.update_parameter_controls_visibility()
+
 	def apply_profile(
 		self,
 		profile: Optional[config.ConversationProfile],
@@ -470,20 +581,138 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		self._apply_profile_reasoning(profile)
+		self.update_parameter_controls_visibility()
+
+	def _apply_profile_reasoning(
+		self, profile: config.ConversationProfile
+	) -> None:
+		"""Apply reasoning settings from profile."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(profile.reasoning_mode)
+		self.reasoning_adaptive.SetValue(profile.reasoning_adaptive)
+		if profile.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(profile.reasoning_budget_tokens)
+		if profile.reasoning_effort is not None:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = profile.reasoning_effort.lower()
+			idx = options.index(val) if val in options else len(options) - 1
+			self.reasoning_effort_choice.SetSelection(idx)
+
+	def update_parameter_controls_visibility(self):
+		"""Show/hide parameter controls based on selected model and advanced mode.
+
+		Delegates to presenter for business logic; applies result to widgets.
+		"""
+		advanced_mode = config.conf().general.advanced_mode
+		model = self.current_model
+		engine = self.current_engine
+
+		reasoning_mode_checked = False
+		reasoning_adaptive_checked = False
+		if hasattr(self, "reasoning_mode"):
+			reasoning_mode_checked = bool(self.reasoning_mode.GetValue())
+		if hasattr(self, "reasoning_adaptive"):
+			reasoning_adaptive_checked = bool(
+				self.reasoning_adaptive.GetValue()
+			)
+
+		state = self.base_conv_presenter.get_parameter_visibility_state(
+			advanced_mode,
+			model,
+			engine,
+			reasoning_mode_checked=reasoning_mode_checked,
+			reasoning_adaptive_checked=reasoning_adaptive_checked,
+		)
+		self._apply_parameter_visibility_state(state)
+		self.Layout()
+
+	def _apply_parameter_visibility_state(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply visibility state to widgets. Thin view layer."""
+		self._apply_general_visibility(state)
+		self._apply_tools_visibility(state)
+		self._apply_reasoning_visibility(state)
+
+	def _apply_general_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply general settings group visibility.
+
+		Hides the entire group when no model is selected or advanced mode is off.
+		"""
+		if hasattr(self, "general_group_box"):
+			self.general_group_box.Show(state.stream_visible)
+		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
+			ctrl.Enable(state.temperature_visible)
+			ctrl.Show(state.temperature_visible)
+		for ctrl in (self.top_p_spinner_label, self.top_p_spinner):
+			ctrl.Enable(state.top_p_visible)
+			ctrl.Show(state.top_p_visible)
+		for ctrl in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
+			ctrl.Enable(state.max_tokens_visible)
+			ctrl.Show(state.max_tokens_visible)
+		self.stream_mode.Enable(state.stream_visible)
+		self.stream_mode.Show(state.stream_visible)
+
+	def _apply_tools_visibility(self, state: ParameterVisibilityState) -> None:
+		"""Apply tools group visibility (web search, etc.)."""
+		if hasattr(self, "tools_group_box"):
+			self.tools_group_box.Show(state.web_search_visible)
+		if hasattr(self, "web_search_mode"):
+			self.web_search_mode.Enable(state.web_search_visible)
+			self.web_search_mode.Show(state.web_search_visible)
+
+	def _apply_reasoning_visibility(
+		self, state: ParameterVisibilityState
+	) -> None:
+		"""Apply reasoning controls visibility state.
+
+		Reasoning mode controls are hidden when model does not support them.
+		"""
+		if hasattr(self, "reasoning_group_box"):
+			self.reasoning_group_box.Show(state.reasoning_mode_visible)
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.Enable(state.reasoning_mode_visible)
+		self.reasoning_mode.Show(state.reasoning_mode_visible)
+		self.reasoning_adaptive.Enable(state.reasoning_adaptive_visible)
+		self.reasoning_adaptive.Show(state.reasoning_adaptive_visible)
+		self.reasoning_budget_label.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_label.Show(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Enable(state.reasoning_budget_visible)
+		self.reasoning_budget_spin.Show(state.reasoning_budget_visible)
+
+		for ctrl in (self.reasoning_effort_label, self.reasoning_effort_choice):
+			ctrl.Enable(state.reasoning_effort_visible)
+			ctrl.Show(state.reasoning_effort_visible)
+
+		if state.reasoning_effort_visible and state.effort_display:
+			display = [_(s) for s in state.effort_display]
+			try:
+				sel = self.reasoning_effort_choice.GetSelection()
+				old_val = state.effort_options[
+					min(sel, len(state.effort_options) - 1)
+				]
+			except IndexError, TypeError:
+				old_val = state.effort_options[-1]
+			self.reasoning_effort_choice.SetItems(display)
+			idx = (
+				state.effort_options.index(old_val)
+				if old_val in state.effort_options
+				else len(state.effort_options) - 1
+			)
+			self.reasoning_effort_choice.SetSelection(idx)
+			self.reasoning_effort_label.SetLabel(_(state.effort_label))
 
 	def adjust_advanced_mode_setting(self):
-		"""Update UI controls visibility based on advanced mode setting."""
-		controls = (
-			self.max_tokens_spin_label,
-			self.max_tokens_spin_ctrl,
-			self.temperature_spinner_label,
-			self.temperature_spinner,
-			self.top_p_spinner_label,
-			self.top_p_spinner,
-			self.stream_mode,
-		)
-		advanced_mode = config.conf().general.advanced_mode
-		for control in controls:
-			control.Enable(advanced_mode)
-			control.Show(advanced_mode)
-		self.Layout()
+		"""Update UI controls visibility based on advanced mode and model support."""
+		self.update_parameter_controls_visibility()

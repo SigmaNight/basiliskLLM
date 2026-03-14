@@ -35,6 +35,10 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		capabilities: Set of supported capabilities including text and image generation.
 	"""
 
+	def _supports_stream_usage_options(self) -> bool:
+		"""OpenRouter deprecates stream_options.include_usage and may reject it."""
+		return False
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
@@ -106,19 +110,21 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							if v is None:
 								continue
 							extra_info[k.replace("_", " ")] = v
+				modality = model.get("architecture", {}).get("modality", "")
 				models.append(
 					ProviderAIModel(
 						id=model["id"],
 						name=model["name"],
 						description=model["description"],
 						context_window=int(model["context_length"]),
-						max_output_tokens=model.get("top_provider").get(
+						max_output_tokens=(model.get("top_provider") or {}).get(
 							"max_completion_tokens"
 						)
 						or -1,
 						max_temperature=2.0,
-						vision="text+image->text"
-						in model.get("architecture", {}).get("modality", ""),
+						vision="image" in modality,
+						audio="audio" in modality,
+						document="file" in modality,
 						extra_info=extra_info,
 					)
 				)

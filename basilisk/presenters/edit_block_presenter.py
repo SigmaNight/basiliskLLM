@@ -13,6 +13,10 @@ from typing import TYPE_CHECKING, Optional
 
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
+from basilisk.conversation.content_utils import (
+	format_response_for_display,
+	split_reasoning_and_content_from_display,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -21,6 +25,14 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
+	get_reasoning_params_from_view,
+)
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -107,6 +119,13 @@ class EditBlockPresenter(DestroyGuardMixin):
 		if system_prompt:
 			system_message = SystemMessage(content=system_prompt)
 
+		reasoning_params = get_reasoning_params_from_view(self.view)
+		audio_params = get_audio_params_from_view(self.view)
+		stream = self.view.stream_mode.GetValue()
+		if audio_params.get("output_modality") == "audio":
+			stream = False
+		web_search = view_get_web_search_value(self.view)
+
 		temp_block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -119,7 +138,10 @@ class EditBlockPresenter(DestroyGuardMixin):
 			temperature=self.view.temperature_spinner.GetValue(),
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=self.view.stream_mode.GetValue(),
+			stream=stream,
+			web_search_mode=web_search,
+			**reasoning_params,
+			**audio_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -179,10 +201,26 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
 		self.block.top_p = self.view.top_p_spinner.GetValue()
 		self.block.stream = self.view.stream_mode.GetValue()
+		if hasattr(self.view, "reasoning_mode"):
+			params = get_reasoning_params_from_view(
+				self.view, engine=self.view.current_engine, model=model
+			)
+			self.block.reasoning_mode = params["reasoning_mode"]
+			self.block.reasoning_adaptive = params["reasoning_adaptive"]
+			self.block.reasoning_budget_tokens = params[
+				"reasoning_budget_tokens"
+			]
+			self.block.reasoning_effort = params["reasoning_effort"]
+		if view_has_web_search_control(self.view):
+			self.block.web_search_mode = view_get_web_search_value(self.view)
 
 		# Update response if present
 		if self.block.response:
-			self.block.response.content = self.view.response_txt.GetValue()
+			text = self.view.response_txt.GetValue()
+			reasoning, content = split_reasoning_and_content_from_display(text)
+			self.block.response = self.block.response.model_copy(
+				update={"reasoning": reasoning, "content": content}
+			)
 
 		self.block.updated_at = datetime.now()
 		if self.service is not None:
@@ -234,14 +272,29 @@ class EditBlockPresenter(DestroyGuardMixin):
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	) -> None:
-		"""Display the completed response and optionally speak it.
+		"""Display the completed response and optionally speak or play it.
+
+		Persists the new response (including audio_data) to self.block so
+		save_block will have the correct data when the user clicks OK.
 
 		Args:
 			new_block: The completed temporary block with response content.
 			system_message: Optional system message used for this completion.
 		"""
-		self.view.response_txt.SetValue(new_block.response.content)
-		if self.view.should_speak_response:
+		self.block.response = new_block.response
+		reasoning = getattr(new_block.response, "reasoning", None)
+		content = new_block.response.content
+		display = format_response_for_display(
+			reasoning, content, self.view.get_effective_show_reasoning_blocks()
+		)
+		self.view.response_txt.SetValue(display)
+		audio_data = getattr(new_block.response, "audio_data", None)
+		if audio_data:
+			from basilisk.audio_utils import play_audio_from_base64
+
+			fmt = getattr(new_block.response, "audio_format", None) or "wav"
+			play_audio_from_base64(audio_data, fmt)
+		elif self.view.should_speak_response:
 			self.view.a_output.handle(new_block.response.content)
 
 	def _on_stream_chunk(self, chunk: str) -> None:

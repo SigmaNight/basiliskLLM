@@ -98,6 +98,7 @@ class DBMessageBlock(Base):
 	max_tokens: Mapped[int] = mapped_column(default=4096)
 	top_p: Mapped[float] = mapped_column(default=1.0)
 	stream: Mapped[bool] = mapped_column(default=False)
+	web_search_mode: Mapped[bool] = mapped_column(default=False)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)
