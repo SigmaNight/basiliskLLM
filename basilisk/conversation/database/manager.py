@@ -233,10 +233,16 @@ class ConversationDatabase:
 		"""Save a message with its attachments and citations."""
 		content = message.content
 		reasoning = getattr(message, "reasoning", None)
-		if reasoning:
-			content = f"```think\n{reasoning}\n```\n\n{content}"
+		if reasoning is None:
+			# Legacy: parse embedded ```think from content if present
+			parsed_r, parsed_c = split_reasoning_and_content(content)
+			if parsed_r is not None:
+				reasoning, content = parsed_r, parsed_c
 		db_msg = DBMessage(
-			message_block_id=block_id, role=role, content=content
+			message_block_id=block_id,
+			role=role,
+			content=content,
+			reasoning=reasoning,
 		)
 		session.add(db_msg)
 		session.flush()
@@ -787,7 +793,11 @@ class ConversationDatabase:
 		)
 		attachments = self._load_message_attachments(db_msg)
 		citations = self._load_message_citations(db_msg)
-		reasoning, content = split_reasoning_and_content(db_msg.content)
+		reasoning = getattr(db_msg, "reasoning", None)
+		if reasoning is not None:
+			content = db_msg.content
+		else:
+			reasoning, content = split_reasoning_and_content(db_msg.content)
 		return Message(
 			role=role,
 			content=content,
