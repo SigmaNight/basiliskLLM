@@ -706,11 +706,13 @@ class BaseConversation:
 	) -> None:
 		"""Apply reasoning controls visibility state.
 
-		Hides the entire reasoning group when no model is selected or the
-		model does not support reasoning (e.g. web search models).
+		Keeps reasoning group visible so "Show reasoning blocks" checkbox is
+		always accessible (for toggling display of reasoning in responses).
+		Reasoning mode controls are hidden when model does not support them.
 		"""
 		if hasattr(self, "reasoning_group_box"):
-			self.reasoning_group_box.Show(state.reasoning_mode_visible)
+			# Always show group: contains "Show reasoning blocks" for display toggle
+			self.reasoning_group_box.Show(True)
 		if not hasattr(self, "reasoning_mode"):
 			return
 		self.reasoning_mode.Enable(state.reasoning_mode_visible)
@@ -733,7 +735,7 @@ class BaseConversation:
 				old_val = state.effort_options[
 					min(sel, len(state.effort_options) - 1)
 				]
-			except (IndexError, TypeError):
+			except IndexError, TypeError:
 				old_val = state.effort_options[-1]
 			self.reasoning_effort_choice.SetItems(display)
 			idx = (
