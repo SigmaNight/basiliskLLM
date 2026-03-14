@@ -18,8 +18,19 @@ from basilisk.conversation import (
 from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .usage_utils import token_usage_ollama
 
 log = logging.getLogger(__name__)
+
+
+def _ollama_usage_dict(obj) -> dict:
+	"""Extract prompt_eval_count/eval_count from dict or ChatResponse."""
+	if isinstance(obj, dict):
+		return obj
+	return {
+		"prompt_eval_count": getattr(obj, "prompt_eval_count", None),
+		"eval_count": getattr(obj, "eval_count", None),
+	}
 
 
 class OllamaEngine(BaseEngine):
@@ -156,7 +167,6 @@ class OllamaEngine(BaseEngine):
 		Args:
 			stream: The stream of chat completion responses.
 			new_block: Block to set usage on when available.
-			**kwargs: Additional arguments passed through.
 
 		Returns:
 			An iterator of the completion response content.
@@ -165,6 +175,11 @@ class OllamaEngine(BaseEngine):
 			content = chunk.get("message", {}).get("content")
 			if content:
 				yield ("content", content)
+			usage_data = _ollama_usage_dict(chunk)
+			if usage_data.get("prompt_eval_count") or usage_data.get(
+				"eval_count"
+			):
+				new_block.usage = token_usage_ollama(usage_data)
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs
@@ -183,4 +198,7 @@ class OllamaEngine(BaseEngine):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response["message"]["content"],
 		)
+		usage_data = _ollama_usage_dict(response)
+		if usage_data.get("prompt_eval_count") or usage_data.get("eval_count"):
+			new_block.usage = token_usage_ollama(usage_data)
 		return new_block

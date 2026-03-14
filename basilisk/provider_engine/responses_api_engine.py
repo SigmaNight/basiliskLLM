@@ -35,6 +35,7 @@ from basilisk.conversation import (
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_responses_api
 
 from .base_engine import BaseEngine
 
@@ -207,7 +208,10 @@ class ResponsesAPIEngine(BaseEngine):
 			elif isinstance(event, ResponseTextDeltaEvent) and event.delta:
 				yield ("content", event.delta)
 			elif isinstance(event, ResponseCompletedEvent) and event.response:
-				pass
+				if hasattr(event.response, "usage") and event.response.usage:
+					new_block.usage = token_usage_responses_api(
+						event.response.usage
+					)
 			else:
 				log.warning(
 					"Received unexpected event type: %s", type(event).__name__
@@ -237,4 +241,6 @@ class ResponsesAPIEngine(BaseEngine):
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT, content="".join(txt_parts)
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_responses_api(response.usage)
 		return new_block
