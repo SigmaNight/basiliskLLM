@@ -1,4 +1,4 @@
-# BasiliskLLM Coding Guidelines
+﻿# BasiliskLLM Coding Guidelines
 
 ## Architecture Overview
 
