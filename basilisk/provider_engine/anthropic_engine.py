@@ -6,6 +6,7 @@ implementing capabilities for text and image generation.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from functools import cached_property
 from typing import TYPE_CHECKING, Iterator
@@ -25,14 +26,17 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 
+from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
 	from anthropic.types.message_stream_event import MessageStreamEvent
 
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
+
+_REASONING_ID_SUFFIX = "_reasoning"
 
 
 class AnthropicEngine(BaseEngine):
@@ -62,6 +66,38 @@ class AnthropicEngine(BaseEngine):
 		"text/plain",
 	}
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
+
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		"""Add `` (thinking)`` entries only when reasoning is supported."""
+		if not any(m.extra_info.get("reasoning_capable") for m in models):
+			return models
+
+		ids = {m.id for m in models}
+		out: list[ProviderAIModel] = []
+		for m in models:
+			base_model = (
+				m
+				if not m.reasoning
+				else dataclasses.replace(m, reasoning=False)
+			)
+			out.append(base_model)
+			if not m.extra_info.get("reasoning_capable"):
+				continue
+			twin_id = f"{m.id}{_REASONING_ID_SUFFIX}"
+			if twin_id in ids:
+				continue
+			think_label = f"{base_model.name or base_model.id} (thinking)"
+			out.append(
+				dataclasses.replace(
+					base_model, id=twin_id, name=think_label, reasoning=True
+				)
+			)
+			ids.add(twin_id)
+		return out
+
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
 
@@ -79,204 +115,6 @@ class AnthropicEngine(BaseEngine):
 		"""
 		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
-
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the Anthropic ai provider.
-
-		Returns:
-			List of Anthropic models.
-		"""
-		super().models
-		log.debug("Getting Anthropic models")
-		# See <https://docs.anthropic.com/en/docs/about-claude/models/overview>
-		return [
-			ProviderAIModel(
-				id="claude-opus-4-6",
-				name="Claude Opus 4.6",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-6_reasoning",
-				name="Claude Opus 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6",
-				name="Claude Sonnet 4.6",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6_reasoning",
-				name="Claude Sonnet 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5",
-				name="Claude Haiku 4.5",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5_reasoning",
-				name="Claude Haiku 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5",
-				name="Claude Sonnet 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5_reasoning",
-				name="Claude Sonnet 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5",
-				name="Claude Opus 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5_reasoning",
-				name="Claude Opus 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1",
-				name="Claude Opus 4.1",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1_reasoning",
-				name="Claude Opus 4.1 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0",
-				name="Claude Sonnet 4",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0_reasoning",
-				name="Claude Sonnet 4 (thinking)",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0",
-				name="Claude Opus 4",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0_reasoning",
-				name="Claude Opus 4 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-sonnet-latest",
-				name="Claude 3.5 Sonnet",
-				# Translators: This is a model description
-				description=_("Previous intelligent model"),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-		]
 
 	def get_attachment_source(
 		self, attachment: AttachmentFile | ImageFile
@@ -403,7 +241,7 @@ class AnthropicEngine(BaseEngine):
 			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
-			params["model"] = model.id.replace("_reasoning", "")
+			params["model"] = model.id.replace(_REASONING_ID_SUFFIX, "")
 			params["thinking"] = {
 				"type": "enabled",
 				"budget_tokens": kwargs.get("budget_tokens", 16000),
@@ -542,16 +380,25 @@ class AnthropicEngine(BaseEngine):
 			Updated message block with response.
 		"""
 		citations = []
-		text = []
-		thinking_content = None
+		text_parts: list[str] = []
+		thinking_parts: list[str] = []
 		if hasattr(response, "thinking") and response.thinking:
-			thinking_content = response.thinking
+			thinking_parts.append(response.thinking)
 		for content in response.content:
-			if content.citations:
+			block_type = getattr(content, "type", "")
+			if block_type == "thinking":
+				thinking_text = getattr(content, "thinking", None)
+				if thinking_text:
+					thinking_parts.append(thinking_text)
+				continue
+			if getattr(content, "citations", None):
 				for citation in content.citations:
 					citations.append(self._handle_citation(citation))
-			text.append(content.text)
-		final_content = "".join(text)
+			text = getattr(content, "text", None)
+			if text:
+				text_parts.append(text)
+		final_content = "".join(text_parts)
+		thinking_content = "".join(thinking_parts)
 		if thinking_content:
 			final_content = (
 				f"```think\n{thinking_content}\n```\n\n{final_content}"
