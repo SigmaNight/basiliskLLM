@@ -13,7 +13,6 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
-from more_itertools import first, locate
 from upath import UPath
 
 import basilisk.config as config
@@ -385,22 +384,8 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 
 	def refresh_accounts(self):
 		"""Update the account combo box with current accounts."""
-		account_index = self.account_combo.GetSelection()
-		account_id = None
-		if account_index != wx.NOT_FOUND:
-			account_id = config.accounts()[account_index].id
-		self.account_combo.Clear()
-		self.account_combo.AppendItems(self.get_display_accounts(True))
-		account_index = first(
-			locate(config.accounts(), lambda a: a.id == account_id),
-			wx.NOT_FOUND,
-		)
-		if account_index != wx.NOT_FOUND:
-			self.account_combo.SetSelection(account_index)
-		elif self.account_combo.GetCount() > 0:
-			self.account_combo.SetSelection(0)
+		if self._refresh_account_combo():
 			self.account_combo.SetFocus()
-		self.Layout()
 
 	def on_config_change(self):
 		"""Handle configuration changes."""
