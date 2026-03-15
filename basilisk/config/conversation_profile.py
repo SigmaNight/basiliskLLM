@@ -43,6 +43,10 @@ class ConversationProfile(BaseModel):
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
 	stream_mode: bool = Field(default=True)
+	reasoning_mode: bool = Field(default=False)
+	reasoning_budget_tokens: Optional[int] = Field(default=None)
+	reasoning_effort: Optional[str] = Field(default=None)
+	reasoning_adaptive: bool = Field(default=False)
 
 	def __init__(self, **data: Any):
 		"""Initialize a conversation profile with the provided data.
@@ -252,6 +256,10 @@ class ConversationProfile(BaseModel):
 				raise ValueError("Temperature must be None without model")
 			if self.top_p is not None:
 				raise ValueError("Top P must be None without model")
+			if self.reasoning_budget_tokens is not None:
+				raise ValueError("Reasoning budget must be None without model")
+			if self.reasoning_effort is not None:
+				raise ValueError("Reasoning effort must be None without model")
 		return self
 
 

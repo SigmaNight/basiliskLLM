@@ -11,8 +11,15 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
+import wx
+
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
+from basilisk.conversation.content_utils import (
+	format_response_for_display,
+	split_reasoning_and_content,
+	split_reasoning_and_content_from_display,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -21,6 +28,13 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -101,11 +115,21 @@ class EditBlockPresenter(DestroyGuardMixin):
 			return False
 		if not self.view.prompt_panel.check_attachments_valid():
 			return False
+		if getattr(model, "image_output", False) is True:
+			wx.MessageBox(
+				_("Image generation models are not supported yet."),
+				_("Not Supported"),
+				wx.OK | wx.ICON_INFORMATION,
+			)
+			return False
 
 		system_message: Optional[SystemMessage] = None
 		system_prompt = self.view.system_prompt_txt.GetValue()
 		if system_prompt:
 			system_message = SystemMessage(content=system_prompt)
+
+		reasoning_params = get_reasoning_params_from_view(self.view)
+		web_search = view_get_web_search_value(self.view)
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -120,6 +144,8 @@ class EditBlockPresenter(DestroyGuardMixin):
 			top_p=self.view.top_p_spinner.GetValue(),
 			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
 			stream=self.view.stream_mode.GetValue(),
+			web_search_mode=web_search,
+			**reasoning_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -179,10 +205,31 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
 		self.block.top_p = self.view.top_p_spinner.GetValue()
 		self.block.stream = self.view.stream_mode.GetValue()
+		if hasattr(self.view, "reasoning_mode"):
+			params = get_reasoning_params_from_view(
+				self.view, engine=self.view.current_engine, model=model
+			)
+			self.block.reasoning_mode = params["reasoning_mode"]
+			self.block.reasoning_adaptive = params["reasoning_adaptive"]
+			self.block.reasoning_budget_tokens = params[
+				"reasoning_budget_tokens"
+			]
+			self.block.reasoning_effort = params["reasoning_effort"]
+		if view_has_web_search_control(self.view):
+			self.block.web_search_mode = view_get_web_search_value(self.view)
 
 		# Update response if present
 		if self.block.response:
-			self.block.response.content = self.view.response_txt.GetValue()
+			text = self.view.response_txt.GetValue()
+			reasoning, content = split_reasoning_and_content_from_display(text)
+			combined = (
+				f"```think\n{reasoning}\n```\n\n{content}"
+				if reasoning
+				else content
+			)
+			self.block.response = self.block.response.model_copy(
+				update={"content": combined}
+			)
 
 		self.block.updated_at = datetime.now()
 		if self.service is not None:
@@ -240,7 +287,14 @@ class EditBlockPresenter(DestroyGuardMixin):
 			new_block: The completed temporary block with response content.
 			system_message: Optional system message used for this completion.
 		"""
-		self.view.response_txt.SetValue(new_block.response.content)
+		self.block.response = new_block.response
+		reasoning, content = split_reasoning_and_content(
+			new_block.response.content
+		)
+		display = format_response_for_display(
+			reasoning, content, self.view.get_effective_show_reasoning_blocks()
+		)
+		self.view.response_txt.SetValue(display)
 		if self.view.should_speak_response:
 			self.view.a_output.handle(new_block.response.content)
 

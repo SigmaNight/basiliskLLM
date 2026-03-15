@@ -7,7 +7,7 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from functools import cached_property
 from typing import TYPE_CHECKING, Generator, Union
 
@@ -30,7 +30,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -50,6 +49,14 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 	Attributes:
 		capabilities: Set of supported capabilities including text, image, STT, and TTS.
 	"""
+
+	def _supports_stream_usage_options(self) -> bool:
+		"""Return True if the provider supports stream_options.include_usage.
+
+		OpenAI and DeepSeek support it. OpenRouter deprecates it and may reject.
+		Override in subclasses (e.g. OpenRouterEngine) to return False.
+		"""
+		return True
 
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
@@ -79,7 +86,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		Returns:
 			Configured OpenAI client instance.
 		"""
-		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
 			if self.account.active_organization_key
@@ -91,15 +97,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			base_url=self.account.custom_base_url
 			or str(self.account.provider.base_url),
 		)
-
-	@abstractmethod
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models.
-
-		Returns:
-			List of supported OpenAI models with their configurations.
-		"""
-		pass
 
 	def prepare_message_request(
 		self, message: Message
@@ -175,9 +172,9 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
-		model_id = new_block.model.model_id
+		model = self.get_model(new_block.model.model_id)
 		params = {
-			"model": model_id,
+			"model": model.id,
 			"messages": self.get_messages(
 				new_block,
 				conversation,
@@ -188,23 +185,31 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			"temperature": new_block.temperature,
 			"top_p": new_block.top_p,
 		}
+		if new_block.stream and self._supports_stream_usage_options():
+			params["stream_options"] = {"include_usage": True}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
+		params = self._filter_params_for_model(model, params)
 		response = self.client.chat.completions.create(**params)
 		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self,
+		stream: Generator[ChatCompletionChunk, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes a streaming completion response.
 
 		Skips chunks with empty choices (e.g. OpenRouter SSE comments,
-		processing indicators, or final usage-only chunks). This is
-		standard for OpenAI-compatible streaming APIs.
+		processing indicators). Captures usage from final usage-only chunk
+		when stream_options.include_usage is set.
 
 		Args:
 			stream: Generator of chat completion chunks.
+			new_block: Block to set usage on when available.
+			**kwargs: Additional arguments passed through.
 
 		Yields:
 			Content from each chunk in the stream.
@@ -214,7 +219,7 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 				continue
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
-				yield delta.content
+				yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs
@@ -231,6 +236,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		"""
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=response.choices[0].message.content,
+			content=response.choices[0].message.content or "",
 		)
 		return new_block
