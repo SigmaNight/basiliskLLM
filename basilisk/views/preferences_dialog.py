@@ -268,6 +268,18 @@ class PreferencesDialog(wx.Dialog):
 			self.reopen_last_conversation, 0, wx.ALL, 5
 		)
 
+		self.show_reasoning_blocks_default = wx.CheckBox(
+			conversation_group,
+			# Translators: Default for new conversations; per-conversation toggle via Shift+R in messages
+			label=_("Show reasoning blocks by default"),
+		)
+		self.show_reasoning_blocks_default.SetValue(
+			conf.conversation.show_reasoning_blocks
+		)
+		conversation_group_sizer.Add(
+			self.show_reasoning_blocks_default, 0, wx.ALL, 5
+		)
+
 		sizer.Add(conversation_group_sizer, 0, wx.ALL, 5)
 
 		images_group = wx.StaticBox(panel, label=_("Images"))

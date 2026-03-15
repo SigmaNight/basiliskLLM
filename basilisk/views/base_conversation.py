@@ -990,8 +990,8 @@ class BaseConversation:
 		)
 
 	def get_effective_show_reasoning_blocks(self) -> bool:
-		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
-		return True
+		"""Whether to show reasoning/think blocks in message display."""
+		return config.conf().conversation.show_reasoning_blocks
 
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
