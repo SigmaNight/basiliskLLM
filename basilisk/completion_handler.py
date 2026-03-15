@@ -79,6 +79,9 @@ class CompletionHandler:
 		self._stop_completion = False
 		self.last_time = 0
 		self.stream_buffer: str = ""
+		self._reasoning_started: bool = (
+			False  # For ```think display during streaming
+		)
 
 	@ensure_no_task_running
 	def start_completion(
@@ -172,23 +175,34 @@ class CompletionHandler:
 			wx.CallAfter(self._completion_finished_success)
 
 	def _handle_stream_chunk(
-		self, chunk: str | tuple[str, Any], message_block: MessageBlock
+		self, chunk: tuple[str, Any], message_block: MessageBlock
 	):
-		if isinstance(chunk, str):
-			self.stream_buffer += chunk
-		elif isinstance(chunk, tuple):
-			chunk_type, chunk_data = chunk
-			if chunk_type == "citation":
-				if not message_block.response.citations:
-					message_block.response.citations = []
-				message_block.response.citations.append(chunk_data)
+		chunk_type, chunk_data = chunk
+		if chunk_type == "citation":
+			if not message_block.response.citations:
+				message_block.response.citations = []
+			message_block.response.citations.append(chunk_data)
+		elif chunk_type == "reasoning":
+			# Anthropic thinking_delta: wrap in ```think...``` for display
+			if not self._reasoning_started:
+				self._reasoning_started = True
+				self.stream_buffer += f"```think\n{chunk_data}"
 			else:
-				logger.warning(
-					"Unknown chunk type in streaming response: %s", chunk_type
-				)
-
-		if RE_STREAM_BUFFER.match(self.stream_buffer):
-			self.flush_stream_buffer(message_block)
+				self.stream_buffer += chunk_data
+			if RE_STREAM_BUFFER.match(self.stream_buffer):
+				self.flush_stream_buffer(message_block)
+		elif chunk_type == "content":
+			if self._reasoning_started:
+				self._reasoning_started = False
+				self.stream_buffer += f"\n```\n\n{chunk_data}"
+			else:
+				self.stream_buffer += chunk_data
+			if RE_STREAM_BUFFER.match(self.stream_buffer):
+				self.flush_stream_buffer(message_block)
+		else:
+			logger.warning(
+				"Unknown chunk type in streaming response: %s", chunk_type
+			)
 
 	def flush_stream_buffer(self, message_block: MessageBlock) -> None:
 		"""Flush the stream buffer to the message block."""
@@ -218,18 +232,26 @@ class CompletionHandler:
 			True if streaming was handled successfully, False if stopped
 		"""
 		new_block.response = Message(role=MessageRoleEnum.ASSISTANT, content="")
+		self._reasoning_started = False
 
 		# Notify that streaming has started
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
-		for chunk in engine.completion_response_with_stream(response):
+		# Pass only stream and new_block; exclude completion kwargs (stream, response,
+		# etc.) that would conflict with engine signature
+		for chunk in engine.completion_response_with_stream(
+			response, new_block
+		):
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
 			self._handle_stream_chunk(chunk, new_block)
 
 		# Notify that streaming has finished
+		if self._reasoning_started:
+			self._reasoning_started = False
+			self.stream_buffer += "\n```"
 		self.flush_stream_buffer(new_block)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)

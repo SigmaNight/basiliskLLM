@@ -201,6 +201,70 @@ class AttachmentService:
 		return False, vision_model_names
 
 	@staticmethod
+	def check_model_attachment_compatible(
+		attachments: list[AttachmentFile | ImageFile],
+		current_model: ProviderAIModel,
+		engine: BaseEngine,
+	) -> tuple[bool, str | None]:
+		"""Check whether the model supports all attachment types present.
+
+		Args:
+			attachments: Current list of attachments.
+			current_model: The selected AI model.
+			engine: The engine providing the model list.
+
+		Returns:
+			``(True, None)`` when compatible, or ``(False, error_message)``
+			when the model does not support one or more attachment types.
+		"""
+		has_images = any(
+			a.mime_type is not None and a.mime_type.startswith("image/")
+			for a in attachments
+		)
+		has_audio = any(
+			a.mime_type is not None and a.mime_type.startswith("audio/")
+			for a in attachments
+		)
+		has_documents = any(
+			a.mime_type is not None
+			and (
+				a.mime_type.startswith("application/")
+				or a.mime_type.startswith("text/")
+			)
+			and not a.mime_type.startswith("image/")
+			for a in attachments
+		)
+		if has_images and not current_model.vision:
+			vision_models = [m.name or m.id for m in engine.models if m.vision]
+			return False, _(
+				"The selected model does not support images. "
+				"Please select a vision model instead (%s)."
+			) % ", ".join(vision_models)
+		if has_audio and not current_model.audio:
+			audio_models = [m.name or m.id for m in engine.models if m.audio]
+			return False, _(
+				"The selected model does not support audio. "
+				"Please select an audio-capable model instead (%s)."
+			) % ", ".join(audio_models) if audio_models else _(
+				"The selected model does not support audio."
+			)
+		if (
+			has_documents
+			and not current_model.document
+			and not current_model.vision
+		):
+			doc_models = [
+				m.name or m.id for m in engine.models if m.document or m.vision
+			]
+			return False, _(
+				"The selected model does not support documents. "
+				"Please select a document-capable model instead (%s)."
+			) % ", ".join(doc_models) if doc_models else _(
+				"The selected model does not support documents."
+			)
+		return True, None
+
+	@staticmethod
 	def resize_attachments(
 		attachments: list[AttachmentFile | ImageFile],
 		conv_storage_path: UPath | str,
