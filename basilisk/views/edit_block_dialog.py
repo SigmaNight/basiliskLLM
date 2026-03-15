@@ -226,6 +226,34 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 				"Could not restore block account/model selection", exc_info=True
 			)
 
+	def _load_audio_params(self):
+		"""Restore output modality and audio voice from block."""
+		if hasattr(self, "output_modality_choice"):
+			self.output_modality_choice.SetSelection(
+				1
+				if getattr(self.block, "output_modality", "text") == "audio"
+				else 0
+			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(self.block, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
+
 	def _load_reasoning_params(self):
 		"""Restore reasoning parameters from block."""
 		if not hasattr(self, "reasoning_mode"):
@@ -262,7 +290,6 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.response_txt.SetValue(display)
 		self.prompt_panel.prompt_text = self.block.request.content
 
-		# Set attachments if available
 		if self.block.request.attachments:
 			self.prompt_panel.attachment_files = (
 				self.block.request.attachments.copy()
@@ -271,7 +298,6 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 
 		self._load_account_and_model()
 
-		# Set parameters
 		self.temperature_spinner.SetValue(self.block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
@@ -288,6 +314,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.web_search_mode.SetValue(
 				getattr(self.block, "web_search_mode", False)
 			)
+		self._load_audio_params()
 		self._load_reasoning_params()
 
 	def on_account_change(self, event):
