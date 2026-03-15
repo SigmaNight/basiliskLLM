@@ -137,6 +137,18 @@ def _get_created(model: dict[str, Any]) -> int:
 		return 0
 
 
+def _get_default_params(item: dict[str, Any]) -> dict[str, Any]:
+	"""Extract default_parameters from JSON. Returns dict of param -> value.
+
+	Values can be None (use API default), or a number/string. Used to set
+	UI defaults and omit params when equal to model default.
+	"""
+	defaults = item.get("default_parameters")
+	if not isinstance(defaults, dict):
+		return {}
+	return {str(k): v for k, v in defaults.items() if v is not None}
+
+
 def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	"""Parse model-metadata JSON into ProviderAIModel list.
 
@@ -178,6 +190,9 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		# reasoning_only: set by each engine in _postprocess_models (OpenAI o3,
 		# xAI grok-4, etc.). Loader stays generic—no provider-specific logic.
 		web_search_capable = _has_web_search_capable(item, supported)
+		default_params = _get_default_params(item)
+		def_temp = default_params.get("temperature")
+		default_temperature = float(def_temp) if def_temp is not None else 1.0
 
 		models.append(
 			ProviderAIModel(
@@ -187,6 +202,7 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				context_window=_get_context_length(item),
 				max_output_tokens=_get_max_completion_tokens(item),
 				max_temperature=2.0,
+				default_temperature=default_temperature,
 				vision=modalities["vision"],
 				audio=modalities["audio"],
 				document=modalities["document"],
@@ -197,7 +213,7 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				web_search_capable=web_search_capable,
 				created=_get_created(item),
 				supported_parameters=supported,
-				extra_info={},
+				extra_info={"default_parameters": default_params},
 			)
 		)
 

@@ -268,6 +268,14 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.temperature_spinner.SetValue(self.block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
+		self.frequency_penalty_spinner.SetValue(self.block.frequency_penalty)
+		self.presence_penalty_spinner.SetValue(self.block.presence_penalty)
+		self.seed_spin_ctrl.SetValue(self.block.seed or 0)
+		self.top_k_spin_ctrl.SetValue(self.block.top_k or 0)
+		if self.block.stop:
+			self.stop_text_ctrl.SetValue("\n".join(self.block.stop))
+		else:
+			self.stop_text_ctrl.SetValue("")
 		self.stream_mode.SetValue(self.block.stream)
 		if hasattr(self, "web_search_mode"):
 			self.web_search_mode.SetValue(self.block.web_search_mode)

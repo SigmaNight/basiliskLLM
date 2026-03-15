@@ -140,10 +140,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			model=AIModelInfo(
 				provider_id=account.provider.id, model_id=model.id
 			),
-			temperature=self.view.temperature_spinner.GetValue(),
-			top_p=self.view.top_p_spinner.GetValue(),
-			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=self.view.stream_mode.GetValue(),
+			**self.view.get_generation_params_from_view(),
 			web_search_mode=web_search,
 			**reasoning_params,
 		)
@@ -201,10 +198,16 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.model = AIModelInfo(
 			provider_id=account.provider.id, model_id=model.id
 		)
-		self.block.temperature = self.view.temperature_spinner.GetValue()
-		self.block.max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
-		self.block.top_p = self.view.top_p_spinner.GetValue()
-		self.block.stream = self.view.stream_mode.GetValue()
+		gen_params = self.view.get_generation_params_from_view()
+		self.block.temperature = gen_params["temperature"]
+		self.block.max_tokens = gen_params["max_tokens"]
+		self.block.top_p = gen_params["top_p"]
+		self.block.frequency_penalty = gen_params["frequency_penalty"]
+		self.block.presence_penalty = gen_params["presence_penalty"]
+		self.block.seed = gen_params["seed"]
+		self.block.top_k = gen_params["top_k"]
+		self.block.stop = gen_params["stop"]
+		self.block.stream = gen_params["stream"]
 		if hasattr(self.view, "reasoning_mode"):
 			params = get_reasoning_params_from_view(
 				self.view, engine=self.view.current_engine, model=model

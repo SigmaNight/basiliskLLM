@@ -257,18 +257,26 @@ class GeminiEngine(BaseEngine):
 
 		thinking_config = self._build_thinking_config(model, new_block)
 
-		config = GenerateContentConfig(
-			system_instruction=system_message.content
+		config_kw: dict[str, Any] = {
+			"system_instruction": system_message.content
 			if system_message
 			else None,
-			max_output_tokens=new_block.max_tokens
+			"max_output_tokens": new_block.max_tokens
 			if new_block.max_tokens
 			else None,
-			temperature=new_block.temperature,
-			top_p=new_block.top_p,
-			tools=tools,
-			thinking_config=thinking_config,
-		)
+			"temperature": new_block.temperature,
+			"top_p": new_block.top_p,
+			"tools": tools,
+			"thinking_config": thinking_config,
+		}
+		gen_params = self._get_block_generation_params(new_block, model)
+		if "top_k" in gen_params:
+			config_kw["top_k"] = gen_params["top_k"]
+		if "seed" in gen_params:
+			config_kw["seed"] = gen_params["seed"]
+		if "stop" in gen_params:
+			config_kw["stop_sequences"] = gen_params["stop"]
+		config = GenerateContentConfig(**config_kw)
 
 		generate_kwargs = {
 			"model": new_block.model.model_id,

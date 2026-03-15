@@ -183,6 +183,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		view.prompt_panel.resize_all_attachments()
 		reasoning_params = get_reasoning_params_from_view(view)
 		web_search = view_get_web_search_value(view)
+		gen_params = view.get_generation_params_from_view()
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -192,11 +193,8 @@ class ConversationPresenter(DestroyGuardMixin):
 			model=AIModelInfo(
 				provider_id=view.current_account.provider.id, model_id=model.id
 			),
-			temperature=view.temperature_spinner.GetValue(),
-			top_p=view.top_p_spinner.GetValue(),
-			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
-			stream=view.stream_mode.GetValue(),
 			web_search_mode=web_search,
+			**gen_params,
 			**reasoning_params,
 		)
 
@@ -574,6 +572,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		reasoning_params = get_reasoning_params_from_view(view)
 		web_search = view_get_web_search_value(view)
+		gen_params = view.get_generation_params_from_view()
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -584,11 +583,8 @@ class ConversationPresenter(DestroyGuardMixin):
 				provider_id=view.current_account.provider.id,
 				model_id=view.current_model.id,
 			),
-			temperature=view.temperature_spinner.GetValue(),
-			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
-			top_p=view.top_p_spinner.GetValue(),
-			stream=view.stream_mode.GetValue(),
 			web_search_mode=web_search,
+			**gen_params,
 			**reasoning_params,
 		)
 		system_msg = self.get_system_message()
