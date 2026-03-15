@@ -22,7 +22,7 @@ from basilisk.services.account_model_service import AccountModelService
 from .accessible import AccessibleWithHelp
 from .account_dialog import EditAccountDialog
 from .int_spin_ctrl import IntSpinCtrl
-from .read_only_message_dialog import ReadOnlyMessageDialog
+from .model_details_dialog import ModelDetailsDialog
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -701,12 +701,7 @@ class BaseConversation:
 		model = self.current_model
 		if not model:
 			return
-		dlg = ReadOnlyMessageDialog(
-			self,
-			# Translators: This is a label for a title dialog
-			title=_("Model details"),
-			message=model.display_details,
-		)
+		dlg = ModelDetailsDialog(self, model)
 		dlg.ShowModal()
 		dlg.Destroy()
 
