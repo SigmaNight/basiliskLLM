@@ -141,3 +141,50 @@ def test_anthropic_reasoning_adaptive_adds_adaptive_thinking(
 
 	call_kwargs = mock_create.call_args[1]
 	assert call_kwargs["thinking"] == {"type": "adaptive"}
+	assert "output_config" not in call_kwargs
+
+
+def test_anthropic_reasoning_adaptive_with_effort_adds_output_config(
+	mock_account, empty_conversation, mocker
+):
+	"""When reasoning_adaptive=True and reasoning_effort set, output_config.effort is sent."""
+	adaptive_model = ProviderAIModel(
+		id="claude-sonnet-4-6",
+		name="Claude Sonnet 4.6",
+		context_window=200000,
+		max_output_tokens=64000,
+		reasoning=False,
+		reasoning_capable=True,
+		supported_parameters=["temperature", "max_tokens", "include_reasoning"],
+	)
+	engine = AnthropicEngine(account=mock_account)
+	mock_client = MagicMock()
+	engine.client = mock_client
+	mocker.patch.object(engine, "get_model", return_value=adaptive_model)
+	mock_create = mock_client.messages.create
+	mock_create.return_value = MagicMock(
+		content=[MagicMock(content=[MagicMock(text="")])],
+		id="msg-1",
+		model="claude-sonnet-4-6",
+		role="assistant",
+		stop_reason="end_turn",
+	)
+
+	block = MessageBlock(
+		request=Message(role=MessageRoleEnum.USER, content="Test"),
+		model=AIModelInfo(
+			provider_id="anthropic", model_id="claude-sonnet-4-6"
+		),
+		temperature=0.7,
+		max_tokens=4096,
+		stream=False,
+		reasoning_mode=True,
+		reasoning_adaptive=True,
+		reasoning_effort="medium",
+	)
+
+	engine.completion(block, empty_conversation, None, None)
+
+	call_kwargs = mock_create.call_args[1]
+	assert call_kwargs["thinking"] == {"type": "adaptive"}
+	assert call_kwargs["output_config"] == {"effort": "medium"}

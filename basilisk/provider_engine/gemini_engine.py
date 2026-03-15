@@ -106,7 +106,7 @@ class GeminiEngine(BaseEngine):
 		return [Tool(google_search=GoogleSearch())]
 
 	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
-		"""Gemini: gemini-2 uses budget; gemini-3 uses effort (low/medium/high)."""
+		"""Gemini: 2.5 uses thinkingBudget; 3 uses thinkingLevel (minimal/low/medium/high)."""
 		spec = super().get_reasoning_ui_spec(model)
 		if not spec.show:
 			return spec
@@ -117,17 +117,17 @@ class GeminiEngine(BaseEngine):
 				show_adaptive=False,
 				show_budget=False,
 				show_effort=True,
-				effort_options=("low", "medium", "high"),
+				effort_options=("minimal", "low", "medium", "high"),
 				effort_label="Thinking level:",
 			)
-		# Gemini 2.5: thinking_budget
+		# Gemini 2.5: thinkingBudget 0-24576 (Flash) or 128-32768 (Pro); -1=dynamic
 		return ReasoningUISpec(
 			show=True,
 			show_adaptive=False,
 			show_budget=True,
 			show_effort=False,
-			budget_default=16000,
-			budget_max=128000,
+			budget_default=8192,
+			budget_max=32768,
 		)
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
@@ -212,6 +212,7 @@ class GeminiEngine(BaseEngine):
 		if "gemini-3" in model_id:
 			effort = (new_block.reasoning_effort or "high").lower()
 			level_map = {
+				"minimal": "minimal",
 				"low": ThinkingLevel.LOW,
 				"medium": ThinkingLevel.MEDIUM,
 				"high": ThinkingLevel.HIGH,
