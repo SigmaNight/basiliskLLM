@@ -176,7 +176,7 @@ class TestGenerateTitle:
 		mock_response = MagicMock()
 		mock_engine.completion.return_value = mock_response
 		mock_engine.completion_response_with_stream.return_value = iter(
-			["My ", "Title"]
+			[("content", "My "), ("content", "Title")]
 		)
 
 		conv = Conversation()

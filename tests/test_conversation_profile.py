@@ -330,6 +330,16 @@ class TestConversationProfile:
 		):
 			ConversationProfile(name="Test", top_p=0.9)
 
+		with pytest.raises(
+			ValueError, match="Reasoning budget must be None without model"
+		):
+			ConversationProfile(name="Test", reasoning_budget_tokens=16000)
+
+		with pytest.raises(
+			ValueError, match="Reasoning effort must be None without model"
+		):
+			ConversationProfile(name="Test", reasoning_effort="medium")
+
 	def test_model_params_validation_with_model(self):
 		"""Test that model parameters can be set when AI model is present."""
 		profile = ConversationProfile(
@@ -338,10 +348,18 @@ class TestConversationProfile:
 			max_tokens=100,
 			temperature=0.7,
 			top_p=0.9,
+			reasoning_mode=True,
+			reasoning_budget_tokens=16000,
+			reasoning_effort="medium",
+			reasoning_adaptive=False,
 		)
 		assert profile.max_tokens == 100
 		assert profile.temperature == 0.7
 		assert profile.top_p == 0.9
+		assert profile.reasoning_mode is True
+		assert profile.reasoning_budget_tokens == 16000
+		assert profile.reasoning_effort == "medium"
+		assert profile.reasoning_adaptive is False
 
 	def test_invalid_ai_model_string_format(self):
 		"""Test handling of invalid ai_model string formats."""
