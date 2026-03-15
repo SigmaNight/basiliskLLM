@@ -7,7 +7,7 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from functools import cached_property
 from typing import TYPE_CHECKING, Generator, Union
 
@@ -30,7 +30,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -91,15 +90,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			base_url=self.account.custom_base_url
 			or str(self.account.provider.base_url),
 		)
-
-	@abstractmethod
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models.
-
-		Returns:
-			List of supported OpenAI models with their configurations.
-		"""
-		pass
 
 	def prepare_message_request(
 		self, message: Message
