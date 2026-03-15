@@ -1,5 +1,7 @@
 """Unit tests for the Conversation module for the basiliskLLM application."""
 
+from datetime import datetime, timezone
+
 import pytest
 from pydantic import ValidationError
 
@@ -11,6 +13,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.conversation_model import ResponseTiming, TokenUsage
 from basilisk.provider_ai_model import AIModelInfo
 
 
@@ -316,3 +319,165 @@ class TestConversationWithMultipleBlocks:
 		assert first_system not in empty_conversation.systems
 		assert second_system in empty_conversation.systems
 		assert third_system in empty_conversation.systems
+
+
+class TestConversationProperties:
+	"""Tests for Conversation computed properties (token usage, cost, models)."""
+
+	def test_token_total_empty_conversation(self, empty_conversation):
+		"""token_total is 0 when no blocks."""
+		assert empty_conversation.token_total == 0
+
+	def test_token_total_sums_block_usage(self, ai_model):
+		"""token_total sums effective_total across blocks with usage."""
+		conv = Conversation()
+		for inp, out in [(100, 50), (200, 80)]:
+			req = Message(role=MessageRoleEnum.USER, content="q")
+			resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+			block = MessageBlock(
+				request=req,
+				response=resp,
+				model=ai_model,
+				usage=TokenUsage(input_tokens=inp, output_tokens=out),
+			)
+			conv.add_block(block)
+		assert conv.token_total == 100 + 50 + 200 + 80
+
+	def test_input_output_tokens_total(self, ai_model):
+		"""input_tokens_total and output_tokens_total aggregate correctly."""
+		conv = Conversation()
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(
+			request=req,
+			response=resp,
+			model=ai_model,
+			usage=TokenUsage(input_tokens=100, output_tokens=50),
+		)
+		conv.add_block(block)
+		assert conv.input_tokens_total == 100
+		assert conv.output_tokens_total == 50
+
+	def test_reasoning_cached_audio_totals(self, ai_model):
+		"""reasoning_tokens_total, cached_input_tokens_total, audio_tokens_total."""
+		conv = Conversation()
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(
+			request=req,
+			response=resp,
+			model=ai_model,
+			usage=TokenUsage(
+				input_tokens=100,
+				output_tokens=50,
+				reasoning_tokens=20,
+				cached_input_tokens=30,
+				audio_tokens=5,
+			),
+		)
+		conv.add_block(block)
+		assert conv.reasoning_tokens_total == 20
+		assert conv.cached_input_tokens_total == 30
+		assert conv.audio_tokens_total == 5
+
+	def test_cost_total_from_block_cost(self, ai_model):
+		"""cost_total sums block.cost when set."""
+		conv = Conversation()
+		for cost in [0.01, 0.02]:
+			req = Message(role=MessageRoleEnum.USER, content="q")
+			resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+			block = MessageBlock(
+				request=req, response=resp, model=ai_model, cost=cost
+			)
+			conv.add_block(block)
+		assert conv.cost_total == 0.03
+
+	def test_cost_total_from_usage_cost(self, ai_model):
+		"""cost_total uses usage.cost when block.cost not set."""
+		conv = Conversation()
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(
+			request=req,
+			response=resp,
+			model=ai_model,
+			usage=TokenUsage(input_tokens=10, output_tokens=5, cost=0.001),
+		)
+		conv.add_block(block)
+		assert conv.cost_total == 0.001
+
+	def test_cost_total_none_when_no_costs(self, ai_model):
+		"""cost_total is None when no blocks have cost."""
+		conv = Conversation()
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(request=req, response=resp, model=ai_model)
+		conv.add_block(block)
+		assert conv.cost_total is None
+
+	def test_models_used_unique_ordered(self, ai_model):
+		"""models_used returns unique model ids in order of first use."""
+		other_model = AIModelInfo(provider_id="anthropic", model_id="claude-3")
+		conv = Conversation()
+		for model in [ai_model, other_model, ai_model]:
+			req = Message(role=MessageRoleEnum.USER, content="q")
+			resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+			block = MessageBlock(request=req, response=resp, model=model)
+			conv.add_block(block)
+		assert conv.models_used == ["openai/test_model", "anthropic/claude-3"]
+
+	def test_block_count(self, empty_conversation, message_block):
+		"""block_count equals len(messages)."""
+		assert empty_conversation.block_count == 0
+		empty_conversation.add_block(message_block)
+		assert empty_conversation.block_count == 1
+
+	def test_started_at_last_activity_at(self, ai_model):
+		"""started_at and last_activity_at from block timestamps."""
+		base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+		conv = Conversation()
+		for i in range(2):
+			req = Message(role=MessageRoleEnum.USER, content="q")
+			resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+			block = MessageBlock(
+				request=req,
+				response=resp,
+				model=ai_model,
+				created_at=base.replace(hour=12 + i),
+				updated_at=base.replace(hour=12 + i, minute=30),
+			)
+			conv.add_block(block)
+		assert conv.started_at == base.replace(hour=12)
+		assert conv.last_activity_at == base.replace(hour=13, minute=30)
+
+	def test_total_duration_seconds(self, ai_model):
+		"""total_duration_seconds from first start to last finish."""
+		base = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+		conv = Conversation()
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(
+			request=req,
+			response=resp,
+			model=ai_model,
+			timing=ResponseTiming(
+				started_at=base, finished_at=base.replace(second=10)
+			),
+		)
+		conv.add_block(block)
+		assert conv.total_duration_seconds == 10.0
+
+	def test_average_tokens_per_block(self, ai_model):
+		"""average_tokens_per_block is token_total / block_count."""
+		conv = Conversation()
+		for _ in range(2):
+			req = Message(role=MessageRoleEnum.USER, content="q")
+			resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+			block = MessageBlock(
+				request=req,
+				response=resp,
+				model=ai_model,
+				usage=TokenUsage(input_tokens=100, output_tokens=50),
+			)
+			conv.add_block(block)
+		assert conv.average_tokens_per_block == 150.0

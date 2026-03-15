@@ -77,6 +77,10 @@ class ConversationService:
 				db.save_message_block(
 					self.db_conv_id, block_index, new_block, system_msg
 				)
+				if conversation.pricing_snapshot:
+					self._get_conv_db().update_conversation_pricing_snapshot(
+						self.db_conv_id, conversation.pricing_snapshot
+					)
 		except Exception:
 			log.error(
 				"Failed to auto-save conversation to database", exc_info=True

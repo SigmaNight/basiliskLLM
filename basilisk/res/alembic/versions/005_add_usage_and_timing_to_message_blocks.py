@@ -18,16 +18,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-	"""Add usage_json and timing_json columns to message_blocks table."""
+	"""Add usage_json, timing_json, cost to message_blocks; pricing_snapshot_json to conversations."""
 	op.add_column(
 		"message_blocks", sa.Column("usage_json", sa.Text(), nullable=True)
 	)
 	op.add_column(
 		"message_blocks", sa.Column("timing_json", sa.Text(), nullable=True)
 	)
+	op.add_column(
+		"message_blocks", sa.Column("cost", sa.Float(), nullable=True)
+	)
+	op.add_column(
+		"message_blocks",
+		sa.Column("cost_breakdown_json", sa.Text(), nullable=True),
+	)
+	op.add_column(
+		"conversations",
+		sa.Column("pricing_snapshot_json", sa.Text(), nullable=True),
+	)
 
 
 def downgrade() -> None:
-	"""Remove usage_json and timing_json columns from message_blocks table."""
+	"""Remove added columns."""
+	op.drop_column("conversations", "pricing_snapshot_json")
+	op.drop_column("message_blocks", "cost_breakdown_json")
+	op.drop_column("message_blocks", "cost")
 	op.drop_column("message_blocks", "timing_json")
 	op.drop_column("message_blocks", "usage_json")

@@ -1,8 +1,11 @@
 """Database manager for conversation persistence."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
 
 from alembic import command
@@ -135,7 +138,14 @@ class ConversationDatabase:
 		"""
 		with self._get_session() as session:
 			with session.begin():
-				db_conv = DBConversation(title=conversation.title)
+				pricing_json = (
+					json.dumps(conversation.pricing_snapshot)
+					if conversation.pricing_snapshot
+					else None
+				)
+				db_conv = DBConversation(
+					title=conversation.title, pricing_snapshot_json=pricing_json
+				)
 				session.add(db_conv)
 				session.flush()
 
@@ -401,6 +411,10 @@ class ConversationDatabase:
 		timing_json = None
 		if getattr(block, "timing", None):
 			timing_json = block.timing.model_dump_json()
+		cost = getattr(block, "cost", None)
+		cost_breakdown_json = None
+		if getattr(block, "cost_breakdown", None):
+			cost_breakdown_json = json.dumps(block.cost_breakdown)
 		db_block = DBMessageBlock(
 			conversation_id=conv_id,
 			position=block_index,
@@ -419,6 +433,8 @@ class ConversationDatabase:
 			web_search_mode=getattr(block, "web_search_mode", False),
 			usage_json=usage_json,
 			timing_json=timing_json,
+			cost=cost,
+			cost_breakdown_json=cost_breakdown_json,
 			created_at=block.created_at,
 			updated_at=block.updated_at,
 		)
@@ -469,6 +485,23 @@ class ConversationDatabase:
 				)
 
 		log.debug("Saved block %d for conversation %d", block_index, conv_id)
+
+	def update_conversation_pricing_snapshot(
+		self, conv_id: int, pricing_snapshot: dict
+	) -> None:
+		"""Update the pricing_snapshot_json for an existing conversation."""
+		if not pricing_snapshot:
+			return
+		with self._get_session() as session:
+			with session.begin():
+				session.execute(
+					DBConversation.__table__.update()
+					.where(DBConversation.id == conv_id)
+					.values(
+						pricing_snapshot_json=json.dumps(pricing_snapshot),
+						updated_at=datetime.now(timezone.utc),
+					)
+				)
 
 	def save_draft_block(
 		self,
@@ -635,7 +668,7 @@ class ConversationDatabase:
 			offset: Number of results to skip.
 
 		Returns:
-			List of dicts with id, title, message_count, updated_at.
+			List of dicts with id, title, message_count, created_at, updated_at.
 		"""
 		with self._get_session() as session:
 			block_count = (
@@ -654,6 +687,7 @@ class ConversationDatabase:
 					func.coalesce(block_count.c.message_count, 0).label(
 						"message_count"
 					),
+					DBConversation.created_at,
 					DBConversation.updated_at,
 				)
 				.outerjoin(
@@ -672,6 +706,7 @@ class ConversationDatabase:
 					"id": row.id,
 					"title": row.title,
 					"message_count": row.message_count,
+					"created_at": row.created_at,
 					"updated_at": row.updated_at,
 				}
 				for row in rows
@@ -691,26 +726,15 @@ class ConversationDatabase:
 			query = self._apply_search_filter(query, search)
 			return session.execute(query).scalar_one()
 
-	def _load_block_from_db(
+	def _parse_block_json(
 		self, db_block: DBMessageBlock
-	) -> MessageBlock | None:
-		"""Build a MessageBlock from a DBMessageBlock. Returns None if block has no request."""
-		request_msg = None
-		response_msg = None
-		for db_msg in db_block.messages:
-			if db_msg.role == "user":
-				request_msg = self._load_message(db_msg)
-			elif db_msg.role == "assistant":
-				response_msg = self._load_message(db_msg)
-
-		if request_msg is None:
-			log.warning("Block %d has no request, skipping", db_block.id)
-			return None
-
-		system_index = None
-		if db_block.system_prompt_link is not None:
-			system_index = db_block.system_prompt_link.position
-
+	) -> tuple[
+		list[str] | None,
+		TokenUsage | None,
+		ResponseTiming | None,
+		dict[str, float] | None,
+	]:
+		"""Parse JSON fields from DBMessageBlock. Returns (stop_list, usage, timing, cost_breakdown)."""
 		stop_list = None
 		if getattr(db_block, "stop_json", None):
 			try:
@@ -731,6 +755,39 @@ class ConversationDatabase:
 				)
 			except ValueError, KeyError:
 				pass
+		cost_breakdown = None
+		if getattr(db_block, "cost_breakdown_json", None):
+			try:
+				cost_breakdown = json.loads(db_block.cost_breakdown_json)
+			except TypeError, ValueError:
+				pass
+		return stop_list, usage, timing, cost_breakdown
+
+	def _load_block_from_db(
+		self, db_block: DBMessageBlock
+	) -> MessageBlock | None:
+		"""Build a MessageBlock from a DBMessageBlock. Returns None if block has no request."""
+		request_msg = None
+		response_msg = None
+		for db_msg in db_block.messages:
+			if db_msg.role == "user":
+				request_msg = self._load_message(db_msg)
+			elif db_msg.role == "assistant":
+				response_msg = self._load_message(db_msg)
+
+		if request_msg is None:
+			log.warning("Block %d has no request, skipping", db_block.id)
+			return None
+
+		system_index = (
+			db_block.system_prompt_link.position
+			if db_block.system_prompt_link is not None
+			else None
+		)
+		stop_list, usage, timing, cost_breakdown = self._parse_block_json(
+			db_block
+		)
+		cost = getattr(db_block, "cost", None)
 
 		block = MessageBlock(
 			request=request_msg,
@@ -751,6 +808,8 @@ class ConversationDatabase:
 			web_search_mode=getattr(db_block, "web_search_mode", False),
 			usage=usage,
 			timing=timing,
+			cost=cost,
+			cost_breakdown=cost_breakdown,
 			created_at=db_block.created_at,
 			updated_at=db_block.updated_at,
 		)
@@ -788,11 +847,19 @@ class ConversationDatabase:
 				if block is not None:
 					blocks.append(block)
 
+			pricing_snapshot: dict = {}
+			if getattr(db_conv, "pricing_snapshot_json", None):
+				try:
+					pricing_snapshot = json.loads(db_conv.pricing_snapshot_json)
+				except TypeError, ValueError:
+					pass
+
 			return Conversation(
 				messages=blocks,
 				systems=systems,
 				title=db_conv.title,
 				version=BSKC_VERSION,
+				pricing_snapshot=pricing_snapshot,
 			)
 
 	def _load_message_attachments(

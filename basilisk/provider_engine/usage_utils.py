@@ -23,6 +23,25 @@ def _get(obj: Any, attr: str, default: int | None = 0) -> int | None:
 	return default if default is not None else None
 
 
+def _get_float(obj: Any, attr: str) -> float | None:
+	"""Get float attribute or dict key. Returns None if missing or invalid."""
+	if hasattr(obj, attr):
+		val = getattr(obj, attr, None)
+		if val is not None:
+			try:
+				return float(val)
+			except TypeError, ValueError:
+				pass
+	if isinstance(obj, dict) and attr in obj:
+		val = obj.get(attr)
+		if val is not None:
+			try:
+				return float(val)
+			except TypeError, ValueError:
+				pass
+	return None
+
+
 def token_usage_openai_style(
 	u: Any,
 	input_attr: str = "prompt_tokens",
@@ -38,23 +57,18 @@ def token_usage_openai_style(
 
 
 def token_usage_anthropic(u: Any) -> TokenUsage:
-	"""Build TokenUsage from Anthropic usage (input_tokens, output_tokens, cache fields)."""
-	cached = None
-	if hasattr(u, "cache_creation_input_tokens") and hasattr(
-		u, "cache_read_input_tokens"
-	):
-		c1, c2 = (
-			_get(u, "cache_creation_input_tokens"),
-			_get(u, "cache_read_input_tokens"),
-		)
-		if c1 is not None or c2 is not None:
-			cached = (c1 or 0) + (c2 or 0)
-	elif hasattr(u, "cache_read_input_tokens"):
-		cached = _get(u, "cache_read_input_tokens")
+	"""Build TokenUsage from Anthropic usage (input_tokens, output_tokens, cache fields).
+
+	Anthropic: cache_read_input_tokens -> cached_input_tokens,
+	cache_creation_input_tokens -> cache_write_tokens.
+	"""
+	cached = _get(u, "cache_read_input_tokens", None)
+	cache_write = _get(u, "cache_creation_input_tokens", None)
 	return TokenUsage(
 		input_tokens=_get(u, "input_tokens", 0) or 0,
 		output_tokens=_get(u, "output_tokens", 0) or 0,
 		cached_input_tokens=cached,
+		cache_write_tokens=cache_write,
 	)
 
 
@@ -90,27 +104,35 @@ def token_usage_openrouter(u: Any) -> TokenUsage:
 	"""Build TokenUsage from OpenRouter usage.
 
 	OpenRouter uses OpenAI-style prompt_tokens/completion_tokens/total_tokens,
-	plus optional prompt_tokens_details.cached_tokens and
-	completion_tokens_details.reasoning_tokens.
+	plus optional prompt_tokens_details (cached_tokens, cache_write_tokens,
+	audio_tokens), completion_tokens_details.reasoning_tokens, and usage.cost.
 	"""
 	cached = None
+	cache_write = None
+	audio = None
 	details = getattr(u, "prompt_tokens_details", None) or (
 		u.get("prompt_tokens_details") if isinstance(u, dict) else None
 	)
 	if details:
 		cached = _get(details, "cached_tokens")
+		cache_write = _get(details, "cache_write_tokens", None)
+		audio = _get(details, "audio_tokens", None)
 	reasoning = None
 	comp_details = getattr(u, "completion_tokens_details", None) or (
 		u.get("completion_tokens_details") if isinstance(u, dict) else None
 	)
 	if comp_details:
 		reasoning = _get(comp_details, "reasoning_tokens")
+	cost = _get_float(u, "cost")
 	return TokenUsage(
 		input_tokens=_get(u, "prompt_tokens", 0) or 0,
 		output_tokens=_get(u, "completion_tokens", 0) or 0,
 		total_tokens=_get(u, "total_tokens"),
 		cached_input_tokens=cached,
+		cache_write_tokens=cache_write,
+		audio_tokens=audio,
 		reasoning_tokens=reasoning,
+		cost=cost,
 	)
 
 
