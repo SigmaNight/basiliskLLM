@@ -124,6 +124,21 @@ class PreferencesDialog(wx.Dialog):
 		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
+		label = wx.StaticText(
+			panel,
+			# Translators: A label for the model list cache refresh delay in preferences
+			label=_("Model list cache refresh delay (hours):"),
+			style=wx.ALIGN_LEFT,
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		cache_ttl_hours = max(
+			1, min(168, conf.general.model_metadata_cache_ttl_seconds // 3600)
+		)
+		self.model_cache_ttl_hours = wx.SpinCtrl(
+			panel, value=str(cache_ttl_hours), min=1, max=168
+		)
+		sizer.Add(self.model_cache_ttl_hours, 0, wx.ALL, 5)
+
 		conversation_group = wx.StaticBox(panel, label=_("Conversation"))
 		conversation_group_sizer = wx.StaticBoxSizer(
 			conversation_group, wx.VERTICAL
