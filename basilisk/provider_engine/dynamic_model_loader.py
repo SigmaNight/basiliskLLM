@@ -228,6 +228,16 @@ def _get_cache_ttl_seconds() -> int:
 	return config.conf().general.model_metadata_cache_ttl_seconds
 
 
+def invalidate_model_cache(url: str | None = None) -> None:
+	"""Invalidate model metadata cache for url or all URLs."""
+	if url is None:
+		_CACHE.clear()
+		log.debug("Cleared all model metadata cache")
+	elif url in _CACHE:
+		del _CACHE[url]
+		log.debug("Invalidated model metadata cache for %s", url)
+
+
 def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	"""Fetch and parse models from URL, with caching.
 

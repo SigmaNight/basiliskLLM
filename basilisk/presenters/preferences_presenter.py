@@ -89,6 +89,9 @@ class PreferencesPresenter:
 			self.view.auto_update_mode.GetSelection()
 		]
 		conf.general.advanced_mode = self.view.advanced_mode.GetValue()
+		conf.general.model_metadata_cache_ttl_seconds = (
+			int(self.view.model_cache_ttl_hours.GetValue()) * 3600
+		)
 		conf.conversation.role_label_user = self.view.role_label_user.GetValue()
 		conf.conversation.role_label_assistant = (
 			self.view.role_label_assistant.GetValue()
