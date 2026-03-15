@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import wx
+import wx.stc
 
 
 def format_datetime(dt: datetime) -> str:
@@ -21,7 +22,8 @@ class SectionedPropertiesDialog(wx.Dialog):
 	"""Base dialog for read-only properties with section navigation.
 
 	Subclasses provide (text, section_line_indices). Page Up/Down scroll between
-	sections; Escape closes the dialog. Context menu: Previous/Next section, Copy all.
+	sections; Tab moves focus to/from the close button; Escape closes the dialog.
+	Context menu: Previous/Next section, Copy all.
 	"""
 
 	def __init__(
@@ -48,19 +50,18 @@ class SectionedPropertiesDialog(wx.Dialog):
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
 		self._sections = sections
-		self._current_section = 0
 
-		self._text_ctrl = wx.TextCtrl(
-			self,
-			value=text,
-			style=wx.TE_MULTILINE | wx.TE_READONLY | wx.BORDER_NONE,
-		)
+		self._text_ctrl = wx.stc.StyledTextCtrl(self, style=wx.BORDER_NONE)
+		self._text_ctrl.SetValue(text)
+		self._text_ctrl.SetEditable(False)
+		self._text_ctrl.SetWrapMode(wx.stc.STC_WRAP_WORD)
+		self._text_ctrl.SetMarginWidth(0, 0)
 		self._text_ctrl.Bind(wx.EVT_KEY_DOWN, self._on_key_down)
 		self._text_ctrl.Bind(wx.EVT_CONTEXT_MENU, self._on_context_menu)
 
 		# EVT_CHAR_HOOK: fired before any other key events, propagates upward to parent.
 		# By not calling Skip() we prevent wxEVT_KEY_DOWN from being generated, so the
-		# TextCtrl never receives Page Up/Down and won't scroll (per wx.KeyEvent docs).
+		# STC never receives Page Up/Down and won't scroll (per wx.KeyEvent docs).
 		self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
 
 		# Accelerator for Copy all
@@ -80,30 +81,63 @@ class SectionedPropertiesDialog(wx.Dialog):
 		vbox.Add(
 			self._text_ctrl, proportion=1, flag=wx.EXPAND | wx.ALL, border=10
 		)
-		close_btn = wx.Button(self, id=wx.ID_CLOSE)
-		close_btn.Bind(wx.EVT_BUTTON, lambda _: self.Close())
-		close_btn.Bind(wx.EVT_KEY_DOWN, self._on_key_down)
+		self._close_btn = wx.Button(self, id=wx.ID_CLOSE)
+		self._close_btn.Bind(wx.EVT_BUTTON, lambda _: self.Close())
+		self._close_btn.Bind(wx.EVT_KEY_DOWN, self._on_key_down)
 		vbox.Add(
-			close_btn, proportion=0, flag=wx.ALIGN_CENTER | wx.ALL, border=10
+			self._close_btn,
+			proportion=0,
+			flag=wx.ALIGN_CENTER | wx.ALL,
+			border=10,
 		)
 		self.SetSizer(vbox)
 
+	def _section_at_cursor(self) -> tuple[int, int]:
+		"""Return (section_index, current_line) for cursor position."""
+		current_line = self._text_ctrl.LineFromPosition(
+			self._text_ctrl.GetCurrentPos()
+		)
+		idx = 0
+		for i, line in enumerate(self._sections):
+			if line <= current_line:
+				idx = i
+			else:
+				break
+		return idx, current_line
+
 	def _scroll_to_section(self, index: int) -> None:
 		"""Scroll to the given section, move cursor there, and give focus."""
-		line = self._sections[index]
-		pos = self._text_ctrl.XYToPosition(0, line)
+		doc_line = self._sections[index]
+		visible_line = self._text_ctrl.VisibleFromDocLine(doc_line)
+		self._text_ctrl.SetFirstVisibleLine(visible_line)
+		pos = self._text_ctrl.PositionFromLine(doc_line)
 		if pos >= 0:
-			self._text_ctrl.SetInsertionPoint(pos)
-			self._text_ctrl.ShowPosition(pos)
+			self._text_ctrl.SetCurrentPos(pos)
+			self._text_ctrl.SetSelection(pos, pos)
 		self._text_ctrl.SetFocus()
 
 	def _navigate_section(self, delta: int) -> None:
-		"""Navigate by delta sections (-1 prev, +1 next). Bell when at boundary."""
+		"""Navigate by delta sections (-1 prev, +1 next). Bell when at boundary.
+
+		Uses current cursor position. Page Up: if inside a section, go to its
+		header first; only then to previous section.
+		"""
 		if not self._sections:
 			return
-		idx = self._current_section + delta
+		idx, current_line = self._section_at_cursor()
+
+		if delta < 0:  # Page Up
+			header_line = self._sections[idx]
+			if current_line > header_line:
+				# Inside section: go to section header
+				self._scroll_to_section(idx)
+				return
+			# At header: go to previous section
+			idx += delta
+		else:  # Page Down
+			idx += delta
+
 		if 0 <= idx < len(self._sections):
-			self._current_section = idx
 			self._scroll_to_section(idx)
 		else:
 			wx.Bell()
@@ -124,14 +158,23 @@ class SectionedPropertiesDialog(wx.Dialog):
 				wx.TheClipboard.Close()
 
 	def _on_char_hook(self, event: wx.KeyEvent) -> None:
-		"""Intercept Page Up/Down and Escape before child controls receive them.
+		"""Intercept Page Up/Down, Tab, and Escape before child controls receive them.
 
 		EVT_CHAR_HOOK is generated before wxEVT_KEY_DOWN. By not calling Skip(),
-		we prevent the TextCtrl from receiving Page Up/Down, so it won't scroll.
+		we prevent the STC from receiving Page Up/Down, so it won't scroll.
+		STC consumes Tab by default; we forward Tab/Shift+Tab for focus traversal.
 		"""
 		key = event.GetKeyCode()
 		if key == wx.WXK_ESCAPE:
 			self.Close()
+		elif key == wx.WXK_TAB:
+			focused = wx.Window.FindFocus()
+			if focused == self._text_ctrl:
+				self._close_btn.SetFocus()
+			elif focused == self._close_btn:
+				self._text_ctrl.SetFocus()
+			else:
+				event.Skip()
 		elif self._sections and key == wx.WXK_PAGEDOWN:
 			self._go_next_section()
 		elif self._sections and key == wx.WXK_PAGEUP:
@@ -140,7 +183,7 @@ class SectionedPropertiesDialog(wx.Dialog):
 			event.Skip()
 
 	def _on_key_down(self, event: wx.KeyEvent) -> None:
-		"""Handle Escape to close when focus is on TextCtrl or button."""
+		"""Handle Escape to close when focus is on STC or close button."""
 		if event.GetKeyCode() == wx.WXK_ESCAPE:
 			self.Close()
 		else:
@@ -157,14 +200,21 @@ class SectionedPropertiesDialog(wx.Dialog):
 			wx.ID_ANY, _("Copy all properties to clipboard") + "\tCtrl+Shift+C"
 		)
 
-		# Use GetPopupMenuSelectionFromUser for synchronous handling (no event binding)
-		pos = self._text_ctrl.ScreenToClient(event.GetPosition())
-		selected = self._text_ctrl.GetPopupMenuSelectionFromUser(menu, pos)
+		# Use PopupMenu + EVT_MENU; GetPopupMenuSelectionFromUser fails with STC on some platforms.
+		prev_id = prev_item.GetId()
+		next_id = next_item.GetId()
+		copy_id = copy_item.GetId()
+		self.Bind(
+			wx.EVT_MENU, lambda _: self._go_previous_section(), id=prev_id
+		)
+		self.Bind(wx.EVT_MENU, lambda _: self._go_next_section(), id=next_id)
+		self.Bind(
+			wx.EVT_MENU, lambda _: self._copy_all_to_clipboard(), id=copy_id
+		)
+
+		self.PopupMenu(menu)
 		menu.Destroy()
 
-		if selected == prev_item.GetId():
-			self._go_previous_section()
-		elif selected == next_item.GetId():
-			self._go_next_section()
-		elif selected == copy_item.GetId():
-			self._copy_all_to_clipboard()
+		self.Unbind(wx.EVT_MENU, id=prev_id)
+		self.Unbind(wx.EVT_MENU, id=next_id)
+		self.Unbind(wx.EVT_MENU, id=copy_id)
