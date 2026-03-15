@@ -190,13 +190,107 @@ class BaseConversation:
 		)
 		return label
 
-	def create_model_widget(self) -> wx.StaticText:
-		"""Create and configure the model selection list control.
+	def create_settings_section(self):
+		"""Create model, output, reasoning, tools - all settings in one sizer.
 
-		Returns:
-			wx.StaticText: The label widget for the model list
+		Returns a BoxSizer. Use in conversation tab and edit block dialog
+		to avoid duplicating the settings layout.
 		"""
-		label = wx.StaticText(self, label=_("M&odels:"))
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		self.create_model_section()
+		sizer.Add(self.model_section_sizer, 0, wx.EXPAND)
+		self.create_output_group()
+		sizer.Add(self.output_group_sizer, 0, wx.EXPAND)
+		self.create_reasoning_group()
+		sizer.Add(self.reasoning_group_sizer, 0, wx.EXPAND)
+		self.create_tools_group()
+		sizer.Add(self.tools_group_sizer, 0, wx.EXPAND)
+		self.settings_section_sizer = sizer
+		return sizer
+
+	def create_model_section(self):
+		"""Create model selection (label + list). No group box - single control.
+
+		Returns a BoxSizer containing the model list. Add to layout after
+		account row.
+		"""
+		sizer = wx.BoxSizer(wx.VERTICAL)
+		label = wx.StaticText(
+			self,
+			# Translators: Label for model selection list
+			label=_("M&odels:"),
+		)
+		sizer.Add(label, 0, wx.ALL, 2)
+		self.create_model_widget()
+		sizer.Add(self.model_list, 0, wx.ALL | wx.EXPAND, 2)
+
+		self.model_section_sizer = sizer
+		return sizer
+
+	def create_output_group(self):
+		"""Create output/generation parameters group (max tokens, temperature, etc.).
+
+		Returns a StaticBoxSizer. Visibility controlled by
+		update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for response generation parameters
+		box = wx.StaticBox(self, label=_("Output"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_max_tokens_widget()
+		sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
+		sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_temperature_widget()
+		sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_top_p_widget()
+		sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
+		sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_stream_widget()
+		sizer.Add(self.stream_mode, 0, wx.ALL, 2)
+
+		self.output_group_box = box
+		self.output_group_sizer = sizer
+		return sizer
+
+	def create_reasoning_group(self):
+		"""Create reasoning/thinking configuration group.
+
+		Returns a StaticBoxSizer. Visibility controlled by
+		update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for reasoning/thinking settings
+		box = wx.StaticBox(self, label=_("Reasoning"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_reasoning_widget()
+		sizer.Add(self.reasoning_mode, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_adaptive, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_budget_spin, 0, wx.ALL | wx.EXPAND, 2)
+		sizer.Add(self.reasoning_effort_label, 0, wx.ALL, 2)
+		sizer.Add(self.reasoning_effort_choice, 0, wx.ALL | wx.EXPAND, 2)
+
+		self.reasoning_group_box = box
+		self.reasoning_group_sizer = sizer
+		return sizer
+
+	def create_tools_group(self):
+		"""Create tools group (web search, etc.).
+
+		Returns a StaticBoxSizer. Visibility controlled by
+		update_parameter_controls_visibility.
+		"""
+		# Translators: Group label for model tools (web search, etc.)
+		box = wx.StaticBox(self, label=_("Tools"))
+		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		self.create_web_search_widget()
+		sizer.Add(self.web_search_mode, 0, wx.ALL, 2)
+
+		self.tools_group_box = box
+		self.tools_group_sizer = sizer
+		return sizer
+
+	def create_model_widget(self) -> None:
+		"""Create and configure the model selection list control."""
 		self.model_list = wx.ListCtrl(self, style=wx.LC_REPORT)
 		# Translators: This label appears in the main window's list of models
 		self.model_list.InsertColumn(0, _("Name"))
@@ -213,7 +307,6 @@ class BaseConversation:
 		self.model_list.Bind(wx.EVT_KEY_DOWN, self.on_model_key_down)
 		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
-		return label
 
 	def update_model_list(self):
 		"""Update the model list with current engine's available models."""
@@ -446,72 +539,9 @@ class BaseConversation:
 		)
 		self.stream_mode.SetValue(True)
 
-	def create_general_group(self):
-		"""Create grouped general settings (max tokens, temperature, top P, stream, web search).
-
-		Returns a StaticBoxSizer containing all general widgets. Add to layout
-		after model list. Visibility controlled by update_parameter_controls_visibility.
-		"""
-		# Translators: Group label for general model settings
-		box = wx.StaticBox(self, label=_("General"))
-		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-		self.create_max_tokens_widget()
-		sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
-		sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_temperature_widget()
-		sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
-		sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_top_p_widget()
-		sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
-		sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_stream_widget()
-		sizer.Add(self.stream_mode, 0, wx.ALL, 2)
-
-		self.general_group_box = box
-		self.general_group_sizer = sizer
-		return sizer
-
-	def create_tools_group(self):
-		"""Create grouped tool settings (web search, etc.).
-
-		Returns a StaticBoxSizer containing tool widgets. Add to layout after
-		general group. Visibility controlled by update_parameter_controls_visibility.
-		"""
-		# Translators: Group label for model tools (web search, etc.)
-		box = wx.StaticBox(self, label=_("Tools"))
-		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-		self.create_web_search_widget()
-		sizer.Add(self.web_search_mode, 0, wx.ALL, 2)
-
-		self.tools_group_box = box
-		self.tools_group_sizer = sizer
-		return sizer
-
 	def get_effective_show_reasoning_blocks(self) -> bool:
 		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
 		return True
-
-	def create_reasoning_group(self):
-		"""Create grouped reasoning settings (mode, adaptive, budget, effort).
-
-		Returns a StaticBoxSizer containing all reasoning widgets. Add to
-		layout after model list. Visibility of sub-widgets controlled by
-		update_parameter_controls_visibility.
-		"""
-		# Translators: Group label for reasoning/thinking settings
-		box = wx.StaticBox(self, label=_("Reasoning"))
-		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-		self.create_reasoning_widget()
-		sizer.Add(self.reasoning_mode, 0, wx.ALL, 2)
-		sizer.Add(self.reasoning_adaptive, 0, wx.ALL, 2)
-		sizer.Add(self.reasoning_budget_label, 0, wx.ALL, 2)
-		sizer.Add(self.reasoning_budget_spin, 0, wx.ALL | wx.EXPAND, 2)
-		sizer.Add(self.reasoning_effort_label, 0, wx.ALL, 2)
-		sizer.Add(self.reasoning_effort_choice, 0, wx.ALL | wx.EXPAND, 2)
-
-		self.reasoning_group_box = box
-		self.reasoning_group_sizer = sizer
-		return sizer
 
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
@@ -638,19 +668,18 @@ class BaseConversation:
 		self, state: ParameterVisibilityState
 	) -> None:
 		"""Apply visibility state to widgets. Thin view layer."""
-		self._apply_general_visibility(state)
+		self._apply_output_visibility(state)
 		self._apply_tools_visibility(state)
 		self._apply_reasoning_visibility(state)
 
-	def _apply_general_visibility(
-		self, state: ParameterVisibilityState
-	) -> None:
-		"""Apply general settings group visibility.
+	def _apply_output_visibility(self, state: ParameterVisibilityState) -> None:
+		"""Apply output group visibility.
 
-		Hides the entire group when no model is selected or advanced mode is off.
+		Hides the group when no model is selected. Temperature and top_p
+		are hidden unless advanced mode is on.
 		"""
-		if hasattr(self, "general_group_box"):
-			self.general_group_box.Show(state.stream_visible)
+		if hasattr(self, "output_group_box"):
+			self.output_group_box.Show(state.stream_visible)
 		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
 			ctrl.Enable(state.temperature_visible)
 			ctrl.Show(state.temperature_visible)
@@ -664,7 +693,7 @@ class BaseConversation:
 		self.stream_mode.Show(state.stream_visible)
 
 	def _apply_tools_visibility(self, state: ParameterVisibilityState) -> None:
-		"""Apply tools group visibility (web search, etc.)."""
+		"""Apply tools group visibility."""
 		if hasattr(self, "tools_group_box"):
 			self.tools_group_box.Show(state.web_search_visible)
 		if hasattr(self, "web_search_mode"):
@@ -674,9 +703,9 @@ class BaseConversation:
 	def _apply_reasoning_visibility(
 		self, state: ParameterVisibilityState
 	) -> None:
-		"""Apply reasoning controls visibility state.
+		"""Apply reasoning group visibility.
 
-		Reasoning mode controls are hidden when model does not support them.
+		Reasoning controls are hidden when model does not support them.
 		"""
 		if hasattr(self, "reasoning_group_box"):
 			self.reasoning_group_box.Show(state.reasoning_mode_visible)

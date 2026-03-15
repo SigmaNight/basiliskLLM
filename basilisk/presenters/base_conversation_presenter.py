@@ -152,15 +152,17 @@ class BaseConversationPresenter:
 		if model is None or engine is None:
 			return state
 
-		has_model = advanced_mode and model is not None
-		state.temperature_visible = has_model and model.supports_parameter(
+		# Practical controls: always visible when model selected
+		state.max_tokens_visible = model.supports_parameter("max_tokens")
+		state.stream_visible = True
+
+		# Technical tuning: only when advanced mode is on
+		state.temperature_visible = advanced_mode and model.supports_parameter(
 			"temperature"
 		)
-		state.top_p_visible = has_model and model.supports_parameter("top_p")
-		state.max_tokens_visible = has_model and model.supports_parameter(
-			"max_tokens"
+		state.top_p_visible = advanced_mode and model.supports_parameter(
+			"top_p"
 		)
-		state.stream_visible = has_model
 
 		state.web_search_visible = engine.model_supports_web_search(model)
 
