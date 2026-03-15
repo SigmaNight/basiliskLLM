@@ -28,6 +28,11 @@ class ParameterVisibilityState:
 	temperature_visible: bool = False
 	top_p_visible: bool = False
 	max_tokens_visible: bool = False
+	frequency_penalty_visible: bool = False
+	presence_penalty_visible: bool = False
+	seed_visible: bool = False
+	top_k_visible: bool = False
+	stop_visible: bool = False
 	stream_visible: bool = False
 	web_search_visible: bool = False
 	reasoning_mode_visible: bool = False
@@ -163,6 +168,17 @@ class BaseConversationPresenter:
 		state.top_p_visible = advanced_mode and model.supports_parameter(
 			"top_p"
 		)
+		state.frequency_penalty_visible = (
+			advanced_mode and model.supports_parameter("frequency_penalty")
+		)
+		state.presence_penalty_visible = (
+			advanced_mode and model.supports_parameter("presence_penalty")
+		)
+		state.seed_visible = advanced_mode and model.supports_parameter("seed")
+		state.top_k_visible = advanced_mode and model.supports_parameter(
+			"top_k"
+		)
+		state.stop_visible = advanced_mode and model.supports_parameter("stop")
 
 		state.web_search_visible = engine.model_supports_web_search(model)
 

@@ -89,7 +89,7 @@ class EditConversationProfilePresenter:
 			self.profile.ai_model_info = None
 
 	def _apply_generation_params(self) -> None:
-		"""Set max_tokens, temperature, top_p, stream from view."""
+		"""Set generation params from view."""
 		model = self.view.current_model
 
 		max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
@@ -106,6 +106,18 @@ class EditConversationProfilePresenter:
 
 		top_p = self.view.top_p_spinner.GetValue()
 		self.profile.top_p = top_p if (model and top_p != 1.0) else None
+
+		freq = self.view.frequency_penalty_spinner.GetValue()
+		self.profile.frequency_penalty = freq if (model and freq != 0) else None
+		pres = self.view.presence_penalty_spinner.GetValue()
+		self.profile.presence_penalty = pres if (model and pres != 0) else None
+		seed_val = self.view.seed_spin_ctrl.GetValue()
+		self.profile.seed = seed_val if (model and seed_val) else None
+		top_k_val = self.view.top_k_spin_ctrl.GetValue()
+		self.profile.top_k = top_k_val if (model and top_k_val) else None
+		stop_seqs = self.view.get_stop_sequences()
+		self.profile.stop = stop_seqs if (model and stop_seqs) else None
+
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
 
 	def _apply_reasoning_params(self) -> None:

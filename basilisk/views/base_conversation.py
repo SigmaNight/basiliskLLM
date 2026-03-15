@@ -17,37 +17,14 @@ from basilisk.presenters.base_conversation_presenter import (
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
+from .accessible import AccessibleWithHelp
+from .int_spin_ctrl import IntSpinCtrl
+from .read_only_message_dialog import ReadOnlyMessageDialog
+
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
-
-
-class FloatSpinTextCtrlAccessible(wx.Accessible):
-	"""Accessible wrapper for FloatSpin text control to improve screen reader support."""
-
-	def __init__(self, win: wx.Window | None = None, name: str | None = None):
-		"""Initialize the FloatSpinTextCtrlAccessible instance.
-
-		Args:
-			win: The window to make accessible
-			name: The accessible name for the control
-		"""
-		super().__init__(win)
-		self._name = name
-
-	def GetName(self, childId: int) -> tuple[int, str]:
-		"""Get the accessible name for the control.
-
-		Args:
-			childId: The child ID of the control
-
-		Returns:
-			a tuple containing the accessible status and name of the control
-		"""
-		if self._name:
-			return (wx.ACC_OK, self._name)
-		return super().GetName(childId)
 
 
 class BaseConversation:
@@ -191,7 +168,7 @@ class BaseConversation:
 		return label
 
 	def create_settings_section(self):
-		"""Create model, output, reasoning, tools - all settings in one sizer.
+		"""Create model, reasoning, tools, output - all settings in one sizer.
 
 		Returns a BoxSizer. Use in conversation tab and edit block dialog
 		to avoid duplicating the settings layout.
@@ -199,12 +176,12 @@ class BaseConversation:
 		sizer = wx.BoxSizer(wx.VERTICAL)
 		self.create_model_section()
 		sizer.Add(self.model_section_sizer, 0, wx.EXPAND)
-		self.create_output_group()
-		sizer.Add(self.output_group_sizer, 0, wx.EXPAND)
 		self.create_reasoning_group()
 		sizer.Add(self.reasoning_group_sizer, 0, wx.EXPAND)
 		self.create_tools_group()
 		sizer.Add(self.tools_group_sizer, 0, wx.EXPAND)
+		self.create_output_group()
+		sizer.Add(self.output_group_sizer, 0, wx.EXPAND)
 		self.settings_section_sizer = sizer
 		return sizer
 
@@ -236,21 +213,77 @@ class BaseConversation:
 		# Translators: Group label for response generation parameters
 		box = wx.StaticBox(self, label=_("Output"))
 		sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-		self.create_max_tokens_widget()
-		sizer.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
-		sizer.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_temperature_widget()
-		sizer.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
-		sizer.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_top_p_widget()
-		sizer.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
-		sizer.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
-		self.create_stream_widget()
-		sizer.Add(self.stream_mode, 0, wx.ALL, 2)
+		output_panel = wx.Panel(self)
+		output_panel.Bind(wx.EVT_CONTEXT_MENU, self._on_output_context_menu)
+		inner = wx.BoxSizer(wx.VERTICAL)
+		self.create_max_tokens_widget(output_panel)
+		inner.Add(self.max_tokens_spin_label, 0, wx.ALL, 2)
+		inner.Add(self.max_tokens_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_temperature_widget(output_panel)
+		inner.Add(self.temperature_spinner_label, 0, wx.ALL, 2)
+		inner.Add(self.temperature_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_top_p_widget(output_panel)
+		inner.Add(self.top_p_spinner_label, 0, wx.ALL, 2)
+		inner.Add(self.top_p_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_frequency_penalty_widget(output_panel)
+		inner.Add(self.frequency_penalty_label, 0, wx.ALL, 2)
+		inner.Add(self.frequency_penalty_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_presence_penalty_widget(output_panel)
+		inner.Add(self.presence_penalty_label, 0, wx.ALL, 2)
+		inner.Add(self.presence_penalty_spinner, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_seed_widget(output_panel)
+		inner.Add(self.seed_label, 0, wx.ALL, 2)
+		inner.Add(self.seed_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_top_k_widget(output_panel)
+		inner.Add(self.top_k_label, 0, wx.ALL, 2)
+		inner.Add(self.top_k_spin_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_stop_widget(output_panel)
+		inner.Add(self.stop_label, 0, wx.ALL, 2)
+		inner.Add(self.stop_text_ctrl, 0, wx.ALL | wx.EXPAND, 2)
+		self.create_stream_widget(output_panel)
+		inner.Add(self.stream_mode, 0, wx.ALL, 2)
+		output_panel.SetSizer(inner)
+		sizer.Add(output_panel, 0, wx.EXPAND)
 
 		self.output_group_box = box
+		self.output_group_panel = output_panel
 		self.output_group_sizer = sizer
 		return sizer
+
+	def _on_output_context_menu(self, event: wx.ContextMenuEvent) -> None:
+		"""Show context menu for output params (reset to defaults)."""
+		menu = wx.Menu()
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: Context menu item to reset generation params to model defaults
+			_("Reset to model defaults"),
+		)
+		menu.Append(item)
+		item.Enable(self.current_model is not None)
+		menu.Bind(wx.EVT_MENU, self._on_reset_to_model_defaults, item)
+		event.GetEventObject().PopupMenu(menu)
+		menu.Destroy()
+
+	def _reset_to_model_defaults(self) -> None:
+		"""Reset all generation params to the selected model's defaults."""
+		model = self.current_model
+		if not model:
+			return
+		self.temperature_spinner.SetMax(model.max_temperature)
+		self.temperature_spinner.SetValue(model.default_temperature)
+		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
+		self.max_tokens_spin_ctrl.SetValue(0)
+		for param, default, conv, ctrl_attr in self._OUTPUT_PARAM_DEFAULTS:
+			val = model.get_default_param(param, default)
+			getattr(self, ctrl_attr).SetValue(
+				conv(val) if val is not None else default
+			)
+		self.stop_text_ctrl.SetValue("")
+
+	def _on_reset_to_model_defaults(self, event: wx.CommandEvent) -> None:
+		"""Handle context menu selection to reset to model defaults."""
+		self._reset_to_model_defaults()
 
 	def create_reasoning_group(self):
 		"""Create reasoning/thinking configuration group.
@@ -358,18 +391,33 @@ class BaseConversation:
 			return None
 		return engine.models[model_index]
 
+	# (param_name, default, converter, ctrl_attr) for on_model_change from JSON
+	_OUTPUT_PARAM_DEFAULTS = (
+		("top_p", 1.0, float, "top_p_spinner"),
+		("frequency_penalty", 0.0, float, "frequency_penalty_spinner"),
+		("presence_penalty", 0.0, float, "presence_penalty_spinner"),
+		("seed", 0, int, "seed_spin_ctrl"),
+		("top_k", 0, int, "top_k_spin_ctrl"),
+	)
+	# (profile_attr, ctrl_attr) for apply_profile
+	_PROFILE_TO_CTRL = (
+		("max_tokens", "max_tokens_spin_ctrl"),
+		("temperature", "temperature_spinner"),
+		("top_p", "top_p_spinner"),
+		("frequency_penalty", "frequency_penalty_spinner"),
+		("presence_penalty", "presence_penalty_spinner"),
+		("seed", "seed_spin_ctrl"),
+		("top_k", "top_k_spin_ctrl"),
+	)
+
 	def on_model_change(self, event: wx.Event | None):
 		"""Handle model selection change events.
 
 		Args:
 			event: The event triggering the model change
 		"""
-		model = self.current_model
-		if model:
-			self.temperature_spinner.SetMax(model.max_temperature)
-			self.temperature_spinner.SetValue(model.default_temperature)
-			self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
-			self.max_tokens_spin_ctrl.SetValue(0)
+		if self.current_model:
+			self._reset_to_model_defaults()
 		self.update_parameter_controls_visibility()
 
 	def set_account_and_model_from_profile(
@@ -440,8 +488,6 @@ class BaseConversation:
 		Args:
 			event: The command event triggering the model details dialog
 		"""
-		from .read_only_message_dialog import ReadOnlyMessageDialog
-
 		model = self.current_model
 		if not model:
 			return
@@ -463,81 +509,273 @@ class BaseConversation:
 		)
 		self.web_search_mode.SetValue(False)
 
-	def create_max_tokens_widget(self) -> wx.StaticText:
-		"""Create and configure the max tokens spin control.
+	def _create_float_spin_with_accessibility(
+		self,
+		label: str,
+		min_val: float,
+		max_val: float,
+		value: float,
+		name: str,
+		help_text: str | None = None,
+		*,
+		digits: int = 2,
+		increment: float = 0.01,
+		parent: wx.Window | None = None,
+	) -> tuple[wx.StaticText, FloatSpin]:
+		"""Create label + FloatSpin with accessibility, matching temperature/top_p."""
+		p = parent or self
+		label_ctrl = wx.StaticText(p, label=label)
+		spinner = FloatSpin(
+			p,
+			min_val=min_val,
+			max_val=max_val,
+			increment=increment,
+			value=value,
+			digits=digits,
+			name=name,
+		)
+		spinner._textctrl.SetAccessible(
+			AccessibleWithHelp(
+				win=spinner._textctrl,
+				name=label_ctrl.GetLabel().replace("&", ""),
+				help_text=help_text,
+			)
+		)
+		spinner.SetToolTip(help_text or "")
+		return label_ctrl, spinner
 
-		Returns:
-			The label widget for the max tokens control
-		"""
-		self.max_tokens_spin_label = wx.StaticText(
-			self,
-			# Translators: This is a label for max tokens in the main window
-			label=_("Max to&kens:"),
+	def _create_int_spin_with_accessibility(
+		self,
+		label: str,
+		min_val: int,
+		max_val: int,
+		value: int,
+		tooltip_key: str,
+		parent: wx.Window | None = None,
+	) -> tuple[wx.StaticText, IntSpinCtrl]:
+		"""Create label + IntSpinCtrl with accessibility."""
+		p = parent or self
+		label_ctrl = wx.StaticText(p, label=label)
+		help_text = self._OUTPUT_PARAM_TOOLTIPS[tooltip_key]
+		ctrl = IntSpinCtrl(
+			p,
+			value=value,
+			min_val=min_val,
+			max_val=max_val,
+			help_text=help_text,
+			label=label_ctrl.GetLabel(),
 		)
-		self.max_tokens_spin_ctrl = wx.SpinCtrl(
-			self, value="0", min=0, max=2000000
+		ctrl.SetToolTip(help_text)
+		return label_ctrl, ctrl
+
+	# Tooltips for generation params (shown on hover)
+	_OUTPUT_PARAM_TOOLTIPS = {
+		"max_tokens_spin_ctrl": _(
+			"Maximum length of the response. 0 = use model default."
+		),
+		"temperature_spinner": _(
+			"Controls randomness. Lower = more focused, higher = more random."
+		),
+		"top_p_spinner": _(
+			"Nucleus sampling. Lower = more deterministic, higher = more diverse."
+		),
+		"frequency_penalty_spinner": _(
+			"Reduces repetition based on token frequency. Negative = allow more."
+		),
+		"presence_penalty_spinner": _(
+			"Reduces repetition of tokens that have appeared. Negative = allow more."
+		),
+		"seed_spin_ctrl": _(
+			"Random seed for reproducibility. 0 = random each time."
+		),
+		"top_k_spin_ctrl": _(
+			"Consider only the top K most likely tokens. 0 = model default."
+		),
+		"stop_text_ctrl": _(
+			"Text sequences that stop generation. One per line or comma-separated."
+		),
+		"stream_mode": _("Stream the response as it is generated."),
+	}
+
+	def create_max_tokens_widget(self, parent: wx.Window | None = None) -> None:
+		"""Create and configure the max tokens spin control."""
+		self.max_tokens_spin_label, self.max_tokens_spin_ctrl = (
+			self._create_int_spin_with_accessibility(
+				label=_("Max to&kens:"),
+				min_val=0,
+				max_val=2000000,
+				value=0,
+				tooltip_key="max_tokens_spin_ctrl",
+				parent=parent,
+			)
 		)
 
-	def create_temperature_widget(self) -> wx.StaticText:
-		"""Create and configure the temperature spin control.
+	def create_temperature_widget(
+		self, parent: wx.Window | None = None
+	) -> wx.StaticText:
+		"""Create and configure the temperature spin control."""
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["temperature_spinner"]
+		self.temperature_spinner_label, self.temperature_spinner = (
+			self._create_float_spin_with_accessibility(
+				label=_("&Temperature:"),
+				min_val=0.0,
+				max_val=2.0,
+				value=0.5,
+				name="temperature",
+				help_text=help_text,
+				parent=parent,
+			)
+		)
+		return self.temperature_spinner_label
 
-		Returns:
-			The label widget for the temperature control
-		"""
-		self.temperature_spinner_label = wx.StaticText(
-			self,
-			# Translators: This is a label for temperature in the main window
-			label=_("&Temperature:"),
+	def create_top_p_widget(
+		self, parent: wx.Window | None = None
+	) -> wx.StaticText:
+		"""Create and configure the top P spin control."""
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["top_p_spinner"]
+		self.top_p_spinner_label, self.top_p_spinner = (
+			self._create_float_spin_with_accessibility(
+				label=_("&Top P:"),
+				min_val=0.0,
+				max_val=1.0,
+				value=1.0,
+				name="Top P",
+				help_text=help_text,
+				parent=parent,
+			)
 		)
-		self.temperature_spinner = FloatSpin(
-			self,
-			min_val=0.0,
-			max_val=2.0,
-			increment=0.01,
-			value=0.5,
-			digits=2,
-			name="temperature",
-		)
-		float_spin_accessible = FloatSpinTextCtrlAccessible(
-			win=self.temperature_spinner._textctrl,
-			name=self.temperature_spinner_label.GetLabel().replace("&", ""),
-		)
-		self.temperature_spinner._textctrl.SetAccessible(float_spin_accessible)
+		return self.top_p_spinner_label
 
-	def create_top_p_widget(self) -> wx.StaticText:
-		"""Create and configure the top P spin control.
+	def create_frequency_penalty_widget(
+		self, parent: wx.Window | None = None
+	) -> None:
+		"""Create frequency penalty control. Default 0, range -2 to 2 (OpenAI)."""
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["frequency_penalty_spinner"]
+		self.frequency_penalty_label, self.frequency_penalty_spinner = (
+			self._create_float_spin_with_accessibility(
+				label=_("&Frequency penalty:"),
+				min_val=-2.0,
+				max_val=2.0,
+				value=0.0,
+				name="frequency_penalty",
+				help_text=help_text,
+				parent=parent,
+			)
+		)
 
-		Returns:
-			The label widget for the top P control
-		"""
-		self.top_p_spinner_label = wx.StaticText(
-			self,
-			# Translators: This is a label for top P in the main window
-			label=_("Probabilit&y Mass (top P):"),
+	def create_presence_penalty_widget(
+		self, parent: wx.Window | None = None
+	) -> None:
+		"""Create presence penalty control. Default 0, range -2 to 2 (OpenAI)."""
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["presence_penalty_spinner"]
+		self.presence_penalty_label, self.presence_penalty_spinner = (
+			self._create_float_spin_with_accessibility(
+				label=_("&Presence penalty:"),
+				min_val=-2.0,
+				max_val=2.0,
+				value=0.0,
+				name="presence_penalty",
+				help_text=help_text,
+				parent=parent,
+			)
 		)
-		self.top_p_spinner = FloatSpin(
-			self,
-			min_val=0.0,
-			max_val=1.0,
-			increment=0.01,
-			value=1.0,
-			digits=2,
-			name="Top P",
-		)
-		float_spin_accessible = FloatSpinTextCtrlAccessible(
-			win=self.top_p_spinner._textctrl,
-			name=self.top_p_spinner_label.GetLabel().replace("&", ""),
-		)
-		self.top_p_spinner._textctrl.SetAccessible(float_spin_accessible)
 
-	def create_stream_widget(self):
+	def create_seed_widget(self, parent: wx.Window | None = None) -> None:
+		"""Create seed control. 0 = not set; positive = deterministic."""
+		self.seed_label, self.seed_spin_ctrl = (
+			self._create_int_spin_with_accessibility(
+				label=_("&Seed:"),
+				min_val=0,
+				max_val=2147483647,
+				value=0,
+				tooltip_key="seed_spin_ctrl",
+				parent=parent,
+			)
+		)
+
+	def create_top_k_widget(self, parent: wx.Window | None = None) -> None:
+		"""Create top-k control. 0 = not set."""
+		self.top_k_label, self.top_k_spin_ctrl = (
+			self._create_int_spin_with_accessibility(
+				label=_("&Top K:"),
+				min_val=0,
+				max_val=256,
+				value=0,
+				tooltip_key="top_k_spin_ctrl",
+				parent=parent,
+			)
+		)
+
+	def create_stop_widget(self, parent: wx.Window | None = None) -> None:
+		"""Create stop sequences control. One per line or comma-separated."""
+		p = parent or self
+		self.stop_label = wx.StaticText(
+			p,
+			# Translators: Label for stop sequences
+			label=_("&Stop sequences:"),
+		)
+		self.stop_text_ctrl = wx.TextCtrl(
+			p, style=wx.TE_MULTILINE | wx.TE_WORDWRAP, size=(-1, 50)
+		)
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["stop_text_ctrl"]
+		self.stop_text_ctrl.SetToolTip(help_text)
+		self.stop_text_ctrl.SetAccessible(
+			AccessibleWithHelp(
+				win=self.stop_text_ctrl,
+				name=self.stop_label.GetLabel().replace("&", ""),
+				help_text=help_text,
+			)
+		)
+
+	def get_stop_sequences(self) -> list[str] | None:
+		"""Parse stop sequences from text control. One per line, strip empty."""
+		if not hasattr(self, "stop_text_ctrl"):
+			return None
+		text = self.stop_text_ctrl.GetValue().strip()
+		if not text:
+			return None
+		sequences = [
+			line.strip()
+			for line in text.replace(",", "\n").splitlines()
+			if line.strip()
+		]
+		return sequences if sequences else None
+
+	def get_generation_params_from_view(self) -> dict:
+		"""Return generation params from view controls for MessageBlock."""
+		params = {
+			"temperature": self.temperature_spinner.GetValue(),
+			"top_p": self.top_p_spinner.GetValue(),
+			"max_tokens": self.max_tokens_spin_ctrl.GetValue(),
+			"frequency_penalty": self.frequency_penalty_spinner.GetValue(),
+			"presence_penalty": self.presence_penalty_spinner.GetValue(),
+			"stream": self.stream_mode.GetValue(),
+		}
+		seed_val = self.seed_spin_ctrl.GetValue()
+		params["seed"] = seed_val if seed_val else None  # 0 = not set
+		top_k_val = self.top_k_spin_ctrl.GetValue()
+		params["top_k"] = top_k_val if top_k_val else None  # 0 = default
+		params["stop"] = self.get_stop_sequences()
+		return params
+
+	def create_stream_widget(self, parent: wx.Window | None = None):
 		"""Create and configure the stream mode check box."""
+		p = parent or self
 		self.stream_mode = wx.CheckBox(
-			self,
+			p,
 			# Translators: This is a label for stream mode in the main window
 			label=_("&Stream mode"),
 		)
 		self.stream_mode.SetValue(True)
+		help_text = self._OUTPUT_PARAM_TOOLTIPS["stream_mode"]
+		self.stream_mode.SetToolTip(help_text)
+		self.stream_mode.SetAccessible(
+			AccessibleWithHelp(
+				win=self.stream_mode,
+				name=self.stream_mode.GetLabel().replace("&", ""),
+				help_text=help_text,
+			)
+		)
 
 	def get_effective_show_reasoning_blocks(self) -> bool:
 		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
@@ -604,12 +842,13 @@ class BaseConversation:
 		self.set_account_and_model_from_profile(
 			profile, fall_back_default_account
 		)
-		if profile.max_tokens is not None:
-			self.max_tokens_spin_ctrl.SetValue(profile.max_tokens)
-		if profile.temperature is not None:
-			self.temperature_spinner.SetValue(profile.temperature)
-		if profile.top_p is not None:
-			self.top_p_spinner.SetValue(profile.top_p)
+		# Apply generation params from profile when set
+		for profile_attr, ctrl_attr in self._PROFILE_TO_CTRL:
+			val = getattr(profile, profile_attr, None)
+			if val is not None:
+				getattr(self, ctrl_attr).SetValue(val)
+		if getattr(profile, "stop", None):
+			self.stop_text_ctrl.SetValue("\n".join(profile.stop))
 		self.stream_mode.SetValue(profile.stream_mode)
 		self._apply_profile_reasoning(profile)
 		self.update_parameter_controls_visibility()
@@ -672,23 +911,47 @@ class BaseConversation:
 		self._apply_tools_visibility(state)
 		self._apply_reasoning_visibility(state)
 
+	# Output param visibility: (state_attr, label_attr, ctrl_attr)
+	_OUTPUT_VISIBILITY = (
+		(
+			"temperature_visible",
+			"temperature_spinner_label",
+			"temperature_spinner",
+		),
+		("top_p_visible", "top_p_spinner_label", "top_p_spinner"),
+		("max_tokens_visible", "max_tokens_spin_label", "max_tokens_spin_ctrl"),
+		(
+			"frequency_penalty_visible",
+			"frequency_penalty_label",
+			"frequency_penalty_spinner",
+		),
+		(
+			"presence_penalty_visible",
+			"presence_penalty_label",
+			"presence_penalty_spinner",
+		),
+		("seed_visible", "seed_label", "seed_spin_ctrl"),
+		("top_k_visible", "top_k_label", "top_k_spin_ctrl"),
+		("stop_visible", "stop_label", "stop_text_ctrl"),
+	)
+
 	def _apply_output_visibility(self, state: ParameterVisibilityState) -> None:
 		"""Apply output group visibility.
 
-		Hides the group when no model is selected. Temperature and top_p
-		are hidden unless advanced mode is on.
+		Hides the group when no model is selected. Temperature, top_p, and
+		advanced params are hidden unless advanced mode is on.
 		"""
 		if hasattr(self, "output_group_box"):
 			self.output_group_box.Show(state.stream_visible)
-		for ctrl in (self.temperature_spinner_label, self.temperature_spinner):
-			ctrl.Enable(state.temperature_visible)
-			ctrl.Show(state.temperature_visible)
-		for ctrl in (self.top_p_spinner_label, self.top_p_spinner):
-			ctrl.Enable(state.top_p_visible)
-			ctrl.Show(state.top_p_visible)
-		for ctrl in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
-			ctrl.Enable(state.max_tokens_visible)
-			ctrl.Show(state.max_tokens_visible)
+		if hasattr(self, "output_group_panel"):
+			self.output_group_panel.Show(state.stream_visible)
+		for state_attr, label_attr, ctrl_attr in self._OUTPUT_VISIBILITY:
+			visible = getattr(state, state_attr)
+			for attr in (label_attr, ctrl_attr):
+				ctrl = getattr(self, attr, None)
+				if ctrl is not None:
+					ctrl.Enable(visible)
+					ctrl.Show(visible)
 		self.stream_mode.Enable(state.stream_visible)
 		self.stream_mode.Show(state.stream_visible)
 

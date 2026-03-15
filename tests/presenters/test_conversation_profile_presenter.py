@@ -29,6 +29,11 @@ class TestEditConversationProfilePresenter:
 		view.max_tokens_spin_ctrl.GetValue.return_value = 100
 		view.temperature_spinner.GetValue.return_value = 0.7
 		view.top_p_spinner.GetValue.return_value = 0.9
+		view.frequency_penalty_spinner.GetValue.return_value = 0.0
+		view.presence_penalty_spinner.GetValue.return_value = 0.0
+		view.seed_spin_ctrl.GetValue.return_value = 0
+		view.top_k_spin_ctrl.GetValue.return_value = 0
+		view.get_stop_sequences.return_value = None
 		view.stream_mode.GetValue.return_value = True
 		return view
 
@@ -72,6 +77,11 @@ class TestEditConversationProfilePresenter:
 		assert result.max_tokens is None
 		assert result.temperature is None
 		assert result.top_p is None
+		assert result.frequency_penalty is None
+		assert result.presence_penalty is None
+		assert result.seed is None
+		assert result.top_k is None
+		assert result.stop is None
 
 	def test_validate_excludes_account_when_unchecked(self, mock_view):
 		"""Unchecked include_account should not include account."""

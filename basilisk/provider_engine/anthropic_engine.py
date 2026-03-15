@@ -224,6 +224,11 @@ class AnthropicEngine(BaseEngine):
 		# New Claude 4 models don't allow both temperature and top_p
 		if new_block.top_p != 1.0:
 			params["top_p"] = new_block.top_p
+		gen_params = self._get_block_generation_params(new_block, model)
+		if "stop" in gen_params:
+			params["stop_sequences"] = gen_params["stop"]
+			gen_params = {k: v for k, v in gen_params.items() if k != "stop"}
+		params.update(gen_params)
 		if system_message:
 			params["system"] = system_message.content
 		if tools:

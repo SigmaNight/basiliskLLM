@@ -112,6 +112,7 @@ class BaseEngine(ABC):
 			"presence_penalty",
 			"seed",
 			"top_k",
+			"stop",
 		}
 	)
 
@@ -121,6 +122,32 @@ class BaseEngine(ABC):
 		Override in subclasses to add provider-specific params.
 		"""
 		return self._FILTERABLE_PARAMS
+
+	def _get_block_generation_params(
+		self, block: MessageBlock, model: ProviderAIModel
+	) -> dict[str, Any]:
+		"""Build common generation params from block for API request.
+
+		Returns dict with standard param names. Engines merge this into their
+		params; providers that use different names (e.g. Anthropic stop_sequences)
+		must map in their completion implementation.
+		"""
+		params: dict[str, Any] = {}
+		if model.supports_parameter("frequency_penalty") and (
+			block.frequency_penalty != 0
+		):
+			params["frequency_penalty"] = block.frequency_penalty
+		if model.supports_parameter("presence_penalty") and (
+			block.presence_penalty != 0
+		):
+			params["presence_penalty"] = block.presence_penalty
+		if model.supports_parameter("seed") and block.seed is not None:
+			params["seed"] = block.seed
+		if model.supports_parameter("top_k") and block.top_k is not None:
+			params["top_k"] = block.top_k
+		if model.supports_parameter("stop") and block.stop:
+			params["stop"] = block.stop
+		return params
 
 	def _filter_params_for_model(
 		self, model: ProviderAIModel, params: dict[str, Any]
