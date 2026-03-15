@@ -6,6 +6,7 @@ import wx
 from more_itertools import first, locate
 
 from basilisk.config import (
+	ACCOUNT_MODEL_SORT_KEYS,
 	Account,
 	AccountOrganization,
 	AccountSource,
@@ -506,6 +507,36 @@ class EditAccountDialog(wx.Dialog):
 		self.custom_base_url_text_ctrl = wx.TextCtrl(panel)
 		sizer.Add(self.custom_base_url_text_ctrl, 0, wx.EXPAND)
 
+		# Translators: A label in account dialog
+		label = wx.StaticText(
+			panel, label=_("Model sort:"), style=wx.ALIGN_LEFT
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		sort_labels = {
+			# Translators: Use the default sort from preferences
+			"default": _("Default (use preferences)"),
+			# Translators: None = no sort (use JSON/source order)
+			"none": _("None"),
+			"name": _("Name"),
+			"release_date": _("Release date"),
+			"max_output": _("Max output"),
+			"context_window": _("Context window"),
+		}
+		self.model_sort_key = wx.ComboBox(
+			panel,
+			choices=[sort_labels.get(k, k) for k in ACCOUNT_MODEL_SORT_KEYS],
+			style=wx.CB_READONLY,
+		)
+		self.model_sort_key.SetSelection(0)
+		sizer.Add(self.model_sort_key, 0, wx.EXPAND)
+
+		self.model_sort_reverse = wx.CheckBox(
+			panel,
+			# Translators: A label in account dialog
+			label=_("Reverse sort order"),
+		)
+		sizer.Add(self.model_sort_reverse, 0, wx.ALL, 5)
+
 		buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		btn = wx.Button(panel, wx.ID_OK)
@@ -543,6 +574,21 @@ class EditAccountDialog(wx.Dialog):
 
 		if account.custom_base_url:
 			self.custom_base_url_text_ctrl.SetValue(account.custom_base_url)
+
+		if account.model_sort_key is None:
+			self.model_sort_key.SetSelection(0)  # Default
+		elif account.model_sort_key in ACCOUNT_MODEL_SORT_KEYS:
+			self.model_sort_key.SetSelection(
+				ACCOUNT_MODEL_SORT_KEYS.index(account.model_sort_key)
+			)
+		else:
+			self.model_sort_key.SetSelection(0)
+		self.model_sort_reverse.SetValue(
+			account.model_sort_reverse
+			if account.model_sort_reverse is not None
+			else False
+		)
+		self.update_ui()
 
 	def _set_api_key_data(self) -> None:
 		"""Set API key related fields from account data."""
