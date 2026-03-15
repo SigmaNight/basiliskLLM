@@ -152,37 +152,9 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			border=10,
 		)
 
-		label = self.create_model_widget()
+		self.create_settings_section()
 		sizer.Add(
-			label,
-			proportion=0,
-			flag=wx.EXPAND | wx.TOP | wx.LEFT | wx.RIGHT,
-			border=10,
-		)
-		sizer.Add(
-			self.model_list,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT,
-			border=10,
-		)
-
-		self.create_tools_group()
-		sizer.Add(
-			self.tools_group_sizer,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		self.create_general_group()
-		sizer.Add(
-			self.general_group_sizer,
-			proportion=0,
-			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
-			border=10,
-		)
-		self.create_reasoning_group()
-		sizer.Add(
-			self.reasoning_group_sizer,
+			self.settings_section_sizer,
 			proportion=0,
 			flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP,
 			border=10,
@@ -297,6 +269,8 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
+		if hasattr(self, "web_search_mode"):
+			self.web_search_mode.SetValue(self.block.web_search_mode)
 		self._load_reasoning_params()
 
 	def on_account_change(self, event):
