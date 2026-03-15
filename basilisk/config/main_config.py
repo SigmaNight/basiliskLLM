@@ -6,6 +6,7 @@ from functools import cache
 
 from pydantic import BaseModel, Field, model_validator
 
+from .config_constants import MODEL_SORT_KEYS
 from .config_enums import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
@@ -56,6 +57,19 @@ class GeneralSettings(BaseModel):
 
 class ConversationSettings(BaseModel):
 	"""Conversation settings for BasiliskLLM."""
+
+	model_sort_key: str = Field(
+		default="none", description="Default sort key for models list"
+	)
+	model_sort_reverse: bool = Field(
+		default=False, description="Default reverse sort order for models list"
+	)
+
+	@model_validator(mode="after")
+	def _validate_model_sort_key(self) -> "ConversationSettings":
+		if self.model_sort_key not in MODEL_SORT_KEYS:
+			object.__setattr__(self, "model_sort_key", "none")
+		return self
 
 	role_label_user: str | None = Field(default=None)
 	role_label_assistant: str | None = Field(default=None)

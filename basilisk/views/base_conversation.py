@@ -51,6 +51,27 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._display_models: list[ProviderAIModel] = []
+		self._model_sort_key = "none"
+		self._model_sort_reverse = False
+
+	def _get_effective_model_sort(self) -> tuple[str, bool]:
+		"""Get effective sort key and reverse from account override or preference.
+
+		Returns:
+			Tuple of (sort_key, reverse). Account override takes precedence over
+			preference default.
+		"""
+		account = self.current_account
+		if account and account.model_sort_key is not None:
+			reverse = (
+				account.model_sort_reverse
+				if account.model_sort_reverse is not None
+				else False
+			)
+			return (account.model_sort_key, reverse)
+		conv = config.conf().conversation
+		return (conv.model_sort_key, conv.model_sort_reverse)
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -147,6 +168,9 @@ class BaseConversation:
 		if not account:
 			return None
 		self.base_conv_presenter.get_engine(account)
+		self._model_sort_key, self._model_sort_reverse = (
+			self._get_effective_model_sort()
+		)
 		self.update_model_list()
 		return account
 
@@ -342,19 +366,45 @@ class BaseConversation:
 		self.model_list.Bind(wx.EVT_CONTEXT_MENU, self.on_model_context_menu)
 		self.model_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_model_change)
 
+	def _sort_key_for_model(self, model: ProviderAIModel, key: str):
+		"""Return sort key for a model. Used for sorting."""
+		if key == "name":
+			return (model.display_name or model.id or "").lower()
+		if key == "release_date":
+			return model.created
+		if key == "max_output":
+			return model.max_output_tokens if model.max_output_tokens > 0 else 0
+		if key == "context_window":
+			return model.context_window
+		return model.display_name or model.id or ""
+
 	def update_model_list(self):
 		"""Update the model list with current engine's available models."""
+		engine = self.current_engine
+		if not engine:
+			self._display_models = []
+			self.model_list.DeleteAllItems()
+			return
+		sort_key = self._model_sort_key
+		models = list(engine.models)
+		if sort_key == "none":
+			reverse = self._model_sort_reverse
+			self._display_models = list(reversed(models)) if reverse else models
+		else:
+			reverse_default = sort_key in (
+				"release_date",
+				"max_output",
+				"context_window",
+			)
+			reverse = reverse_default != self._model_sort_reverse
+			self._display_models = sorted(
+				models,
+				key=lambda m: self._sort_key_for_model(m, sort_key),
+				reverse=reverse,
+			)
 		self.model_list.DeleteAllItems()
-		for model in self.get_display_models():
-			self.model_list.Append(model)
-
-	def get_display_models(self) -> list[tuple[str, str, str]]:
-		"""Get list of models for display.
-
-		Returns:
-			List of model display information in a tuple format e.g. (name, vision, context window)
-		"""
-		return self.base_conv_presenter.get_display_models(self.current_engine)
+		for model in self._display_models:
+			self.model_list.Append(model.display_model)
 
 	def set_model_list(self, model: Optional[ProviderAIModel]):
 		"""Set the selected model in the model list.
@@ -362,13 +412,13 @@ class BaseConversation:
 		Args:
 			model: Model to select
 		"""
-		engine = self.current_engine
-		if not engine:
+		if not self._display_models:
 			return
-		models = engine.models
 		index = wx.NOT_FOUND
 		if model:
-			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+			index = next(
+				locate(self._display_models, lambda m: m == model), wx.NOT_FOUND
+			)
 		if index != wx.NOT_FOUND:
 			self.model_list.SetItemState(
 				index,
@@ -384,13 +434,12 @@ class BaseConversation:
 		Returns:
 			The currently selected model or None if no model is selected.
 		"""
-		engine = self.current_engine
-		if not engine:
-			return None
 		model_index = self.model_list.GetFirstSelected()
-		if model_index == wx.NOT_FOUND:
+		if model_index == wx.NOT_FOUND or model_index >= len(
+			self._display_models
+		):
 			return None
-		return engine.models[model_index]
+		return self._display_models[model_index]
 
 	# (param_name, default, converter, ctrl_attr) for on_model_change from JSON
 	_OUTPUT_PARAM_DEFAULTS = (
@@ -481,8 +530,72 @@ class BaseConversation:
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_refresh_models, item)
+		sort_menu = wx.Menu()
+		# Translators: Submenu label for sort options
+		sort_labels = {
+			# Translators: None = use sort order from JSON/source (no custom sort)
+			"none": _("None"),
+			"name": _("Name"),
+			"release_date": _("Release date"),
+			"max_output": _("Max output"),
+			"context_window": _("Context window"),
+		}
+		model_sort_keys = (
+			"none",
+			"name",
+			"release_date",
+			"max_output",
+			"context_window",
+		)
+		current_key = self._model_sort_key
+		for key in model_sort_keys:
+			sort_item = sort_menu.AppendCheckItem(
+				wx.ID_ANY, sort_labels.get(key, key)
+			)
+			sort_item.Check(key == current_key)
+			self.Bind(
+				wx.EVT_MENU,
+				lambda e, k=key: self._on_model_sort_by(k),
+				sort_item,
+			)
+		sort_menu.AppendSeparator()
+		reverse_item = sort_menu.AppendCheckItem(
+			wx.ID_ANY,
+			# Translators: Checkable item to reverse the current sort order
+			_("Reverse order"),
+		)
+		reverse_item.Check(self._model_sort_reverse)
+		self.Bind(wx.EVT_MENU, self._on_model_sort_reverse, reverse_item)
+		menu.AppendSubMenu(
+			sort_menu,
+			# Translators: Submenu label for model list sort options
+			_("Sort by"),
+		)
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
+
+	def _on_model_sort_by(self, sort_key: str):
+		"""Handle sort-by selection from context menu."""
+		if self._model_sort_key == sort_key:
+			return
+		self._model_sort_key = sort_key
+		self._refresh_model_list_preserving_selection()
+
+	def _on_model_sort_reverse(self, event: wx.CommandEvent | None):
+		"""Handle reverse sort toggle from context menu."""
+		self._model_sort_reverse = not self._model_sort_reverse
+		self._refresh_model_list_preserving_selection()
+
+	def _refresh_model_list_preserving_selection(self):
+		"""Refresh model list and restore selection by model id."""
+		model_id = self.current_model.id if self.current_model else None
+		self.update_model_list()
+		model = (
+			next((m for m in self._display_models if m.id == model_id), None)
+			if model_id
+			else None
+		)
+		self.set_model_list(model)
 
 	def on_refresh_models(self, event: wx.CommandEvent | None):
 		"""Refresh the models list."""
