@@ -7,9 +7,8 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
-import re
 from functools import cached_property
-from typing import Iterator
+from typing import Any, Iterator
 
 from google import genai
 from google.genai.types import (
@@ -18,6 +17,8 @@ from google.genai.types import (
 	GenerateContentResponse,
 	GoogleSearch,
 	Part,
+	ThinkingConfig,
+	ThinkingLevel,
 	Tool,
 )
 
@@ -29,13 +30,11 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .provider_ui_spec import ReasoningUISpec
 
 logger = logging.getLogger(__name__)
-
-re_gemini_model = re.compile(r"Gemini (\d+\.\d+)")
 
 
 class GeminiEngine(BaseEngine):
@@ -85,6 +84,8 @@ class GeminiEngine(BaseEngine):
 		"video/3gpp",
 	}
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/google.json"
+
 	@cached_property
 	def client(self) -> genai.Client:
 		"""Property to return the client object for the provider.
@@ -94,41 +95,40 @@ class GeminiEngine(BaseEngine):
 		"""
 		return genai.Client(api_key=self.account.api_key.get_secret_value())
 
-	@cached_property
-	@measure_time
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the provider.
+	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
+		"""Gemini supports Google Search via tools for models with tools capability."""
+		return super().model_supports_web_search(model)
 
-		Returns:
-			List of supported provider models with their configurations.
-		"""
-		models = []
-		for model in self.client.models.list():
-			if "generateContent" not in model.supported_actions:
-				continue
-			models.append(
-				ProviderAIModel(
-					id=model.name,
-					name=model.display_name,
-					description=model.description,
-					context_window=(
-						model.output_token_limit + model.input_token_limit
-					),
-					max_output_tokens=model.output_token_limit,
-					vision=True,
-					reasoning="thinking" in model.name,
-				)
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[Tool]:
+		"""Return Google Search tool for grounding."""
+		return [Tool(google_search=GoogleSearch())]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Gemini: gemini-2 uses budget; gemini-3 uses effort (low/medium/high)."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		model_id = (model.id or "").lower()
+		if "gemini-3" in model_id:
+			return ReasoningUISpec(
+				show=True,
+				show_adaptive=False,
+				show_budget=False,
+				show_effort=True,
+				effort_options=("low", "medium", "high"),
+				effort_label="Thinking level:",
 			)
-		gemini_xy_models = [
-			m for m in models if re_gemini_model.match(m.display_name)
-		]
-		gemini_xy_models.sort(
-			key=lambda x: -float(re_gemini_model.match(x.display_name).group(1))
+		# Gemini 2.5: thinking_budget
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=True,
+			show_effort=False,
+			budget_default=16000,
+			budget_max=128000,
 		)
-		other_models = [
-			m for m in models if not re_gemini_model.match(m.display_name)
-		]
-		return gemini_xy_models + other_models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.
@@ -194,6 +194,36 @@ class GeminiEngine(BaseEngine):
 	prepare_message_request = convert_message_content
 	prepare_message_response = convert_message_content
 
+	def _build_thinking_config(
+		self, model: ProviderAIModel | None, new_block: MessageBlock
+	) -> ThinkingConfig | None:
+		"""Build ThinkingConfig for Gemini 2.5 (thinking_budget) or 3 (thinking_level).
+
+		Gemini 2.5 uses thinking_budget (tokens, -1=auto); Gemini 3 uses thinking_level.
+		Only add config when reasoning_mode is on and model supports it.
+		"""
+		if (
+			not model
+			or not model.reasoning_capable
+			or not new_block.reasoning_mode
+		):
+			return None
+		model_id = (model.id or "").lower()
+		if "gemini-3" in model_id:
+			effort = (new_block.reasoning_effort or "high").lower()
+			level_map = {
+				"low": ThinkingLevel.LOW,
+				"medium": ThinkingLevel.MEDIUM,
+				"high": ThinkingLevel.HIGH,
+			}
+			thinking_level = level_map.get(effort, ThinkingLevel.HIGH)
+			return ThinkingConfig(thinking_level=thinking_level)
+		# Gemini 2.5: thinking_budget (tokens). -1 = auto/dynamic per API.
+		budget = new_block.reasoning_budget_tokens
+		if budget is None:
+			budget = -1
+		return ThinkingConfig(thinking_budget=budget)
+
 	def completion(
 		self,
 		new_block: MessageBlock,
@@ -219,10 +249,14 @@ class GeminiEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
-		web_search = kwargs.pop("web_search_mode", False)
+		model = self.get_model(new_block.model.model_id)
 		tools = None
-		if web_search:
-			tools = [Tool(google_search=GoogleSearch())]
+		web_search = kwargs.pop("web_search_mode", False)
+		if web_search and model and self.model_supports_web_search(model):
+			tools = self.get_web_search_tool_definitions(model)
+
+		thinking_config = self._build_thinking_config(model, new_block)
+
 		config = GenerateContentConfig(
 			system_instruction=system_message.content
 			if system_message
@@ -233,6 +267,7 @@ class GeminiEngine(BaseEngine):
 			temperature=new_block.temperature,
 			top_p=new_block.top_p,
 			tools=tools,
+			thinking_config=thinking_config,
 		)
 
 		generate_kwargs = {
@@ -269,13 +304,17 @@ class GeminiEngine(BaseEngine):
 		return new_block
 
 	def completion_response_with_stream(
-		self, stream: Iterator[GenerateContentResponse], **kwargs
-	) -> Iterator[str]:
+		self,
+		stream: Iterator[GenerateContentResponse],
+		new_block: MessageBlock,
+		**kwargs,
+	) -> Iterator[tuple[str, Any]]:
 		"""Handle completion response with stream.
 
 		Args:
 			stream: Stream response from the provider
-			**kwargs: Additional keyword arguments for flexible configuration
+			new_block: Block to set usage on when available
+			**kwargs: Additional arguments passed through.
 
 		Returns:
 			Stream response from the provider
@@ -283,4 +322,4 @@ class GeminiEngine(BaseEngine):
 		for chunk in stream:
 			chunk_text = chunk.text
 			if chunk_text:
-				yield chunk_text
+				yield ("content", chunk_text)

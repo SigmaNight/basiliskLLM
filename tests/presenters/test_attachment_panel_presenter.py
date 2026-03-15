@@ -235,7 +235,10 @@ class TestEnsureModelCompatibility:
 
 	@pytest.mark.parametrize(
 		("compat_result", "expect_result", "expect_error"),
-		[((True, None), True, False), ((False, ["vision-model"]), False, True)],
+		[
+			((True, None), True, False),
+			((False, "Please select a vision model."), False, True),
+		],
 		ids=["compatible", "incompatible"],
 	)
 	def test_model_compatibility(
@@ -251,7 +254,7 @@ class TestEnsureModelCompatibility:
 		presenter.set_engine(_make_engine())
 		model = MagicMock()
 		mocker.patch(
-			"basilisk.presenters.attachment_panel_presenter.AttachmentService.check_model_vision_compatible",
+			"basilisk.presenters.attachment_panel_presenter.AttachmentService.check_model_attachment_compatible",
 			return_value=compat_result,
 		)
 		result = presenter.ensure_model_compatibility(model)

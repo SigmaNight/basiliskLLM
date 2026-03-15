@@ -252,9 +252,12 @@ class ConversationService:
 			response = engine.completion(**completion_kw)
 			if stream:
 				content_parts = []
-				for chunk in engine.completion_response_with_stream(response):
-					if isinstance(chunk, str):
-						content_parts.append(chunk)
+				for chunk in engine.completion_response_with_stream(
+					response, new_block=new_block
+				):
+					chunk_type, chunk_data = chunk
+					if chunk_type == "content" and isinstance(chunk_data, str):
+						content_parts.append(chunk_data)
 				return "".join(content_parts).strip(), None
 			new_block = engine.completion_response_without_stream(
 				response=response, **completion_kw
