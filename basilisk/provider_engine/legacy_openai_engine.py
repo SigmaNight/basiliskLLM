@@ -31,6 +31,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.usage_utils import token_usage_openai_style
 
 from .base_engine import BaseEngine
 
@@ -210,13 +211,15 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		Args:
 			stream: Generator of chat completion chunks.
 			new_block: Block to set usage on when available.
-			**kwargs: Additional arguments passed through.
+			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Yields:
 			Content from each chunk in the stream.
 		"""
 		for chunk in stream:
 			if not chunk.choices:
+				if hasattr(chunk, "usage") and chunk.usage:
+					new_block.usage = token_usage_openai_style(chunk.usage)
 				continue
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
@@ -239,4 +242,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			role=MessageRoleEnum.ASSISTANT,
 			content=response.choices[0].message.content or "",
 		)
+		if hasattr(response, "usage") and response.usage:
+			new_block.usage = token_usage_openai_style(response.usage)
 		return new_block
