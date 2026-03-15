@@ -23,6 +23,15 @@ from basilisk.decorators import measure_time
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
+from .dynamic_model_loader import (
+	_get_context_length,
+	_get_created,
+	_get_default_params,
+	_get_max_completion_tokens,
+	_has_reasoning_capable,
+	_has_web_search_capable,
+	_modality_flags,
+)
 from .legacy_openai_engine import LegacyOpenAIEngine
 from .provider_ui_spec import ReasoningUISpec
 
@@ -153,6 +162,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							| "description"
 							| "context_length"
 							| "top_provider"
+							| "default_parameters"
 						):
 							continue
 						case "pricing":
@@ -167,38 +177,40 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							if v is None:
 								continue
 							extra_info[k.replace("_", " ")] = v
-				arch = model.get("architecture") or {}
-				modality = arch.get("modality", "")
-				output_mods = arch.get("output_modalities") or []
-				if isinstance(output_mods, str):
-					output_mods = [output_mods]
-				image_output = "image" in output_mods
-				audio_output = "audio" in output_mods
+				context_window = _get_context_length(model)
+				max_output_tokens = _get_max_completion_tokens(model)
+				modalities = _modality_flags(model.get("architecture") or {})
 				supported = model.get("supported_parameters") or []
 				if isinstance(supported, list):
 					supported = [str(s).lower() for s in supported]
 				else:
 					supported = []
-				reasoning_capable = (
-					"reasoning" in supported or "include_reasoning" in supported
+				reasoning_capable = _has_reasoning_capable(supported)
+				web_search_capable = _has_web_search_capable(model, supported)
+				default_params = _get_default_params(model)
+				extra_info["default_parameters"] = default_params
+				def_temp = default_params.get("temperature")
+				default_temperature = (
+					float(def_temp) if def_temp is not None else 1.0
 				)
+				created = _get_created(model)
 				models.append(
 					ProviderAIModel(
 						id=model["id"],
 						name=model["name"],
 						description=model["description"],
-						context_window=int(model["context_length"]),
-						max_output_tokens=(model.get("top_provider") or {}).get(
-							"max_completion_tokens"
-						)
-						or -1,
+						context_window=context_window,
+						max_output_tokens=max_output_tokens,
 						max_temperature=2.0,
-						vision="image" in modality,
-						audio="audio" in modality,
-						document="file" in modality,
-						image_output=image_output,
-						audio_output=audio_output,
+						default_temperature=default_temperature,
+						vision=modalities["vision"],
+						audio=modalities["audio"],
+						document=modalities["document"],
+						image_output=modalities["image_output"],
+						audio_output=modalities["audio_output"],
 						reasoning_capable=reasoning_capable,
+						web_search_capable=web_search_capable,
+						created=created,
 						supported_parameters=supported,
 						extra_info=extra_info,
 					)
