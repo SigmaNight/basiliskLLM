@@ -26,6 +26,7 @@ class DBConversation(Base):
 		default=lambda: datetime.now(timezone.utc),
 		onupdate=lambda: datetime.now(timezone.utc),
 	)
+	pricing_snapshot_json: Mapped[str | None] = mapped_column(default=None)
 
 	system_prompt_links: Mapped[list["DBConversationSystemPrompt"]] = (
 		relationship(
@@ -106,6 +107,8 @@ class DBMessageBlock(Base):
 	web_search_mode: Mapped[bool] = mapped_column(default=False)
 	usage_json: Mapped[str | None] = mapped_column(default=None)
 	timing_json: Mapped[str | None] = mapped_column(default=None)
+	cost: Mapped[float | None] = mapped_column(default=None)
+	cost_breakdown_json: Mapped[str | None] = mapped_column(default=None)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)

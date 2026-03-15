@@ -301,6 +301,13 @@ class CompletionHandler:
 				first_token_at=first_token_at,
 				finished_at=datetime.now(),
 			)
+		conversation = kwargs.get("conversation")
+		if conversation is not None:
+			from basilisk.provider_engine.pricing_utils import (
+				apply_block_cost_and_pricing,
+			)
+
+			apply_block_cost_and_pricing(new_block, conversation, engine)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
 		return True
@@ -335,6 +342,13 @@ class CompletionHandler:
 			completed_block.timing = ResponseTiming(
 				started_at=started_at, finished_at=datetime.now()
 			)
+		conversation = kwargs.get("conversation")
+		if conversation is not None:
+			from basilisk.provider_engine.pricing_utils import (
+				apply_block_cost_and_pricing,
+			)
+
+			apply_block_cost_and_pricing(completed_block, conversation, engine)
 
 		# Notify that non-streaming completion has finished
 		if self.on_non_stream_finish:

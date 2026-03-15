@@ -37,7 +37,14 @@ class TokenUsage(BaseModel):
 	output_tokens: int = 0
 	reasoning_tokens: int | None = None
 	cached_input_tokens: int | None = None
+	cache_write_tokens: int | None = (
+		None  # Tokens written to cache (different pricing)
+	)
+	audio_tokens: int | None = None  # Audio input tokens
 	total_tokens: int | None = None
+	cost: float | None = (
+		None  # Provider-reported cost (e.g. OpenRouter usage.cost)
+	)
 
 	@property
 	def effective_total(self) -> int:
@@ -238,6 +245,12 @@ class MessageBlock(BaseModel):
 	db_id: int | None = Field(default=None, exclude=True)
 	usage: TokenUsage | None = Field(default=None)
 	timing: ResponseTiming | None = Field(default=None)
+	cost: float | None = Field(
+		default=None
+	)  # Block cost in USD (from provider or computed)
+	cost_breakdown: dict[str, float] | None = Field(
+		default=None
+	)  # Per-token-type cost for display (input, output, reasoning, cached, cache_write, audio, etc.)
 
 	@field_validator("response", mode="after")
 	@classmethod
@@ -283,6 +296,132 @@ class Conversation(BaseModel):
 	)
 	title: str | None = Field(default=None)
 	version: int = Field(default=BSKC_VERSION, ge=0, le=BSKC_VERSION)
+	# model_id -> field -> ISO datetime -> price (USD per token)
+	pricing_snapshot: dict[str, dict[str, dict[str, float]]] = Field(
+		default_factory=dict
+	)
+
+	# --- Conversation-level computed properties ---
+
+	@property
+	def token_total(self) -> int:
+		"""Total tokens consumed across all message blocks (input + output)."""
+		total = 0
+		for block in self.messages:
+			if block.usage:
+				total += block.usage.effective_total
+		return total
+
+	@property
+	def input_tokens_total(self) -> int:
+		"""Total input tokens across all blocks."""
+		return sum(b.usage.input_tokens for b in self.messages if b.usage)
+
+	@property
+	def output_tokens_total(self) -> int:
+		"""Total output tokens across all blocks."""
+		return sum(b.usage.output_tokens for b in self.messages if b.usage)
+
+	@property
+	def reasoning_tokens_total(self) -> int:
+		"""Total reasoning tokens across all blocks."""
+		return sum(
+			b.usage.reasoning_tokens or 0 for b in self.messages if b.usage
+		)
+
+	@property
+	def cached_input_tokens_total(self) -> int:
+		"""Total cached input tokens across all blocks."""
+		return sum(
+			b.usage.cached_input_tokens or 0 for b in self.messages if b.usage
+		)
+
+	@property
+	def total_duration_seconds(self) -> float | None:
+		"""Total duration from first block start to last block finish (if timing available)."""
+		if not self.messages:
+			return None
+		starts: list[datetime] = []
+		ends: list[datetime] = []
+		for block in self.messages:
+			if block.timing:
+				if block.timing.started_at:
+					starts.append(block.timing.started_at)
+				if block.timing.finished_at:
+					ends.append(block.timing.finished_at)
+		if not starts or not ends:
+			return None
+		return (max(ends) - min(starts)).total_seconds()
+
+	@property
+	def average_tokens_per_block(self) -> float | None:
+		"""Average tokens per block (token_total / block_count). None if no blocks."""
+		if not self.messages:
+			return None
+		return self.token_total / len(self.messages)
+
+	@property
+	def started_at(self) -> datetime | None:
+		"""Start date of the conversation (first block's created_at)."""
+		if not self.messages:
+			return None
+		return min(b.created_at for b in self.messages)
+
+	@property
+	def last_activity_at(self) -> datetime | None:
+		"""Last activity date (most recent block's updated_at)."""
+		if not self.messages:
+			return None
+		return max(b.updated_at for b in self.messages)
+
+	@property
+	def block_count(self) -> int:
+		"""Number of message blocks (request/response pairs)."""
+		return len(self.messages)
+
+	@property
+	def models_used(self) -> list[str]:
+		"""List of unique model identifiers used in the conversation."""
+		seen: set[str] = set()
+		result: list[str] = []
+		for block in self.messages:
+			key = f"{block.model.provider_id}/{block.model.model_id}"
+			if key not in seen:
+				seen.add(key)
+				result.append(key)
+		return result
+
+	@property
+	def cache_write_tokens_total(self) -> int:
+		"""Total cache write tokens across all blocks."""
+		return sum(
+			b.usage.cache_write_tokens or 0 for b in self.messages if b.usage
+		)
+
+	@property
+	def audio_tokens_total(self) -> int:
+		"""Total audio tokens across all blocks."""
+		return sum(b.usage.audio_tokens or 0 for b in self.messages if b.usage)
+
+	@property
+	def cost_total(self) -> float | None:
+		"""Total cost across blocks (from block.cost or usage.cost)."""
+		costs: list[float] = []
+		for block in self.messages:
+			c = (
+				block.cost
+				if block.cost is not None
+				else (
+					block.usage.cost
+					if block.usage and block.usage.cost is not None
+					else None
+				)
+			)
+			if c is not None:
+				costs.append(c)
+		if not costs:
+			return None
+		return sum(costs)
 
 	@model_validator(mode="before")
 	@classmethod

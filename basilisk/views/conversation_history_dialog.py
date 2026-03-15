@@ -80,12 +80,17 @@ class ConversationHistoryDialog(wx.Dialog):
 		self.list_ctrl.AppendColumn(
 			# Translators: Column header for message count
 			_("Messages"),
-			width=80,
+			width=70,
+		)
+		self.list_ctrl.AppendColumn(
+			# Translators: Column header for creation time
+			_("Created"),
+			width=130,
 		)
 		self.list_ctrl.AppendColumn(
 			# Translators: Column header for last update time
 			_("Last updated"),
-			width=150,
+			width=130,
 		)
 		sizer.Add(
 			self.list_ctrl,
@@ -260,10 +265,14 @@ class ConversationHistoryDialog(wx.Dialog):
 			title = conv["title"] or _("Untitled conversation")
 			self.list_ctrl.InsertItem(index, title)
 			self.list_ctrl.SetItem(index, 1, str(conv["message_count"]))
+			created = conv.get("created_at")
+			self.list_ctrl.SetItem(
+				index, 2, created.strftime("%Y-%m-%d %H:%M") if created else ""
+			)
 			updated = conv["updated_at"]
 			if updated:
 				self.list_ctrl.SetItem(
-					index, 2, updated.strftime("%Y-%m-%d %H:%M")
+					index, 3, updated.strftime("%Y-%m-%d %H:%M")
 				)
 
 		shown = len(self._conversations)

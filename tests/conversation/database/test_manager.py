@@ -14,6 +14,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.conversation_model import TokenUsage
 from basilisk.conversation.database.models import DBAttachment
 
 
@@ -261,6 +262,50 @@ class TestLoadConversation:
 		for i, block in enumerate(loaded.messages):
 			assert block.request.content == f"Question {i}"
 			assert block.response.content == f"Answer {i}"
+
+	def test_load_block_with_cost_and_cost_breakdown(
+		self, db_manager, test_ai_model
+	):
+		"""Block cost and cost_breakdown round-trip correctly."""
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		req = Message(role=MessageRoleEnum.USER, content="q")
+		resp = Message(role=MessageRoleEnum.ASSISTANT, content="a")
+		block = MessageBlock(
+			request=req,
+			response=resp,
+			model=test_ai_model,
+			usage=TokenUsage(input_tokens=100, output_tokens=50),
+			cost=0.0025,
+			cost_breakdown={
+				"input": 0.0001,
+				"output": 0.0001,
+				"request": 0.0001,
+			},
+		)
+		conv.add_block(block)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert loaded.messages[0].cost == 0.0025
+		assert loaded.messages[0].cost_breakdown == {
+			"input": 0.0001,
+			"output": 0.0001,
+			"request": 0.0001,
+		}
+
+	def test_load_conversation_with_pricing_snapshot(self, db_manager):
+		"""Conversation pricing_snapshot round-trips correctly."""
+		conv = Conversation()
+		conv.pricing_snapshot = {
+			"openai/gpt-4": {
+				"prompt": {"2026-01-01T12:00:00": 0.000001},
+				"completion": {"2026-01-01T12:00:00": 0.000002},
+			}
+		}
+		conv_id = db_manager.save_conversation(conv)
+		loaded = db_manager.load_conversation(conv_id)
+		assert loaded.pricing_snapshot == conv.pricing_snapshot
 
 	def test_load_nonexistent_raises(self, db_manager):
 		"""Test that loading an invalid ID raises ValueError."""
