@@ -115,6 +115,19 @@ class ProviderAIModel:
 			return True
 		return param in self.supported_parameters
 
+	def get_default_param(self, param: str, fallback: Any = None) -> Any:
+		"""Return default value for a parameter from JSON default_parameters.
+
+		Args:
+			param: Parameter name (e.g. "temperature", "top_p", "frequency_penalty").
+			fallback: Value to return when not in default_parameters.
+
+		Returns:
+			Default value or fallback.
+		"""
+		defaults = self.extra_info.get("default_parameters") or {}
+		return defaults.get(param, fallback)
+
 	@property
 	def effective_max_output_tokens(self) -> int:
 		"""Calculates the effective maximum number of output tokens for the AI model.

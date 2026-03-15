@@ -1,6 +1,7 @@
 """Database manager for conversation persistence."""
 
 import hashlib
+import json
 import logging
 from pathlib import Path
 
@@ -379,6 +380,9 @@ class ConversationDatabase:
 		csp_id: int | None,
 	) -> DBMessageBlock:
 		"""Create and flush a DBMessageBlock, updating block.db_id."""
+		stop_json = (
+			json.dumps(block.stop) if getattr(block, "stop", None) else None
+		)
 		db_block = DBMessageBlock(
 			conversation_id=conv_id,
 			position=block_index,
@@ -388,6 +392,11 @@ class ConversationDatabase:
 			temperature=block.temperature,
 			max_tokens=block.max_tokens,
 			top_p=block.top_p,
+			frequency_penalty=getattr(block, "frequency_penalty", 0),
+			presence_penalty=getattr(block, "presence_penalty", 0),
+			seed=getattr(block, "seed", None),
+			top_k=getattr(block, "top_k", None),
+			stop_json=stop_json,
 			stream=block.stream,
 			web_search_mode=getattr(block, "web_search_mode", False),
 			created_at=block.created_at,
@@ -682,6 +691,12 @@ class ConversationDatabase:
 		if db_block.system_prompt_link is not None:
 			system_index = db_block.system_prompt_link.position
 
+		stop_list = None
+		if getattr(db_block, "stop_json", None):
+			try:
+				stop_list = json.loads(db_block.stop_json)
+			except TypeError, ValueError:
+				pass
 		block = MessageBlock(
 			request=request_msg,
 			response=response_msg,
@@ -692,6 +707,11 @@ class ConversationDatabase:
 			temperature=db_block.temperature,
 			max_tokens=db_block.max_tokens,
 			top_p=db_block.top_p,
+			frequency_penalty=getattr(db_block, "frequency_penalty", 0),
+			presence_penalty=getattr(db_block, "presence_penalty", 0),
+			seed=getattr(db_block, "seed", None),
+			top_k=getattr(db_block, "top_k", None),
+			stop=stop_list,
 			stream=db_block.stream,
 			web_search_mode=getattr(db_block, "web_search_mode", False),
 			created_at=db_block.created_at,

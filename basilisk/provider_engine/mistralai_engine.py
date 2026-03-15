@@ -161,6 +161,7 @@ class MistralAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": new_block.model.model_id,
 			"messages": self.get_messages(
@@ -175,6 +176,7 @@ class MistralAIEngine(BaseEngine):
 		}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		params.update(self._get_block_generation_params(new_block, model))
 		params.update(kwargs)
 		if new_block.stream:
 			return self.client.chat.stream(**params)

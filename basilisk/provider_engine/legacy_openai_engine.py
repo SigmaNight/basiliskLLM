@@ -189,6 +189,7 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			params["stream_options"] = {"include_usage": True}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		params.update(self._get_block_generation_params(new_block, model))
 		params.update(kwargs)
 		params = self._filter_params_for_model(model, params)
 		response = self.client.chat.completions.create(**params)

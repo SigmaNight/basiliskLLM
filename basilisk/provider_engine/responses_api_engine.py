@@ -154,6 +154,7 @@ class ResponsesAPIEngine(BaseEngine):
 		# automatically in ResponseCompletedEvent.
 		if new_block.max_tokens:
 			params["max_output_tokens"] = new_block.max_tokens
+		params.update(self._get_block_generation_params(new_block, model))
 		web_search = kwargs.pop("web_search_mode", False)
 		if web_search and self.model_supports_web_search(model):
 			tools = self.get_web_search_tool_definitions(model)
