@@ -18,6 +18,10 @@ from basilisk.conversation.attached_file import (
 	AttachmentFileTypes,
 	ImageFile,
 )
+from basilisk.conversation.content_utils import (
+	format_response_for_display,
+	split_reasoning_and_content,
+)
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -231,8 +235,14 @@ class ConversationDatabase:
 		self, session: Session, block_id: int, role: str, message: Message
 	):
 		"""Save a message with its attachments and citations."""
+		content = message.content
+		reasoning = getattr(message, "reasoning", None)
+		if reasoning:
+			content = format_response_for_display(
+				reasoning, content, show_reasoning=True
+			)
 		db_msg = DBMessage(
-			message_block_id=block_id, role=role, content=message.content
+			message_block_id=block_id, role=role, content=content
 		)
 		session.add(db_msg)
 		session.flush()
@@ -802,11 +812,13 @@ class ConversationDatabase:
 		)
 		attachments = self._load_message_attachments(db_msg)
 		citations = self._load_message_citations(db_msg)
+		reasoning, content = split_reasoning_and_content(db_msg.content)
 		return Message(
 			role=role,
-			content=db_msg.content,
+			content=content,
 			attachments=attachments,
 			citations=citations,
+			reasoning=reasoning,
 		)
 
 	@staticmethod

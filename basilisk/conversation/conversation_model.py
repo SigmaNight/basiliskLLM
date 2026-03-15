@@ -66,6 +66,7 @@ class Message(BaseMessage):
 
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+	reasoning: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod

@@ -89,15 +89,23 @@ class AnthropicEngine(BaseEngine):
 		return [{"type": "web_search_20250305", "name": "web_search"}]
 
 	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
-		"""Anthropic: adaptive thinking + budget tokens. No effort dropdown."""
+		"""Anthropic: adaptive thinking + budget tokens. 4.6 adds effort for adaptive."""
 		spec = super().get_reasoning_ui_spec(model)
 		if not spec.show:
 			return spec
+		model_id = model.id or ""
+		show_adaptive = "4.6" in model_id or "4-6" in model_id
+		# 4.6 adaptive uses output_config.effort (low/medium/high; max for Opus only)
+		effort_opts = ("low", "medium", "high")
+		if "opus" in model_id.lower() and "4.6" in model_id:
+			effort_opts = ("low", "medium", "high", "max")
 		return ReasoningUISpec(
 			show=True,
-			show_adaptive=True,
+			show_adaptive=show_adaptive,
 			show_budget=True,
-			show_effort=False,
+			show_effort=show_adaptive,
+			effort_options=effort_opts,
+			effort_label="Adaptive effort:",
 			budget_default=16000,
 			budget_max=128000,
 		)
@@ -241,9 +249,15 @@ class AnthropicEngine(BaseEngine):
 			}
 		elif model.reasoning_capable and new_block.reasoning_mode:
 			params.pop("top_p", None)
-			_supports_adaptive = "4.6" in (model.id or "")
+			_supports_adaptive = "4.6" in (model.id or "") or "4-6" in (
+				model.id or ""
+			)
 			if new_block.reasoning_adaptive and _supports_adaptive:
 				params["thinking"] = {"type": "adaptive"}
+				if new_block.reasoning_effort:
+					effort = new_block.reasoning_effort.lower()
+					if effort in ("low", "medium", "high", "max"):
+						params["output_config"] = {"effort": effort}
 			else:
 				params["thinking"] = {
 					"type": "enabled",
