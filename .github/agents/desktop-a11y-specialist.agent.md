@@ -13,6 +13,7 @@ handoffs:
   send: true
   model: Claude Sonnet 4 (copilot)
 - label: "Desktop A11y Testing"
+  agent: desktop-a11y-testing-coach
   prompt: "The user needs to verify accessibility with screen readers (NVDA, JAWS, Narrator, VoiceOver), Accessibility Insights, or automated UIA testing."
   send: true
   model: Claude Sonnet 4 (copilot)
