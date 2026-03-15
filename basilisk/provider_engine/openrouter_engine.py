@@ -6,7 +6,6 @@ implementing capabilities for text and image generation across multiple AI model
 
 import logging
 from datetime import datetime
-from decimal import Decimal, getcontext
 from functools import cached_property
 from typing import Generator, Union
 
@@ -33,6 +32,7 @@ from .dynamic_model_loader import (
 	_modality_flags,
 )
 from .legacy_openai_engine import LegacyOpenAIEngine
+from .pricing_utils import parse_pricing_from_json
 from .provider_ui_spec import ReasoningUISpec
 from .reasoning_api_enums import OpenRouterReasoningEffort
 from .stream_chunk_type import StreamChunkType
@@ -40,7 +40,8 @@ from .usage_utils import token_usage_openrouter
 
 log = logging.getLogger(__name__)
 
-getcontext().prec = 20
+# OpenRouter models API URL (same JSON structure as model-metadata; includes pricing)
+OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 # OpenRouter model IDs use provider/model format. Per OpenRouter docs:
 # - Effort (OpenAI-style): openai, x-ai (Grok)
@@ -114,33 +115,6 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		ProviderCapability.WEB_SEARCH,
 	}
 
-	def summarize_pricing(self, pricing: dict[str, dict[str, str]]) -> str:
-		"""Formats pricing information into a human-readable string.
-
-		Args:
-			pricing: Raw pricing data from the API.
-
-		Returns:
-			Formatted pricing information string.
-		"""
-		if not isinstance(pricing, dict):
-			return ""
-		out = "\n"
-		for usage_type, price in pricing.items():
-			if price is None or price == "0":
-				continue
-			if usage_type == "image":
-				price_1k = round(Decimal(price) * Decimal(1000), 3)
-				if price_1k == 0:
-					continue
-				out += f"  {usage_type}: ${price_1k}/K input imgs (${price}/input img)\n"
-			else:
-				price_1m = round(Decimal(price) * Decimal(1000000), 2)
-				out += (
-					f"  {usage_type}: ${price_1m}/M tokens (${price}/token)\n"
-				)
-		return out.rstrip()
-
 	@cached_property
 	@measure_time
 	def models(self) -> list[ProviderAIModel]:
@@ -151,12 +125,16 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		"""
 		models = []
 		log.debug("Getting openRouter models")
-		url = "https://openrouter.ai/api/v1/models"
-		response = httpx.get(url, headers={"User-Agent": self.get_user_agent()})
+		response = httpx.get(
+			OPENROUTER_MODELS_URL, headers={"User-Agent": self.get_user_agent()}
+		)
 		if response.status_code == 200:
 			data = response.json()
 			for model in sorted(data["data"], key=lambda m: m["name"].lower()):
-				extra_info = {}
+				extra_info: dict = {}
+				pricing = parse_pricing_from_json(model)
+				if pricing and pricing.has_usable_pricing():
+					extra_info["Pricing"] = pricing.format_for_display()
 				for k, v in sorted(model.items()):
 					match k:
 						case (
@@ -166,12 +144,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							| "context_length"
 							| "top_provider"
 							| "default_parameters"
+							| "pricing"
 						):
 							continue
-						case "pricing":
-							summary = self.summarize_pricing(v)
-							if summary:
-								extra_info["Pricing"] = summary
 						case "created":
 							extra_info[k] = datetime.fromtimestamp(v).strftime(
 								"%Y-%m-%d %H:%M:%S"
@@ -216,13 +191,14 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						created=created,
 						supported_parameters=supported,
 						extra_info=extra_info,
+						pricing=pricing,
 					)
 				)
 			log.debug("Got %d models", len(models))
 		else:
 			log.error(
 				"Failed to get models from '%s'. Response: %s",
-				url,
+				OPENROUTER_MODELS_URL,
 				response.text,
 			)
 		return models

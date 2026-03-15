@@ -97,7 +97,7 @@ class TestTokenUsageAnthropic:
 		assert result.output_tokens == 50
 
 	def test_with_cache_creation_and_read(self):
-		"""cached_input_tokens sums cache_creation and cache_read when present."""
+		"""cached_input_tokens and cache_write_tokens mapped from Anthropic fields."""
 		u = type(
 			"Usage",
 			(),
@@ -109,7 +109,8 @@ class TestTokenUsageAnthropic:
 			},
 		)()
 		result = token_usage_anthropic(u)
-		assert result.cached_input_tokens == 30
+		assert result.cached_input_tokens == 20
+		assert result.cache_write_tokens == 10
 
 
 class TestTokenUsageResponsesApi:
@@ -150,6 +151,34 @@ class TestTokenUsageGemini:
 		assert result.input_tokens == 10
 		assert result.output_tokens == 5
 		assert result.total_tokens == 15
+
+
+class TestTokenUsageOpenRouter:
+	"""Tests for token_usage_openrouter."""
+
+	def test_with_cost_cache_write_audio(self):
+		"""Extracts cost, cache_write_tokens, audio_tokens from OpenRouter usage."""
+		from basilisk.provider_engine.usage_utils import token_usage_openrouter
+
+		details = {
+			"cached_tokens": 50,
+			"cache_write_tokens": 10,
+			"audio_tokens": 5,
+		}
+		u = {
+			"prompt_tokens": 200,
+			"completion_tokens": 100,
+			"total_tokens": 300,
+			"prompt_tokens_details": details,
+			"cost": 0.0123,
+		}
+		result = token_usage_openrouter(u)
+		assert result.input_tokens == 200
+		assert result.output_tokens == 100
+		assert result.cached_input_tokens == 50
+		assert result.cache_write_tokens == 10
+		assert result.audio_tokens == 5
+		assert result.cost == 0.0123
 
 
 class TestTokenUsageOllama:
