@@ -250,9 +250,20 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 	def init_ui(self):
 		"""Initialize and layout all UI components."""
 		sizer = wx.BoxSizer(wx.VERTICAL)
+		account_row = wx.BoxSizer(wx.HORIZONTAL)
+		self.apply_profile_btn = wx.Button(
+			self,
+			# Translators: This is a label for apply profile button in the main window
+			label=_("Apply profile") + " (Ctrl+P)",
+		)
+		self.Bind(wx.EVT_BUTTON, self.on_choose_profile, self.apply_profile_btn)
+		account_row.Add(
+			self.apply_profile_btn, proportion=0, flag=wx.RIGHT, border=5
+		)
 		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
+		account_row.Add(self.account_combo, proportion=1, flag=wx.EXPAND)
+		sizer.Add(account_row, proportion=0, flag=wx.EXPAND)
 
 		label = self.create_system_prompt_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -274,18 +285,11 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.prompt_panel.set_prompt_focus()
 		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
 		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
-		label = self.create_model_widget()
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.create_reasoning_group()
-		sizer.Add(self.reasoning_group_sizer, proportion=0, flag=wx.EXPAND)
-		self.create_tools_group()
-		sizer.Add(self.tools_group_sizer, proportion=0, flag=wx.EXPAND)
-		self.create_general_group()
-		sizer.Add(self.general_group_sizer, proportion=0, flag=wx.EXPAND)
 
-		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.create_settings_section()
+		sizer.Add(self.settings_section_sizer, proportion=0, flag=wx.EXPAND)
 
+		conv_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.submit_btn = wx.Button(
 			self,
 			# Translators: This is a label for submit button in the main window
@@ -293,8 +297,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		)
 		self.Bind(wx.EVT_BUTTON, self.on_submit, self.submit_btn)
 		self.submit_btn.SetDefault()
-		btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
-
+		conv_btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
 		self.stop_completion_btn = wx.Button(
 			self,
 			# Translators: This is a label for stop completion button in the main window
@@ -303,26 +306,18 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.Bind(
 			wx.EVT_BUTTON, self.on_stop_completion, self.stop_completion_btn
 		)
-		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
+		conv_btn_sizer.Add(
+			self.stop_completion_btn, proportion=0, flag=wx.EXPAND
+		)
 		self.stop_completion_btn.Hide()
-
 		self.toggle_record_btn = wx.Button(
 			self,
 			# Translators: This is a label for record button in the main window
 			label=_("Record") + " (Ctrl+R)",
 		)
-		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
+		conv_btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
 		self.Bind(wx.EVT_BUTTON, self.toggle_recording, self.toggle_record_btn)
-
-		self.apply_profile_btn = wx.Button(
-			self,
-			# Translators: This is a label for apply profile button in the main window
-			label=_("Apply profile") + " (Ctrl+P)",
-		)
-		self.Bind(wx.EVT_BUTTON, self.on_choose_profile, self.apply_profile_btn)
-		btn_sizer.Add(self.apply_profile_btn, proportion=0, flag=wx.EXPAND)
-
-		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
+		sizer.Add(conv_btn_sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizerAndFit(sizer)
 
