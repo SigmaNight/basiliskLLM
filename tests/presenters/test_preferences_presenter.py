@@ -35,6 +35,8 @@ def mock_view():
 	view.use_system_cert_store.GetValue.return_value = False
 	view.server_enable.GetValue.return_value = False
 	view.server_port.GetValue.return_value = "8080"
+	view.model_sort_key.GetSelection.return_value = 0
+	view.model_sort_reverse.GetValue.return_value = False
 	return view
 
 
