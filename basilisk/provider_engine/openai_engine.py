@@ -351,6 +351,7 @@ class OpenAIEngine(ResponsesAPIEngine):
 				}
 			if new_block.max_tokens:
 				params["max_tokens"] = new_block.max_tokens
+			params.update(self._get_block_generation_params(new_block, model))
 			params["store"] = False
 			params.update(kwargs)
 			if want_audio_output:

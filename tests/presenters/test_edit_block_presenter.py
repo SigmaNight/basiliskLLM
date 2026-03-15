@@ -63,10 +63,17 @@ class TestSaveBlock:
 		mock_view.prompt_panel.prompt_text = "Updated prompt"
 		mock_view.prompt_panel.attachment_files = []
 		mock_view.system_prompt_txt.GetValue.return_value = "Be helpful"
-		mock_view.temperature_spinner.GetValue.return_value = 0.3
-		mock_view.max_tokens_spin_ctrl.GetValue.return_value = 512
-		mock_view.top_p_spinner.GetValue.return_value = 0.9
-		mock_view.stream_mode.GetValue.return_value = False
+		mock_view.get_generation_params_from_view.return_value = {
+			"temperature": 0.3,
+			"max_tokens": 512,
+			"top_p": 0.9,
+			"frequency_penalty": 0.0,
+			"presence_penalty": 0.0,
+			"seed": None,
+			"top_k": None,
+			"stop": None,
+			"stream": False,
+		}
 		mock_view.response_txt.GetValue.return_value = "Updated response"
 
 		result = presenter.save_block()

@@ -42,6 +42,11 @@ class ConversationProfile(BaseModel):
 	max_tokens: Optional[int] = Field(default=None)
 	temperature: Optional[float] = Field(default=None)
 	top_p: Optional[float] = Field(default=None)
+	frequency_penalty: Optional[float] = Field(default=None)
+	presence_penalty: Optional[float] = Field(default=None)
+	seed: Optional[int] = Field(default=None)
+	top_k: Optional[int] = Field(default=None)
+	stop: Optional[list[str]] = Field(default=None)
 	stream_mode: bool = Field(default=True)
 	reasoning_mode: bool = Field(default=False)
 	reasoning_budget_tokens: Optional[int] = Field(default=None)
@@ -256,6 +261,16 @@ class ConversationProfile(BaseModel):
 				raise ValueError("Temperature must be None without model")
 			if self.top_p is not None:
 				raise ValueError("Top P must be None without model")
+			if self.frequency_penalty is not None:
+				raise ValueError("Frequency penalty must be None without model")
+			if self.presence_penalty is not None:
+				raise ValueError("Presence penalty must be None without model")
+			if self.seed is not None:
+				raise ValueError("Seed must be None without model")
+			if self.top_k is not None:
+				raise ValueError("Top K must be None without model")
+			if self.stop is not None:
+				raise ValueError("Stop must be None without model")
 			if self.reasoning_budget_tokens is not None:
 				raise ValueError("Reasoning budget must be None without model")
 			if self.reasoning_effort is not None:
