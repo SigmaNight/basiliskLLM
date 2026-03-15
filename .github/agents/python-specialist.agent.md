@@ -22,14 +22,6 @@ handoffs:
   prompt: "The user needs guidance on platform accessibility APIs (UIA, MSAA, ATK, NSAccessibility) for desktop application development."
   send: true
   model: Claude Sonnet 4 (copilot)
-- label: "Web A11y Reference"
-  prompt: "The user needs web accessibility scanning methodology, axe-core patterns, or WCAG rule references for a tool being built."
-  send: true
-  model: Claude Sonnet 4 (copilot)
-- label: "Document A11y Reference"
-  prompt: "The user needs document accessibility rule references, Office/PDF scanning patterns, or document audit methodology."
-  send: true
-  model: Claude Sonnet 4 (copilot)
 - label: "Back to Developer Hub"
   agent: developer-hub
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."

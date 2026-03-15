@@ -21,14 +21,6 @@ handoffs:
   prompt: "The user wants to build automated accessibility scanning, rule engines, or audit tooling for desktop applications."
   send: true
   model: Claude Sonnet 4 (copilot)
-- label: "Web Accessibility Audit"
-  prompt: "The user needs web accessibility auditing -- HTML, JSX, CSS, React, Vue, or any web UI content."
-  send: true
-  model: Claude Sonnet 4 (copilot)
-- label: "Document Accessibility Audit"
-  prompt: "The user needs document accessibility auditing -- Word, Excel, PowerPoint, PDF, or ePub files."
-  send: true
-  model: Claude Sonnet 4 (copilot)
 - label: "Back to Developer Hub"
   agent: developer-hub
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."
@@ -43,7 +35,6 @@ ______________________________________________________________________
 - **MSAA/IAccessible2 (Windows)** â€” https://learn.microsoft.com/en-us/windows/win32/winauto/microsoft-active-accessibility
 - **NSAccessibility Protocol (macOS)** â€” https://developer.apple.com/documentation/appkit/nsaccessibility
 - **ATK/AT-SPI (Linux)** â€” https://docs.gtk.org/atk/
-- **WCAG 2.2 Specification** â€” https://www.w3.org/TR/WCAG22/
 
 ## Using askQuestions
 
@@ -331,26 +322,6 @@ class CustomToggle(wx.Panel):
         # Notify assistive technology of state change
         wx.PostEvent(self, wx.CommandEvent(wx.wxEVT_CHECKBOX, self.GetId()))
 ```
-
-______________________________________________________________________
-
-## Cross-Team Integration
-
-### Desktop + Web Accessibility
-
-When desktop apps embed web views (wx.html2.WebView, CEF):
-
-- The web view has its own accessibility tree separate from the native one
-- Screen readers switch between "browse mode" (web) and "focus mode" (native)
-- Ensure focus transitions between native UI and web view are announced
-
-### Desktop + Document Accessibility
-
-When desktop apps generate or process documents:
-
-- Office documents produced by the app must follow DOCX/XLSX/PPTX accessibility rules
-- PDF exports must be tagged for accessibility (PDF/UA conformance)
-- Use `@a11y-tool-builder` to build automated document accessibility checks into the app
 
 ______________________________________________________________________
 

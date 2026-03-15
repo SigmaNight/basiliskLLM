@@ -17,10 +17,6 @@ handoffs:
   prompt: "The user needs the accessibility fix implemented in wxPython code."
   send: true
   model: Claude Sonnet 4 (copilot)
-- label: "Web A11y Testing"
-  prompt: "The user needs web accessibility testing guidance -- axe-core, Playwright, browser DevTools, or web screen reader testing."
-  send: true
-  model: Claude Sonnet 4 (copilot)
 - label: "Back to Developer Hub"
   agent: developer-hub
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."

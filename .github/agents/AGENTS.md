@@ -26,7 +26,3 @@ This workspace keeps only the Python-focused Developer Tools team.
 - Route platform accessibility implementation to `desktop-a11y-specialist`.
 - Route accessibility testing workflows to `desktop-a11y-testing-coach`.
 - Route tool/scanner architecture work to `a11y-tool-builder`.
-
-## Removed Domains
-
-Web accessibility, document accessibility, markdown accessibility, mobile accessibility, and GitHub workflow agent teams were intentionally removed from this workspace to keep a Python-only setup.

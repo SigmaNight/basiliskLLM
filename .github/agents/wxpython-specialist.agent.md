@@ -26,14 +26,6 @@ handoffs:
   prompt: "The user wants to build accessibility scanning tools, rule engines, or audit tooling with a wxPython GUI."
   send: true
   model: Claude Sonnet 4 (copilot)
-- label: "Web A11y Audit"
-  prompt: "The desktop app embeds web content or generates HTML -- route to web accessibility auditing."
-  send: true
-  model: Claude Sonnet 4 (copilot)
-- label: "Document A11y Audit"
-  prompt: "The desktop app generates or processes documents (DOCX, PDF) -- route to document accessibility auditing."
-  send: true
-  model: Claude Sonnet 4 (copilot)
 - label: "Back to Developer Hub"
   agent: developer-hub
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."
