@@ -6,10 +6,11 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 import wx
-from more_itertools import locate
+from more_itertools import first, locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+from basilisk.config import AccountSource
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 	ParameterVisibilityState,
@@ -19,6 +20,7 @@ from basilisk.provider_engine.dynamic_model_loader import invalidate_model_cache
 from basilisk.services.account_model_service import AccountModelService
 
 from .accessible import AccessibleWithHelp
+from .account_dialog import EditAccountDialog
 from .int_spin_ctrl import IntSpinCtrl
 from .read_only_message_dialog import ReadOnlyMessageDialog
 
@@ -105,6 +107,9 @@ class BaseConversation:
 			self, style=wx.CB_READONLY, choices=self.get_display_accounts()
 		)
 		self.account_combo.Bind(wx.EVT_COMBOBOX, self.on_account_change)
+		self.account_combo.Bind(
+			wx.EVT_CONTEXT_MENU, self.on_account_combo_context_menu
+		)
 		return label
 
 	@property
@@ -144,6 +149,80 @@ class BaseConversation:
 			return
 		accounts = config.accounts()
 		self.set_account_combo(accounts.default_account, accounts)
+
+	def _refresh_account_combo(self) -> bool:
+		"""Refresh the account combo. Returns True if selection fell back to first."""
+		account_index = self.account_combo.GetSelection()
+		account_id = (
+			config.accounts()[account_index].id
+			if account_index != wx.NOT_FOUND
+			else None
+		)
+		self.account_combo.Clear()
+		self.account_combo.AppendItems(self.get_display_accounts(True))
+		account_index = first(
+			locate(config.accounts(), lambda a: a.id == account_id),
+			wx.NOT_FOUND,
+		)
+		if account_index != wx.NOT_FOUND:
+			self.account_combo.SetSelection(account_index)
+		elif self.account_combo.GetCount() > 0:
+			self.account_combo.SetSelection(0)
+		self.Layout()
+		return (
+			account_index == wx.NOT_FOUND and self.account_combo.GetCount() > 0
+		)
+
+	def on_account_combo_context_menu(self, event: wx.ContextMenuEvent) -> None:
+		"""Show context menu for account combo."""
+		account = self.current_account
+		menu = wx.Menu()
+		edit_item = menu.Append(wx.ID_ANY, _("Edit account"))
+		can_edit = (
+			account is not None and account.source != AccountSource.ENV_VAR
+		)
+		menu.Enable(edit_item.GetId(), can_edit)
+		if can_edit:
+			self.Bind(
+				wx.EVT_MENU,
+				lambda e: self._edit_account_from_combo(account),
+				id=edit_item.GetId(),
+			)
+		menu.AppendSeparator()
+		default_item = menu.Append(wx.ID_ANY, _("Set as default"))
+		accounts = config.accounts()
+		is_default = account and accounts.default_account == account
+		menu.Enable(
+			default_item.GetId(), account is not None and not is_default
+		)
+		if account and not is_default:
+			self.Bind(
+				wx.EVT_MENU,
+				lambda e: self._set_default_account_from_combo(account),
+				id=default_item.GetId(),
+			)
+		self.account_combo.PopupMenu(menu, event.GetPosition())
+		menu.Destroy()
+
+	def _set_default_account_from_combo(self, account: config.Account) -> None:
+		accounts = config.accounts()
+		accounts.set_default_account(account)
+		accounts.save()
+
+	def _edit_account_from_combo(self, account: config.Account) -> None:
+		accounts = config.accounts()
+		index = next(locate(accounts, lambda a: a.id == account.id), None)
+		if index is None:
+			return
+		dialog = EditAccountDialog(
+			self, _("Edit account"), account=account.model_copy(deep=True)
+		)
+		if dialog.ShowModal() == wx.ID_OK:
+			accounts[index] = dialog.account
+			accounts.save()
+			self._refresh_account_combo()
+			self.on_account_change(None)
+		dialog.Destroy()
 
 	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
 		"""Get list of account display names.
