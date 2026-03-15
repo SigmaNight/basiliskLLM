@@ -793,6 +793,9 @@ class AccountDialog(wx.Dialog):
 		)
 		self.account_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.update_ui)
 		self.account_list.Bind(wx.EVT_KEY_DOWN, self.on_account_list_key_down)
+		self.account_list.Bind(
+			wx.EVT_CONTEXT_MENU, self.on_account_list_context_menu
+		)
 		sizer.Add(self.account_list, 1, wx.EXPAND)
 
 		add_btn = wx.Button(panel, label=_("&Add"))
@@ -892,6 +895,24 @@ class AccountDialog(wx.Dialog):
 		)
 		self.default_account_btn.Enable()
 		self.default_account_btn.SetValue(self.presenter.is_default(index))
+
+	def on_account_list_context_menu(self, event: wx.ContextMenuEvent) -> None:
+		"""Show context menu for account list."""
+		pos = event.GetPosition()
+		item_idx, _ = self.account_list.HitTest(
+			self.account_list.ScreenToClient(pos)
+		)
+		if item_idx >= 0:
+			self.account_list.Select(item_idx, True)
+			self.update_ui()
+		menu = wx.Menu()
+		# Translators: Context menu item to edit the selected account
+		edit_item = menu.Append(wx.ID_ANY, _("&Edit account") + "\tEnter")
+		sel = self.account_list.GetFirstSelected()
+		edit_item.Enable(sel >= 0 and self.presenter.is_editable(sel))
+		self.Bind(wx.EVT_MENU, self.on_edit, edit_item)
+		self.account_list.PopupMenu(menu)
+		menu.Destroy()
 
 	def on_account_list_key_down(self, event: wx.KeyEvent):
 		"""Handle the key down event on the account list.
