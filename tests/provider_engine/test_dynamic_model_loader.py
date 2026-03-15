@@ -4,6 +4,7 @@ import pytest
 
 from basilisk.provider_engine.dynamic_model_loader import (
 	fetch_models_json,
+	invalidate_model_cache,
 	load_models_from_url,
 	parse_model_metadata,
 )
@@ -288,6 +289,40 @@ def test_load_models_from_url_network_error_returns_empty(httpx_mock):
 	)
 	models = load_models_from_url("https://example.com/nonexistent.json")
 	assert models == []
+
+
+def test_invalidate_model_cache_clears_specific_url(httpx_mock):
+	"""invalidate_model_cache clears cache for the given URL."""
+	url = "https://example.com/invalidate-test.json"
+	invalidate_model_cache()
+	httpx_mock.add_response(
+		json={"data": [{"id": "gpt-5", "name": "GPT-5"}]}, url=url
+	)
+	load_models_from_url(url)
+	invalidate_model_cache(url)
+	httpx_mock.add_response(
+		json={"data": [{"id": "gpt-6", "name": "GPT-6"}]}, url=url
+	)
+	models = load_models_from_url(url)
+	assert len(models) == 1
+	assert models[0].id == "gpt-6"
+
+
+def test_invalidate_model_cache_clears_all_when_url_none(httpx_mock):
+	"""invalidate_model_cache clears entire cache when url is None."""
+	url = "https://example.com/invalidate-all-test.json"
+	invalidate_model_cache()
+	httpx_mock.add_response(
+		json={"data": [{"id": "gpt-5", "name": "GPT-5"}]}, url=url
+	)
+	load_models_from_url(url)
+	invalidate_model_cache()
+	httpx_mock.add_response(
+		json={"data": [{"id": "gpt-6", "name": "GPT-6"}]}, url=url
+	)
+	models = load_models_from_url(url)
+	assert len(models) == 1
+	assert models[0].id == "gpt-6"
 
 
 def test_parse_model_metadata_web_search_capable_from_json():

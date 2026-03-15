@@ -15,6 +15,7 @@ from basilisk.presenters.base_conversation_presenter import (
 	ParameterVisibilityState,
 )
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_engine.dynamic_model_loader import invalidate_model_cache
 from basilisk.services.account_model_service import AccountModelService
 
 from .accessible import AccessibleWithHelp
@@ -452,24 +453,17 @@ class BaseConversation:
 		self.update_parameter_controls_visibility()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
-		"""Handle key down events for model list control.
-
-		Use Enter key to show model details.
-
-		Args:
-			event: The key event triggering the model key down event
-		"""
-		if event.GetKeyCode() == wx.WXK_RETURN:
+		"""Handle key down: Enter = show details, F5 = refresh models."""
+		key = event.GetKeyCode()
+		if key == wx.WXK_RETURN:
 			self.on_show_model_details(None)
+		elif key == wx.WXK_F5:
+			self.on_refresh_models(None)
 		else:
 			event.Skip()
 
 	def on_model_context_menu(self, event: wx.ContextMenuEvent | None):
-		"""Handle context menu events for model list control.
-
-		Args:
-			event: The context menu event triggering the model context menu event
-		"""
+		"""Handle context menu for model list."""
 		menu = wx.Menu()
 		item = wx.MenuItem(
 			menu,
@@ -479,8 +473,34 @@ class BaseConversation:
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for a context menu item to refresh the models list
+			_("Refresh models") + " (F5)",
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_refresh_models, item)
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_refresh_models(self, event: wx.CommandEvent | None):
+		"""Refresh the models list."""
+		engine = self.current_engine
+		if not engine:
+			return
+		model_id = self.current_model.id if self.current_model else None
+		if url := getattr(engine, "MODELS_JSON_URL", None):
+			invalidate_model_cache(url)
+		if "models" in engine.__dict__:
+			del engine.__dict__["models"]
+		self.update_model_list()
+		model = (
+			next((m for m in engine.models if m.id == model_id), None)
+			if model_id
+			else None
+		)
+		self.set_model_list(model)
 
 	def on_show_model_details(self, event: wx.CommandEvent | None):
 		"""Show model details dialog.

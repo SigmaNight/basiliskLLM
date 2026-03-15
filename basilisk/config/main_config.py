@@ -27,12 +27,24 @@ class GeneralSettings(BaseModel):
 
 	language: str = Field(default="auto")
 	model_metadata_cache_ttl_seconds: int = Field(
-		default=3600,
-		ge=60,
-		le=86400,
-		description="TTL for model metadata cache",
+		default=25200,
+		ge=3600,
+		le=604800,
+		description="TTL for model metadata cache (1h–7 days)",
 	)
 	advanced_mode: bool = Field(default=False)
+
+	@model_validator(mode="before")
+	@classmethod
+	def _clamp_model_cache_ttl(cls, data: dict) -> dict:
+		"""Clamp legacy TTL below 1h to 1h."""
+		if not isinstance(data, dict):
+			return data
+		val = data.get("model_metadata_cache_ttl_seconds")
+		if val is not None and val < 3600:
+			data = {**data, "model_metadata_cache_ttl_seconds": 3600}
+		return data
+
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
 		default=AutomaticUpdateModeEnum.NOTIFY
