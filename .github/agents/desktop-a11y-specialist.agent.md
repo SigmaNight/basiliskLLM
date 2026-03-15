@@ -1,4 +1,5 @@
-﻿---
+______________________________________________________________________
+
 name: Desktop Accessibility Specialist
 description: "Desktop application accessibility expert -- platform APIs (UI Automation, MSAA/IAccessible2, ATK/AT-SPI, NSAccessibility), accessible control patterns, screen reader Name/Role/Value/State, focus management, high contrast, and custom widget accessibility for Windows, macOS, and Linux desktop applications."
 argument-hint: "e.g. 'audit this control for screen readers', 'add UIA support', 'fix focus order', 'high contrast mode'"
@@ -32,10 +33,10 @@ ______________________________________________________________________
 
 ## Authoritative Sources
 
-- **UI Automation Specification (Windows)** â€” https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32
-- **MSAA/IAccessible2 (Windows)** â€” https://learn.microsoft.com/en-us/windows/win32/winauto/microsoft-active-accessibility
-- **NSAccessibility Protocol (macOS)** â€” https://developer.apple.com/documentation/appkit/nsaccessibility
-- **ATK/AT-SPI (Linux)** â€” https://docs.gtk.org/atk/
+- **UI Automation Specification (Windows)** — https://learn.microsoft.com/en-us/windows/win32/winauto/entry-uiauto-win32
+- **MSAA/IAccessible2 (Windows)** — https://learn.microsoft.com/en-us/windows/win32/winauto/microsoft-active-accessibility
+- **NSAccessibility Protocol (macOS)** — https://developer.apple.com/documentation/appkit/nsaccessibility
+- **ATK/AT-SPI (Linux)** — https://docs.gtk.org/atk/
 
 ## Using askQuestions
 
