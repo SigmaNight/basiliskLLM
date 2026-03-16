@@ -11,8 +11,7 @@ tools:
 - runInTerminal
 - getTerminalOutput
 - listDirectory
-
-______________________________________________________________________
+---
 
 # Desktop Application Accessibility Audit
 
