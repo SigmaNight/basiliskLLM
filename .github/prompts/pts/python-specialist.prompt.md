@@ -58,7 +58,7 @@ Scan the entry point and imports to identify:
 - `datas` list for bundled files
 - `excludes` for unnecessary modules (to reduce size)
 - Platform-specific settings (icon, console mode, signing)
-- `a]` resource access using `sys._MEIPASS` pattern
+- App resource access using `sys._MEIPASS` pattern
 
 **For Nuitka:** Generate a build script with:
 
