@@ -73,7 +73,7 @@ Create the main frame with:
 Generate `utils/accessibility.py` with:
 
 - Helper to set accessible name and description on any control
-- Helper to announce messages via `wx.AccessibilityEvent` (or fallback)
+- Helper to announce messages via `wx.Accessible.NotifyEvent(...)` (or fallback)
 - Constants for standard role descriptions
 
 ### Step 5: Generate README
