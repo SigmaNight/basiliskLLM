@@ -32,8 +32,7 @@ handoffs:
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."
   send: true
   model: Claude Sonnet 4 (copilot)
-
-______________________________________________________________________
+---
 
 ## Authoritative Sources
 
