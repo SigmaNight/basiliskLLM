@@ -11,8 +11,7 @@ tools:
 - createFile
 - runInTerminal
 - listDirectory
-
-______________________________________________________________________
+---
 
 # Build Accessibility Tool
 
