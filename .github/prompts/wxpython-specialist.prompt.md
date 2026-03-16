@@ -1,4 +1,4 @@
-﻿---
+---
 name: scaffold-wxpython-app
 description: Scaffold an accessible wxPython desktop application with proper sizer layouts, keyboard navigation, screen reader compatibility, and high contrast support built in from the start.
 mode: agent
