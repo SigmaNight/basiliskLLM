@@ -1,5 +1,4 @@
-______________________________________________________________________
-
+---
 name: developer-command-center
 description: Developer command center for Python, wxPython, desktop accessibility, and accessibility tooling.
 mode: agent
@@ -11,8 +10,7 @@ tools:
 - runSubagent
 - runInTerminal
 - getTerminalOutput
-
-______________________________________________________________________
+---
 
 # Developer Hub - Command Center
 
