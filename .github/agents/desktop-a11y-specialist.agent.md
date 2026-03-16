@@ -1,4 +1,5 @@
----
+______________________________________________________________________
+
 name: Desktop Accessibility Specialist
 description: "Desktop application accessibility expert -- platform APIs (UI Automation, MSAA/IAccessible2, ATK/AT-SPI, NSAccessibility), accessible control patterns, screen reader Name/Role/Value/State, focus management, high contrast, and custom widget accessibility for Windows, macOS, and Linux desktop applications."
 argument-hint: "e.g. 'audit this control for screen readers', 'add UIA support', 'fix focus order', 'high contrast mode'"
@@ -27,7 +28,8 @@ handoffs:
   prompt: "Task complete or needs broader project-level coordination. Return to the Developer Hub for next steps."
   send: true
   model: Claude Sonnet 4 (copilot)
----
+
+______________________________________________________________________
 
 ## Authoritative Sources
 
