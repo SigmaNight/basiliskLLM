@@ -1,15 +1,18 @@
----
+______________________________________________________________________
+
 name: developer-command-center
 description: Developer command center for Python, wxPython, desktop accessibility, and accessibility tooling.
 mode: agent
 agent: developer-hub
 tools:
-  - askQuestions
-  - readFile
-  - runSubagent
-  - runInTerminal
-  - getTerminalOutput
----
+
+- askQuestions
+- readFile
+- runSubagent
+- runInTerminal
+- getTerminalOutput
+
+______________________________________________________________________
 
 # Developer Hub - Command Center
 
