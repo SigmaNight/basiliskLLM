@@ -12,8 +12,7 @@ tools:
 - listDirectory
 - runInTerminal
 - getTerminalOutput
-
-______________________________________________________________________
+---
 
 # Scaffold Accessible wxPython Application
 
