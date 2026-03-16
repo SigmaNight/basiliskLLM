@@ -1,4 +1,4 @@
-﻿---
+---
 name: build-a11y-tool
 description: Build accessibility scanning tools, rule engines, document parsers, report generators, and audit automation. WCAG criterion mapping, severity scoring algorithms, CLI/GUI scanner architecture, CI/CD integration.
 mode: agent
