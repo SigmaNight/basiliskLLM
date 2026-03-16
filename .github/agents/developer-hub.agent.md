@@ -1,5 +1,4 @@
-______________________________________________________________________
-
+---
 name: Developer Hub
 description: "Developer command center for Python, wxPython, desktop accessibility, and accessibility tooling. Routes to the right specialist and keeps workflows focused."
 argument-hint: "e.g. 'debug this crash', 'fix this wx layout', 'package my app', 'audit desktop a11y', 'build a scanner'"
@@ -48,8 +47,7 @@ model:
   prompt: The user wants to design or build accessibility scanning tools, rule engines, document parsers, report generators, or audit automation.
   send: true
   model: Claude Sonnet 4 (copilot)
-
-______________________________________________________________________
+---
 
 ## Developer Hub
 
