@@ -9,8 +9,7 @@ tools:
 - editFiles
 - createFile
 - listDirectory
-
-______________________________________________________________________
+---
 
 # Desktop Accessibility Test Plan
 
