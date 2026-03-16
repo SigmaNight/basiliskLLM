@@ -36,11 +36,11 @@ handoffs:
 
 ## Authoritative Sources
 
-- **wxPython Documentation** â€” https://docs.wxpython.org/
-- **wxPython API Reference** â€” https://docs.wxpython.org/wx.1moduleindex.html
-- **wxWidgets Documentation** â€” https://docs.wxwidgets.org/
-- **wxPython Sizers** â€” https://docs.wxpython.org/sizers_overview.html
-- **wxPython Events** â€” https://docs.wxpython.org/events_overview.html
+- **wxPython Documentation** — https://docs.wxpython.org/
+- **wxPython API Reference** — https://docs.wxpython.org/wx.1moduleindex.html
+- **wxWidgets Documentation** — https://docs.wxwidgets.org/
+- **wxPython Sizers** — https://docs.wxpython.org/sizers_overview.html
+- **wxPython Events** — https://docs.wxpython.org/events_overview.html
 
 ## Using askQuestions
 
