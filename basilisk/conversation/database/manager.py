@@ -705,7 +705,7 @@ class ConversationDatabase:
 		if getattr(db_block, "stop_json", None):
 			try:
 				stop_list = json.loads(db_block.stop_json)
-			except TypeError, ValueError:
+			except TypeError, ValueError, json.JSONDecodeError:
 				pass
 		block = MessageBlock(
 			request=request_msg,

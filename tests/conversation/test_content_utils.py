@@ -114,3 +114,13 @@ class TestFormatResponseForDisplay:
 			reasoning="", content="answer", show_reasoning=True
 		)
 		assert result == "answer"
+
+	def test_empty_content_with_reasoning(self):
+		"""When reasoning exists but content is empty, formats correctly."""
+		result = format_response_for_display(
+			reasoning="thought", content="", show_reasoning=True
+		)
+		assert (
+			result
+			== f"{REASONING_DISPLAY_START}\nthought\n{REASONING_DISPLAY_END}\n\n"
+		)
