@@ -362,3 +362,28 @@ def test_parse_model_metadata_web_search_capable_fallback_tools():
 	by_id = {m.id: m for m in models}
 	assert by_id["with-tools"].web_search_capable is True
 	assert by_id["no-tools"].web_search_capable is False
+
+
+def test_parse_model_metadata_handles_invalid_int_conversion():
+	"""parse_model_metadata tolerates invalid int values (non-numeric, wrong type)."""
+	raw = {
+		"data": [
+			{"id": "invalid-context", "context_length": "not-a-number"},
+			{
+				"id": "invalid-max-tokens",
+				"context_length": 1000,
+				"top_provider": {"max_completion_tokens": [1, 2, 3]},
+			},
+			{
+				"id": "invalid-created",
+				"context_length": 1000,
+				"created": "invalid",
+			},
+		]
+	}
+	models = parse_model_metadata(raw)
+	assert len(models) == 3
+	by_id = {m.id: m for m in models}
+	assert by_id["invalid-context"].context_window == 0
+	assert by_id["invalid-max-tokens"].max_output_tokens == -1
+	assert by_id["invalid-created"].created == 0

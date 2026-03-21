@@ -173,19 +173,19 @@ def test_openrouter_effort_provider_sends_effort(
 		max_tokens=4096,
 		stream=False,
 		reasoning_mode=True,
-		reasoning_effort="xhigh",
+		reasoning_effort="high",
 	)
 
 	engine.completion(block, empty_conversation, None, None)
 
 	call_kwargs = engine.client.chat.completions.create.call_args[1]
-	assert call_kwargs["extra_body"]["reasoning"] == {"effort": "xhigh"}
+	assert call_kwargs["extra_body"]["reasoning"] == {"effort": "high"}
 
 
 def test_openrouter_effort_invalid_falls_back_to_medium(
 	mock_openrouter_account, empty_conversation, mocker
 ):
-	"""Invalid effort value falls back to medium."""
+	"""Invalid effort value falls back to medium. Uses model_construct to bypass Pydantic validation (e.g. legacy DB data)."""
 	model = ProviderAIModel(
 		id="openai/gpt-4o",
 		name="GPT-4o",
@@ -207,7 +207,7 @@ def test_openrouter_effort_invalid_falls_back_to_medium(
 		)
 	)
 
-	block = MessageBlock(
+	block = MessageBlock.model_construct(
 		request=Message(role=MessageRoleEnum.USER, content="Hello"),
 		model=AIModelInfo(provider_id="openrouter", model_id="openai/gpt-4o"),
 		temperature=0.7,

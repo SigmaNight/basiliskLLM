@@ -302,7 +302,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		)
 		self.view.response_txt.SetValue(content)
 		if self.view.should_speak_response:
-			self.view.a_output.handle(new_block.response.content)
+			self.view.a_output.handle(content)
 
 	@DestroyGuardMixin._guard_destroying
 	def _on_stream_chunk(self, chunk: str) -> None:
