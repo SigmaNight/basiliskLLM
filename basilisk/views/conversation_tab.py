@@ -18,6 +18,7 @@ from upath import UPath
 import basilisk.config as config
 from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 from basilisk.presenters.conversation_presenter import ConversationPresenter
+from basilisk.presenters.view_utils import view_has_web_search_control
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.account_model_service import AccountModelService
 from basilisk.services.conversation_service import ConversationService
@@ -465,6 +466,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self._restore_draft_block_model(draft_block)
 		self._restore_draft_block_params(draft_block)
 		self._restore_draft_block_reasoning(draft_block)
+		self._restore_draft_block_web_search_mode(draft_block)
 
 	def _restore_draft_block_model(self, draft_block: MessageBlock) -> None:
 		"""Restore account/model selection from draft block."""
@@ -486,11 +488,19 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			log.debug("Could not restore draft model selection", exc_info=True)
 
 	def _restore_draft_block_params(self, draft_block: MessageBlock) -> None:
-		"""Restore temperature, tokens, top_p, stream from draft block."""
+		"""Restore generation params from draft block."""
 		self.temperature_spinner.SetValue(draft_block.temperature)
 		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
 		self.top_p_spinner.SetValue(draft_block.top_p)
 		self.stream_mode.SetValue(draft_block.stream)
+		self.frequency_penalty_spinner.SetValue(draft_block.frequency_penalty)
+		self.presence_penalty_spinner.SetValue(draft_block.presence_penalty)
+		self.seed_spin_ctrl.SetValue(draft_block.seed or 0)
+		self.top_k_spin_ctrl.SetValue(draft_block.top_k or 0)
+		if draft_block.stop:
+			self.stop_text_ctrl.SetValue("\n".join(draft_block.stop))
+		else:
+			self.stop_text_ctrl.SetValue("")
 
 	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
 		"""Restore reasoning settings from draft block."""
@@ -511,8 +521,15 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				if spec.effort_options:
 					options = spec.effort_options
 			val = draft_block.reasoning_effort.lower()
-			idx = options.index(val) if val in options else len(options) - 1
-			self.reasoning_effort_choice.SetSelection(idx)
+			if val in options:
+				self.reasoning_effort_choice.SetSelection(options.index(val))
+
+	def _restore_draft_block_web_search_mode(
+		self, draft_block: MessageBlock
+	) -> None:
+		"""Restore web search mode from draft block."""
+		if view_has_web_search_control(self):
+			self.web_search_mode.SetValue(draft_block.web_search_mode)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.

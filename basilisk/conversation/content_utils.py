@@ -12,9 +12,10 @@ END_REASONING = "</think>"
 REASONING_DISPLAY_START = "```think"
 REASONING_DISPLAY_END = "```"
 
-_THINK_BLOCK_PATTERN = re.compile(r"```think\s*\n(.*?)\n```\s*", re.DOTALL)
+# Anchored at start so only a leading block is treated as metadata
+_THINK_BLOCK_PATTERN = re.compile(r"^```think\s*\n(.*?)\n```\s*", re.DOTALL)
 _REASONING_BLOCK_PATTERN = re.compile(
-	rf"{re.escape(START_BLOCK_REASONING)}\s*\n(.*?)\n{re.escape(END_REASONING)}\s*",
+	rf"^{re.escape(START_BLOCK_REASONING)}\s*\n(.*?)\n{re.escape(END_REASONING)}\s*",
 	re.DOTALL,
 )
 
@@ -33,11 +34,11 @@ def split_reasoning_and_content(text: str) -> tuple[str | None, str]:
 	"""
 	if not text:
 		return None, text or ""
-	match = _THINK_BLOCK_PATTERN.search(text)
+	match = _THINK_BLOCK_PATTERN.match(text)
 	if not match:
 		return None, text
 	reasoning = match.group(1).strip()
-	content = (_THINK_BLOCK_PATTERN.sub("", text) or "").strip()
+	content = text[match.end() :].strip()
 	return reasoning or None, content
 
 
@@ -66,9 +67,9 @@ def split_reasoning_and_content_from_display(
 	if not text:
 		return None, text or ""
 	# Try <think> format first, then legacy ```think
-	match = _REASONING_BLOCK_PATTERN.search(text)
+	match = _REASONING_BLOCK_PATTERN.match(text)
 	if not match:
 		return split_reasoning_and_content(text)
 	reasoning = match.group(1).strip()
-	content = (_REASONING_BLOCK_PATTERN.sub("", text) or "").strip()
+	content = text[match.end() :].strip()
 	return reasoning or None, content

@@ -186,11 +186,7 @@ class BaseConversationPresenter:
 		reasoning_spec = engine.get_reasoning_ui_spec(model)
 		state.reasoning_mode_visible = reasoning_spec.show
 
-		controls_visible = (
-			reasoning_spec.show
-			and reasoning_mode_checked
-			and engine is not None
-		)
+		controls_visible = reasoning_spec.show and reasoning_mode_checked
 		state.reasoning_adaptive_visible = (
 			controls_visible and reasoning_spec.show_adaptive
 		)

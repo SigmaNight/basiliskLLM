@@ -125,7 +125,11 @@ class ProviderAIModel:
 		Returns:
 			Default value or fallback.
 		"""
-		defaults = self.extra_info.get("default_parameters") or {}
+		if not isinstance(self.extra_info, dict):
+			defaults = {}
+		else:
+			dp = self.extra_info.get("default_parameters")
+			defaults = dp if isinstance(dp, dict) else {}
 		return defaults.get(param, fallback)
 
 	@property

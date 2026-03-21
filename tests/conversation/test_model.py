@@ -59,11 +59,13 @@ class TestAIModelAndMessages:
 			reasoning_budget_tokens=16000,
 			reasoning_effort="medium",
 			reasoning_adaptive=False,
+			web_search_mode=True,
 		)
 		assert block.reasoning_mode is True
 		assert block.reasoning_budget_tokens == 16000
 		assert block.reasoning_effort == "medium"
 		assert block.reasoning_adaptive is False
+		assert block.web_search_mode is True
 
 
 class TestMessageBlockValidation:

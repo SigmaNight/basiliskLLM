@@ -26,6 +26,7 @@ class ReasoningUISpec:
 	show_budget: bool = False
 	show_effort: bool = False
 	effort_options: tuple[str, ...] = ()
+	# Translators: Label shown next to the reasoning effort meter
 	effort_label: str = "Reasoning effort:"
 	budget_default: int = 16000
 	budget_max: int = 128000
