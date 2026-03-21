@@ -24,6 +24,10 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.content_utils import (
+	REASONING_DISPLAY_END,
+	REASONING_DISPLAY_START,
+)
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
@@ -353,10 +357,14 @@ class AnthropicEngine(BaseEngine):
 					citations.append(self._handle_citation(citation))
 		content = "".join(text_parts)
 		reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
+		combined_content = (
+			f"{REASONING_DISPLAY_START}\n{reasoning}\n{REASONING_DISPLAY_END}\n\n{content}"
+			if reasoning
+			else content
+		)
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=content,
-			reasoning=reasoning,
+			content=combined_content,
 			citations=citations,
 		)
 		return new_block

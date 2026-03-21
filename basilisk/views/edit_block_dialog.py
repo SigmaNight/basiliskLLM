@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import wx
 
 import basilisk.config as config
-from basilisk.conversation.content_utils import format_response_for_display
+from basilisk.conversation.content_utils import split_reasoning_and_content
 from basilisk.conversation.conversation_model import Conversation, SystemMessage
 from basilisk.presenters.edit_block_presenter import EditBlockPresenter
 
@@ -48,6 +48,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			size=(800, 600),
 			style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER,
 		)
+		self._is_destroying = False
 		BaseConversation.__init__(
 			self, account_model_service=parent.account_model_service
 		)
@@ -182,6 +183,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 
 		self.Bind(wx.EVT_BUTTON, self.on_ok, id=wx.ID_OK)
 		self.Bind(wx.EVT_BUTTON, self.on_cancel, id=wx.ID_CANCEL)
+		self.Bind(wx.EVT_CLOSE, self._on_close)
 
 		btn_sizer.Realize()
 
@@ -247,12 +249,16 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		if self.system_message:
 			self.system_prompt_txt.SetValue(self.system_message.content)
 		if self.block.response:
-			reasoning = getattr(self.block.response, "reasoning", None)
-			content = self.block.response.content
-			display = format_response_for_display(
-				reasoning, content, self.get_effective_show_reasoning_blocks()
+			reasoning, content = split_reasoning_and_content(
+				self.block.response.content
 			)
-			self.response_txt.SetValue(display)
+			if reasoning and not getattr(
+				self.block.response, "reasoning", None
+			):
+				self.block.response = self.block.response.model_copy(
+					update={"reasoning": reasoning, "content": content}
+				)
+			self.response_txt.SetValue(content)
 		self.prompt_panel.prompt_text = self.block.request.content
 
 		# Set attachments if available
@@ -307,6 +313,11 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		if not self.presenter.save_block():
 			event.Skip(False)
 			return
+		event.Skip()
+
+	def _on_close(self, event: wx.CloseEvent):
+		"""Mark dialog as destroying before close."""
+		self._is_destroying = True
 		event.Skip()
 
 	def on_cancel(self, event: wx.CommandEvent):

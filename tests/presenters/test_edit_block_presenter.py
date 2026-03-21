@@ -63,7 +63,7 @@ class TestSaveBlock:
 		mock_view.prompt_panel.prompt_text = "Updated prompt"
 		mock_view.prompt_panel.attachment_files = []
 		mock_view.system_prompt_txt.GetValue.return_value = "Be helpful"
-		mock_view.get_generation_params_from_view.return_value = {
+		expected_params = {
 			"temperature": 0.3,
 			"max_tokens": 512,
 			"top_p": 0.9,
@@ -74,6 +74,7 @@ class TestSaveBlock:
 			"stop": None,
 			"stream": False,
 		}
+		mock_view.get_generation_params_from_view.return_value = expected_params
 		mock_view.response_txt.GetValue.return_value = "Updated response"
 
 		result = presenter.save_block()
@@ -86,6 +87,12 @@ class TestSaveBlock:
 		assert block.top_p == 0.9
 		assert block.stream is False
 		assert block.response.content == "Updated response"
+		# Full generation params from view must be preserved on the block
+		assert block.frequency_penalty == expected_params["frequency_penalty"]
+		assert block.presence_penalty == expected_params["presence_penalty"]
+		assert block.seed == expected_params["seed"]
+		assert block.top_k == expected_params["top_k"]
+		assert block.stop == expected_params["stop"]
 
 	@pytest.mark.parametrize(
 		"mutate",

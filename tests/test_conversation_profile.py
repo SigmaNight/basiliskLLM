@@ -340,6 +340,24 @@ class TestConversationProfile:
 		):
 			ConversationProfile(name="Test", reasoning_effort="medium")
 
+	def test_reasoning_budget_tokens_negative_raises(self):
+		"""Test that negative reasoning_budget_tokens raises ValueError."""
+		with pytest.raises(ValueError, match="reasoning_budget_tokens"):
+			ConversationProfile(
+				name="Test",
+				ai_model_info="openai/gpt-4",
+				reasoning_budget_tokens=-1,
+			)
+
+	def test_reasoning_effort_unsupported_raises(self):
+		"""Test that unsupported reasoning_effort raises ValueError."""
+		with pytest.raises(ValueError, match="reasoning_effort"):
+			ConversationProfile(
+				name="Test",
+				ai_model_info="openai/gpt-4",
+				reasoning_effort="extreme",
+			)
+
 	def test_model_params_validation_with_model(self):
 		"""Test that model parameters can be set when AI model is present."""
 		profile = ConversationProfile(
