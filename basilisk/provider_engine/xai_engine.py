@@ -1,119 +1,140 @@
 """Module for xAI API integration.
 
-This module provides the XAIEngine class for interacting with the xAI API,
-implementing capabilities for both text and image generation.
+This module provides the XAIEngine class for interacting with the xAI API
+via the Responses API, with support for text, image, and web search.
 """
+
+from __future__ import annotations
 
 import logging
 from functools import cached_property
+from typing import TYPE_CHECKING, Any
 
+from openai import OpenAI
+
+from basilisk.conversation import Conversation, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
-from .legacy_openai_engine import LegacyOpenAIEngine
+from .provider_ui_spec import ReasoningUISpec
+from .responses_api_engine import ResponsesAPIEngine
+
+if TYPE_CHECKING:
+	from basilisk.config import Account
 
 log = logging.getLogger(__name__)
 
+# Reasoning-only models (always-on; no reasoning_effort toggle)
+_XAI_REASONING_ONLY_IDS = frozenset(
+	{
+		"grok-4-1-fast-reasoning",
+		"grok-4-fast-reasoning",
+		"grok-4-0709",
+		"grok-code-fast-1",
+	}
+)
 
-class XAIEngine(LegacyOpenAIEngine):
+# Models that support reasoning_effort param (low/high)
+_XAI_REASONING_EFFORT_IDS = frozenset({"grok-3-mini", "grok-3-mini-beta"})
+
+
+class XAIEngine(ResponsesAPIEngine):
 	"""Engine implementation for xAI API integration.
 
-	Extends LegacyOpenAIEngine to provide xAI-specific model configurations and capabilities.
-	Supports both text and image generation through the xAI API.
-
-	Attributes:
-		capabilities: Set of supported capabilities including text and image generation.
+	Uses the Responses API (client.responses.create) for web search support.
+	Extends ResponsesAPIEngine with xAI-specific model config and reasoning.
 	"""
 
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
+		ProviderCapability.DOCUMENT,
+		ProviderCapability.WEB_SEARCH,
 	}
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available xAI models.
+	supported_attachment_formats: set[str] = {
+		"image/gif",
+		"image/jpeg",
+		"image/png",
+		"image/webp",
+		"application/pdf",
+		"text/plain",
+		"text/csv",
+		"text/markdown",
+		"text/html",
+		"text/xml",
+		"application/json",
+	}
 
-		Returns:
-			List of supported xAI models with their configurations, sorted from most recent to least recent.
-		"""
-		log.debug("Getting xAI models")
-		# See <https://docs.x.ai/docs/models>
-		models = [
-			ProviderAIModel(
-				id="grok-4-0709",
-				# Translators: This is a model description
-				description=_(
-					"Flagship frontier model for complex tasks with 256K context, tool use and structured output."
-				),
-				context_window=256000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="grok-4-fast-reasoning",
-				# Translators: This is a model description
-				description=_(
-					"High-throughput reasoning with 2M token context for rapid completions."
-				),
-				context_window=2000000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="grok-4-fast-non-reasoning",
-				# Translators: This is a model description
-				description=_(
-					"Fast completions without reasoning tokens, cost-efficient with 2M context."
-				),
-				context_window=2000000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="grok-code-fast-1",
-				# Translators: This is a model description
-				description=_(
-					"Optimized for agentic coding tasks with 256K context."
-				),
-				context_window=256000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="grok-3",
-				# Translators: This is a model description
-				description=_(
-					"Flagship model for enterprise tasks, extraction and coding."
-				),
-				context_window=131072,
-				max_temperature=2.0,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="grok-3-mini",
-				# Translators: This is a model description
-				description=_(
-					"Cost-efficient, faster than Grok 3 for well-defined tasks."
-				),
-				context_window=131072,
-				max_temperature=2.0,
-				default_temperature=1.0,
-			),
-			ProviderAIModel(
-				id="grok-2-vision-1212",
-				# Translators: This is a model description
-				description=_(
-					"Multimodal image understanding with 32K context."
-				),
-				context_window=32768,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				vision=True,
-			),
-		]
+	def __init__(self, account: Account) -> None:
+		"""Initialize the xAI engine."""
+		super().__init__(account)
+
+	@cached_property
+	def client(self) -> OpenAI:
+		"""Create and configure the OpenAI client for xAI API."""
+		return OpenAI(
+			api_key=self.account.api_key.get_secret_value(),
+			base_url=self.account.custom_base_url
+			or str(self.account.provider.base_url),
+		)
+
+	MODELS_JSON_URL = (
+		"https://raw.githubusercontent.com/SigmaNight/model-metadata/"
+		"master/data/x-ai.json"
+	)
+
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		for m in models:
+			if m.id in _XAI_REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
+			elif m.id in _XAI_REASONING_EFFORT_IDS:
+				m.reasoning_capable = True
 		return models
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[dict[str, str]]:
+		"""Return web_search tool for xAI Responses API."""
+		return [{"type": "web_search"}]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""xAI: effort dropdown (low/high) for grok-3-mini. No adaptive or budget."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=False,
+			show_effort=True,
+			effort_options=("low", "high"),
+			effort_label="Reasoning effort:",
+		)
+
+	def _build_completion_params(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Any,
+		stop_block_index: int | None,
+		model: ProviderAIModel,
+		kwargs: dict[str, Any],
+	) -> dict[str, Any]:
+		params = super()._build_completion_params(
+			new_block,
+			conversation,
+			system_message,
+			stop_block_index,
+			model,
+			kwargs,
+		)
+		if model.id in _XAI_REASONING_EFFORT_IDS and new_block.reasoning_mode:
+			effort = new_block.reasoning_effort or "high"
+			if effort == "medium":
+				effort = "high"
+			params["reasoning"] = {"effort": effort}
+		return params

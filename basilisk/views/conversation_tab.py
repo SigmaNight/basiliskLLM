@@ -13,12 +13,12 @@ import logging
 from typing import TYPE_CHECKING, Any, Optional
 
 import wx
-from more_itertools import first, locate
 from upath import UPath
 
 import basilisk.config as config
 from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 from basilisk.presenters.conversation_presenter import ConversationPresenter
+from basilisk.presenters.view_utils import view_has_web_search_control
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.account_model_service import AccountModelService
 from basilisk.services.conversation_service import ConversationService
@@ -250,9 +250,20 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 	def init_ui(self):
 		"""Initialize and layout all UI components."""
 		sizer = wx.BoxSizer(wx.VERTICAL)
+		account_row = wx.BoxSizer(wx.HORIZONTAL)
+		self.apply_profile_btn = wx.Button(
+			self,
+			# Translators: This is a label for apply profile button in the main window
+			label=_("Apply profile") + " (Ctrl+P)",
+		)
+		self.Bind(wx.EVT_BUTTON, self.on_choose_profile, self.apply_profile_btn)
+		account_row.Add(
+			self.apply_profile_btn, proportion=0, flag=wx.RIGHT, border=5
+		)
 		label = self.create_account_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.account_combo, proportion=0, flag=wx.EXPAND)
+		account_row.Add(self.account_combo, proportion=1, flag=wx.EXPAND)
+		sizer.Add(account_row, proportion=0, flag=wx.EXPAND)
 
 		label = self.create_system_prompt_widget()
 		sizer.Add(label, proportion=0, flag=wx.EXPAND)
@@ -274,25 +285,11 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.prompt_panel.set_prompt_focus()
 		self.ocr_button = self.ocr_handler.create_ocr_widget(self)
 		sizer.Add(self.ocr_button, proportion=0, flag=wx.EXPAND)
-		label = self.create_model_widget()
-		sizer.Add(label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.model_list, proportion=0, flag=wx.ALL | wx.EXPAND)
-		self.create_web_search_widget()
-		sizer.Add(self.web_search_mode, proportion=0, flag=wx.EXPAND)
-		self.create_max_tokens_widget()
-		sizer.Add(self.max_tokens_spin_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.max_tokens_spin_ctrl, proportion=0, flag=wx.EXPAND)
-		self.create_temperature_widget()
-		sizer.Add(self.temperature_spinner_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.temperature_spinner, proportion=0, flag=wx.EXPAND)
-		self.create_top_p_widget()
-		sizer.Add(self.top_p_spinner_label, proportion=0, flag=wx.EXPAND)
-		sizer.Add(self.top_p_spinner, proportion=0, flag=wx.EXPAND)
-		self.create_stream_widget()
-		sizer.Add(self.stream_mode, proportion=0, flag=wx.EXPAND)
 
-		btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		self.create_settings_section()
+		sizer.Add(self.settings_section_sizer, proportion=0, flag=wx.EXPAND)
 
+		conv_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.submit_btn = wx.Button(
 			self,
 			# Translators: This is a label for submit button in the main window
@@ -300,8 +297,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		)
 		self.Bind(wx.EVT_BUTTON, self.on_submit, self.submit_btn)
 		self.submit_btn.SetDefault()
-		btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
-
+		conv_btn_sizer.Add(self.submit_btn, proportion=0, flag=wx.EXPAND)
 		self.stop_completion_btn = wx.Button(
 			self,
 			# Translators: This is a label for stop completion button in the main window
@@ -310,26 +306,18 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.Bind(
 			wx.EVT_BUTTON, self.on_stop_completion, self.stop_completion_btn
 		)
-		btn_sizer.Add(self.stop_completion_btn, proportion=0, flag=wx.EXPAND)
+		conv_btn_sizer.Add(
+			self.stop_completion_btn, proportion=0, flag=wx.EXPAND
+		)
 		self.stop_completion_btn.Hide()
-
 		self.toggle_record_btn = wx.Button(
 			self,
 			# Translators: This is a label for record button in the main window
 			label=_("Record") + " (Ctrl+R)",
 		)
-		btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
+		conv_btn_sizer.Add(self.toggle_record_btn, proportion=0, flag=wx.EXPAND)
 		self.Bind(wx.EVT_BUTTON, self.toggle_recording, self.toggle_record_btn)
-
-		self.apply_profile_btn = wx.Button(
-			self,
-			# Translators: This is a label for apply profile button in the main window
-			label=_("Apply profile") + " (Ctrl+P)",
-		)
-		self.Bind(wx.EVT_BUTTON, self.on_choose_profile, self.apply_profile_btn)
-		btn_sizer.Add(self.apply_profile_btn, proportion=0, flag=wx.EXPAND)
-
-		sizer.Add(btn_sizer, proportion=0, flag=wx.EXPAND)
+		sizer.Add(conv_btn_sizer, proportion=0, flag=wx.EXPAND)
 
 		self.SetSizerAndFit(sizer)
 
@@ -392,30 +380,13 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.ocr_button.Enable(
 			ProviderCapability.OCR in account.provider.engine_cls.capabilities
 		)
-		self.web_search_mode.Enable(
-			ProviderCapability.WEB_SEARCH
-			in account.provider.engine_cls.capabilities
-		)
+		self.update_parameter_controls_visibility()
 		self.prompt_panel.set_engine(self.current_engine)
 
 	def refresh_accounts(self):
 		"""Update the account combo box with current accounts."""
-		account_index = self.account_combo.GetSelection()
-		account_id = None
-		if account_index != wx.NOT_FOUND:
-			account_id = config.accounts()[account_index].id
-		self.account_combo.Clear()
-		self.account_combo.AppendItems(self.get_display_accounts(True))
-		account_index = first(
-			locate(config.accounts(), lambda a: a.id == account_id),
-			wx.NOT_FOUND,
-		)
-		if account_index != wx.NOT_FOUND:
-			self.account_combo.SetSelection(account_index)
-		elif self.account_combo.GetCount() > 0:
-			self.account_combo.SetSelection(0)
+		if self._refresh_account_combo():
 			self.account_combo.SetFocus()
-		self.Layout()
 
 	def on_config_change(self):
 		"""Handle configuration changes."""
@@ -423,6 +394,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.on_account_change(None)
 		self.on_model_change(None)
 		self.adjust_advanced_mode_setting()
+		self.refresh_messages(need_clear=True, preserve_prompt=True)
 
 	# -- Display helpers --
 
@@ -475,7 +447,10 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				self.prompt_panel.clear(False)
 		self.prompt_panel.refresh_attachments_list()
 		for block in self.conversation.messages:
-			self.messages.display_new_block(block)
+			self.messages.display_new_block(
+				block,
+				show_reasoning_blocks=self.get_effective_show_reasoning_blocks(),
+			)
 
 	def _restore_draft_block(self, draft_block: MessageBlock):
 		"""Restore a draft block's content to UI controls.
@@ -488,11 +463,13 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			self.prompt_panel.attachment_files = draft_block.request.attachments
 			self.prompt_panel.refresh_attachments_list()
 
-		self.temperature_spinner.SetValue(draft_block.temperature)
-		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
-		self.top_p_spinner.SetValue(draft_block.top_p)
-		self.stream_mode.SetValue(draft_block.stream)
+		self._restore_draft_block_model(draft_block)
+		self._restore_draft_block_params(draft_block)
+		self._restore_draft_block_reasoning(draft_block)
+		self._restore_draft_block_web_search_mode(draft_block)
 
+	def _restore_draft_block_model(self, draft_block: MessageBlock) -> None:
+		"""Restore account/model selection from draft block."""
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
@@ -506,8 +483,53 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				model = engine.get_model(model_id)
 				if model:
 					self.set_model_list(model)
+			self.update_parameter_controls_visibility()
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
+
+	def _restore_draft_block_params(self, draft_block: MessageBlock) -> None:
+		"""Restore generation params from draft block."""
+		self.temperature_spinner.SetValue(draft_block.temperature)
+		self.max_tokens_spin_ctrl.SetValue(draft_block.max_tokens)
+		self.top_p_spinner.SetValue(draft_block.top_p)
+		self.stream_mode.SetValue(draft_block.stream)
+		self.frequency_penalty_spinner.SetValue(draft_block.frequency_penalty)
+		self.presence_penalty_spinner.SetValue(draft_block.presence_penalty)
+		self.seed_spin_ctrl.SetValue(draft_block.seed or 0)
+		self.top_k_spin_ctrl.SetValue(draft_block.top_k or 0)
+		if draft_block.stop:
+			self.stop_text_ctrl.SetValue("\n".join(draft_block.stop))
+		else:
+			self.stop_text_ctrl.SetValue("")
+
+	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
+		"""Restore reasoning settings from draft block."""
+		if not hasattr(self, "reasoning_mode"):
+			return
+		self.reasoning_mode.SetValue(draft_block.reasoning_mode)
+		self.reasoning_adaptive.SetValue(draft_block.reasoning_adaptive)
+		if draft_block.reasoning_budget_tokens is not None:
+			self.reasoning_budget_spin.SetValue(
+				draft_block.reasoning_budget_tokens
+			)
+		if draft_block.reasoning_effort:
+			engine = self.current_engine
+			model = self.current_model
+			options = ("low", "medium", "high")
+			if engine and model:
+				spec = engine.get_reasoning_ui_spec(model)
+				if spec.effort_options:
+					options = spec.effort_options
+			val = draft_block.reasoning_effort.lower()
+			if val in options:
+				self.reasoning_effort_choice.SetSelection(options.index(val))
+
+	def _restore_draft_block_web_search_mode(
+		self, draft_block: MessageBlock
+	) -> None:
+		"""Restore web search mode from draft block."""
+		if view_has_web_search_control(self):
+			self.web_search_mode.SetValue(draft_block.web_search_mode)
 
 	def get_conversation_block_index(self, block: MessageBlock) -> int | None:
 		"""Get the index of a message block in the conversation.

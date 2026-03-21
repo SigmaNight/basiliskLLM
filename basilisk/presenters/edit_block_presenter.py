@@ -11,8 +11,11 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
+import wx
+
 import basilisk.config as config
 from basilisk.completion_handler import CompletionHandler
+from basilisk.conversation.content_utils import split_reasoning_and_content
 from basilisk.conversation.conversation_model import (
 	Conversation,
 	Message,
@@ -21,6 +24,13 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.presenters.presenter_mixins import DestroyGuardMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 
 if TYPE_CHECKING:
@@ -101,11 +111,23 @@ class EditBlockPresenter(DestroyGuardMixin):
 			return False
 		if not self.view.prompt_panel.check_attachments_valid():
 			return False
+		if getattr(model, "image_output", False) is True:
+			wx.MessageBox(
+				_("Image generation models are not supported yet."),
+				_("Not Supported"),
+				wx.OK | wx.ICON_INFORMATION,
+			)
+			return False
 
 		system_message: Optional[SystemMessage] = None
 		system_prompt = self.view.system_prompt_txt.GetValue()
 		if system_prompt:
 			system_message = SystemMessage(content=system_prompt)
+
+		reasoning_params = get_reasoning_params_from_view(
+			self.view, engine=self.view.current_engine, model=model
+		)
+		web_search = view_get_web_search_value(self.view)
 
 		temp_block = MessageBlock(
 			request=Message(
@@ -116,10 +138,9 @@ class EditBlockPresenter(DestroyGuardMixin):
 			model=AIModelInfo(
 				provider_id=account.provider.id, model_id=model.id
 			),
-			temperature=self.view.temperature_spinner.GetValue(),
-			top_p=self.view.top_p_spinner.GetValue(),
-			max_tokens=self.view.max_tokens_spin_ctrl.GetValue(),
-			stream=self.view.stream_mode.GetValue(),
+			**self.view.get_generation_params_from_view(),
+			web_search_mode=web_search,
+			**reasoning_params,
 		)
 
 		self.completion_handler.start_completion(
@@ -175,14 +196,35 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.block.model = AIModelInfo(
 			provider_id=account.provider.id, model_id=model.id
 		)
-		self.block.temperature = self.view.temperature_spinner.GetValue()
-		self.block.max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
-		self.block.top_p = self.view.top_p_spinner.GetValue()
-		self.block.stream = self.view.stream_mode.GetValue()
+		gen_params = self.view.get_generation_params_from_view()
+		self.block.temperature = gen_params["temperature"]
+		self.block.max_tokens = gen_params["max_tokens"]
+		self.block.top_p = gen_params["top_p"]
+		self.block.frequency_penalty = gen_params["frequency_penalty"]
+		self.block.presence_penalty = gen_params["presence_penalty"]
+		self.block.seed = gen_params["seed"]
+		self.block.top_k = gen_params["top_k"]
+		self.block.stop = gen_params["stop"]
+		self.block.stream = gen_params["stream"]
+		if hasattr(self.view, "reasoning_mode"):
+			params = get_reasoning_params_from_view(
+				self.view, engine=self.view.current_engine, model=model
+			)
+			self.block.reasoning_mode = params["reasoning_mode"]
+			self.block.reasoning_adaptive = params["reasoning_adaptive"]
+			self.block.reasoning_budget_tokens = params[
+				"reasoning_budget_tokens"
+			]
+			self.block.reasoning_effort = params["reasoning_effort"]
+		if view_has_web_search_control(self.view):
+			self.block.web_search_mode = view_get_web_search_value(self.view)
 
-		# Update response if present
+		# Update response if present (editor is bound to raw content only)
 		if self.block.response:
-			self.block.response.content = self.view.response_txt.GetValue()
+			text = self.view.response_txt.GetValue()
+			self.block.response = self.block.response.model_copy(
+				update={"content": text}
+			)
 
 		self.block.updated_at = datetime.now()
 		if self.service is not None:
@@ -194,6 +236,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 	# CompletionHandler callbacks (private)
 	# ------------------------------------------------------------------
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_regenerate_start(self) -> None:
 		"""Hide regenerate button, show stop button, clear response area."""
 		self.view.regenerate_btn.Hide()
@@ -201,6 +244,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.view.response_txt.SetValue("")
 		self.view.Layout()
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_regenerate_end(self, success: bool) -> None:
 		"""Swap regenerate/stop buttons; optionally focus response area.
 
@@ -213,6 +257,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		if success and config.conf().conversation.focus_history_after_send:
 			self.view.response_txt.SetFocus()
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_stream_start(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	) -> None:
@@ -223,14 +268,23 @@ class EditBlockPresenter(DestroyGuardMixin):
 			system_message: Optional system message used for this completion.
 		"""
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_stream_finish(self, new_block: MessageBlock) -> None:
-		"""Flush the accessible-output stream buffer.
+		"""Flush the accessible-output stream buffer and bind editor to content only.
 
 		Args:
 			new_block: The completed temporary block.
 		"""
 		self.view.a_output.handle_stream_buffer()
+		reasoning, content = split_reasoning_and_content(
+			new_block.response.content
+		)
+		self.block.response = new_block.response.model_copy(
+			update={"content": content, "reasoning": reasoning}
+		)
+		self.view.response_txt.SetValue(content)
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_non_stream_finish(
 		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
 	) -> None:
@@ -240,10 +294,17 @@ class EditBlockPresenter(DestroyGuardMixin):
 			new_block: The completed temporary block with response content.
 			system_message: Optional system message used for this completion.
 		"""
-		self.view.response_txt.SetValue(new_block.response.content)
+		reasoning, content = split_reasoning_and_content(
+			new_block.response.content
+		)
+		self.block.response = new_block.response.model_copy(
+			update={"content": content, "reasoning": reasoning}
+		)
+		self.view.response_txt.SetValue(content)
 		if self.view.should_speak_response:
-			self.view.a_output.handle(new_block.response.content)
+			self.view.a_output.handle(content)
 
+	@DestroyGuardMixin._guard_destroying
 	def _on_stream_chunk(self, chunk: str) -> None:
 		"""Append a streaming chunk to the response control.
 

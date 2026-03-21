@@ -1,6 +1,7 @@
 """Database manager for conversation persistence."""
 
 import hashlib
+import json
 import logging
 from pathlib import Path
 
@@ -16,6 +17,10 @@ from basilisk.conversation.attached_file import (
 	AttachmentFile,
 	AttachmentFileTypes,
 	ImageFile,
+)
+from basilisk.conversation.content_utils import (
+	format_response_for_display,
+	split_reasoning_and_content,
 )
 from basilisk.conversation.conversation_model import (
 	Conversation,
@@ -230,8 +235,14 @@ class ConversationDatabase:
 		self, session: Session, block_id: int, role: str, message: Message
 	):
 		"""Save a message with its attachments and citations."""
+		content = message.content
+		reasoning = getattr(message, "reasoning", None)
+		if reasoning:
+			content = format_response_for_display(
+				reasoning, content, show_reasoning=True
+			)
 		db_msg = DBMessage(
-			message_block_id=block_id, role=role, content=message.content
+			message_block_id=block_id, role=role, content=content
 		)
 		session.add(db_msg)
 		session.flush()
@@ -379,6 +390,9 @@ class ConversationDatabase:
 		csp_id: int | None,
 	) -> DBMessageBlock:
 		"""Create and flush a DBMessageBlock, updating block.db_id."""
+		stop_json = (
+			json.dumps(block.stop) if getattr(block, "stop", None) else None
+		)
 		db_block = DBMessageBlock(
 			conversation_id=conv_id,
 			position=block_index,
@@ -388,7 +402,13 @@ class ConversationDatabase:
 			temperature=block.temperature,
 			max_tokens=block.max_tokens,
 			top_p=block.top_p,
+			frequency_penalty=getattr(block, "frequency_penalty", 0),
+			presence_penalty=getattr(block, "presence_penalty", 0),
+			seed=getattr(block, "seed", None),
+			top_k=getattr(block, "top_k", None),
+			stop_json=stop_json,
 			stream=block.stream,
+			web_search_mode=getattr(block, "web_search_mode", False),
 			created_at=block.created_at,
 			updated_at=block.updated_at,
 		)
@@ -661,6 +681,55 @@ class ConversationDatabase:
 			query = self._apply_search_filter(query, search)
 			return session.execute(query).scalar_one()
 
+	def _load_block_from_db(
+		self, db_block: DBMessageBlock
+	) -> MessageBlock | None:
+		"""Build a MessageBlock from a DBMessageBlock. Returns None if block has no request."""
+		request_msg = None
+		response_msg = None
+		for db_msg in db_block.messages:
+			if db_msg.role == "user":
+				request_msg = self._load_message(db_msg)
+			elif db_msg.role == "assistant":
+				response_msg = self._load_message(db_msg)
+
+		if request_msg is None:
+			log.warning("Block %d has no request, skipping", db_block.id)
+			return None
+
+		system_index = None
+		if db_block.system_prompt_link is not None:
+			system_index = db_block.system_prompt_link.position
+
+		stop_list = None
+		if getattr(db_block, "stop_json", None):
+			try:
+				stop_list = json.loads(db_block.stop_json)
+			except TypeError, ValueError, json.JSONDecodeError:
+				pass
+		block = MessageBlock(
+			request=request_msg,
+			response=response_msg,
+			system_index=system_index,
+			model=AIModelInfo(
+				provider_id=db_block.model_provider, model_id=db_block.model_id
+			),
+			temperature=db_block.temperature,
+			max_tokens=db_block.max_tokens,
+			top_p=db_block.top_p,
+			frequency_penalty=getattr(db_block, "frequency_penalty", 0),
+			presence_penalty=getattr(db_block, "presence_penalty", 0),
+			seed=getattr(db_block, "seed", None),
+			top_k=getattr(db_block, "top_k", None),
+			stop=stop_list,
+			stream=db_block.stream,
+			web_search_mode=getattr(db_block, "web_search_mode", False),
+			created_at=db_block.created_at,
+			updated_at=db_block.updated_at,
+		)
+		block.db_id = db_block.id
+		return block
+
 	def load_conversation(self, conv_id: int) -> Conversation:
 		"""Load a conversation from the database.
 
@@ -678,63 +747,61 @@ class ConversationDatabase:
 			if db_conv is None:
 				raise ValueError(f"Conversation {conv_id} not found")
 
-			# Rebuild systems OrderedSet
 			systems = PydanticOrderedSet[SystemMessage]()
-			csp_links = sorted(
+			for csp in sorted(
 				db_conv.system_prompt_links, key=lambda x: x.position
-			)
-			for csp in csp_links:
+			):
 				sys_msg = SystemMessage(content=csp.system_prompt.content)
 				sys_msg.db_id = csp.system_prompt.id
 				systems.add(sys_msg)
 
-			# Rebuild message blocks
 			blocks = []
-			sorted_blocks = sorted(db_conv.blocks, key=lambda x: x.position)
-			for db_block in sorted_blocks:
-				# Find request and response messages
-				request_msg = None
-				response_msg = None
-				for db_msg in db_block.messages:
-					if db_msg.role == "user":
-						request_msg = self._load_message(db_msg)
-					elif db_msg.role == "assistant":
-						response_msg = self._load_message(db_msg)
+			for db_block in sorted(db_conv.blocks, key=lambda x: x.position):
+				block = self._load_block_from_db(db_block)
+				if block is not None:
+					blocks.append(block)
 
-				if request_msg is None:
-					log.warning(
-						"Block %d has no request, skipping", db_block.id
-					)
-					continue
-
-				# Determine system_index
-				system_index = None
-				if db_block.system_prompt_link is not None:
-					system_index = db_block.system_prompt_link.position
-
-				block = MessageBlock(
-					request=request_msg,
-					response=response_msg,
-					system_index=system_index,
-					model=AIModelInfo(
-						provider_id=db_block.model_provider,
-						model_id=db_block.model_id,
-					),
-					temperature=db_block.temperature,
-					max_tokens=db_block.max_tokens,
-					top_p=db_block.top_p,
-					stream=db_block.stream,
-					created_at=db_block.created_at,
-					updated_at=db_block.updated_at,
-				)
-				block.db_id = db_block.id
-				blocks.append(block)
 			return Conversation(
 				messages=blocks,
 				systems=systems,
 				title=db_conv.title,
 				version=BSKC_VERSION,
 			)
+
+	def _load_message_attachments(
+		self, db_msg: DBMessage
+	) -> list[AttachmentFile | ImageFile] | None:
+		"""Load attachments from a DB message."""
+		if not db_msg.attachment_links:
+			return None
+		attachments = []
+		for link in sorted(db_msg.attachment_links, key=lambda x: x.position):
+			attachment = self._load_attachment(
+				link.attachment, link.description
+			)
+			if attachment:
+				attachments.append(attachment)
+		return attachments or None
+
+	def _load_message_citations(self, db_msg: DBMessage) -> list[dict] | None:
+		"""Load citations from a DB message."""
+		if not db_msg.citations:
+			return None
+		citations = []
+		for db_cit in sorted(db_msg.citations, key=lambda x: x.position):
+			citation = {}
+			if db_cit.cited_text is not None:
+				citation["cited_text"] = db_cit.cited_text
+			if db_cit.source_title is not None:
+				citation["source_title"] = db_cit.source_title
+			if db_cit.source_url is not None:
+				citation["source_url"] = db_cit.source_url
+			if db_cit.start_index is not None:
+				citation["start_index"] = db_cit.start_index
+			if db_cit.end_index is not None:
+				citation["end_index"] = db_cit.end_index
+			citations.append(citation)
+		return citations
 
 	def _load_message(self, db_msg: DBMessage) -> Message:
 		"""Convert a DB message to a Pydantic message."""
@@ -743,44 +810,15 @@ class ConversationDatabase:
 			if db_msg.role == "user"
 			else MessageRoleEnum.ASSISTANT
 		)
-
-		# Load attachments
-		attachments = None
-		if db_msg.attachment_links:
-			attachments = []
-			sorted_links = sorted(
-				db_msg.attachment_links, key=lambda x: x.position
-			)
-			for link in sorted_links:
-				db_att = link.attachment
-				attachment = self._load_attachment(db_att, link.description)
-				if attachment:
-					attachments.append(attachment)
-
-		# Load citations
-		citations = None
-		if db_msg.citations:
-			citations = []
-			sorted_cites = sorted(db_msg.citations, key=lambda x: x.position)
-			for db_cit in sorted_cites:
-				citation = {}
-				if db_cit.cited_text is not None:
-					citation["cited_text"] = db_cit.cited_text
-				if db_cit.source_title is not None:
-					citation["source_title"] = db_cit.source_title
-				if db_cit.source_url is not None:
-					citation["source_url"] = db_cit.source_url
-				if db_cit.start_index is not None:
-					citation["start_index"] = db_cit.start_index
-				if db_cit.end_index is not None:
-					citation["end_index"] = db_cit.end_index
-				citations.append(citation)
-
+		attachments = self._load_message_attachments(db_msg)
+		citations = self._load_message_citations(db_msg)
+		reasoning, content = split_reasoning_and_content(db_msg.content)
 		return Message(
 			role=role,
-			content=db_msg.content,
-			attachments=attachments or None,
-			citations=citations or None,
+			content=content,
+			attachments=attachments,
+			citations=citations,
+			reasoning=reasoning,
 		)
 
 	@staticmethod

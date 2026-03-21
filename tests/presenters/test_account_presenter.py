@@ -164,6 +164,8 @@ class TestEditAccountPresenter:
 		view.api_key_text_ctrl.GetValue.return_value = "sk-test"
 		view.custom_base_url_text_ctrl.GetValue.return_value = ""
 		view.organization_text_ctrl.GetSelection.return_value = -1
+		view.model_sort_key.GetSelection.return_value = 0
+		view.model_sort_reverse.GetValue.return_value = False
 		return view
 
 	@pytest.mark.parametrize(

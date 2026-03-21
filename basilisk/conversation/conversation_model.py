@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
 	BaseModel,
 	Field,
+	PositiveInt,
 	ValidationInfo,
 	field_validator,
 	model_validator,
@@ -66,6 +67,7 @@ class Message(BaseMessage):
 
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
+	reasoning: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -142,7 +144,19 @@ class MessageBlock(BaseModel):
 	temperature: float = Field(default=1)
 	max_tokens: int = Field(default=4096)
 	top_p: float = Field(default=1)
+	frequency_penalty: float = Field(default=0)
+	presence_penalty: float = Field(default=0)
+	seed: int | None = Field(default=None)
+	top_k: int | None = Field(default=None)
+	stop: list[str] | None = Field(default=None)
 	stream: bool = Field(default=False)
+	reasoning_mode: bool = Field(default=False)
+	reasoning_budget_tokens: PositiveInt | None = Field(default=None)
+	reasoning_effort: (
+		Literal["minimal", "low", "medium", "high", "max"] | None
+	) = Field(default=None)
+	reasoning_adaptive: bool = Field(default=False)
+	web_search_mode: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)
 	updated_at: datetime = Field(default_factory=datetime.now)
 	db_id: int | None = Field(default=None, exclude=True)

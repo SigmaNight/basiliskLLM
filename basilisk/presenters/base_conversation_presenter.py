@@ -8,15 +8,40 @@ conversation panel.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import basilisk.config as config
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
+	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class ParameterVisibilityState:
+	"""Visibility state for parameter controls. View applies this to widgets."""
+
+	temperature_visible: bool = False
+	top_p_visible: bool = False
+	max_tokens_visible: bool = False
+	frequency_penalty_visible: bool = False
+	presence_penalty_visible: bool = False
+	seed_visible: bool = False
+	top_k_visible: bool = False
+	stop_visible: bool = False
+	stream_visible: bool = False
+	web_search_visible: bool = False
+	reasoning_mode_visible: bool = False
+	reasoning_adaptive_visible: bool = False
+	reasoning_budget_visible: bool = False
+	reasoning_effort_visible: bool = False
+	effort_options: tuple[str, ...] = ()
+	effort_display: tuple[str, ...] = ()
+	effort_label: str = ""
 
 
 class BaseConversationPresenter:
@@ -104,3 +129,79 @@ class BaseConversationPresenter:
 		return self.account_model_service.resolve_account_and_model(
 			profile, fall_back_default_account
 		)
+
+	def get_parameter_visibility_state(
+		self,
+		advanced_mode: bool,
+		model: ProviderAIModel | None,
+		engine: BaseEngine | None,
+		reasoning_mode_checked: bool = False,
+		reasoning_adaptive_checked: bool = False,
+	) -> ParameterVisibilityState:
+		"""Compute visibility state for parameter controls.
+
+		Business logic for which controls to show based on model, engine,
+		and provider. View applies result to widgets.
+
+		Args:
+			advanced_mode: Whether advanced mode is enabled.
+			model: Current model, or None.
+			engine: Current engine, or None.
+			reasoning_mode_checked: Current value of reasoning_mode checkbox.
+			reasoning_adaptive_checked: Current value of reasoning_adaptive.
+
+		Returns:
+			ParameterVisibilityState to apply to view widgets.
+		"""
+		state = ParameterVisibilityState()
+		if model is None or engine is None:
+			return state
+
+		# Practical controls: always visible when model selected
+		state.max_tokens_visible = model.supports_parameter("max_tokens")
+		state.stream_visible = True
+
+		# Technical tuning: only when advanced mode is on
+		state.temperature_visible = advanced_mode and model.supports_parameter(
+			"temperature"
+		)
+		state.top_p_visible = advanced_mode and model.supports_parameter(
+			"top_p"
+		)
+		state.frequency_penalty_visible = (
+			advanced_mode and model.supports_parameter("frequency_penalty")
+		)
+		state.presence_penalty_visible = (
+			advanced_mode and model.supports_parameter("presence_penalty")
+		)
+		state.seed_visible = advanced_mode and model.supports_parameter("seed")
+		state.top_k_visible = advanced_mode and model.supports_parameter(
+			"top_k"
+		)
+		state.stop_visible = advanced_mode and model.supports_parameter("stop")
+
+		state.web_search_visible = engine.model_supports_web_search(model)
+
+		# Delegate to engine for reasoning visibility—no provider_id checks
+		reasoning_spec = engine.get_reasoning_ui_spec(model)
+		state.reasoning_mode_visible = reasoning_spec.show
+
+		controls_visible = reasoning_spec.show and reasoning_mode_checked
+		state.reasoning_adaptive_visible = (
+			controls_visible and reasoning_spec.show_adaptive
+		)
+		state.reasoning_budget_visible = (
+			controls_visible
+			and reasoning_spec.show_budget
+			and not reasoning_adaptive_checked
+		)
+		state.reasoning_effort_visible = (
+			controls_visible and reasoning_spec.show_effort
+		)
+		state.effort_options = reasoning_spec.effort_options
+		state.effort_label = reasoning_spec.effort_label
+		state.effort_display = tuple(
+			s.capitalize() for s in reasoning_spec.effort_options
+		)
+
+		return state

@@ -18,6 +18,7 @@ def mock_view():
 	view.auto_update_mode.GetSelection.return_value = 0
 	view.quit_on_close.GetValue.return_value = True
 	view.advanced_mode.GetValue.return_value = False
+	view.model_cache_ttl_hours.GetValue.return_value = "7"
 	view.role_label_user.GetValue.return_value = "You"
 	view.role_label_assistant.GetValue.return_value = "AI"
 	view.nav_msg_select.GetValue.return_value = True
@@ -34,6 +35,8 @@ def mock_view():
 	view.use_system_cert_store.GetValue.return_value = False
 	view.server_enable.GetValue.return_value = False
 	view.server_port.GetValue.return_value = "8080"
+	view.model_sort_key.GetSelection.return_value = 0
+	view.model_sort_reverse.GetValue.return_value = False
 	return view
 
 
@@ -137,3 +140,17 @@ class TestOnOk:
 		presenter.on_ok()
 
 		mock_set_log.assert_called_once_with(mock_conf.general.log_level.name)
+
+	def test_model_cache_ttl_hours_to_seconds(
+		self, mock_view, make_presenter, mocker
+	):
+		"""on_ok should convert model cache TTL hours to seconds."""
+		mock_wx = MagicMock()
+		mock_view.model_cache_ttl_hours.GetValue.return_value = "12"
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		presenter.on_ok()
+
+		assert mock_conf.general.model_metadata_cache_ttl_seconds == 43200
