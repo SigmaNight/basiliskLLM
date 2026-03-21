@@ -459,6 +459,21 @@ class AccountManager(BasiliskBaseSettings):
 				return self.accounts[0]
 			return self.accounts[index]
 
+	def can_set_as_default(self, account: Optional[Account]) -> bool:
+		"""Check if the account can be set as default.
+
+		Any account (including from environment variables) can be set as default.
+
+		Args:
+			account: The account to check.
+
+		Returns:
+			True if the account exists and is not already the default.
+		"""
+		if not account or not isinstance(account, Account):
+			return False
+		return self.default_account != account
+
 	def set_default_account(self, value: Optional[Account]):
 		"""Set the default account for the configuration.
 
