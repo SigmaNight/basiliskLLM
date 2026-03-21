@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
 	BaseModel,
 	Field,
+	PositiveInt,
 	ValidationInfo,
 	field_validator,
 	model_validator,
@@ -150,8 +151,10 @@ class MessageBlock(BaseModel):
 	stop: list[str] | None = Field(default=None)
 	stream: bool = Field(default=False)
 	reasoning_mode: bool = Field(default=False)
-	reasoning_budget_tokens: int | None = Field(default=None)
-	reasoning_effort: str | None = Field(default=None)
+	reasoning_budget_tokens: PositiveInt | None = Field(default=None)
+	reasoning_effort: (
+		Literal["minimal", "low", "medium", "high", "max"] | None
+	) = Field(default=None)
 	reasoning_adaptive: bool = Field(default=False)
 	web_search_mode: bool = Field(default=False)
 	created_at: datetime = Field(default_factory=datetime.now)

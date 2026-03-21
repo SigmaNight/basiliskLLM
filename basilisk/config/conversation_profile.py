@@ -245,6 +245,58 @@ class ConversationProfile(BaseModel):
 				)
 		return self
 
+	def _validate_params_without_model(self) -> None:
+		"""Raise ValueError if any model param is set when ai_model_info is None."""
+		checks = [
+			(self.max_tokens, "Max tokens must be None without model"),
+			(self.temperature, "Temperature must be None without model"),
+			(self.top_p, "Top P must be None without model"),
+			(
+				self.frequency_penalty,
+				"Frequency penalty must be None without model",
+			),
+			(
+				self.presence_penalty,
+				"Presence penalty must be None without model",
+			),
+			(self.seed, "Seed must be None without model"),
+			(self.top_k, "Top K must be None without model"),
+			(self.stop, "Stop must be None without model"),
+			(
+				self.reasoning_budget_tokens,
+				_("Reasoning budget must be None without model"),
+			),
+			(
+				self.reasoning_effort,
+				_("Reasoning effort must be None without model"),
+			),
+		]
+		for val, msg in checks:
+			if val is not None:
+				raise ValueError(msg)
+
+	def _validate_reasoning_params_with_model(self) -> None:
+		"""Raise ValueError if reasoning params are invalid when model is present."""
+		if (
+			self.reasoning_budget_tokens is not None
+			and self.reasoning_budget_tokens < 0
+		):
+			# Translators: Error when reasoning budget tokens is negative
+			raise ValueError(
+				_(
+					"reasoning_budget_tokens must be None or a non-negative integer"
+				)
+			)
+		_REASONING_EFFORT_ALLOWED = ("minimal", "low", "medium", "high", "max")
+		if self.reasoning_effort is not None:
+			val = self.reasoning_effort.lower()
+			if val not in _REASONING_EFFORT_ALLOWED:
+				# Translators: Error when reasoning effort has an unsupported value
+				raise ValueError(
+					_("reasoning_effort must be None or one of: %s")
+					% ", ".join(_REASONING_EFFORT_ALLOWED)
+				)
+
 	@model_validator(mode="after")
 	def check_model_params(self) -> ConversationProfile:
 		"""Validates that model parameters are set correctly.
@@ -255,26 +307,9 @@ class ConversationProfile(BaseModel):
 			ValueError: If model parameters are set without an AI model.
 		"""
 		if self.ai_model_info is None:
-			if self.max_tokens is not None:
-				raise ValueError("Max tokens must be None without model")
-			if self.temperature is not None:
-				raise ValueError("Temperature must be None without model")
-			if self.top_p is not None:
-				raise ValueError("Top P must be None without model")
-			if self.frequency_penalty is not None:
-				raise ValueError("Frequency penalty must be None without model")
-			if self.presence_penalty is not None:
-				raise ValueError("Presence penalty must be None without model")
-			if self.seed is not None:
-				raise ValueError("Seed must be None without model")
-			if self.top_k is not None:
-				raise ValueError("Top K must be None without model")
-			if self.stop is not None:
-				raise ValueError("Stop must be None without model")
-			if self.reasoning_budget_tokens is not None:
-				raise ValueError("Reasoning budget must be None without model")
-			if self.reasoning_effort is not None:
-				raise ValueError("Reasoning effort must be None without model")
+			self._validate_params_without_model()
+		else:
+			self._validate_reasoning_params_with_model()
 		return self
 
 

@@ -69,7 +69,7 @@ class BaseEngine(ABC):
 		"""Optional hook to mutate models after loading from JSON. Override in subclasses."""
 		return models
 
-	@cached_property
+	@property
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
@@ -113,6 +113,9 @@ class BaseEngine(ABC):
 			"seed",
 			"top_k",
 			"stop",
+			"reasoning",
+			"audio",
+			"web_search_mode",
 		}
 	)
 

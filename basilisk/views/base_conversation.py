@@ -990,8 +990,8 @@ class BaseConversation:
 		)
 
 	def get_effective_show_reasoning_blocks(self) -> bool:
-		"""Always show reasoning blocks. Toggle moved to feat/reasoning-storage."""
-		return True
+		"""Return whether to show reasoning blocks (from config)."""
+		return config.conf().conversation.show_reasoning_blocks
 
 	def create_reasoning_widget(self):
 		"""Create reasoning mode checkbox and provider-adaptive controls."""
@@ -1084,8 +1084,8 @@ class BaseConversation:
 				if spec.effort_options:
 					options = spec.effort_options
 			val = profile.reasoning_effort.lower()
-			idx = options.index(val) if val in options else len(options) - 1
-			self.reasoning_effort_choice.SetSelection(idx)
+			if val in options:
+				self.reasoning_effort_choice.SetSelection(options.index(val))
 
 	def update_parameter_controls_visibility(self):
 		"""Show/hide parameter controls based on selected model and advanced mode.
