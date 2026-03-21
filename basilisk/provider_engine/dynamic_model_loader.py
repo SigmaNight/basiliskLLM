@@ -32,7 +32,7 @@ def fetch_models_json(url: str) -> dict[str, Any]:
 		url: URL to fetch (e.g. model-metadata JSON).
 
 	Returns:
-		Parsed JSON dict with "data" key containing model list.
+		Parsed JSON dict with "models" key containing model list.
 
 	Raises:
 		httpx.HTTPError: On request failure.
@@ -59,14 +59,11 @@ def _get_max_completion_tokens(model: dict[str, Any]) -> int:
 
 
 def _get_context_length(model: dict[str, Any]) -> int:
-	"""Extract context_length, preferring top_provider over root."""
+	"""Extract context_length from top_provider only (no top-level fallback)."""
 	top = model.get("top_provider")
-	if top and isinstance(top, dict) and top.get("context_length") is not None:
-		try:
-			return int(top["context_length"])
-		except TypeError, ValueError:
-			pass
-	val = model.get("context_length")
+	if not top or not isinstance(top, dict):
+		return 0
+	val = top.get("context_length")
 	if val is None:
 		return 0
 	try:
@@ -158,17 +155,17 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	Sorts by created descending (newest first) for UI display.
 
 	Args:
-		raw: JSON dict with "data" key containing model objects.
+		raw: JSON dict with "models" key containing model objects.
 
 	Returns:
 		List of ProviderAIModel instances, sorted by created desc.
 	"""
 	models: list[ProviderAIModel] = []
-	data = raw.get("data")
-	if not isinstance(data, list):
+	model_list = raw.get("models")
+	if not isinstance(model_list, list):
 		return models
 
-	for item in data:
+	for item in model_list:
 		if not isinstance(item, dict):
 			continue
 		model_id = item.get("id")

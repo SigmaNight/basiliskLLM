@@ -13,19 +13,18 @@ from basilisk.provider_engine.dynamic_model_loader import (
 def test_parse_model_metadata_empty():
 	"""parse_model_metadata returns empty list for empty or invalid input."""
 	assert parse_model_metadata({}) == []
-	assert parse_model_metadata({"data": []}) == []
-	assert parse_model_metadata({"data": None}) == []
+	assert parse_model_metadata({"models": []}) == []
+	assert parse_model_metadata({"models": None}) == []
 
 
 def test_parse_model_metadata_openai_structure():
 	"""parse_model_metadata maps OpenAI-style JSON to ProviderAIModel."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "gpt-5.2",
 				"name": "GPT-5.2",
 				"description": "Best model",
-				"context_length": 400000,
 				"architecture": {"modality": "text+image->text"},
 				"top_provider": {
 					"context_length": 400000,
@@ -58,18 +57,22 @@ def test_parse_model_metadata_includes_all_models_from_json():
 	provider-specific logic (e.g. :thinking variants) in _postprocess_models.
 	"""
 	raw = {
-		"data": [
-			{"id": "claude-sonnet-4.6", "name": "Base", "context_length": 1000},
+		"models": [
+			{
+				"id": "claude-sonnet-4.6",
+				"name": "Base",
+				"top_provider": {"context_length": 1000},
+			},
 			{
 				"id": "claude-3.7-sonnet:thinking",
 				"name": "Thinking",
-				"context_length": 1000,
+				"top_provider": {"context_length": 1000},
 				"supported_parameters": ["reasoning", "include_reasoning"],
 			},
 			{
 				"id": "claude-opus-4-6_reasoning",
 				"name": "Reasoning",
-				"context_length": 1000,
+				"top_provider": {"context_length": 1000},
 			},
 		]
 	}
@@ -83,13 +86,12 @@ def test_parse_model_metadata_includes_all_models_from_json():
 	assert by_id["claude-3.7-sonnet:thinking"].reasoning_capable is True
 
 
-def test_parse_model_metadata_top_provider_overrides_root():
+def test_parse_model_metadata_context_length_only_from_top_provider():
 	"""parse_model_metadata uses top_provider for context_length and max_completion_tokens."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "test",
-				"context_length": 1000,
 				"top_provider": {
 					"context_length": 2000,
 					"max_completion_tokens": 64000,
@@ -106,7 +108,7 @@ def test_parse_model_metadata_top_provider_overrides_root():
 def test_parse_model_metadata_vision_from_modality():
 	"""parse_model_metadata derives vision from architecture.modality."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "with-vision",
 				"architecture": {"modality": "text+image->text"},
@@ -123,7 +125,7 @@ def test_parse_model_metadata_vision_from_modality():
 def test_parse_model_metadata_audio_from_modality():
 	"""parse_model_metadata derives audio from architecture.modality."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "with-audio",
 				"architecture": {"modality": "text+audio->text"},
@@ -140,7 +142,7 @@ def test_parse_model_metadata_audio_from_modality():
 def test_parse_model_metadata_audio_from_input_modalities():
 	"""parse_model_metadata derives audio from input_modalities when modality lacks it."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "audio-via-input-modalities",
 				"architecture": {
@@ -158,7 +160,7 @@ def test_parse_model_metadata_audio_from_input_modalities():
 def test_parse_model_metadata_reasoning_capable_from_supported_parameters():
 	"""parse_model_metadata sets reasoning_capable when reasoning in supported_parameters."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "with-reasoning",
 				"supported_parameters": ["reasoning", "max_tokens"],
@@ -183,7 +185,7 @@ def test_parse_model_metadata_reasoning_capable_from_supported_parameters():
 def test_parse_model_metadata_image_output_from_output_modalities():
 	"""parse_model_metadata sets image_output only when output_modalities contains image."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "image-gen",
 				"architecture": {"output_modalities": ["image", "text"]},
@@ -211,7 +213,7 @@ def test_parse_model_metadata_image_output_from_output_modalities():
 def test_parse_model_metadata_audio_output_from_output_modalities():
 	"""parse_model_metadata sets audio_output only when output_modalities contains audio."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "gpt-audio",
 				"architecture": {"output_modalities": ["text", "audio"]},
@@ -231,11 +233,11 @@ def test_parse_model_metadata_audio_output_from_output_modalities():
 def test_fetch_models_json_success(httpx_mock):
 	"""fetch_models_json returns parsed JSON on success."""
 	httpx_mock.add_response(
-		json={"data": [{"id": "gpt-5", "name": "GPT-5"}]},
+		json={"models": [{"id": "gpt-5", "name": "GPT-5"}]},
 		url="https://example.com/models.json",
 	)
 	result = fetch_models_json("https://example.com/models.json")
-	assert result["data"][0]["id"] == "gpt-5"
+	assert result["models"][0]["id"] == "gpt-5"
 
 
 def test_fetch_models_json_network_error(httpx_mock):
@@ -252,7 +254,7 @@ def test_fetch_models_json_network_error(httpx_mock):
 def test_parse_model_metadata_sorts_by_created_desc():
 	"""parse_model_metadata sorts models by created descending (newest first)."""
 	raw = {
-		"data": [
+		"models": [
 			{"id": "old", "created": 1000},
 			{"id": "new", "created": 3000},
 			{"id": "mid", "created": 2000},
@@ -266,12 +268,14 @@ def test_load_models_from_url_success(httpx_mock):
 	"""load_models_from_url fetches and parses models."""
 	httpx_mock.add_response(
 		json={
-			"data": [
+			"models": [
 				{
 					"id": "gpt-5",
 					"name": "GPT-5",
-					"context_length": 400000,
-					"top_provider": {"max_completion_tokens": 128000},
+					"top_provider": {
+						"context_length": 400000,
+						"max_completion_tokens": 128000,
+					},
 				}
 			]
 		},
@@ -296,12 +300,30 @@ def test_invalidate_model_cache_clears_specific_url(httpx_mock):
 	url = "https://example.com/invalidate-test.json"
 	invalidate_model_cache()
 	httpx_mock.add_response(
-		json={"data": [{"id": "gpt-5", "name": "GPT-5"}]}, url=url
+		json={
+			"models": [
+				{
+					"id": "gpt-5",
+					"name": "GPT-5",
+					"top_provider": {"context_length": 1000},
+				}
+			]
+		},
+		url=url,
 	)
 	load_models_from_url(url)
 	invalidate_model_cache(url)
 	httpx_mock.add_response(
-		json={"data": [{"id": "gpt-6", "name": "GPT-6"}]}, url=url
+		json={
+			"models": [
+				{
+					"id": "gpt-6",
+					"name": "GPT-6",
+					"top_provider": {"context_length": 1000},
+				}
+			]
+		},
+		url=url,
 	)
 	models = load_models_from_url(url)
 	assert len(models) == 1
@@ -313,12 +335,30 @@ def test_invalidate_model_cache_clears_all_when_url_none(httpx_mock):
 	url = "https://example.com/invalidate-all-test.json"
 	invalidate_model_cache()
 	httpx_mock.add_response(
-		json={"data": [{"id": "gpt-5", "name": "GPT-5"}]}, url=url
+		json={
+			"models": [
+				{
+					"id": "gpt-5",
+					"name": "GPT-5",
+					"top_provider": {"context_length": 1000},
+				}
+			]
+		},
+		url=url,
 	)
 	load_models_from_url(url)
 	invalidate_model_cache()
 	httpx_mock.add_response(
-		json={"data": [{"id": "gpt-6", "name": "GPT-6"}]}, url=url
+		json={
+			"models": [
+				{
+					"id": "gpt-6",
+					"name": "GPT-6",
+					"top_provider": {"context_length": 1000},
+				}
+			]
+		},
+		url=url,
 	)
 	models = load_models_from_url(url)
 	assert len(models) == 1
@@ -328,7 +368,7 @@ def test_invalidate_model_cache_clears_all_when_url_none(httpx_mock):
 def test_parse_model_metadata_web_search_capable_from_json():
 	"""parse_model_metadata sets web_search_capable from supports_web_search."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "with-web-search",
 				"supports_web_search": True,
@@ -350,7 +390,7 @@ def test_parse_model_metadata_web_search_capable_from_json():
 def test_parse_model_metadata_web_search_capable_fallback_tools():
 	"""parse_model_metadata uses tools in supported_parameters when supports_web_search absent."""
 	raw = {
-		"data": [
+		"models": [
 			{
 				"id": "with-tools",
 				"supported_parameters": ["tools", "max_tokens"],
@@ -367,16 +407,18 @@ def test_parse_model_metadata_web_search_capable_fallback_tools():
 def test_parse_model_metadata_handles_invalid_int_conversion():
 	"""parse_model_metadata tolerates invalid int values (non-numeric, wrong type)."""
 	raw = {
-		"data": [
-			{"id": "invalid-context", "context_length": "not-a-number"},
+		"models": [
+			{"id": "no-top-provider", "top_provider": None},
 			{
 				"id": "invalid-max-tokens",
-				"context_length": 1000,
-				"top_provider": {"max_completion_tokens": [1, 2, 3]},
+				"top_provider": {
+					"context_length": 1000,
+					"max_completion_tokens": [1, 2, 3],
+				},
 			},
 			{
 				"id": "invalid-created",
-				"context_length": 1000,
+				"top_provider": {"context_length": 1000},
 				"created": "invalid",
 			},
 		]
@@ -384,6 +426,7 @@ def test_parse_model_metadata_handles_invalid_int_conversion():
 	models = parse_model_metadata(raw)
 	assert len(models) == 3
 	by_id = {m.id: m for m in models}
-	assert by_id["invalid-context"].context_window == 0
+	assert by_id["no-top-provider"].context_window == 0
 	assert by_id["invalid-max-tokens"].max_output_tokens == -1
+	assert by_id["invalid-max-tokens"].context_window == 1000
 	assert by_id["invalid-created"].created == 0
