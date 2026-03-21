@@ -191,11 +191,9 @@ class BaseConversation:
 		menu.AppendSeparator()
 		default_item = menu.Append(wx.ID_ANY, _("Set as default"))
 		accounts = config.accounts()
-		is_default = account and accounts.default_account == account
-		menu.Enable(
-			default_item.GetId(), account is not None and not is_default
-		)
-		if account and not is_default:
+		can_set_default = accounts.can_set_as_default(account)
+		menu.Enable(default_item.GetId(), can_set_default)
+		if can_set_default:
 			self.Bind(
 				wx.EVT_MENU,
 				lambda e: self._set_default_account_from_combo(account),
