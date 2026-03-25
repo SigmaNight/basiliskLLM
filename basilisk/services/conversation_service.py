@@ -63,17 +63,18 @@ class ConversationService:
 			return
 		if self.private:
 			return
+		db = self._get_conv_db()
+		if db is None:
+			return
 		try:
 			if self.db_conv_id is None:
-				self.db_conv_id = self._get_conv_db().save_conversation(
-					conversation
-				)
+				self.db_conv_id = db.save_conversation(conversation)
 			else:
 				block_index = conversation.messages.index(new_block)
 				system_msg = None
 				if new_block.system_index is not None:
 					system_msg = conversation.systems[new_block.system_index]
-				self._get_conv_db().save_message_block(
+				db.save_message_block(
 					self.db_conv_id, block_index, new_block, system_msg
 				)
 		except Exception:
@@ -89,10 +90,11 @@ class ConversationService:
 		"""
 		if self.db_conv_id is None:
 			return
+		db = self._get_conv_db()
+		if db is None:
+			return
 		try:
-			self._get_conv_db().update_conversation_title(
-				self.db_conv_id, title
-			)
+			db.update_conversation_title(self.db_conv_id, title)
 		except Exception:
 			log.error(
 				"Failed to update conversation title in database", exc_info=True
@@ -123,8 +125,12 @@ class ConversationService:
 		"""
 		should_stop_timer = False
 		if private and self.db_conv_id is not None:
+			db = self._get_conv_db()
+			if db is None:
+				log.warning("Cannot delete conversation: database unavailable")
+				return False, False
 			try:
-				self._get_conv_db().delete_conversation(self.db_conv_id)
+				db.delete_conversation(self.db_conv_id)
 				self.db_conv_id = None
 				should_stop_timer = True
 			except Exception:
@@ -181,16 +187,19 @@ class ConversationService:
 		"""
 		if self.db_conv_id is None:
 			return
+		db = self._get_conv_db()
+		if db is None:
+			return
 		if draft_block is None:
 			try:
-				self._get_conv_db().delete_draft_block(
+				db.delete_draft_block(
 					self.db_conv_id, len(conversation.messages)
 				)
 			except Exception:
 				log.error("Failed to delete draft", exc_info=True)
 			return
 		try:
-			self._get_conv_db().save_draft_block(
+			db.save_draft_block(
 				self.db_conv_id,
 				len(conversation.messages),
 				draft_block,
@@ -252,9 +261,12 @@ class ConversationService:
 			response = engine.completion(**completion_kw)
 			if stream:
 				content_parts = []
-				for chunk in engine.completion_response_with_stream(response):
-					if isinstance(chunk, str):
-						content_parts.append(chunk)
+				for chunk in engine.completion_response_with_stream(
+					response, new_block=new_block
+				):
+					chunk_type, chunk_data = chunk
+					if chunk_type == "content" and isinstance(chunk_data, str):
+						content_parts.append(chunk_data)
 				return "".join(content_parts).strip(), None
 			new_block = engine.completion_response_without_stream(
 				response=response, **completion_kw

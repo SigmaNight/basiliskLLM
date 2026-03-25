@@ -10,7 +10,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Optional
 
+import wx
+
 import basilisk.config as config
+from basilisk.accessible_output import AccessibleOutputHandler
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	AttachmentFile,
@@ -25,6 +28,13 @@ from basilisk.presenters.presenter_mixins import (
 	DestroyGuardMixin,
 	_guard_destroying,
 )
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
+from basilisk.presenters.view_utils import (
+	view_get_web_search_value,
+	view_has_web_search_control,
+)
 from basilisk.provider_ai_model import AIModelInfo
 from basilisk.provider_capability import ProviderCapability
 from basilisk.services.conversation_service import ConversationService
@@ -35,6 +45,15 @@ if TYPE_CHECKING:
 	from basilisk.views.conversation_tab import ConversationTab
 
 log = logging.getLogger(__name__)
+
+
+def _get_transcription_text(transcription) -> str:
+	"""Extract text from transcription result (OpenAI, Mistral, etc.)."""
+	if transcription is None:
+		return ""
+	if isinstance(transcription, dict):
+		return str(transcription.get("text") or "")
+	return str(getattr(transcription, "text", "") or "")
 
 
 class ConversationPresenter(DestroyGuardMixin):
@@ -85,6 +104,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			None
 		)
 
+		self._a_output = AccessibleOutputHandler()
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_completion_start,
 			on_completion_end=self._on_completion_end,
@@ -122,12 +142,9 @@ class ConversationPresenter(DestroyGuardMixin):
 		view.prompt_panel.clear(refresh=True)
 
 		completion_kwargs = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in view.current_account.provider.engine_cls.capabilities
-		):
-			completion_kwargs["web_search_mode"] = (
-				view.web_search_mode.GetValue()
+		if view_has_web_search_control(view):
+			completion_kwargs["web_search_mode"] = view_get_web_search_value(
+				view
 			)
 
 		self.completion_handler.start_completion(
@@ -156,7 +173,17 @@ class ConversationPresenter(DestroyGuardMixin):
 		model = view.prompt_panel.ensure_model_compatibility(view.current_model)
 		if not model:
 			return None
+		if getattr(model, "image_output", False) is True:
+			wx.MessageBox(
+				_("Image generation models are not supported yet."),
+				_("Not Supported"),
+				wx.OK | wx.ICON_INFORMATION,
+			)
+			return None
 		view.prompt_panel.resize_all_attachments()
+		reasoning_params = get_reasoning_params_from_view(view)
+		web_search = view_get_web_search_value(view)
+		gen_params = view.get_generation_params_from_view()
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -166,10 +193,9 @@ class ConversationPresenter(DestroyGuardMixin):
 			model=AIModelInfo(
 				provider_id=view.current_account.provider.id, model_id=model.id
 			),
-			temperature=view.temperature_spinner.GetValue(),
-			top_p=view.top_p_spinner.GetValue(),
-			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
-			stream=view.stream_mode.GetValue(),
+			web_search_mode=web_search,
+			**gen_params,
+			**reasoning_params,
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:
@@ -179,11 +205,8 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		view = self.view
 		completion_args = {}
-		if (
-			ProviderCapability.WEB_SEARCH
-			in view.current_account.provider.engine_cls.capabilities
-		):
-			completion_args["web_search_mode"] = view.web_search_mode.GetValue()
+		if view_has_web_search_control(view):
+			completion_args["web_search_mode"] = view_get_web_search_value(view)
 
 		return completion_args | {
 			"engine": view.current_engine,
@@ -244,7 +267,11 @@ class ConversationPresenter(DestroyGuardMixin):
 	):
 		"""Called when streaming starts."""
 		self.conversation.add_block(new_block, system_message)
-		self.view.messages.display_new_block(new_block, streaming=True)
+		self.view.messages.display_new_block(
+			new_block,
+			streaming=True,
+			show_reasoning_blocks=self.view.get_effective_show_reasoning_blocks(),
+		)
 		self.view.messages.SetInsertionPointEnd()
 
 	@_guard_destroying
@@ -260,7 +287,10 @@ class ConversationPresenter(DestroyGuardMixin):
 	):
 		"""Called when non-streaming completion finishes."""
 		self.conversation.add_block(new_block, system_message)
-		self.view.messages.display_new_block(new_block)
+		self.view.messages.display_new_block(
+			new_block,
+			show_reasoning_blocks=self.view.get_effective_show_reasoning_blocks(),
+		)
 		if self.view.messages.should_speak_response:
 			self.view.messages.a_output.handle(new_block.response.content)
 		self.service.auto_save_to_db(self.conversation, new_block)
@@ -404,16 +434,20 @@ class ConversationPresenter(DestroyGuardMixin):
 		"""Handle a transcription result.
 
 		Args:
-			transcription: The transcription result.
+			transcription: The transcription result (object with .text or dict).
 		"""
 		stop_sound()
 		self.view.SetStatusText(_("Ready"))
-		self.view.prompt_panel.prompt.AppendText(transcription.text)
-		if (
-			self.view.prompt_panel.prompt.HasFocus()
-			and self.view.GetTopLevelParent().IsShown()
-		):
-			self.view._handle_accessible_output(transcription.text)
+		text = _get_transcription_text(transcription)
+		if text:
+			self.view.prompt_panel.prompt.AppendText(text)
+			if (
+				self.view.prompt_panel.prompt.HasFocus()
+				and self.view.GetTopLevelParent().IsShown()
+			):
+				self._a_output.handle(text)
+		else:
+			log.debug("Transcription returned empty text")
 		self.view.prompt_panel.prompt.SetInsertionPointEnd()
 		self.view.prompt_panel.set_prompt_focus()
 
@@ -536,6 +570,9 @@ class ConversationPresenter(DestroyGuardMixin):
 		attachments = view.prompt_panel.attachment_files
 		if not prompt_text and not attachments:
 			return None
+		reasoning_params = get_reasoning_params_from_view(view)
+		web_search = view_get_web_search_value(view)
+		gen_params = view.get_generation_params_from_view()
 		block = MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -546,10 +583,9 @@ class ConversationPresenter(DestroyGuardMixin):
 				provider_id=view.current_account.provider.id,
 				model_id=view.current_model.id,
 			),
-			temperature=view.temperature_spinner.GetValue(),
-			max_tokens=view.max_tokens_spin_ctrl.GetValue(),
-			top_p=view.top_p_spinner.GetValue(),
-			stream=view.stream_mode.GetValue(),
+			web_search_mode=web_search,
+			**gen_params,
+			**reasoning_params,
 		)
 		system_msg = self.get_system_message()
 		if system_msg and system_msg in self.conversation.systems:

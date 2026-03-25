@@ -8,22 +8,11 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Any, Generator
 
 from openai import OpenAI
-from openai.types.responses import (
-	EasyInputMessageParam,
-	Response,
-	ResponseInputImageParam,
-	ResponseInputTextParam,
-	ResponseOutputMessage,
-	ResponseOutputRefusal,
-	ResponseOutputText,
-	ResponseOutputTextParam,
-	ResponseStreamEvent,
-	ResponseTextDeltaEvent,
-	WebSearchToolParam,
-)
+from openai.types.chat import ChatCompletion, ChatCompletionChunk
+from openai.types.responses import WebSearchToolParam
 
 from basilisk.conversation import (
 	Conversation,
@@ -34,7 +23,8 @@ from basilisk.conversation import (
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
-from .base_engine import BaseEngine
+from .provider_ui_spec import AudioOutputUISpec, ReasoningUISpec
+from .responses_api_engine import ResponsesAPIEngine, _audio_mime_to_format
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -42,7 +32,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class OpenAIEngine(BaseEngine):
+class OpenAIEngine(ResponsesAPIEngine):
 	"""Engine implementation for OpenAI API integration.
 
 	Provides functionality for interacting with OpenAI's models, supporting text,
@@ -55,6 +45,8 @@ class OpenAIEngine(BaseEngine):
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
+		ProviderCapability.AUDIO,
+		ProviderCapability.DOCUMENT,
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 		ProviderCapability.WEB_SEARCH,
@@ -65,6 +57,27 @@ class OpenAIEngine(BaseEngine):
 		"image/jpeg",
 		"image/png",
 		"image/webp",
+		"application/pdf",
+		"text/plain",
+		"text/csv",
+		"text/tsv",
+		"text/markdown",
+		"text/html",
+		"text/xml",
+		"text/rtf",
+		"application/json",
+		"application/msword",
+		"application/rtf",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"application/vnd.oasis.opendocument.text",
+		"application/vnd.ms-excel",
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"application/vnd.ms-powerpoint",
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		"audio/mpeg",
+		"audio/wav",
+		"audio/mp4",
+		"audio/webm",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -74,6 +87,7 @@ class OpenAIEngine(BaseEngine):
 			account: Account configuration for the OpenAI provider.
 		"""
 		super().__init__(account)
+		self._last_used_chat_completions = False
 
 	@cached_property
 	def client(self) -> OpenAI:
@@ -82,7 +96,6 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Configured OpenAI client instance.
 		"""
-		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
 			if self.account.active_organization_key
@@ -95,301 +108,198 @@ class OpenAIEngine(BaseEngine):
 			or str(self.account.provider.base_url),
 		)
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models.
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/openai.json"
+	_REASONING_ONLY_IDS = frozenset({"o1", "o3", "o3-mini", "o4-mini"})
+	_WEB_SEARCH_EXCLUDED_IDS = frozenset({"gpt-4.1-nano"})
 
-		Returns:
-			List of supported OpenAI models with their configurations.
-		"""
-		super().models
-		log.debug("Getting openAI models")
-		# See <https://platform.openai.com/docs/models>
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		for m in models:
+			if m.id in self._REASONING_ONLY_IDS:
+				m.reasoning = True
+				m.reasoning_capable = False
+		return models
+
+	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
+		"""Exclude gpt-4.1-nano and gpt-5 (minimal reasoning) per OpenAI docs."""
+		if model.id in self._WEB_SEARCH_EXCLUDED_IDS:
+			return False
+		return super().model_supports_web_search(model)
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[WebSearchToolParam]:
+		"""Return web_search_preview tool for Responses API."""
 		return [
-			ProviderAIModel(
-				id="gpt-5.2",
-				name="GPT-5.2",
-				# Translators: This is a model description
-				description=_(
-					"The best model for coding and agentic tasks across industries"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.2-pro",
-				name="GPT-5.2 Pro",
-				# Translators: This is a model description
-				description=_(
-					"Version of GPT-5.2 that produces smarter and more precise responses"
-				),
-				context_window=400000,
-				max_output_tokens=272000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.2-chat-latest",
-				name="GPT-5.2 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5.2 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.1",
-				name="GPT-5.1",
-				# Translators: This is a model description
-				description=_(
-					"Best model for coding and agentic tasks with configurable reasoning effort"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5.1-chat-latest",
-				name="GPT-5.1 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5.1 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5",
-				name="GPT-5",
-				# Translators: This is a model description
-				description=_(
-					"Previous intelligent reasoning model for coding and agentic tasks"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-mini",
-				name="GPT-5 mini",
-				# Translators: This is a model description
-				description=_(
-					"A faster, more cost-efficient version of GPT-5 for well-defined tasks"
-				),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-nano",
-				name="GPT-5 nano",
-				# Translators: This is a model description
-				description=_("Fastest, most cost-efficient version of GPT-5"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-chat-latest",
-				name="GPT-5 Chat",
-				# Translators: This is a model description
-				description=_("GPT-5 model used in ChatGPT"),
-				context_window=400000,
-				max_output_tokens=128000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-5-pro",
-				name="GPT-5 Pro",
-				# Translators: This is a model description
-				description=_(
-					"Version of GPT-5 that produces smarter and more precise responses"
-				),
-				context_window=400000,
-				max_output_tokens=272000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1",
-				name="GPT-4.1",
-				# Translators: This is a model description
-				description=_("Flagship GPT model for complex tasks"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1-mini",
-				name="GPT-4.1 mini",
-				# Translators: This is a model description
-				description=_("Balanced for intelligence, speed, and cost"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4.1-nano",
-				name="GPT-4.1 nano",
-				# Translators: This is a model description
-				description=_("Fastest, most cost-effective GPT-4.1 model"),
-				context_window=1047576,
-				max_output_tokens=32768,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o4-mini",
-				name="o4-mini",
-				# Translators: This is a model description
-				description=_(
-					"Fast, cost-efficient reasoning model, succeeded by GPT-5 mini"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o3",
-				name="o3",
-				# Translators: This is a model description
-				description=_(
-					"Reasoning model for complex tasks, succeeded by GPT-5"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o",
-				name="GPT 4o",
-				# Translators: This is a model description
-				description=_("Fast, intelligent, flexible GPT model"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4o-mini",
-				name="GPT 4o Mini",
-				# Translators: This is a model description
-				description=_("Fast, affordable small model for focused tasks"),
-				context_window=128000,
-				max_output_tokens=16384,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o3-mini",
-				name="o3 Mini",
-				# Translators: This is a model description
-				description=_(
-					"Small reasoning model for science, math and coding with Structured Outputs and function calling"
-				),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="o1",
-				name="o1",
-				# Translators: This is a model description
-				description=_("Previous full o-series reasoning model"),
-				context_window=200000,
-				max_output_tokens=100000,
-				vision=True,
-				reasoning=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-4-turbo",
-				name="GPT 4 Turbo",
-				# Translators: This is a model description
-				description=_(
-					"Older high-intelligence GPT model with vision capabilities"
-				),
-				context_window=128000,
-				max_output_tokens=4096,
-				vision=True,
-				max_temperature=2.0,
-			),
-			ProviderAIModel(
-				id="gpt-3.5-turbo",
-				name="GPT 3.5 Turbo",
-				# Translators: This is a model description
-				description=_(
-					"Legacy GPT model for cheaper chat and non-chat tasks"
-				),
-				context_window=16385,
-				max_temperature=2.0,
-			),
+			WebSearchToolParam(
+				type="web_search_preview", search_context_size="medium"
+			)
 		]
 
-	def prepare_message_request(
-		self, message: Message
-	) -> EasyInputMessageParam:
-		"""Prepares a message for OpenAI API request.
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""OpenAI: effort dropdown (low/medium/high). No adaptive or budget."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=False,
+			show_budget=False,
+			show_effort=True,
+			effort_options=("low", "medium", "high"),
+			effort_label="Reasoning effort:",
+		)
 
-		Args:
-			message: Message to be prepared.
+	# OpenAI TTS voices (https://platform.openai.com/docs/guides/text-to-speech)
+	_AUDIO_VOICES = (
+		"alloy",
+		"ash",
+		"ballad",
+		"cedar",
+		"coral",
+		"echo",
+		"fable",
+		"marin",
+		"nova",
+		"onyx",
+		"sage",
+		"shimmer",
+		"verse",
+	)
 
-		Returns:
-			OpenAI API compatible message parameter.
-		"""
-		super().prepare_message_request(message)
-		content = [
-			ResponseInputTextParam(text=message.content, type="input_text")
+	def get_audio_output_spec(
+		self, model: ProviderAIModel
+	) -> AudioOutputUISpec | None:
+		"""OpenAI: TTS voices for audio output models."""
+		if not model.audio:
+			return None
+		return AudioOutputUISpec(
+			voices=self._AUDIO_VOICES, default_voice="alloy"
+		)
+
+	def _build_completion_params(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None,
+		model: ProviderAIModel,
+		kwargs: dict[str, Any],
+	) -> dict[str, Any]:
+		params = super()._build_completion_params(
+			new_block,
+			conversation,
+			system_message,
+			stop_block_index,
+			model,
+			kwargs,
+		)
+		params["store"] = False
+		if model.reasoning_capable and new_block.reasoning_mode:
+			params["reasoning"] = {
+				"effort": new_block.reasoning_effort or "medium"
+			}
+		return params
+
+	def _has_audio_attachments(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None,
+	) -> bool:
+		"""Return True if any message contains audio attachments (any audio/* mime)."""
+
+		def _msg_has_audio(msg: Message | None) -> bool:
+			if not msg or not getattr(msg, "attachments", None):
+				return False
+			for att in msg.attachments:
+				if att.mime_type and att.mime_type.startswith("audio/"):
+					return True
+			return False
+
+		if _msg_has_audio(new_block.request):
+			return True
+		for i, block in enumerate(conversation.messages):
+			if stop_block_index is not None and i >= stop_block_index:
+				break
+			if _msg_has_audio(block.request):
+				return True
+		return False
+
+	def _to_chat_content_part(self, message: Message) -> list[dict[str, Any]]:
+		"""Build Chat Completions content parts (text, image_url, input_audio)."""
+		parts: list[dict[str, Any]] = [
+			{"type": "text", "text": message.content or ""}
 		]
-		if getattr(message, "attachments", None):
-			for attachment in message.attachments:
-				content.append(
-					ResponseInputImageParam(
-						image_url=attachment.url,
-						detail="auto",
-						type="input_image",
+		if not getattr(message, "attachments", None):
+			return parts
+		for attachment in message.attachments:
+			mime = attachment.mime_type or ""
+			url = attachment.url
+			if mime.startswith("image/"):
+				parts.append(
+					{
+						"type": "image_url",
+						"image_url": {"url": url, "detail": "auto"},
+					}
+				)
+			elif mime.startswith("audio/"):
+				audio_format = _audio_mime_to_format(mime)
+				if audio_format and url.startswith("data:"):
+					_, _, data = url.partition(",")
+					if data:
+						parts.append(
+							{
+								"type": "input_audio",
+								"input_audio": {
+									"data": data,
+									"format": audio_format,
+								},
+							}
+						)
+				else:
+					raise ValueError(
+						f"Audio format {mime} not supported for gpt-audio. "
+						"Use mp3 or wav."
 					)
-				)
-		return EasyInputMessageParam(
-			role=message.role.value, content=content, type="message"
+		return parts
+
+	def _get_chat_completion_messages(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None,
+	) -> list[dict[str, Any]]:
+		"""Build messages for Chat Completions API (supports input_audio)."""
+		messages: list[dict[str, Any]] = []
+		if system_message:
+			messages.append(
+				{"role": "system", "content": system_message.content or ""}
+			)
+		for i, block in enumerate(conversation.messages):
+			if stop_block_index is not None and i >= stop_block_index:
+				break
+			if not block.response:
+				continue
+			messages.append(
+				{
+					"role": "user",
+					"content": self._to_chat_content_part(block.request),
+				}
+			)
+			messages.append(
+				{"role": "assistant", "content": block.response.content or ""}
+			)
+		messages.append(
+			{
+				"role": "user",
+				"content": self._to_chat_content_part(new_block.request),
+			}
 		)
-
-	def prepare_message_response(
-		self, response: Message
-	) -> EasyInputMessageParam:
-		"""Prepares an assistant message response.
-
-		Args:
-			response: Response message to be prepared.
-
-		Returns:
-			OpenAI API compatible assistant message parameter.
-		"""
-		super().prepare_message_response(response)
-		return EasyInputMessageParam(
-			role=response.role.value,
-			content=[
-				ResponseOutputTextParam(
-					text=response.content, type="output_text"
-				)
-			],
-			type="message",
-		)
+		return messages
 
 	def completion(
 		self,
@@ -397,107 +307,110 @@ class OpenAIEngine(BaseEngine):
 		conversation: Conversation,
 		system_message: Message | None,
 		stop_block_index: int | None = None,
-		**kwargs,
-	) -> Response | Generator[ResponseStreamEvent, None, None]:
-		"""Generates a chat completion using the OpenAI API.
+		**kwargs: Any,
+	) -> Any:
+		"""Generate completion. Uses Chat Completions API for gpt-audio + audio."""
+		# Check audio routing BEFORE calling parent - parent uses Responses API
+		# which does not support input_audio and would raise.
+		model = self.get_model(new_block.model.model_id)
+		has_audio = self._has_audio_attachments(
+			new_block, conversation, system_message, stop_block_index
+		)
+		if has_audio and not model.audio:
+			raise ValueError(
+				"The selected model does not support audio input. "
+				"GPT-5 and similar models do not accept audio files. "
+				"Use gpt-audio or gpt-audio-mini for audio, or transcribe first (Ctrl+R)."
+			)
+		output_modality = getattr(new_block, "output_modality", "text")
+		want_audio_output = output_modality == "audio"
+		use_chat_completions = model.audio and (has_audio or want_audio_output)
+		if use_chat_completions:
+			self._last_used_chat_completions = True
+			messages = self._get_chat_completion_messages(
+				new_block, conversation, system_message, stop_block_index
+			)
 
-		Args:
-			new_block: The message block containing generation parameters.
-			conversation: The conversation history context.
-			system_message: Optional system message to guide the AI's behavior.
-			stop_block_index: Optional index to stop processing messages at. If None, all messages are processed.
-			**kwargs: Additional keyword arguments for the API request.
-
-		Returns:
-			Either a complete chat completion response or a generator for streaming
-			chat completion chunks.
-		"""
-		super().completion(
+			params: dict[str, Any] = {
+				"model": model.id,
+				"messages": messages,
+				"modalities": ["text", "audio"]
+				if want_audio_output
+				else ["text"],
+				"stream": new_block.stream and not want_audio_output,
+				"temperature": new_block.temperature,
+				"top_p": new_block.top_p,
+			}
+			# Chat Completions API supports stream_options.include_usage
+			if new_block.stream and not want_audio_output:
+				params["stream_options"] = {"include_usage": True}
+			if want_audio_output:
+				params["audio"] = {
+					"voice": getattr(new_block, "audio_voice", "alloy"),
+					"format": "wav",
+				}
+			if new_block.max_tokens:
+				params["max_tokens"] = new_block.max_tokens
+			params.update(self._get_block_generation_params(new_block, model))
+			params["store"] = False
+			params.update(kwargs)
+			if want_audio_output:
+				params["stream"] = False
+			return self.client.chat.completions.create(**params)
+		self._last_used_chat_completions = False
+		return super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
-		tools = []
-		web_search = kwargs.pop("web_search_mode", False)
-		if web_search:
-			tools.append(
-				WebSearchToolParam(
-					type="web_search_preview", search_context_size="medium"
-				)
-			)
-		model = self.get_model(new_block.model.model_id)
-		params = {
-			"model": model.id,
-			"input": self.get_messages(
-				new_block,
-				conversation,
-				system_message,
-				stop_block_index=stop_block_index,
-			),
-			"stream": new_block.stream,
-			"temperature": new_block.temperature,
-			"top_p": new_block.top_p,
-			"store": False,
-		}
-		if new_block.max_tokens:
-			params["max_tokens"] = new_block.max_tokens
-		if tools:
-			params["tools"] = tools
-		params.update(kwargs)
-		response = self.client.responses.create(**params)
-		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ResponseStreamEvent, None, None]
-	):
-		"""Processes a streaming completion response.
-
-		Args:
-			stream: Generator of chat completion chunks.
-
-		Yields:
-			Content from each chunk in the stream.
-		"""
-		for event in stream:
-			if isinstance(event, ResponseTextDeltaEvent):
-				yield event.delta
-			else:
-				log.warning(
-					"Received unexpected event type: %s", type(event).__name__
-				)
-				continue
+		self,
+		stream: Generator[ChatCompletionChunk, None, None] | Any,
+		new_block: MessageBlock,
+		**kwargs: Any,
+	) -> Generator[tuple[str, Any], None, None]:
+		"""Handle streaming response from Chat or Responses API."""
+		if getattr(self, "_last_used_chat_completions", False):
+			for chunk in stream:
+				if not chunk.choices:
+					continue
+				delta = chunk.choices[0].delta
+				if delta and delta.content:
+					yield ("content", delta.content)
+		else:
+			yield from super().completion_response_with_stream(
+				stream, new_block=new_block, **kwargs
+			)
 
 	def completion_response_without_stream(
-		self, response: Response, new_block: MessageBlock, **kwargs
+		self,
+		response: ChatCompletion | Any,
+		new_block: MessageBlock,
+		**kwargs: Any,
 	) -> MessageBlock:
-		"""Processes a non-streaming completion response.
-
-		Args:
-			response: The chat completion response.
-			new_block: The message block to update with the response.
-			**kwargs: Additional keyword arguments.
-
-		Returns:
-			Updated message block containing the response.
-		"""
-		txt_parts = []
-		for res_output in response.output:
-			if isinstance(res_output, ResponseOutputMessage):
-				for res_content in res_output.content:
-					if isinstance(res_content, ResponseOutputText):
-						txt_parts.append(res_content.text)
-					elif isinstance(res_content, ResponseOutputRefusal):
-						raise ValueError(
-							f"OpenAI refused to answer the question: {res_content.refusal}"
-						)
-			else:
-				log.warning(
-					"Received unexpected output type: %s",
-					type(res_output).__name__,
+		"""Handle non-streaming response from Chat or Responses API."""
+		if isinstance(response, ChatCompletion):
+			msg = response.choices[0].message
+			audio = getattr(msg, "audio", None)
+			if audio and getattr(audio, "data", None):
+				fmt = getattr(audio, "format", None) or getattr(
+					new_block, "audio_format", "wav"
 				)
-				continue
-		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content="".join(txt_parts)
+				audio_marker = _("<audio response>")
+				new_block.response = Message(
+					role=MessageRoleEnum.ASSISTANT,
+					content=audio_marker,
+					audio_data=audio.data,
+					audio_format=fmt,
+				)
+			else:
+				content = msg.content if msg.content is not None else ""
+				new_block.response = Message(
+					role=MessageRoleEnum.ASSISTANT, content=content
+				)
+			return new_block
+		return super().completion_response_without_stream(
+			response, new_block, **kwargs
 		)
-		return new_block
 
 	def get_transcription(
 		self, audio_file_path: str, response_format: str = "json"

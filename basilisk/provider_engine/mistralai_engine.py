@@ -7,7 +7,9 @@ implementing capabilities for text and image generation/processing.
 from __future__ import annotations
 
 import logging
+import os
 from functools import cached_property
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Generator
 
 from mistralai.client import Mistral
@@ -26,7 +28,7 @@ from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 
@@ -41,11 +43,16 @@ class MistralAIEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text, image, document, and OCR.
 	"""
 
+	# Voxtral models support audio in chat; transcription uses dedicated endpoint
+	_STT_MODEL = "voxtral-mini-latest"
+
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
+		ProviderCapability.AUDIO,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.OCR,
+		ProviderCapability.STT,
 	}
 	supported_attachment_formats: set[str] = {
 		"image/gif",
@@ -53,6 +60,10 @@ class MistralAIEngine(BaseEngine):
 		"image/png",
 		"image/webp",
 		"application/pdf",
+		"audio/mpeg",
+		"audio/wav",
+		"audio/mp4",
+		"audio/webm",
 	}
 
 	def __init__(self, account: Account) -> None:
@@ -63,6 +74,8 @@ class MistralAIEngine(BaseEngine):
 		"""
 		super().__init__(account)
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/mistralai.json"
+
 	@cached_property
 	def client(self) -> Mistral:
 		"""Creates and configures the Mistral client.
@@ -70,140 +83,11 @@ class MistralAIEngine(BaseEngine):
 		Returns:
 			Configured MistralAI client instance.
 		"""
-		super().client
 		return Mistral(
 			api_key=self.account.api_key.get_secret_value(),
 			server_url=self.account.custom_base_url
 			or self.account.provider.base_url,
 		)
-
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available MistralAI models.
-
-		Returns:
-			List of supported MistralAI models with their configurations.
-		"""
-		super().models
-		log.debug("Getting MistralAI models")
-		# See <https://docs.mistral.ai/models/>
-		return [
-			ProviderAIModel(
-				id="mistral-large-2512",
-				name="Mistral Large 3",
-				# Translators: This is a model description
-				description=_(
-					"State-of-the-art open-weight general-purpose multimodal model"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-medium-2508",
-				name="Mistral Medium 3.1",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released August 2025"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-small-2506",
-				name="Mistral Small 3.2",
-				# Translators: This is a model description
-				description=_("Updated small model released June 2025"),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="devstral-2512",
-				name="Devstral 2",
-				# Translators: This is a model description
-				description=_(
-					"Frontier code agents model for software engineering tasks"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="ministral-14b-2512",
-				name="Ministral 3 14B",
-				# Translators: This is a model description
-				description=_(
-					"Powerful model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-8b-2512",
-				name="Ministral 3 8B",
-				# Translators: This is a model description
-				description=_(
-					"Efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-3b-2512",
-				name="Ministral 3 3B",
-				# Translators: This is a model description
-				description=_(
-					"Tiny efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="codestral-2508",
-				name="Codestral",
-				# Translators: This is a model description
-				description=_(
-					"Cutting-edge language model for code completion"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="pixtral-large-2411",
-				name="Pixtral Large",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released November 2024"
-				),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="open-mistral-nemo",
-				name="Mistral Nemo 12B",
-				# Translators: This is a model description
-				description=_(
-					"Best multilingual open source model for text generation"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-		]
 
 	def prepare_message_request(self, message: Message) -> dict[str, Any]:
 		"""Prepares a message for MistralAI API request.
@@ -218,10 +102,20 @@ class MistralAIEngine(BaseEngine):
 		content = [{"type": "text", "text": message.content}]
 		if getattr(message, "attachments", None):
 			for attachment in message.attachments:
-				mime_type = attachment.mime_type
+				mime_type = attachment.mime_type or ""
 				if mime_type.startswith("image/"):
 					content.append(
 						{"type": "image_url", "image_url": attachment.url}
+					)
+				elif mime_type.startswith("audio/"):
+					url = attachment.url
+					if url.startswith("data:"):
+						parts = url.split(",", 1)
+						audio_data = parts[1] if len(parts) == 2 else url
+					else:
+						audio_data = url
+					content.append(
+						{"type": "input_audio", "input_audio": audio_data}
 					)
 				else:
 					content.append(
@@ -267,6 +161,7 @@ class MistralAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": new_block.model.model_id,
 			"messages": self.get_messages(
@@ -281,26 +176,35 @@ class MistralAIEngine(BaseEngine):
 		}
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
+		params.update(self._get_block_generation_params(new_block, model))
 		params.update(kwargs)
 		if new_block.stream:
 			return self.client.chat.stream(**params)
 		return self.client.chat.complete(**params)
 
 	def completion_response_with_stream(
-		self, stream: Generator[CompletionEvent, None, None]
+		self,
+		stream: Generator[CompletionEvent, None, None],
+		new_block: MessageBlock,
+		**kwargs,
 	):
 		"""Processes a streaming completion response.
 
 		Args:
 			stream: Generator of chat completion chunks.
+			new_block: Block to set usage on when available.
+			**kwargs: Additional arguments passed through.
 
 		Yields:
 			Content from each chunk in the stream.
 		"""
 		for chunk in stream:
-			delta = chunk.data.choices[0].delta
+			data = chunk.data
+			if not data.choices:
+				continue
+			delta = data.choices[0].delta
 			if delta and delta.content:
-				yield delta.content
+				yield ("content", delta.content)
 
 	def completion_response_without_stream(
 		self,
@@ -323,6 +227,33 @@ class MistralAIEngine(BaseEngine):
 			content=response.choices[0].message.content,
 		)
 		return new_block
+
+	def get_transcription(
+		self, audio_file_path: str, response_format: str = "json"
+	):
+		"""Transcribe audio using Mistral's Voxtral transcription API.
+
+		Uses POST /v1/audio/transcriptions with voxtral-mini-latest.
+		Supports WAV (from recording) and other formats per Mistral docs.
+
+		Args:
+			audio_file_path: Path to the audio file.
+			response_format: Ignored; Mistral returns text directly.
+
+		Returns:
+			Object with .text attribute (matches OpenAI Whisper interface).
+		"""
+		with open(audio_file_path, "rb") as f:
+			result = self.client.audio.transcriptions.complete(
+				model=self._STT_MODEL,
+				file={
+					"file_name": os.path.basename(audio_file_path),
+					"content": f,
+				},
+			)
+		# Normalize to match OpenAI interface: object with .text
+		text = getattr(result, "text", None) or ""
+		return SimpleNamespace(text=text)
 
 	@staticmethod
 	def handle_ocr(

@@ -97,7 +97,13 @@ class DBMessageBlock(Base):
 	temperature: Mapped[float] = mapped_column(default=1.0)
 	max_tokens: Mapped[int] = mapped_column(default=4096)
 	top_p: Mapped[float] = mapped_column(default=1.0)
+	frequency_penalty: Mapped[float] = mapped_column(default=0.0)
+	presence_penalty: Mapped[float] = mapped_column(default=0.0)
+	seed: Mapped[int | None] = mapped_column(default=None)
+	top_k: Mapped[int | None] = mapped_column(default=None)
+	stop_json: Mapped[str | None] = mapped_column(default=None)
 	stream: Mapped[bool] = mapped_column(default=False)
+	web_search_mode: Mapped[bool] = mapped_column(default=False)
 	created_at: Mapped[datetime] = mapped_column(
 		default=lambda: datetime.now(timezone.utc)
 	)

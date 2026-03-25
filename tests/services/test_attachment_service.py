@@ -223,6 +223,90 @@ class TestCheckModelVisionCompatible:
 
 
 # ---------------------------------------------------------------------------
+# Static: check_model_attachment_compatible
+# ---------------------------------------------------------------------------
+
+
+class TestCheckModelAttachmentCompatible:
+	"""Tests for AttachmentService.check_model_attachment_compatible."""
+
+	def test_no_attachments_returns_ok(self):
+		"""Empty attachments always compatible."""
+		model = MagicMock()
+		model.vision = model.audio = model.document = False
+		engine = MagicMock()
+		engine.models = []
+		ok, err = AttachmentService.check_model_attachment_compatible(
+			[], model, engine
+		)
+		assert ok is True
+		assert err is None
+
+	def test_images_require_vision(self):
+		"""Image attachments require model.vision."""
+		att = make_image_attachment()
+		model = MagicMock()
+		model.vision = False
+		model.audio = model.document = False
+		vision_m = MagicMock()
+		vision_m.vision = True
+		vision_m.name = "gpt-4o"
+		engine = MagicMock()
+		engine.models = [vision_m]
+		ok, err = AttachmentService.check_model_attachment_compatible(
+			[att], model, engine
+		)
+		assert ok is False
+		assert "vision" in (err or "").lower()
+
+	def test_audio_requires_audio(self):
+		"""Audio attachments require model.audio."""
+		att = make_attachment("audio/mpeg")
+		model = MagicMock()
+		model.vision = model.document = False
+		model.audio = False
+		engine = MagicMock()
+		engine.models = []
+		ok, err = AttachmentService.check_model_attachment_compatible(
+			[att], model, engine
+		)
+		assert ok is False
+		assert "audio" in (err or "").lower()
+
+	def test_documents_require_document_or_vision(self):
+		"""Document attachments require model.document or model.vision."""
+		att = make_attachment("application/pdf")
+		model = MagicMock()
+		model.vision = model.audio = model.document = False
+		doc_m = MagicMock()
+		doc_m.document = True
+		doc_m.name = "gpt-4o"
+		engine = MagicMock()
+		engine.models = [doc_m]
+		ok, err = AttachmentService.check_model_attachment_compatible(
+			[att], model, engine
+		)
+		assert ok is False
+		assert "document" in (err or "").lower()
+
+	def test_mixed_attachments_vision_ok(self):
+		"""Image + document with vision model is compatible."""
+		att1 = make_image_attachment()
+		att2 = make_attachment("application/pdf")
+		model = MagicMock()
+		model.vision = True
+		model.audio = False
+		model.document = True
+		engine = MagicMock()
+		engine.models = []
+		ok, err = AttachmentService.check_model_attachment_compatible(
+			[att1, att2], model, engine
+		)
+		assert ok is True
+		assert err is None
+
+
+# ---------------------------------------------------------------------------
 # Static: resize_attachments
 # ---------------------------------------------------------------------------
 

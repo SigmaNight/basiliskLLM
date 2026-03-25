@@ -7,6 +7,7 @@ from .account_config import (
 	AccountOrganization,
 )
 from .account_config import get_account_config as accounts
+from .config_constants import ACCOUNT_MODEL_SORT_KEYS, MODEL_SORT_KEYS
 from .config_enums import (
 	AccountSource,
 	AutomaticUpdateModeEnum,
@@ -22,7 +23,9 @@ from .main_config import BasiliskConfig
 from .main_config import get_basilisk_config as conf
 
 __all__ = [
+	"ACCOUNT_MODEL_SORT_KEYS",
 	"Account",
+	"MODEL_SORT_KEYS",
 	"AccountManager",
 	"AccountOrganization",
 	"AccountSource",

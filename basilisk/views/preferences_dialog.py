@@ -5,6 +5,7 @@ import logging
 import wx
 
 import basilisk.config as config
+from basilisk.config import MODEL_SORT_KEYS
 from basilisk.presenters.preferences_presenter import (
 	AUTO_UPDATE_MODES,
 	LOG_LEVELS,
@@ -124,10 +125,57 @@ class PreferencesDialog(wx.Dialog):
 		self.advanced_mode.SetValue(conf.general.advanced_mode)
 		sizer.Add(self.advanced_mode, 0, wx.ALL, 5)
 
+		label = wx.StaticText(
+			panel,
+			# Translators: A label for the model list cache refresh delay in preferences
+			label=_("Model list cache refresh delay (hours):"),
+			style=wx.ALIGN_LEFT,
+		)
+		sizer.Add(label, 0, wx.ALL, 5)
+		cache_ttl_hours = max(
+			1, min(168, conf.general.model_metadata_cache_ttl_seconds // 3600)
+		)
+		self.model_cache_ttl_hours = wx.SpinCtrl(
+			panel, value=str(cache_ttl_hours), min=1, max=168
+		)
+		sizer.Add(self.model_cache_ttl_hours, 0, wx.ALL, 5)
+
 		conversation_group = wx.StaticBox(panel, label=_("Conversation"))
 		conversation_group_sizer = wx.StaticBoxSizer(
 			conversation_group, wx.VERTICAL
 		)
+
+		# Translators: A label in the preferences dialog
+		label = wx.StaticText(
+			conversation_group, label=_("Default model sort:")
+		)
+		conversation_group_sizer.Add(label, 0, wx.ALL, 5)
+		sort_labels = {
+			"none": _("None"),
+			"name": _("Name"),
+			"release_date": _("Release date"),
+			"max_output": _("Max output"),
+			"context_window": _("Context window"),
+		}
+		sort_choices = [sort_labels.get(k, k) for k in MODEL_SORT_KEYS]
+		sort_idx = (
+			MODEL_SORT_KEYS.index(conf.conversation.model_sort_key)
+			if conf.conversation.model_sort_key in MODEL_SORT_KEYS
+			else 0
+		)
+		self.model_sort_key = wx.ComboBox(
+			conversation_group, choices=sort_choices, style=wx.CB_READONLY
+		)
+		self.model_sort_key.SetSelection(sort_idx)
+		conversation_group_sizer.Add(self.model_sort_key, 0, wx.ALL, 5)
+
+		self.model_sort_reverse = wx.CheckBox(
+			conversation_group,
+			# Translators: A label for a checkbox in the preferences dialog
+			label=_("Default reverse sort order for models"),
+		)
+		self.model_sort_reverse.SetValue(conf.conversation.model_sort_reverse)
+		conversation_group_sizer.Add(self.model_sort_reverse, 0, wx.ALL, 5)
 
 		label = wx.StaticText(
 			conversation_group,

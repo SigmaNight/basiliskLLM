@@ -6,6 +6,7 @@ from functools import cache
 
 from pydantic import BaseModel, Field, model_validator
 
+from .config_constants import MODEL_SORT_KEYS
 from .config_enums import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
@@ -26,7 +27,25 @@ class GeneralSettings(BaseModel):
 	"""General settings for BasiliskLLM."""
 
 	language: str = Field(default="auto")
+	model_metadata_cache_ttl_seconds: int = Field(
+		default=25200,
+		ge=3600,
+		le=604800,
+		description="TTL for model metadata cache (1h–7 days)",
+	)
 	advanced_mode: bool = Field(default=False)
+
+	@model_validator(mode="before")
+	@classmethod
+	def _clamp_model_cache_ttl(cls, data: dict) -> dict:
+		"""Clamp legacy TTL below 1h to 1h."""
+		if not isinstance(data, dict):
+			return data
+		val = data.get("model_metadata_cache_ttl_seconds")
+		if val is not None and val < 3600:
+			data = {**data, "model_metadata_cache_ttl_seconds": 3600}
+		return data
+
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
 		default=AutomaticUpdateModeEnum.NOTIFY
@@ -39,6 +58,19 @@ class GeneralSettings(BaseModel):
 class ConversationSettings(BaseModel):
 	"""Conversation settings for BasiliskLLM."""
 
+	model_sort_key: str = Field(
+		default="none", description="Default sort key for models list"
+	)
+	model_sort_reverse: bool = Field(
+		default=False, description="Default reverse sort order for models list"
+	)
+
+	@model_validator(mode="after")
+	def _validate_model_sort_key(self) -> "ConversationSettings":
+		if self.model_sort_key not in MODEL_SORT_KEYS:
+			object.__setattr__(self, "model_sort_key", "none")
+		return self
+
 	role_label_user: str | None = Field(default=None)
 	role_label_assistant: str | None = Field(default=None)
 	nav_msg_select: bool = Field(default=False)
@@ -49,6 +81,7 @@ class ConversationSettings(BaseModel):
 	auto_save_draft: bool = Field(default=True)
 	reopen_last_conversation: bool = Field(default=False)
 	last_active_conversation_id: int | None = Field(default=None)
+	show_reasoning_blocks: bool = Field(default=True)
 
 
 class ImagesSettings(BaseModel):

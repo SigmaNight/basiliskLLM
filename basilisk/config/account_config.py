@@ -30,6 +30,7 @@ import basilisk.global_vars as global_vars
 from basilisk.consts import APP_NAME
 from basilisk.provider import Provider, get_provider, providers
 
+from .config_constants import MODEL_SORT_KEYS
 from .config_enums import AccountSource, KeyStorageMethodEnum
 from .config_helper import (
 	BasiliskBaseSettings,
@@ -141,6 +142,23 @@ class Account(BaseModel):
 		pattern=CUSTOM_BASE_URL_PATTERN,
 		description="Custom base URL for the API provider. Must be a valid HTTP/HTTPS URL.",
 	)
+	model_sort_key: Optional[str] = Field(
+		default=None,
+		description="Override default model sort key for this account. None = use preference.",
+	)
+	model_sort_reverse: Optional[bool] = Field(
+		default=None,
+		description="Override default model sort reverse for this account. None = use preference.",
+	)
+
+	@model_validator(mode="after")
+	def _validate_model_sort_key(self) -> "Account":
+		if (
+			self.model_sort_key is not None
+			and self.model_sort_key not in MODEL_SORT_KEYS
+		):
+			object.__setattr__(self, "model_sort_key", None)
+		return self
 
 	def __init__(self, **data: Any):
 		"""Initialize an account instance. If an error occurs, log the error and raise an exception."""
@@ -440,6 +458,21 @@ class AccountManager(BasiliskBaseSettings):
 			if index is None:
 				return self.accounts[0]
 			return self.accounts[index]
+
+	def can_set_as_default(self, account: Optional[Account]) -> bool:
+		"""Check if the account can be set as default.
+
+		Any account (including from environment variables) can be set as default.
+
+		Args:
+			account: The account to check.
+
+		Returns:
+			True if the account exists and is not already the default.
+		"""
+		if not account or not isinstance(account, Account):
+			return False
+		return self.default_account != account
 
 	def set_default_account(self, value: Optional[Account]):
 		"""Set the default account for the configuration.

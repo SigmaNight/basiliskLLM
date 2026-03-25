@@ -148,11 +148,15 @@ class OllamaEngine(BaseEngine):
 
 	prepare_message_response = prepare_message_request
 
-	def completion_response_with_stream(self, stream):
+	def completion_response_with_stream(
+		self, stream, new_block: MessageBlock, **kwargs
+	):
 		"""Process a streaming completion response.
 
 		Args:
 			stream: The stream of chat completion responses.
+			new_block: Block to set usage on when available.
+			**kwargs: Additional arguments passed through.
 
 		Returns:
 			An iterator of the completion response content.
@@ -160,7 +164,7 @@ class OllamaEngine(BaseEngine):
 		for chunk in stream:
 			content = chunk.get("message", {}).get("content")
 			if content:
-				yield content
+				yield ("content", content)
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs
