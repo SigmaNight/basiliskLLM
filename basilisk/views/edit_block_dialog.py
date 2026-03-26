@@ -88,6 +88,13 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.init_ui()
 		self.load_message_block_data()
 
+	def get_effective_show_reasoning_blocks(self) -> bool:
+		"""Use parent tab's setting when editing from a conversation tab."""
+		parent = self.GetParent()
+		if hasattr(parent, "get_effective_show_reasoning_blocks"):
+			return parent.get_effective_show_reasoning_blocks()
+		return config.conf().conversation.show_reasoning_blocks
+
 	def init_ui(self):
 		"""Initialize the dialog's user interface components."""
 		sizer = wx.BoxSizer(wx.VERTICAL)
