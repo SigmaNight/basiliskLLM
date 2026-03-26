@@ -223,6 +223,36 @@ class TestReasoningStorage:
 		assert loaded.messages[0].response.content == "result"
 
 
+class TestAudioStorage:
+	"""Tests for audio_data/audio_format save/load in database manager."""
+
+	def test_save_and_load_audio_separately(self, db_manager, test_ai_model):
+		"""Response with audio_data and audio_format stored separately loads correctly."""
+		import base64
+
+		conv = Conversation()
+		conv_id = db_manager.save_conversation(conv)
+		req = Message(role=MessageRoleEnum.USER, content="Play a sound")
+		audio_bytes = b"fake wav header and data"
+		resp = Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content="Here is the audio.",
+			audio_data=base64.b64encode(audio_bytes).decode(),
+			audio_format="wav",
+		)
+		block = MessageBlock(request=req, response=resp, model=test_ai_model)
+		conv.add_block(block)
+		db_manager.save_message_block(conv_id, 0, block)
+
+		loaded = db_manager.load_conversation(conv_id)
+		assert (
+			loaded.messages[0].response.audio_data
+			== base64.b64encode(audio_bytes).decode()
+		)
+		assert loaded.messages[0].response.audio_format == "wav"
+		assert loaded.messages[0].response.content == "Here is the audio."
+
+
 class TestLoadConversation:
 	"""Tests for loading conversations."""
 

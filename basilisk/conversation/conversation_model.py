@@ -150,7 +150,8 @@ class Message(BaseMessage):
 	reasoning: str | None = Field(default=None)
 	attachments: list[AttachmentFile | ImageFile] | None = Field(default=None)
 	citations: list[dict[str, Any]] | None = Field(default=None)
-	reasoning: str | None = Field(default=None)
+	audio_data: str | None = Field(default=None)
+	audio_format: str | None = Field(default=None)
 
 	@field_validator("role", mode="after")
 	@classmethod
@@ -233,13 +234,13 @@ class MessageBlock(BaseModel):
 	top_k: int | None = Field(default=None)
 	stop: list[str] | None = Field(default=None)
 	stream: bool = Field(default=False)
+	web_search_mode: bool = Field(default=False)
 	reasoning_mode: bool = Field(default=False)
 	reasoning_budget_tokens: PositiveInt | None = Field(default=None)
 	reasoning_effort: (
 		Literal["minimal", "low", "medium", "high", "max"] | None
 	) = Field(default=None)
 	reasoning_adaptive: bool = Field(default=False)
-	web_search_mode: bool = Field(default=False)
 	output_modality: str = Field(default="text")
 	audio_voice: str = Field(default="alloy")
 	audio_format: str = Field(default="wav")
