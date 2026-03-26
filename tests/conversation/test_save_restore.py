@@ -38,6 +38,7 @@ class TestBasicSaveRestore:
 					"systems": [],
 					"title": None,
 					"version": BSKC_VERSION,
+					"pricing_snapshot": {},
 				}
 
 	def test_restore_empty_conversation(self, bskc_path, storage_path):

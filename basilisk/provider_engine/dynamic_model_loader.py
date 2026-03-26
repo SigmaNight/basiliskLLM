@@ -15,6 +15,8 @@ import httpx
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.provider_ai_model import ProviderAIModel
 
+from .pricing_utils import parse_pricing_from_json
+
 log = logging.getLogger(__name__)
 
 _CACHE: dict[str, tuple[list[ProviderAIModel], float]] = {}
@@ -190,6 +192,11 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		default_params = _get_default_params(item)
 		def_temp = default_params.get("temperature")
 		default_temperature = float(def_temp) if def_temp is not None else 1.0
+		pricing = parse_pricing_from_json(item)
+
+		extra_info: dict[str, Any] = {"default_parameters": default_params}
+		if pricing and pricing.has_usable_pricing():
+			extra_info["Pricing"] = pricing.format_for_display()
 
 		models.append(
 			ProviderAIModel(
@@ -210,7 +217,8 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 				web_search_capable=web_search_capable,
 				created=_get_created(item),
 				supported_parameters=supported,
-				extra_info={"default_parameters": default_params},
+				extra_info=extra_info,
+				pricing=pricing,
 			)
 		)
 

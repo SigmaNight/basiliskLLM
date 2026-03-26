@@ -123,6 +123,12 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			_("Conversation &history") + "...\tCtrl+H",
 		)
 		self.Bind(wx.EVT_MENU, self.on_conversation_history, history_item)
+		props_item = conversation_menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to show conversation properties
+			_("Conversation &properties") + "...\tAlt+Shift+Enter",
+		)
+		self.Bind(wx.EVT_MENU, self.on_conversation_properties, props_item)
 		conversation_menu.AppendSubMenu(
 			self.build_name_conversation_menu(),
 			# Translators: A label for a menu item to name a conversation
@@ -257,7 +263,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		self.Maximize(True)
 
 	def init_accelerators(self):
-		"""Initialize keyboard accelerators for tab switching."""
+		"""Initialize keyboard accelerators for tab switching and actions."""
 		self.Bind(wx.EVT_CLOSE, self.on_close)
 		self.notebook.Bind(wx.EVT_CONTEXT_MENU, self.on_notebook_context_menu)
 		self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
@@ -267,6 +273,11 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			id_ref = wx.NewIdRef()
 			accelerators.append((wx.ACCEL_CTRL, ord(str(i)), id_ref))
 			self.Bind(wx.EVT_MENU, self.make_on_goto_tab(i), id=id_ref)
+		props_id = wx.NewIdRef()
+		accelerators.append(
+			(wx.ACCEL_ALT | wx.ACCEL_SHIFT, wx.WXK_RETURN, props_id)
+		)
+		self.Bind(wx.EVT_MENU, self.on_conversation_properties, id=props_id)
 		self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
 	# -- Hotkeys --
@@ -475,6 +486,22 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		dlg = ConversationHistoryDialog(self)
 		if dlg.ShowModal() == wx.ID_OK and dlg.selected_conv_id is not None:
 			self.presenter.open_from_db(dlg.selected_conv_id)
+		dlg.Destroy()
+
+	def on_conversation_properties(self, event: wx.Event | None):
+		"""Show properties dialog for the current conversation.
+
+		Args:
+			event: The triggering event. Can be None.
+		"""
+		current_tab = self.current_tab
+		if not current_tab:
+			wx.Bell()
+			return
+		from .conversation_properties_dialog import ConversationPropertiesDialog
+
+		dlg = ConversationPropertiesDialog(self, current_tab.conversation)
+		dlg.ShowModal()
 		dlg.Destroy()
 
 	def on_save_conversation(self, event: wx.Event | None):
@@ -816,6 +843,12 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 			# Translators: A label for a menu item to name a conversation
 			_("Name conversation"),
 		)
+		props_item = menu.Append(
+			wx.ID_ANY,
+			# Translators: A label for a menu item to show conversation properties
+			_("Conversation properties") + "...\tAlt+Shift+Enter",
+		)
+		self.Bind(wx.EVT_MENU, self.on_conversation_properties, props_item)
 		privacy_item = menu.AppendCheckItem(
 			wx.ID_ANY,
 			# Translators: A label for a menu item to mark conversation as private (not saved to database)
