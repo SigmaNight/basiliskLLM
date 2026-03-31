@@ -346,6 +346,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 				_("Edit message block"), "(&e)", self.on_edit_message_block, []
 			),
 			MenuItemInfo(
+				_("Properties"),
+				"(Alt+Enter)",
+				self.on_show_block_properties,
+				[],
+			),
+			MenuItemInfo(
 				_("Remove message block"),
 				"(Shift+Del)",
 				self.on_remove_message_block,
@@ -356,6 +362,72 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			MenuItemInfo(
 				_("Find Previous"), "(Shift+F3)", self.on_search_previous, []
 			),
+		)
+
+	def _current_block_has_audio(self) -> bool:
+		"""Return True if the current block has audio (in request or response)."""
+		block = self.current_msg_block
+		if not block:
+			return False
+		for msg in (block.response, block.request):
+			if msg and getattr(msg, "audio_data", None):
+				return True
+		return False
+
+	def _get_audio_for_current_block(self) -> tuple[str, str] | None:
+		"""Return (audio_data, audio_format) for current block, or None."""
+		block = self.current_msg_block
+		if not block:
+			return None
+		for msg in (block.response, block.request):
+			if msg and getattr(msg, "audio_data", None):
+				return (
+					msg.audio_data,
+					getattr(msg, "audio_format", None) or "wav",
+				)
+		return None
+
+	def on_play_pause_audio(self, event: wx.Event | None = None):
+		"""Play or pause audio for the current block. Space key when block has audio."""
+		from basilisk.audio_utils import play_audio_from_base64
+		from basilisk.sound_manager import (
+			is_paused,
+			is_playing,
+			pause_sound,
+			resume_sound,
+		)
+
+		if not self._current_block_has_audio():
+			return
+		if is_playing():
+			pause_sound()
+		elif is_paused():
+			resume_sound()
+		else:
+			audio = self._get_audio_for_current_block()
+			if audio:
+				play_audio_from_base64(audio[0], audio[1])
+
+	def on_stop_audio(self, event: wx.Event | None = None):
+		"""Stop audio playback. Escape key."""
+		from basilisk.sound_manager import stop_sound
+
+		stop_sound()
+
+	def on_replay_audio(self, event: wx.Event | None = None):
+		"""Replay the audio response for the current message block."""
+		block = self.current_msg_block
+		if (
+			not block
+			or not block.response
+			or not getattr(block.response, "audio_data", None)
+		):
+			return
+		from basilisk.audio_utils import play_audio_from_base64
+
+		play_audio_from_base64(
+			block.response.audio_data,
+			getattr(block.response, "audio_format", None) or "wav",
 		)
 
 	def on_context_menu(self, event: wx.ContextMenuEvent):
@@ -595,6 +667,34 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.a_output.handle(_("Message block updated"), braille=True)
 		dlg.Destroy()
 
+	def on_show_block_properties(self, event: wx.CommandEvent | None = None):
+		"""Show properties dialog for the current message block.
+
+		Displays request info (model, parameters), response consumption
+		(usage), and timing.
+
+		Args:
+			event: The event that triggered the action
+		"""
+		block = self.current_msg_block
+		if not block:
+			wx.Bell()
+			return
+		from .message_block_properties_dialog import (
+			MessageBlockPropertiesDialog,
+		)
+
+		dlg = MessageBlockPropertiesDialog(self.GetParent(), block)
+		dlg.ShowModal()
+		dlg.Destroy()
+
+	def _on_space_key(self, event: wx.KeyEvent):
+		"""Handle Space: play/pause audio if block has audio, else read message."""
+		if self._current_block_has_audio():
+			self.on_play_pause_audio(event)
+		else:
+			self.on_read_current_message(event)
+
 	# goes here because we need all the methods to be defined before we can assign to the dict
 	key_actions = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
@@ -609,6 +709,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		(wx.MOD_NONE, ord("B")): move_to_start_of_message,
 		(wx.MOD_NONE, ord("N")): move_to_end_of_message,
 		(wx.MOD_NONE, ord("E")): on_edit_message_block,
+		(wx.MOD_ALT, wx.WXK_RETURN): on_show_block_properties,
 		(wx.MOD_SHIFT, wx.WXK_DELETE): on_remove_message_block,
 		(wx.MOD_NONE, wx.WXK_F3): on_search_next,
 		(wx.MOD_NONE, ord("F")): on_search,
@@ -632,6 +733,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- N: Move to end of message
 		- Q: Show citations for current message
 		- E: Edit current message block
+		- Alt+Enter: Show message block properties
 		- Shift+Delete: Remove current message block
 		- F3: Search in messages (forward)
 		- Shift+F3: Search in messages (backward)

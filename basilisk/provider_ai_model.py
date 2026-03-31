@@ -46,6 +46,9 @@ class ProviderAIModel:
 	created: int = field(default=0)
 	supported_parameters: list[str] = field(default_factory=list)
 	extra_info: dict[str, Any] = field(default_factory=dict)
+	pricing: Any = field(
+		default=None
+	)  # ModelPricing | None when from JSON with pricing
 
 	@property
 	def display_name(self) -> str:

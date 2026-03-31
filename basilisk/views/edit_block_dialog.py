@@ -291,7 +291,9 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 			self.stop_text_ctrl.SetValue("")
 		self.stream_mode.SetValue(self.block.stream)
 		if hasattr(self, "web_search_mode"):
-			self.web_search_mode.SetValue(self.block.web_search_mode)
+			self.web_search_mode.SetValue(
+				getattr(self.block, "web_search_mode", False)
+			)
 		self._load_reasoning_params()
 
 	def on_account_change(self, event):
