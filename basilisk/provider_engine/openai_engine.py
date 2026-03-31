@@ -20,6 +20,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
@@ -294,7 +295,12 @@ class OpenAIEngine(ResponsesAPIEngine):
 				}
 			)
 			messages.append(
-				{"role": "assistant", "content": block.response.content or ""}
+				{
+					"role": "assistant",
+					"content": assistant_message_body_for_api(
+						block.response.content
+					),
+				}
 			)
 		messages.append(
 			{

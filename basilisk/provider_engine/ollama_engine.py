@@ -15,6 +15,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
@@ -141,11 +142,10 @@ class OllamaEngine(BaseEngine):
 						"images URL are not supported for Ollama"
 					)
 				images.append(attachment.read_as_bytes())
-		return {
-			"role": message.role.value,
-			"content": message.content,
-			"images": images,
-		}
+		text = message.content or ""
+		if message.role == MessageRoleEnum.ASSISTANT:
+			text = assistant_message_body_for_api(text)
+		return {"role": message.role.value, "content": text, "images": images}
 
 	prepare_message_response = prepare_message_request
 

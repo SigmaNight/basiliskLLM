@@ -30,6 +30,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.conversation.content_utils import assistant_message_body_for_api
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -144,7 +145,8 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			role=response.role.value,
 			content=[
 				ChatCompletionContentPartTextParam(
-					text=response.content, type="text"
+					text=assistant_message_body_for_api(response.content),
+					type="text",
 				)
 			],
 		)
