@@ -29,6 +29,7 @@ from basilisk.presenters.presenter_mixins import (
 	_guard_destroying,
 )
 from basilisk.presenters.reasoning_params_helper import (
+	get_audio_params_from_view,
 	get_reasoning_params_from_view,
 )
 from basilisk.presenters.view_utils import (
@@ -173,6 +174,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		model = view.prompt_panel.ensure_model_compatibility(view.current_model)
 		if not model:
 			return None
+		audio_params = get_audio_params_from_view(view)
 		if getattr(model, "image_output", False) is True:
 			wx.MessageBox(
 				_("Image generation models are not supported yet."),
@@ -182,8 +184,12 @@ class ConversationPresenter(DestroyGuardMixin):
 			return None
 		view.prompt_panel.resize_all_attachments()
 		reasoning_params = get_reasoning_params_from_view(view)
+		stream = view.stream_mode.GetValue()
+		if audio_params.get("output_modality") == "audio":
+			stream = False
 		web_search = view_get_web_search_value(view)
 		gen_params = view.get_generation_params_from_view()
+		gen_params["stream"] = stream
 		return MessageBlock(
 			request=Message(
 				role=MessageRoleEnum.USER,
@@ -196,6 +202,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			web_search_mode=web_search,
 			**gen_params,
 			**reasoning_params,
+			**audio_params,
 		)
 
 	def get_completion_args(self) -> dict[str, Any] | None:
@@ -291,7 +298,13 @@ class ConversationPresenter(DestroyGuardMixin):
 			new_block,
 			show_reasoning_blocks=self.view.get_effective_show_reasoning_blocks(),
 		)
-		if self.view.messages.should_speak_response:
+		audio_data = getattr(new_block.response, "audio_data", None)
+		if audio_data:
+			from basilisk.audio_utils import play_audio_from_base64
+
+			fmt = getattr(new_block.response, "audio_format", None) or "wav"
+			play_audio_from_base64(audio_data, fmt)
+		elif self.view.messages.should_speak_response:
 			self.view.messages.a_output.handle(new_block.response.content)
 		self.service.auto_save_to_db(self.conversation, new_block)
 
@@ -571,6 +584,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		if not prompt_text and not attachments:
 			return None
 		reasoning_params = get_reasoning_params_from_view(view)
+		audio_params = get_audio_params_from_view(view)
 		web_search = view_get_web_search_value(view)
 		gen_params = view.get_generation_params_from_view()
 		block = MessageBlock(
@@ -586,6 +600,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			web_search_mode=web_search,
 			**gen_params,
 			**reasoning_params,
+			**audio_params,
 		)
 		system_msg = self.get_system_message()
 		if system_msg and system_msg in self.conversation.systems:

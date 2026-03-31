@@ -512,6 +512,31 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			self.stop_text_ctrl.SetValue("\n".join(draft_block.stop))
 		else:
 			self.stop_text_ctrl.SetValue("")
+		if hasattr(self, "output_modality_choice"):
+			self.output_modality_choice.SetSelection(
+				1
+				if getattr(draft_block, "output_modality", "text") == "audio"
+				else 0
+			)
+		if hasattr(self, "audio_voice_choice"):
+			voice = getattr(draft_block, "audio_voice", "alloy")
+			voices = [
+				"alloy",
+				"ash",
+				"ballad",
+				"coral",
+				"echo",
+				"fable",
+				"onyx",
+				"nova",
+				"sage",
+				"shimmer",
+				"verse",
+				"marin",
+				"cedar",
+			]
+			idx = voices.index(voice) if voice in voices else 0
+			self.audio_voice_choice.SetSelection(idx)
 
 	def _restore_draft_block_reasoning(self, draft_block: MessageBlock) -> None:
 		"""Restore reasoning settings from draft block."""

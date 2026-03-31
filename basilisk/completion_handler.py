@@ -11,6 +11,7 @@ import logging
 import re
 import threading
 import time
+from collections.abc import Iterator
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
@@ -84,6 +85,7 @@ class CompletionHandler:
 		self.on_non_stream_finish = on_non_stream_finish
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
+		self._last_completed_block: Optional[MessageBlock] = None
 		self.last_time = 0
 		self.stream_buffer: str = ""
 		self._stream_reasoning_started: bool = False
@@ -163,16 +165,17 @@ class CompletionHandler:
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
-		# Request is fully sent when completion() returns (streaming: we have the stream)
-		request_sent_at = (
-			datetime.now() if kwargs.get("stream", False) else None
-		)
-
+		# Provider may return a single response while stream=True (e.g. Gemini Lyria audio).
+		stream_requested = kwargs.get("stream", False)
+		treat_as_stream = stream_requested and isinstance(response, Iterator)
+		# Request is fully sent when completion() returns only for real streaming iterators.
+		request_sent_at = datetime.now() if treat_as_stream else None
 		handle_func = (
 			self._handle_streaming_completion
-			if kwargs.get("stream", False)
+			if treat_as_stream
 			else self._handle_non_streaming_completion
 		)
+		self._last_completed_block = None
 		kwargs["engine"] = engine
 		kwargs["response"] = response
 		kwargs["started_at"] = started_at
@@ -358,6 +361,10 @@ class CompletionHandler:
 				self.on_non_stream_finish, completed_block, system_message
 			)
 
+		# Pass block so _completion_finished_success can skip completion sound
+		# when response is audio (play_sound in on_non_stream_finish already
+		# stopped progress; we must not stop_sound again or we interrupt audio)
+		self._last_completed_block = completed_block
 		return True
 
 	def _handle_stream_buffer(self, buffer: str):
@@ -376,8 +383,18 @@ class CompletionHandler:
 
 	def _completion_finished_success(self):
 		"""Handle completion finish in success on the main thread."""
-		stop_sound()
-		play_sound("chat_response_received")
+		block = getattr(self, "_last_completed_block", None)
+		has_audio = (
+			block
+			and block.response
+			and getattr(block.response, "audio_data", None)
+		)
+		if not has_audio:
+			stop_sound()
+			play_sound("chat_response_received")
+		# When has_audio: progress was already stopped when audio started;
+		# do not call stop_sound() or play chime, or we'd interrupt playback
+		self._last_completed_block = None
 		if self.on_completion_end:
 			self.on_completion_end(True)
 		self.task = None

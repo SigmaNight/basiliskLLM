@@ -286,83 +286,106 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		- Searching for the next occurrence
 		- Searching for the previous occurrence
 		"""
-		return (
-			MenuItemInfo(
-				_("Read current message"),
-				"(space)",
-				self.on_read_current_message,
-				[],
-			),
-			MenuItemInfo(
-				_("Speak response"),
-				"(Shift+Space)",
-				self.on_toggle_speak_response,
-				[self.speak_response],
-			),
-			MenuItemInfo(
-				_("Show reasoning blocks"),
-				"(Shift+T)",
-				self.on_toggle_show_reasoning_blocks,
-				[self.GetParent().get_effective_show_reasoning_blocks()],
-			),
-			MenuItemInfo(
-				_("Show as HTML (from Markdown)"),
-				"(&h)",
-				self.on_show_as_html,
-				[],
-			),
-			MenuItemInfo(_("Show citations"), "(&q)", self.show_citations, []),
-			MenuItemInfo(
-				_("Copy current message"), "(&c)", self.on_copy_message, []
-			),
-			MenuItemInfo(
-				_("Select current message"),
-				"(&s)",
-				self.on_select_current_message,
-				[],
-			),
-			MenuItemInfo(
-				_("Go to previous message"),
-				"(&j)",
-				self.go_to_previous_message,
-				[],
-			),
-			MenuItemInfo(
-				_("Go to next message"), "(&k)", self.go_to_next_message, []
-			),
-			MenuItemInfo(
-				_("Move to start of message"),
-				"(&b)",
-				self.move_to_start_of_message,
-				[],
-			),
-			MenuItemInfo(
-				_("Move to end of message"),
-				"(&n)",
-				self.move_to_end_of_message,
-				[],
-			),
-			MenuItemInfo(
-				_("Edit message block"), "(&e)", self.on_edit_message_block, []
-			),
-			MenuItemInfo(
-				_("Properties"),
-				"(Alt+Enter)",
-				self.on_show_block_properties,
-				[],
-			),
-			MenuItemInfo(
-				_("Remove message block"),
-				"(Shift+Del)",
-				self.on_remove_message_block,
-				[],
-			),
-			MenuItemInfo(_("Find..."), "(&f)", self.on_search, []),
-			MenuItemInfo(_("Find Next"), "(F3)", self.on_search_next, []),
-			MenuItemInfo(
-				_("Find Previous"), "(Shift+F3)", self.on_search_previous, []
-			),
+		block = self.current_msg_block
+		from basilisk.sound_manager import is_playing
+
+		if block and self._current_block_has_audio():
+			label = _("Pause") if is_playing() else _("Play")
+			items = [
+				MenuItemInfo(label, "(space)", self.on_play_pause_audio, []),
+				MenuItemInfo(_("Stop"), "(Esc)", self.on_stop_audio, []),
+			]
+		else:
+			items = [
+				MenuItemInfo(
+					_("Read current message"),
+					"(space)",
+					self.on_read_current_message,
+					[],
+				)
+			]
+		items.extend(
+			[
+				MenuItemInfo(
+					_("Speak response"),
+					"(Shift+Space)",
+					self.on_toggle_speak_response,
+					[self.speak_response],
+				),
+				MenuItemInfo(
+					_("Show reasoning blocks"),
+					"(Shift+T)",
+					self.on_toggle_show_reasoning_blocks,
+					[self.GetParent().get_effective_show_reasoning_blocks()],
+				),
+				MenuItemInfo(
+					_("Show as HTML (from Markdown)"),
+					"(&h)",
+					self.on_show_as_html,
+					[],
+				),
+				MenuItemInfo(
+					_("Show citations"), "(&q)", self.show_citations, []
+				),
+				MenuItemInfo(
+					_("Copy current message"), "(&c)", self.on_copy_message, []
+				),
+				MenuItemInfo(
+					_("Select current message"),
+					"(&s)",
+					self.on_select_current_message,
+					[],
+				),
+				MenuItemInfo(
+					_("Go to previous message"),
+					"(&j)",
+					self.go_to_previous_message,
+					[],
+				),
+				MenuItemInfo(
+					_("Go to next message"), "(&k)", self.go_to_next_message, []
+				),
+				MenuItemInfo(
+					_("Move to start of message"),
+					"(&b)",
+					self.move_to_start_of_message,
+					[],
+				),
+				MenuItemInfo(
+					_("Move to end of message"),
+					"(&n)",
+					self.move_to_end_of_message,
+					[],
+				),
+				MenuItemInfo(
+					_("Edit message block"),
+					"(&e)",
+					self.on_edit_message_block,
+					[],
+				),
+				MenuItemInfo(
+					_("Properties"),
+					"(Alt+Enter)",
+					self.on_show_block_properties,
+					[],
+				),
+				MenuItemInfo(
+					_("Remove message block"),
+					"(Shift+Del)",
+					self.on_remove_message_block,
+					[],
+				),
+				MenuItemInfo(_("Find..."), "(&f)", self.on_search, []),
+				MenuItemInfo(_("Find Next"), "(F3)", self.on_search_next, []),
+				MenuItemInfo(
+					_("Find Previous"),
+					"(Shift+F3)",
+					self.on_search_previous,
+					[],
+				),
+			]
 		)
+		return tuple(items)
 
 	def _current_block_has_audio(self) -> bool:
 		"""Return True if the current block has audio (in request or response)."""
@@ -667,6 +690,13 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 			self.a_output.handle(_("Message block updated"), braille=True)
 		dlg.Destroy()
 
+	def _on_space_key(self, event: wx.KeyEvent):
+		"""Handle Space: play/pause audio if block has audio, else read message."""
+		if self._current_block_has_audio():
+			self.on_play_pause_audio(event)
+		else:
+			self.on_read_current_message(event)
+
 	def on_show_block_properties(self, event: wx.CommandEvent | None = None):
 		"""Show properties dialog for the current message block.
 
@@ -688,18 +718,12 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		dlg.ShowModal()
 		dlg.Destroy()
 
-	def _on_space_key(self, event: wx.KeyEvent):
-		"""Handle Space: play/pause audio if block has audio, else read message."""
-		if self._current_block_has_audio():
-			self.on_play_pause_audio(event)
-		else:
-			self.on_read_current_message(event)
-
 	# goes here because we need all the methods to be defined before we can assign to the dict
 	key_actions = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
 		(wx.MOD_SHIFT, ord("T")): on_toggle_show_reasoning_blocks,
-		(wx.MOD_NONE, wx.WXK_SPACE): on_read_current_message,
+		(wx.MOD_NONE, wx.WXK_SPACE): _on_space_key,
+		(wx.MOD_NONE, wx.WXK_ESCAPE): on_stop_audio,
 		(wx.MOD_NONE, ord("J")): go_to_previous_message,
 		(wx.MOD_NONE, ord("K")): go_to_next_message,
 		(wx.MOD_NONE, ord("S")): on_select_current_message,
@@ -721,7 +745,8 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		"""Handle keyboard shortcuts.
 
 		Supports:
-		- Space: Read current message
+		- Space: Play/pause audio (if block has audio) or read current message
+		- Escape: Stop audio playback
 		- Shift+Space: Toggle stream speaking mode
 		- Shift+T: Toggle show/hide reasoning blocks
 		- J: Go to previous message

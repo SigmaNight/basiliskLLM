@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import basilisk.config as config
+from basilisk.provider_engine.provider_ui_spec import DEFAULT_AUDIO_VOICES
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -42,6 +43,9 @@ class ParameterVisibilityState:
 	effort_options: tuple[str, ...] = ()
 	effort_display: tuple[str, ...] = ()
 	effort_label: str = ""
+	output_modality_visible: bool = False
+	audio_settings_visible: bool = False
+	voice_options: tuple[str, ...] = ()
 
 
 class BaseConversationPresenter:
@@ -137,6 +141,7 @@ class BaseConversationPresenter:
 		engine: BaseEngine | None,
 		reasoning_mode_checked: bool = False,
 		reasoning_adaptive_checked: bool = False,
+		output_modality_audio: bool = False,
 	) -> ParameterVisibilityState:
 		"""Compute visibility state for parameter controls.
 
@@ -149,6 +154,8 @@ class BaseConversationPresenter:
 			engine: Current engine, or None.
 			reasoning_mode_checked: Current value of reasoning_mode checkbox.
 			reasoning_adaptive_checked: Current value of reasoning_adaptive.
+			output_modality_audio: True when output modality is audio (for
+				audio voice controls visibility).
 
 		Returns:
 			ParameterVisibilityState to apply to view widgets.
@@ -203,5 +210,16 @@ class BaseConversationPresenter:
 		state.effort_display = tuple(
 			s.capitalize() for s in reasoning_spec.effort_options
 		)
+
+		state.output_modality_visible = model is not None and (
+			bool(model.audio) or bool(model.audio_output)
+		)
+		state.audio_settings_visible = (
+			state.output_modality_visible and output_modality_audio
+		)
+
+		if state.output_modality_visible:
+			spec = engine.get_audio_output_spec(model)
+			state.voice_options = spec.voices if spec else DEFAULT_AUDIO_VOICES
 
 		return state

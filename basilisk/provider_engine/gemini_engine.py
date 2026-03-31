@@ -6,6 +6,7 @@ implementing capabilities for text and image handling using Google's generative 
 
 from __future__ import annotations
 
+import base64
 import logging
 from functools import cached_property
 from typing import Any, Iterator
@@ -33,12 +34,28 @@ from basilisk.conversation import (
 from basilisk.conversation.content_utils import assistant_message_body_for_api
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
-from .provider_ui_spec import ReasoningUISpec
+from .provider_ui_spec import (
+	DEFAULT_AUDIO_VOICES,
+	AudioOutputUISpec,
+	ReasoningUISpec,
+)
 from .reasoning_api_enums import GeminiThinkingEffortKey
 from .stream_chunk_type import StreamChunkType
 from .usage_utils import token_usage_gemini
 
 logger = logging.getLogger(__name__)
+
+
+def _gemini_audio_mime_to_file_format(mime_type: str | None) -> str:
+	"""Map Gemini / Lyria audio MIME type to a file format label (OpenAI-compatible)."""
+	if not mime_type:
+		return "mp3"
+	lower = mime_type.lower()
+	if "wav" in lower:
+		return "wav"
+	if "mpeg" in lower or "mp3" in lower:
+		return "mp3"
+	return "mp3"
 
 
 class GeminiEngine(BaseEngine):
@@ -108,6 +125,56 @@ class GeminiEngine(BaseEngine):
 	) -> list[Tool]:
 		"""Return Google Search tool for grounding."""
 		return [Tool(google_search=GoogleSearch())]
+
+	def get_audio_output_spec(
+		self, model: ProviderAIModel
+	) -> AudioOutputUISpec | None:
+		"""Gemini: Lyria and other models that return audio via response modalities."""
+		if not model.audio_output:
+			return None
+		return AudioOutputUISpec(
+			voices=DEFAULT_AUDIO_VOICES, default_voice=DEFAULT_AUDIO_VOICES[0]
+		)
+
+	def _wants_gemini_audio_in_response(
+		self, model: ProviderAIModel | None, new_block: MessageBlock
+	) -> bool:
+		"""Whether to request AUDIO+TEXT modalities (Lyria 3 Clip/Pro per Gemini API docs)."""
+		if not model or not model.audio_output:
+			return False
+		model_id = (model.id or "").lower()
+		if "lyria" in model_id:
+			return True
+		return new_block.output_modality == "audio"
+
+	def _assistant_message_from_gemini_parts(
+		self, response: GenerateContentResponse
+	) -> Message:
+		"""Parse Lyria-style multimodal parts (text order not guaranteed per Google docs)."""
+		text_parts: list[str] = []
+		audio_bytes: bytes | None = None
+		audio_mime: str | None = None
+		for part in getattr(response, "parts", None) or ():
+			if part.text:
+				text_parts.append(part.text)
+			inline = part.inline_data
+			if inline is not None and inline.data:
+				audio_bytes = inline.data
+				audio_mime = inline.mime_type
+		lyrics = "\n\n".join(text_parts).strip()
+		if audio_bytes:
+			fmt = _gemini_audio_mime_to_file_format(audio_mime)
+			audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
+			return Message(
+				role=MessageRoleEnum.ASSISTANT,
+				content=lyrics or _("<audio response>"),
+				audio_data=audio_b64,
+				audio_format=fmt,
+			)
+		return Message(
+			role=MessageRoleEnum.ASSISTANT,
+			content=(response.text or lyrics or ""),
+		)
 
 	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
 		"""Gemini: 2.5 uses thinkingBudget; 3 uses thinkingLevel (minimal/low/medium/high)."""
@@ -265,12 +332,19 @@ class GeminiEngine(BaseEngine):
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
 		model = self.get_model(new_block.model.model_id)
+		want_audio_response = self._wants_gemini_audio_in_response(
+			model, new_block
+		)
 		tools = None
 		web_search = kwargs.pop("web_search_mode", False)
 		if web_search and model and self.model_supports_web_search(model):
 			tools = self.get_web_search_tool_definitions(model)
 
-		thinking_config = self._build_thinking_config(model, new_block)
+		thinking_config = (
+			None
+			if want_audio_response
+			else self._build_thinking_config(model, new_block)
+		)
 
 		config_kw: dict[str, Any] = {
 			"system_instruction": system_message.content
@@ -291,6 +365,10 @@ class GeminiEngine(BaseEngine):
 			config_kw["seed"] = gen_params["seed"]
 		if "stop" in gen_params:
 			config_kw["stop_sequences"] = gen_params["stop"]
+		if want_audio_response:
+			# https://ai.google.dev/gemini-api/docs/music-generation — Lyria 3
+			# requires AUDIO + TEXT so lyrics/structure can accompany audio.
+			config_kw["response_modalities"] = ["AUDIO", "TEXT"]
 		config = GenerateContentConfig(**config_kw)
 
 		generate_kwargs = {
@@ -300,10 +378,10 @@ class GeminiEngine(BaseEngine):
 				new_block, conversation, stop_block_index=stop_block_index
 			),
 		}
-		if new_block.stream:
+		use_stream = new_block.stream and not want_audio_response
+		if use_stream:
 			return self.client.models.generate_content_stream(**generate_kwargs)
-		else:
-			return self.client.models.generate_content(**generate_kwargs)
+		return self.client.models.generate_content(**generate_kwargs)
 
 	def completion_response_without_stream(
 		self,
@@ -321,9 +399,15 @@ class GeminiEngine(BaseEngine):
 		Returns:
 			Message block containing the response content
 		"""
-		new_block.response = Message(
-			role=MessageRoleEnum.ASSISTANT, content=response.text
-		)
+		model = self.get_model(new_block.model.model_id)
+		if self._wants_gemini_audio_in_response(model, new_block):
+			new_block.response = self._assistant_message_from_gemini_parts(
+				response
+			)
+		else:
+			new_block.response = Message(
+				role=MessageRoleEnum.ASSISTANT, content=response.text or ""
+			)
 		if hasattr(response, "usage_metadata") and response.usage_metadata:
 			new_block.usage = token_usage_gemini(response.usage_metadata)
 		return new_block

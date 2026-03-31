@@ -52,6 +52,9 @@ class ConversationProfile(BaseModel):
 	reasoning_budget_tokens: Optional[int] = Field(default=None)
 	reasoning_effort: Optional[str] = Field(default=None)
 	reasoning_adaptive: bool = Field(default=False)
+	output_modality: str = Field(default="text")
+	audio_voice: str = Field(default="alloy")
+	audio_format: str = Field(default="wav")
 
 	def __init__(self, **data: Any):
 		"""Initialize a conversation profile with the provided data.
