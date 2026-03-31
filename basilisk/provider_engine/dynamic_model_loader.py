@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import timedelta
 from typing import Any
 
 import httpx
 
+import basilisk.config as config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.provider_ai_model import ProviderAIModel
 
@@ -209,13 +211,6 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 	return models
 
 
-def _get_cache_ttl_seconds() -> int:
-	"""Return cache TTL from config."""
-	import basilisk.config as config
-
-	return config.conf().general.model_metadata_cache_ttl_seconds
-
-
 def invalidate_model_cache(url: str | None = None) -> None:
 	"""Invalidate model metadata cache for url or all URLs."""
 	if url is None:
@@ -236,10 +231,10 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 		List of ProviderAIModel. Empty list on fetch/parse error.
 	"""
 	now = time.monotonic()
-	ttl = _get_cache_ttl_seconds()
+	ttl_td = config.conf().general.model_metadata_cache_ttl
 	if url in _CACHE:
 		cached_models, cached_at = _CACHE[url]
-		if now - cached_at < ttl:
+		if timedelta(seconds=now - cached_at) < ttl_td:
 			return cached_models
 
 	try:

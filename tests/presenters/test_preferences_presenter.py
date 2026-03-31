@@ -1,6 +1,7 @@
 """Tests for PreferencesPresenter."""
 
 import sys
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -141,10 +142,10 @@ class TestOnOk:
 
 		mock_set_log.assert_called_once_with(mock_conf.general.log_level.name)
 
-	def test_model_cache_ttl_hours_to_seconds(
+	def test_model_cache_ttl_hours_to_timedelta(
 		self, mock_view, make_presenter, mocker
 	):
-		"""on_ok should convert model cache TTL hours to seconds."""
+		"""on_ok should set model cache TTL from hours as timedelta."""
 		mock_wx = MagicMock()
 		mock_view.model_cache_ttl_hours.GetValue.return_value = "12"
 		mocker.patch.dict(sys.modules, {"wx": mock_wx})
@@ -153,4 +154,4 @@ class TestOnOk:
 
 		presenter.on_ok()
 
-		assert mock_conf.general.model_metadata_cache_ttl_seconds == 43200
+		assert mock_conf.general.model_metadata_cache_ttl == timedelta(hours=12)

@@ -5,7 +5,11 @@ import logging
 import wx
 
 import basilisk.config as config
-from basilisk.config import MODEL_SORT_KEYS
+from basilisk.config import (
+	MODEL_METADATA_CACHE_TTL_HOURS_MAX,
+	MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+	MODEL_SORT_KEYS,
+)
 from basilisk.presenters.preferences_presenter import (
 	AUTO_UPDATE_MODES,
 	LOG_LEVELS,
@@ -133,10 +137,20 @@ class PreferencesDialog(wx.Dialog):
 		)
 		sizer.Add(label, 0, wx.ALL, 5)
 		cache_ttl_hours = max(
-			1, min(168, conf.general.model_metadata_cache_ttl_seconds // 3600)
+			MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+			min(
+				MODEL_METADATA_CACHE_TTL_HOURS_MAX,
+				int(
+					conf.general.model_metadata_cache_ttl.total_seconds()
+					// 3600
+				),
+			),
 		)
 		self.model_cache_ttl_hours = wx.SpinCtrl(
-			panel, value=str(cache_ttl_hours), min=1, max=168
+			panel,
+			value=str(cache_ttl_hours),
+			min=MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+			max=MODEL_METADATA_CACHE_TTL_HOURS_MAX,
 		)
 		sizer.Add(self.model_cache_ttl_hours, 0, wx.ALL, 5)
 

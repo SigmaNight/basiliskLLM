@@ -22,7 +22,11 @@ from .conversation_profile import ConversationProfile
 from .conversation_profile import (
 	get_conversation_profile_config as conversation_profiles,
 )
-from .main_config import BasiliskConfig
+from .main_config import (
+	MODEL_METADATA_CACHE_TTL_HOURS_MAX,
+	MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+	BasiliskConfig,
+)
 from .main_config import get_basilisk_config as conf
 
 __all__ = [
@@ -31,6 +35,8 @@ __all__ = [
 	"AccountModelSortKeyEnum",
 	"MODEL_SORT_KEYS",
 	"ModelSortKeyEnum",
+	"MODEL_METADATA_CACHE_TTL_HOURS_MAX",
+	"MODEL_METADATA_CACHE_TTL_HOURS_MIN",
 	"AccountManager",
 	"AccountOrganization",
 	"AccountSource",
