@@ -11,6 +11,7 @@ import logging
 import re
 import threading
 import time
+from collections.abc import Iterator
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
@@ -164,14 +165,14 @@ class CompletionHandler:
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
-		# Request is fully sent when completion() returns (streaming: we have the stream)
-		request_sent_at = (
-			datetime.now() if kwargs.get("stream", False) else None
-		)
-
+		# Provider may return a single response while stream=True (e.g. Gemini Lyria audio).
+		stream_requested = kwargs.get("stream", False)
+		treat_as_stream = stream_requested and isinstance(response, Iterator)
+		# Request is fully sent when completion() returns only for real streaming iterators.
+		request_sent_at = datetime.now() if treat_as_stream else None
 		handle_func = (
 			self._handle_streaming_completion
-			if kwargs.get("stream", False)
+			if treat_as_stream
 			else self._handle_non_streaming_completion
 		)
 		self._last_completed_block = None

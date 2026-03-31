@@ -211,7 +211,9 @@ class BaseConversationPresenter:
 			s.capitalize() for s in reasoning_spec.effort_options
 		)
 
-		state.output_modality_visible = model is not None and bool(model.audio)
+		state.output_modality_visible = model is not None and (
+			bool(model.audio) or bool(model.audio_output)
+		)
 		state.audio_settings_visible = (
 			state.output_modality_visible and output_modality_audio
 		)
