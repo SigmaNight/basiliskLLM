@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
@@ -24,13 +24,27 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.conversation.content_utils import (
+	REASONING_DISPLAY_END,
+	REASONING_DISPLAY_START,
+)
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
 	from anthropic.types.message_stream_event import MessageStreamEvent
 
 	from basilisk.config import Account
+
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .provider_ui_spec import ReasoningUISpec
+from .reasoning_api_enums import (
+	AnthropicCitationLocationType,
+	AnthropicContentBlockType,
+	AnthropicReasoningEffort,
+	AnthropicStreamDeltaType,
+	AnthropicStreamEventType,
+)
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -77,206 +91,37 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			The client object for the Anthropic API initialized with the account API key.
 		"""
-		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the Anthropic ai provider.
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
 
-		Returns:
-			List of Anthropic models.
-		"""
-		super().models
-		log.debug("Getting Anthropic models")
-		# See <https://docs.anthropic.com/en/docs/about-claude/models/overview>
-		return [
-			ProviderAIModel(
-				id="claude-opus-4-6",
-				name="Claude Opus 4.6",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-6_reasoning",
-				name="Claude Opus 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The most intelligent model for building agents and coding"
-				),
-				context_window=200000,
-				max_output_tokens=128000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6",
-				name="Claude Sonnet 4.6",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-6_reasoning",
-				name="Claude Sonnet 4.6 (thinking)",
-				# Translators: This is a model description
-				description=_("The best combination of speed and intelligence"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5",
-				name="Claude Haiku 4.5",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-haiku-4-5_reasoning",
-				name="Claude Haiku 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"The fastest model with near-frontier intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5",
-				name="Claude Sonnet 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-5_reasoning",
-				name="Claude Sonnet 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Best model for complex agents and coding with highest intelligence"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5",
-				name="Claude Opus 4.5",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-5_reasoning",
-				name="Claude Opus 4.5 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1",
-				name="Claude Opus 4.1",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-1_reasoning",
-				name="Claude Opus 4.1 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0",
-				name="Claude Sonnet 4",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-sonnet-4-0_reasoning",
-				name="Claude Sonnet 4 (thinking)",
-				# Translators: This is a model description
-				description=_("High-performance model"),
-				context_window=200000,
-				max_output_tokens=64000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0",
-				name="Claude Opus 4",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="claude-opus-4-0_reasoning",
-				name="Claude Opus 4 (thinking)",
-				# Translators: This is a model description
-				description=_(
-					"Exceptional model for specialized complex tasks"
-				),
-				context_window=200000,
-				max_output_tokens=32000,
-				vision=True,
-				reasoning=True,
-			),
-			ProviderAIModel(
-				id="claude-3-5-sonnet-latest",
-				name="Claude 3.5 Sonnet",
-				# Translators: This is a model description
-				description=_("Previous intelligent model"),
-				context_window=200000,
-				max_output_tokens=8192,
-				vision=True,
-			),
-		]
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[dict[str, Any]]:
+		"""Return web_search_20250305 tool for Anthropic Messages API."""
+		return [{"type": "web_search_20250305", "name": "web_search"}]
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Anthropic: adaptive thinking + budget tokens. 4.6 adds effort for adaptive."""
+		spec = super().get_reasoning_ui_spec(model)
+		if not spec.show:
+			return spec
+		model_id = model.id or ""
+		show_adaptive = "4.6" in model_id or "4-6" in model_id
+		# 4.6 adaptive uses output_config.effort (low/medium/high; max for Opus only)
+		effort_opts = ("low", "medium", "high")
+		if "opus" in model_id.lower() and "4.6" in model_id:
+			effort_opts = ("low", "medium", "high", "max")
+		return ReasoningUISpec(
+			show=True,
+			show_adaptive=show_adaptive,
+			show_budget=True,
+			show_effort=show_adaptive,
+			effort_options=effort_opts,
+			effort_label="Adaptive effort:",
+			budget_default=16000,
+			budget_max=128000,
+		)
 
 	def get_attachment_source(
 		self, attachment: AttachmentFile | ImageFile
@@ -379,36 +224,60 @@ class AnthropicEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		tools = []
 		web_search = kwargs.pop("web_search_mode", False)
-		if web_search:
-			tools.append({"type": "web_search_20250305", "name": "web_search"})
-		model = self.get_model(new_block.model.model_id)
+		if web_search and model and self.model_supports_web_search(model):
+			tools.extend(self.get_web_search_tool_definitions(model))
 		params = {
 			"model": model.id,
 			"messages": self.get_messages(
 				new_block, conversation, stop_block_index=stop_block_index
 			),
 			"temperature": new_block.temperature,
-			"max_tokens": new_block.max_tokens or model.max_output_tokens,
 			"stream": new_block.stream,
 		}
+		# When 0, use model max (Anthropic requires max_tokens); else use block value
+		params["max_tokens"] = (
+			new_block.max_tokens or model.effective_max_output_tokens
+		)
 		# Only include top_p if it's not the default value (1.0)
 		# New Claude 4 models don't allow both temperature and top_p
 		if new_block.top_p != 1.0:
 			params["top_p"] = new_block.top_p
+		gen_params = self._get_block_generation_params(new_block, model)
+		if "stop" in gen_params:
+			params["stop_sequences"] = gen_params["stop"]
+			gen_params = {k: v for k, v in gen_params.items() if k != "stop"}
+		params.update(gen_params)
 		if system_message:
 			params["system"] = system_message.content
 		if tools:
 			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
-			params["model"] = model.id.replace("_reasoning", "")
 			params["thinking"] = {
 				"type": "enabled",
-				"budget_tokens": kwargs.get("budget_tokens", 16000),
+				"budget_tokens": new_block.reasoning_budget_tokens or 16000,
 			}
+		elif model.reasoning_capable and new_block.reasoning_mode:
+			params.pop("top_p", None)
+			_supports_adaptive = "4.6" in (model.id or "") or "4-6" in (
+				model.id or ""
+			)
+			if new_block.reasoning_adaptive and _supports_adaptive:
+				params["thinking"] = {"type": "adaptive"}
+				if new_block.reasoning_effort:
+					effort = new_block.reasoning_effort.lower()
+					if AnthropicReasoningEffort.is_valid(effort):
+						params["output_config"] = {"effort": effort}
+			else:
+				params["thinking"] = {
+					"type": "enabled",
+					"budget_tokens": new_block.reasoning_budget_tokens or 16000,
+				}
 		params.update(kwargs)
+		params = self._filter_params_for_model(model, params)
 		response = self.client.messages.create(**params)
 		return response
 
@@ -422,116 +291,62 @@ class AnthropicEngine(BaseEngine):
 			Processed citation data.
 		"""
 		citation_chunk_data = {}
-		if citation.type in ("char_location", "page_location"):
-			citation_chunk_data = dict(citation)
-		else:
+		try:
+			AnthropicCitationLocationType(citation.type)
+		except ValueError:
 			log.warning("Unsupported citation type: %s", citation.type)
+		else:
+			citation_chunk_data = dict(citation)
 		return citation_chunk_data
 
-	def _handle_thinking(
-		self, started: bool, event: MessageStreamEvent
-	) -> tuple[str, bool]:
-		"""Handles the 'thinking' content in the API response.
-
-		Args:
-			started: Flag indicating if thinking content has started.
-			event: Event data from the API response.
-
-		Returns:
-			Tuple containing the thinking content and updated started flag.
-		"""
-		if not started:
-			started = True
-			content = f"```think\n {event.delta.thinking}"
-			return content, started
-		else:
-			return event.delta.thinking, started
-
-	def _handle_content_block_stop(
-		self, thinking_content_started: bool, current_block_type: str
-	) -> tuple[str | None, bool]:
-		"""Handles content block stop events from the stream.
-
-		Args:
-			thinking_content_started: Flag indicating if thinking content has started.
-			current_block_type: Type of the current content block.
-
-		Returns:
-			Tuple containing optional yield content and updated thinking_started flag.
-		"""
-		if thinking_content_started and current_block_type == "thinking":
-			return "\n```\n\n", False
-		return None, thinking_content_started
-
 	def _handle_content_block_delta(
-		self, event: MessageStreamEvent, thinking_content_started: bool
-	) -> tuple[str | tuple[str, dict] | None, bool]:
-		"""Handles content block delta events from the stream.
-
-		Args:
-			event: The stream event to process.
-			thinking_content_started: Flag indicating if thinking content has started.
-
-		Returns:
-			Tuple containing yield content and updated thinking_started flag.
-		"""
+		self, event: MessageStreamEvent
+	) -> str | tuple[StreamChunkType, Any] | None:
+		"""Handles content block delta events from the stream."""
 		match event.delta.type:
-			case "text_delta":
-				return event.delta.text, thinking_content_started
-			case "thinking_delta":
-				text, updated_started = self._handle_thinking(
-					thinking_content_started, event
-				)
-				return text, updated_started
-			case "citations_delta":
+			case AnthropicStreamDeltaType.TEXT_DELTA:
+				return event.delta.text
+			case AnthropicStreamDeltaType.THINKING_DELTA:
+				return (StreamChunkType.REASONING, event.delta.thinking)
+			case AnthropicStreamDeltaType.CITATIONS_DELTA:
 				return (
-					("citation", self._handle_citation(event.delta.citation)),
-					thinking_content_started,
+					StreamChunkType.CITATION,
+					self._handle_citation(event.delta.citation),
 				)
-		return None, thinking_content_started
+		return None
 
 	def completion_response_with_stream(
-		self, stream: Stream[MessageStreamEvent]
-	) -> Iterator[TextBlock | dict]:
+		self,
+		stream: Stream[MessageStreamEvent],
+		new_block: MessageBlock,
+		**kwargs,
+	) -> Iterator[tuple[StreamChunkType, Any]]:
 		"""Processes streaming response from Anthropic API.
 
-		Args:
-			stream: Stream of message events from the API.
-
-		Yields:
-			Text content from each event or thinking content.
+		Yields reasoning, content, or citation chunks.
 		"""
-		thinking_content_started = False
-		current_block_type = None
 		for event in stream:
 			match event.type:
-				case "content_block_start":
-					current_block_type = event.content_block.type
-				case "content_block_stop":
-					content, thinking_content_started = (
-						self._handle_content_block_stop(
-							thinking_content_started, current_block_type
-						)
-					)
-					if content:
-						yield content
-				case "content_block_delta":
-					content, thinking_content_started = (
-						self._handle_content_block_delta(
-							event, thinking_content_started
-						)
-					)
-					if content:
-						yield content
-				case "message_stop":
-					if thinking_content_started:
-						yield "\n```\n"
+				case AnthropicStreamEventType.CONTENT_BLOCK_DELTA:
+					content = self._handle_content_block_delta(event)
+					if content is not None:
+						if isinstance(content, tuple):
+							yield content
+						else:
+							yield (StreamChunkType.CONTENT, content)
+				case AnthropicStreamEventType.MESSAGE_DELTA:
+					pass
+				case AnthropicStreamEventType.MESSAGE_STOP:
 					break
 
 	def completion_response_without_stream(
 		self, response: AnthropicMessage, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
 		"""Processes non-streaming response from Anthropic API.
+
+		Response content is an array of blocks: ThinkingBlock (type=thinking)
+		and TextBlock (type=text). Per API docs, there is no top-level
+		thinking field—thinking lives inside content blocks.
 
 		Args:
 			response: Complete message from the API.
@@ -542,23 +357,28 @@ class AnthropicEngine(BaseEngine):
 			Updated message block with response.
 		"""
 		citations = []
-		text = []
-		thinking_content = None
-		if hasattr(response, "thinking") and response.thinking:
-			thinking_content = response.thinking
-		for content in response.content:
-			if content.citations:
-				for citation in content.citations:
+		text_parts = []
+		reasoning_parts = []
+		for block in response.content:
+			block_type = getattr(block, "type", None)
+			if block_type == AnthropicContentBlockType.THINKING:
+				thinking = getattr(block, "thinking", None) or ""
+				if thinking:
+					reasoning_parts.append(thinking)
+			elif block_type == AnthropicContentBlockType.TEXT:
+				text_parts.append(getattr(block, "text", None) or "")
+				for citation in getattr(block, "citations", None) or []:
 					citations.append(self._handle_citation(citation))
-			text.append(content.text)
-		final_content = "".join(text)
-		if thinking_content:
-			final_content = (
-				f"```think\n{thinking_content}\n```\n\n{final_content}"
-			)
+		content = "".join(text_parts)
+		reasoning = "\n\n".join(reasoning_parts) if reasoning_parts else None
+		combined_content = (
+			f"{REASONING_DISPLAY_START}\n{reasoning}\n{REASONING_DISPLAY_END}\n\n{content}"
+			if reasoning
+			else content
+		)
 		new_block.response = Message(
 			role=MessageRoleEnum.ASSISTANT,
-			content=final_content,
+			content=combined_content,
 			citations=citations,
 		)
 		return new_block

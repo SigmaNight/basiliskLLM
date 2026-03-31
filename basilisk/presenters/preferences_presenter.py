@@ -6,9 +6,13 @@ Extracts business logic from PreferencesDialog into a wx-free presenter.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 
 import basilisk.config as config
 from basilisk.config import (
+	MODEL_METADATA_CACHE_TTL_HOURS_MAX,
+	MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+	MODEL_SORT_KEYS,
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,
@@ -89,6 +93,19 @@ class PreferencesPresenter:
 			self.view.auto_update_mode.GetSelection()
 		]
 		conf.general.advanced_mode = self.view.advanced_mode.GetValue()
+		h = int(self.view.model_cache_ttl_hours.GetValue())
+		h = max(
+			MODEL_METADATA_CACHE_TTL_HOURS_MIN,
+			min(MODEL_METADATA_CACHE_TTL_HOURS_MAX, h),
+		)
+		conf.general.model_metadata_cache_ttl = timedelta(hours=h)
+		sort_sel = self.view.model_sort_key.GetSelection()
+		conf.conversation.model_sort_key = MODEL_SORT_KEYS[
+			sort_sel if 0 <= sort_sel < len(MODEL_SORT_KEYS) else 0
+		]
+		conf.conversation.model_sort_reverse = (
+			self.view.model_sort_reverse.GetValue()
+		)
 		conf.conversation.role_label_user = self.view.role_label_user.GetValue()
 		conf.conversation.role_label_assistant = (
 			self.view.role_label_assistant.GetValue()

@@ -24,6 +24,7 @@ from basilisk.conversation.conversation_model import (
 	SystemMessage,
 )
 from basilisk.decorators import ensure_no_task_running
+from basilisk.provider_engine.stream_chunk_type import StreamChunkType
 from basilisk.sound_manager import play_sound, stop_sound
 from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
 
@@ -79,6 +80,7 @@ class CompletionHandler:
 		self._stop_completion = False
 		self.last_time = 0
 		self.stream_buffer: str = ""
+		self._reasoning_started: bool = False
 
 	@ensure_no_task_running
 	def start_completion(
@@ -171,24 +173,46 @@ class CompletionHandler:
 		if success:
 			wx.CallAfter(self._completion_finished_success)
 
-	def _handle_stream_chunk(
-		self, chunk: str | tuple[str, Any], message_block: MessageBlock
-	):
-		if isinstance(chunk, str):
-			self.stream_buffer += chunk
-		elif isinstance(chunk, tuple):
-			chunk_type, chunk_data = chunk
-			if chunk_type == "citation":
-				if not message_block.response.citations:
-					message_block.response.citations = []
-				message_block.response.citations.append(chunk_data)
-			else:
-				logger.warning(
-					"Unknown chunk type in streaming response: %s", chunk_type
-				)
-
+	def _append_stream_and_maybe_flush(
+		self, message_block: MessageBlock, fragment: str
+	) -> None:
+		"""Append to the stream buffer and flush when a sentence boundary matches."""
+		self.stream_buffer += fragment
 		if RE_STREAM_BUFFER.match(self.stream_buffer):
 			self.flush_stream_buffer(message_block)
+
+	def _handle_stream_chunk(
+		self, chunk: tuple[str, Any], message_block: MessageBlock
+	) -> None:
+		chunk_type, chunk_data = chunk
+		if chunk_type == StreamChunkType.CITATION:
+			cits = message_block.response.citations
+			if cits is None:
+				cits = []
+				message_block.response.citations = cits
+			cits.append(chunk_data)
+			return
+		if chunk_type == StreamChunkType.REASONING:
+			if not self._reasoning_started:
+				self._reasoning_started = True
+				self._append_stream_and_maybe_flush(
+					message_block, f"```think\n{chunk_data}"
+				)
+			else:
+				self._append_stream_and_maybe_flush(message_block, chunk_data)
+			return
+		if chunk_type == StreamChunkType.CONTENT:
+			prefix = ""
+			if self._reasoning_started:
+				self._reasoning_started = False
+				prefix = "\n```\n\n"
+			self._append_stream_and_maybe_flush(
+				message_block, prefix + chunk_data
+			)
+			return
+		logger.warning(
+			"Unknown chunk type in streaming response: %s", chunk_type
+		)
 
 	def flush_stream_buffer(self, message_block: MessageBlock) -> None:
 		"""Flush the stream buffer to the message block."""
@@ -218,18 +242,22 @@ class CompletionHandler:
 			True if streaming was handled successfully, False if stopped
 		"""
 		new_block.response = Message(role=MessageRoleEnum.ASSISTANT, content="")
+		self._reasoning_started = False
 
-		# Notify that streaming has started
 		if self.on_stream_start:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
-		for chunk in engine.completion_response_with_stream(response):
+		for chunk in engine.completion_response_with_stream(
+			response, new_block
+		):
 			if self._stop_completion or global_vars.app_should_exit:
 				logger.debug("Stopping completion")
 				return False
 			self._handle_stream_chunk(chunk, new_block)
 
-		# Notify that streaming has finished
+		if self._reasoning_started:
+			self._reasoning_started = False
+			self.stream_buffer += "\n```"
 		self.flush_stream_buffer(new_block)
 		if self.on_stream_finish:
 			wx.CallAfter(self.on_stream_finish, new_block)
@@ -259,7 +287,6 @@ class CompletionHandler:
 			response=response, new_block=new_block, **kwargs
 		)
 
-		# Notify that non-streaming completion has finished
 		if self.on_non_stream_finish:
 			wx.CallAfter(
 				self.on_non_stream_finish, completed_block, system_message
@@ -276,7 +303,6 @@ class CompletionHandler:
 		if self.on_stream_chunk:
 			self.on_stream_chunk(buffer)
 
-		# Play periodic sound during streaming
 		new_time = time.time()
 		if new_time - self.last_time > 4:
 			play_sound("chat_response_pending")

@@ -14,9 +14,26 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.generation_param import (
+	FILTERABLE_GENERATION_PARAMS,
+	FilterableGenerationParam,
+)
+from basilisk.provider_engine.provider_ui_spec import (
+	AudioOutputUISpec,
+	ReasoningUISpec,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
+
+
+def _load_models_from_json_url(url: str) -> list[ProviderAIModel]:
+	"""Load models from model-metadata JSON URL."""
+	from basilisk.provider_engine.dynamic_model_loader import (
+		load_models_from_url,
+	)
+
+	return load_models_from_url(url)
 
 
 class BaseEngine(ABC):
@@ -33,6 +50,9 @@ class BaseEngine(ABC):
 	capabilities: set[ProviderCapability] = set()
 	supported_attachment_formats: set[str] = set()
 
+	# Override in subclasses that load from model-metadata JSON; None for custom loaders (OpenRouter, Ollama, etc.)
+	MODELS_JSON_URL: str | None = None
+
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
 
@@ -47,15 +67,156 @@ class BaseEngine(ABC):
 		"""Property to return the provider client object."""
 		pass
 
-	@cached_property
-	@abstractmethod
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		"""Optional hook to mutate models after loading from JSON. Override in subclasses."""
+		return models
+
+	@property
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
-		Returns:
-			List of supported provider models with their configurations.
+		When MODELS_JSON_URL is set, loads from that URL and applies _postprocess_models.
+		Otherwise the subclass must override this property (e.g. OpenRouter, Ollama).
 		"""
-		pass
+		url = self.MODELS_JSON_URL
+		if url:
+			return self._postprocess_models(_load_models_from_json_url(url))
+		raise NotImplementedError(
+			"Subclass must implement models() or set MODELS_JSON_URL"
+		)
+
+	def model_supports_web_search(self, model: ProviderAIModel) -> bool:
+		"""Return True if this model supports web search.
+
+		Override in engines for provider-specific exclusions (e.g. OpenAI
+		gpt-4.1-nano, gpt-5 with minimal reasoning).
+
+		Args:
+			model: The model to check.
+
+		Returns:
+			True if web search can be used with this model.
+		"""
+		if ProviderCapability.WEB_SEARCH not in self.capabilities:
+			return False
+		if model.web_search_capable:
+			return True
+		return model.supports_parameter("tools")
+
+	# Param keys that may be filtered by model.supported_parameters.
+	# Override _get_filterable_params() in subclasses to extend.
+	_FILTERABLE_PARAMS = FILTERABLE_GENERATION_PARAMS
+
+	def _get_filterable_params(self) -> frozenset[str]:
+		"""Params that may be filtered by model.supported_parameters.
+
+		Override in subclasses to add provider-specific params.
+		"""
+		return self._FILTERABLE_PARAMS
+
+	def _get_block_generation_params(
+		self, block: MessageBlock, model: ProviderAIModel
+	) -> dict[str, Any]:
+		"""Build common generation params from block for API request.
+
+		Returns dict with standard param names. Engines merge this into their
+		params; providers that use different names (e.g. Anthropic stop_sequences)
+		must map in their completion implementation.
+		"""
+		params: dict[str, Any] = {}
+		if model.supports_parameter(
+			FilterableGenerationParam.FREQUENCY_PENALTY
+		) and (block.frequency_penalty != 0):
+			params["frequency_penalty"] = block.frequency_penalty
+		if model.supports_parameter(
+			FilterableGenerationParam.PRESENCE_PENALTY
+		) and (block.presence_penalty != 0):
+			params["presence_penalty"] = block.presence_penalty
+		if model.supports_parameter(FilterableGenerationParam.SEED) and (
+			block.seed is not None
+		):
+			params["seed"] = block.seed
+		if model.supports_parameter(FilterableGenerationParam.TOP_K) and (
+			block.top_k is not None
+		):
+			params["top_k"] = block.top_k
+		if model.supports_parameter(FilterableGenerationParam.STOP) and (
+			block.stop
+		):
+			params["stop"] = block.stop
+		return params
+
+	def _filter_params_for_model(
+		self, model: ProviderAIModel, params: dict[str, Any]
+	) -> dict[str, Any]:
+		"""Filter generation params to only those the model supports.
+
+		Structural params (model, input, messages, stream, tools, etc.) are
+		always included. When supported_parameters is empty (legacy), returns
+		params unchanged.
+
+		Args:
+			model: The model to filter for.
+			params: Raw params dict.
+
+		Returns:
+			Filtered params dict.
+		"""
+		supported = model.supported_parameters
+		if not supported:
+			return params
+		filterable = self._get_filterable_params()
+		allowed = frozenset(supported)
+		if not any(k in filterable and k not in allowed for k in params):
+			return params
+		return {
+			k: v
+			for k, v in params.items()
+			if k not in filterable or k in allowed
+		}
+
+	def get_web_search_tool_definitions(
+		self, model: ProviderAIModel
+	) -> list[Any]:
+		"""Return tool definitions for web search. Override in each engine.
+
+		Args:
+			model: The model (for provider-specific tool variants).
+
+		Returns:
+			List of tool dicts or objects to add to the API request.
+		"""
+		return []
+
+	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
+		"""Return UI spec for reasoning mode controls. Override per provider.
+
+		Args:
+			model: The selected model.
+
+		Returns:
+			ReasoningUISpec describing what controls to show.
+		"""
+		if not model.reasoning_capable or model.reasoning:
+			return ReasoningUISpec(show=False)
+		return ReasoningUISpec(show=True)
+
+	def get_audio_output_spec(
+		self, model: ProviderAIModel
+	) -> AudioOutputUISpec | None:
+		"""Return UI spec for audio output (TTS) controls. Override per provider.
+
+		Returns None when model does not support audio output.
+
+		Args:
+			model: The selected model.
+
+		Returns:
+			AudioOutputUISpec with voices, or None.
+		"""
+		return None
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
@@ -69,12 +230,14 @@ class BaseEngine(ABC):
 		Raises:
 			ValueError: If multiple models are found with the same ID.
 		"""
-		model_list = [model for model in self.models if model.id == model_id]
-		if not model_list:
-			return None
-		if len(model_list) > 1:
-			raise ValueError(f"Multiple models with id {model_id}")
-		return model_list[0]
+		found: ProviderAIModel | None = None
+		for model in self.models:
+			if model.id != model_id:
+				continue
+			if found is not None:
+				raise ValueError(f"Multiple models with id {model_id}")
+			found = model
+		return found
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
@@ -171,12 +334,15 @@ class BaseEngine(ABC):
 	def completion_response_with_stream(self, stream: Any, **kwargs) -> Any:
 		"""Handle completion response with stream.
 
+		Must yield (content, chunk) for text and optionally reasoning or
+		citation chunks; see ``StreamChunkType``.
+
 		Args:
 			stream: Stream response from the provider.
 			**kwargs: Additional keyword arguments for flexible configuration.
 
 		Returns:
-			Stream response from the provider.
+			Iterator yielding (chunk_type, chunk_data) tuples.
 		"""
 		pass
 
@@ -189,7 +355,7 @@ class BaseEngine(ABC):
 
 	@staticmethod
 	def get_user_agent() -> str:
-		"""Get a user agent sting for the application."""
+		"""Get a user agent string for the application."""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
 
 	def get_transcription(self, *args, **kwargs) -> str:

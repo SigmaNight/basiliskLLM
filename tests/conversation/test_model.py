@@ -50,6 +50,23 @@ class TestAIModelAndMessages:
 		assert block.request.role == MessageRoleEnum.USER
 		assert block.response.role == MessageRoleEnum.ASSISTANT
 
+	def test_message_block_reasoning_fields(self, ai_model, user_message):
+		"""Test MessageBlock with reasoning mode fields."""
+		block = MessageBlock(
+			request=user_message,
+			model=ai_model,
+			reasoning_mode=True,
+			reasoning_budget_tokens=16000,
+			reasoning_effort="medium",
+			reasoning_adaptive=False,
+			web_search_mode=True,
+		)
+		assert block.reasoning_mode is True
+		assert block.reasoning_budget_tokens == 16000
+		assert block.reasoning_effort == "medium"
+		assert block.reasoning_adaptive is False
+		assert block.web_search_mode is True
+
 
 class TestMessageBlockValidation:
 	"""Tests for message block validation."""

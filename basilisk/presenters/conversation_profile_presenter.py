@@ -13,6 +13,9 @@ from pydantic import ValidationError
 
 from basilisk.config import ConversationProfile
 from basilisk.presenters.presenter_mixins import ManagerCrudMixin
+from basilisk.presenters.reasoning_params_helper import (
+	get_reasoning_params_from_view,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config.conversation_profile import ConversationProfileManager
@@ -59,7 +62,19 @@ class EditConversationProfilePresenter:
 
 		self.profile.name = name
 		self.profile.system_prompt = self.view.system_prompt_txt.GetValue()
+		self._apply_account_and_model()
+		self._apply_generation_params()
+		self._apply_reasoning_params()
 
+		try:
+			ConversationProfile.model_validate(self.profile)
+		except ValidationError as e:
+			log.error("Profile validation failed: %s", e)
+			return None
+		return self.profile
+
+	def _apply_account_and_model(self) -> None:
+		"""Set account and model info from view."""
 		account = self.view.current_account
 		model = self.view.current_model
 
@@ -73,31 +88,92 @@ class EditConversationProfilePresenter:
 		else:
 			self.profile.ai_model_info = None
 
-		max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
-		if model and max_tokens > 0:
-			self.profile.max_tokens = max_tokens
+	def _apply_generation_params(self) -> None:
+		"""Set generation params from view. Only persist params the model supports."""
+		model = self.view.current_model
+
+		if model and model.supports_parameter("max_tokens"):
+			max_tokens = self.view.max_tokens_spin_ctrl.GetValue()
+			self.profile.max_tokens = max_tokens if max_tokens > 0 else None
 		else:
 			self.profile.max_tokens = None
 
-		temperature = self.view.temperature_spinner.GetValue()
-		if model and temperature != model.default_temperature:
-			self.profile.temperature = temperature
+		if model and model.supports_parameter("temperature"):
+			temperature = self.view.temperature_spinner.GetValue()
+			self.profile.temperature = (
+				temperature
+				if temperature != model.default_temperature
+				else None
+			)
 		else:
 			self.profile.temperature = None
 
-		top_p = self.view.top_p_spinner.GetValue()
-		if model and top_p != 1.0:
-			self.profile.top_p = top_p
+		if model and model.supports_parameter("top_p"):
+			top_p = self.view.top_p_spinner.GetValue()
+			self.profile.top_p = top_p if top_p != 1.0 else None
 		else:
 			self.profile.top_p = None
 
+		if model and model.supports_parameter("frequency_penalty"):
+			freq = self.view.frequency_penalty_spinner.GetValue()
+			self.profile.frequency_penalty = freq if freq != 0 else None
+		else:
+			self.profile.frequency_penalty = None
+
+		if model and model.supports_parameter("presence_penalty"):
+			pres = self.view.presence_penalty_spinner.GetValue()
+			self.profile.presence_penalty = pres if pres != 0 else None
+		else:
+			self.profile.presence_penalty = None
+
+		if model and model.supports_parameter("seed"):
+			seed_val = self.view.seed_spin_ctrl.GetValue()
+			self.profile.seed = seed_val if seed_val else None
+		else:
+			self.profile.seed = None
+
+		if model and model.supports_parameter("top_k"):
+			top_k_val = self.view.top_k_spin_ctrl.GetValue()
+			self.profile.top_k = top_k_val if top_k_val else None
+		else:
+			self.profile.top_k = None
+
+		if model and model.supports_parameter("stop"):
+			stop_seqs = self.view.get_stop_sequences()
+			self.profile.stop = stop_seqs if stop_seqs else None
+		else:
+			self.profile.stop = None
+
 		self.profile.stream_mode = self.view.stream_mode.GetValue()
-		try:
-			ConversationProfile.model_validate(self.profile)
-		except ValidationError as e:
-			log.error("Profile validation failed: %s", e)
-			return None
-		return self.profile
+
+	def _apply_reasoning_params(self) -> None:
+		"""Set reasoning_mode, adaptive, budget, effort from view. Only persist when model supports reasoning."""
+		if not hasattr(self.view, "reasoning_mode"):
+			return
+
+		params = get_reasoning_params_from_view(self.view)
+		model = self.view.current_model
+		supports_reasoning = model and (
+			model.reasoning or model.reasoning_capable
+		)
+
+		if not supports_reasoning:
+			self.profile.reasoning_mode = False
+			self.profile.reasoning_adaptive = False
+			self.profile.reasoning_budget_tokens = None
+			self.profile.reasoning_effort = None
+			return
+
+		self.profile.reasoning_mode = params["reasoning_mode"]
+		self.profile.reasoning_adaptive = params["reasoning_adaptive"]
+		if self.profile.reasoning_mode:
+			self.profile.reasoning_budget_tokens = params[
+				"reasoning_budget_tokens"
+			]
+			self.profile.reasoning_effort = params["reasoning_effort"]
+		else:
+			self.profile.reasoning_budget_tokens = None
+			self.profile.reasoning_effort = None
 
 
 class ConversationProfilePresenter(ManagerCrudMixin):

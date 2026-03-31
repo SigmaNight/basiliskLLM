@@ -146,3 +146,30 @@ class AutomaticUpdateModeEnum(enum.StrEnum):
 			# Translators: A label for the automatic update mode in the settings dialog
 			cls.INSTALL: _("Install new version"),
 		}
+
+
+class ModelSortKeyEnum(enum.StrEnum):
+	"""Sort keys for the global model list (preferences)."""
+
+	NONE = "none"
+	NAME = "name"
+	RELEASE_DATE = "release_date"
+	MAX_OUTPUT = "max_output"
+	CONTEXT_WINDOW = "context_window"
+
+
+class AccountModelSortKeyEnum(enum.StrEnum):
+	"""Account override for model list sort. DEFAULT uses global preference."""
+
+	DEFAULT = "default"
+	NONE = "none"
+	NAME = "name"
+	RELEASE_DATE = "release_date"
+	MAX_OUTPUT = "max_output"
+	CONTEXT_WINDOW = "context_window"
+
+
+MODEL_SORT_KEYS: tuple[str, ...] = tuple(m.value for m in ModelSortKeyEnum)
+ACCOUNT_MODEL_SORT_KEYS: tuple[str, ...] = tuple(
+	m.value for m in AccountModelSortKeyEnum
+)

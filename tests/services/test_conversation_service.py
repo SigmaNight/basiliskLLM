@@ -11,6 +11,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.provider_ai_model import AIModelInfo
+from basilisk.provider_engine.stream_chunk_type import StreamChunkType
 from basilisk.services.conversation_service import ConversationService
 
 
@@ -176,7 +177,10 @@ class TestGenerateTitle:
 		mock_response = MagicMock()
 		mock_engine.completion.return_value = mock_response
 		mock_engine.completion_response_with_stream.return_value = iter(
-			["My ", "Title"]
+			[
+				(StreamChunkType.CONTENT, "My "),
+				(StreamChunkType.CONTENT, "Title"),
+			]
 		)
 
 		conv = Conversation()

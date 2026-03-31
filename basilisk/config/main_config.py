@@ -1,12 +1,14 @@
 """Main configuration file for BasiliskLLM appication."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cache
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
 from .config_enums import (
+	MODEL_SORT_KEYS,
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,
@@ -21,12 +23,42 @@ log = logging.getLogger(__name__)
 
 config_file_name = "config.yml"
 
+_MODEL_METADATA_CACHE_TTL_DEFAULT = timedelta(hours=7)
+_MODEL_METADATA_CACHE_TTL_MIN = timedelta(hours=1)
+_MODEL_METADATA_CACHE_TTL_MAX = timedelta(days=7)
+MODEL_METADATA_CACHE_TTL_HOURS_MIN = int(
+	_MODEL_METADATA_CACHE_TTL_MIN.total_seconds() // 3600
+)
+MODEL_METADATA_CACHE_TTL_HOURS_MAX = int(
+	_MODEL_METADATA_CACHE_TTL_MAX.total_seconds() // 3600
+)
+
 
 class GeneralSettings(BaseModel):
 	"""General settings for BasiliskLLM."""
 
 	language: str = Field(default="auto")
+	model_metadata_cache_ttl: timedelta = Field(
+		default=_MODEL_METADATA_CACHE_TTL_DEFAULT,
+		ge=_MODEL_METADATA_CACHE_TTL_MIN,
+		le=_MODEL_METADATA_CACHE_TTL_MAX,
+		description=(
+			"Model list metadata cache TTL (1h–7 days). Uses Pydantic "
+			"``timedelta`` parsing: numbers are seconds; strings are ISO 8601 "
+			"durations (e.g. P7D, PT1H) or HH:MM:SS. Normalized to whole hours."
+		),
+	)
 	advanced_mode: bool = Field(default=False)
+
+	@model_validator(mode="after")
+	def _model_metadata_cache_ttl_whole_hours(self) -> Self:
+		"""Store TTL as a whole number of hours."""
+		h = int(self.model_metadata_cache_ttl.total_seconds() // 3600)
+		normalized = timedelta(hours=h)
+		if normalized != self.model_metadata_cache_ttl:
+			object.__setattr__(self, "model_metadata_cache_ttl", normalized)
+		return self
+
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)
 	automatic_update_mode: AutomaticUpdateModeEnum = Field(
 		default=AutomaticUpdateModeEnum.NOTIFY
@@ -39,6 +71,19 @@ class GeneralSettings(BaseModel):
 class ConversationSettings(BaseModel):
 	"""Conversation settings for BasiliskLLM."""
 
+	model_sort_key: str = Field(
+		default="none", description="Default sort key for models list"
+	)
+	model_sort_reverse: bool = Field(
+		default=False, description="Default reverse sort order for models list"
+	)
+
+	@model_validator(mode="after")
+	def _validate_model_sort_key(self) -> "ConversationSettings":
+		if self.model_sort_key not in MODEL_SORT_KEYS:
+			object.__setattr__(self, "model_sort_key", "none")
+		return self
+
 	role_label_user: str | None = Field(default=None)
 	role_label_assistant: str | None = Field(default=None)
 	nav_msg_select: bool = Field(default=False)
@@ -49,6 +94,7 @@ class ConversationSettings(BaseModel):
 	auto_save_draft: bool = Field(default=True)
 	reopen_last_conversation: bool = Field(default=False)
 	last_active_conversation_id: int | None = Field(default=None)
+	show_reasoning_blocks: bool = Field(default=True)
 
 
 class ImagesSettings(BaseModel):

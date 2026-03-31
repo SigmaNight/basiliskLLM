@@ -13,8 +13,10 @@ from typing import TYPE_CHECKING
 from pydantic import SecretStr
 
 from basilisk.config import (
+	ACCOUNT_MODEL_SORT_KEYS,
 	CUSTOM_BASE_URL_PATTERN,
 	Account,
+	AccountModelSortKeyEnum,
 	AccountOrganization,
 	AccountSource,
 	KeyStorageMethodEnum,
@@ -246,6 +248,17 @@ class EditAccountPresenter:
 		if not provider.allow_custom_base_url or not custom_base_url.strip():
 			custom_base_url = None
 
+		sort_sel = self.view.model_sort_key.GetSelection()
+		sort_key = ACCOUNT_MODEL_SORT_KEYS[
+			sort_sel if 0 <= sort_sel < len(ACCOUNT_MODEL_SORT_KEYS) else 0
+		]
+		if sort_key == AccountModelSortKeyEnum.DEFAULT:
+			model_sort_key = None
+			model_sort_reverse = None
+		else:
+			model_sort_key = sort_key
+			model_sort_reverse = self.view.model_sort_reverse.GetValue()
+
 		if self.account:
 			self.account.name = self.view.name.GetValue()
 			self.account.provider = provider
@@ -253,6 +266,8 @@ class EditAccountPresenter:
 			self.account.api_key = api_key
 			self.account.active_organization_id = active_organization
 			self.account.custom_base_url = custom_base_url
+			self.account.model_sort_key = model_sort_key
+			self.account.model_sort_reverse = model_sort_reverse
 		else:
 			self.account = Account(
 				name=self.view.name.GetValue(),
@@ -262,6 +277,8 @@ class EditAccountPresenter:
 				active_organization_id=active_organization,
 				source=AccountSource.CONFIG,
 				custom_base_url=custom_base_url,
+				model_sort_key=model_sort_key,
+				model_sort_reverse=model_sort_reverse,
 			)
 		return self.account
 
