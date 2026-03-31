@@ -1,25 +1,15 @@
-"""Provider-injected UI specifications.
-
-Engines define what settings they support via these dataclasses.
-The view/presenter use them without knowing provider IDs.
-"""
+"""Provider-injected UI specifications."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Generic fallback when engine returns None for audio spec (model.audio True
-# but no provider-specific voices). Avoid provider-specific defaults like "alloy".
 DEFAULT_AUDIO_VOICES: tuple[str, ...] = ("default",)
 
 
 @dataclass
 class ReasoningUISpec:
-	"""Descriptor for reasoning mode UI controls. Engine provides this.
-
-	Each engine overrides get_reasoning_ui_spec() to return its spec.
-	No provider IDs in presenter/view—engine is single source of truth.
-	"""
+	"""Descriptor for reasoning mode UI controls."""
 
 	show: bool = False
 	show_adaptive: bool = False
@@ -41,4 +31,4 @@ class AudioOutputUISpec:
 	"""
 
 	voices: tuple[str, ...]
-	default_voice: str | None = None  # None = use first voice
+	default_voice: str | None = None

@@ -33,6 +33,8 @@ from basilisk.conversation import (
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
+from .reasoning_api_enums import GeminiThinkingEffortKey
+from .stream_chunk_type import StreamChunkType
 
 logger = logging.getLogger(__name__)
 
@@ -210,14 +212,21 @@ class GeminiEngine(BaseEngine):
 			return None
 		model_id = (model.id or "").lower()
 		if "gemini-3" in model_id:
-			effort = (new_block.reasoning_effort or "high").lower()
+			effort_raw = (
+				new_block.reasoning_effort or GeminiThinkingEffortKey.HIGH.value
+			).lower()
 			level_map = {
-				"minimal": "minimal",
-				"low": ThinkingLevel.LOW,
-				"medium": ThinkingLevel.MEDIUM,
-				"high": ThinkingLevel.HIGH,
+				GeminiThinkingEffortKey.MINIMAL: "minimal",
+				GeminiThinkingEffortKey.LOW: ThinkingLevel.LOW,
+				GeminiThinkingEffortKey.MEDIUM: ThinkingLevel.MEDIUM,
+				GeminiThinkingEffortKey.HIGH: ThinkingLevel.HIGH,
 			}
-			thinking_level = level_map.get(effort, ThinkingLevel.HIGH)
+			try:
+				ek = GeminiThinkingEffortKey(effort_raw)
+			except ValueError:
+				thinking_level = ThinkingLevel.HIGH
+			else:
+				thinking_level = level_map.get(ek, ThinkingLevel.HIGH)
 			return ThinkingConfig(thinking_level=thinking_level)
 		# Gemini 2.5: thinking_budget (tokens). -1 = auto/dynamic per API.
 		budget = new_block.reasoning_budget_tokens
@@ -331,4 +340,4 @@ class GeminiEngine(BaseEngine):
 		for chunk in stream:
 			chunk_text = chunk.text
 			if chunk_text:
-				yield ("content", chunk_text)
+				yield (StreamChunkType.CONTENT, chunk_text)

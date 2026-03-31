@@ -10,7 +10,7 @@ from more_itertools import first, locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
-from basilisk.config import AccountSource
+from basilisk.config import AccountSource, ModelSortKeyEnum
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 	ParameterVisibilityState,
@@ -28,6 +28,14 @@ if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
+
+_REVERSE_DEFAULT_SORT_KEYS = frozenset(
+	(
+		ModelSortKeyEnum.RELEASE_DATE,
+		ModelSortKeyEnum.MAX_OUTPUT,
+		ModelSortKeyEnum.CONTEXT_WINDOW,
+	)
+)
 
 
 class BaseConversation:
@@ -54,7 +62,7 @@ class BaseConversation:
 			account_model_service
 		)
 		self._display_models: list[ProviderAIModel] = []
-		self._model_sort_key = "none"
+		self._model_sort_key = ModelSortKeyEnum.NONE
 		self._model_sort_reverse = False
 
 	def _get_effective_model_sort(self) -> tuple[str, bool]:
@@ -445,13 +453,13 @@ class BaseConversation:
 
 	def _sort_key_for_model(self, model: ProviderAIModel, key: str):
 		"""Return sort key for a model. Used for sorting."""
-		if key == "name":
+		if key == ModelSortKeyEnum.NAME:
 			return (model.display_name or model.id or "").lower()
-		if key == "release_date":
+		if key == ModelSortKeyEnum.RELEASE_DATE:
 			return model.created
-		if key == "max_output":
+		if key == ModelSortKeyEnum.MAX_OUTPUT:
 			return model.max_output_tokens if model.max_output_tokens > 0 else 0
-		if key == "context_window":
+		if key == ModelSortKeyEnum.CONTEXT_WINDOW:
 			return model.context_window
 		return model.display_name or model.id or ""
 
@@ -464,15 +472,11 @@ class BaseConversation:
 			return
 		sort_key = self._model_sort_key
 		models = list(engine.models)
-		if sort_key == "none":
+		if sort_key == ModelSortKeyEnum.NONE:
 			reverse = self._model_sort_reverse
 			self._display_models = list(reversed(models)) if reverse else models
 		else:
-			reverse_default = sort_key in (
-				"release_date",
-				"max_output",
-				"context_window",
-			)
+			reverse_default = sort_key in _REVERSE_DEFAULT_SORT_KEYS
 			reverse = reverse_default != self._model_sort_reverse
 			self._display_models = sorted(
 				models,

@@ -6,8 +6,8 @@ from functools import cache
 
 from pydantic import BaseModel, Field, model_validator
 
-from .config_constants import MODEL_SORT_KEYS
 from .config_enums import (
+	MODEL_SORT_KEYS,
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,
 	ReleaseChannelEnum,

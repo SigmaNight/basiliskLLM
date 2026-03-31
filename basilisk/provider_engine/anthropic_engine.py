@@ -34,8 +34,17 @@ if TYPE_CHECKING:
 	from anthropic.types.message_stream_event import MessageStreamEvent
 
 	from basilisk.config import Account
+
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 from .provider_ui_spec import ReasoningUISpec
+from .reasoning_api_enums import (
+	AnthropicCitationLocationType,
+	AnthropicContentBlockType,
+	AnthropicReasoningEffort,
+	AnthropicStreamDeltaType,
+	AnthropicStreamEventType,
+)
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -260,7 +269,7 @@ class AnthropicEngine(BaseEngine):
 				params["thinking"] = {"type": "adaptive"}
 				if new_block.reasoning_effort:
 					effort = new_block.reasoning_effort.lower()
-					if effort in ("low", "medium", "high", "max"):
+					if AnthropicReasoningEffort.is_valid(effort):
 						params["output_config"] = {"effort": effort}
 			else:
 				params["thinking"] = {
@@ -282,23 +291,28 @@ class AnthropicEngine(BaseEngine):
 			Processed citation data.
 		"""
 		citation_chunk_data = {}
-		if citation.type in ("char_location", "page_location"):
-			citation_chunk_data = dict(citation)
-		else:
+		try:
+			AnthropicCitationLocationType(citation.type)
+		except ValueError:
 			log.warning("Unsupported citation type: %s", citation.type)
+		else:
+			citation_chunk_data = dict(citation)
 		return citation_chunk_data
 
 	def _handle_content_block_delta(
 		self, event: MessageStreamEvent
-	) -> str | tuple[str, Any] | None:
+	) -> str | tuple[StreamChunkType, Any] | None:
 		"""Handles content block delta events from the stream."""
 		match event.delta.type:
-			case "text_delta":
+			case AnthropicStreamDeltaType.TEXT_DELTA:
 				return event.delta.text
-			case "thinking_delta":
-				return ("reasoning", event.delta.thinking)
-			case "citations_delta":
-				return ("citation", self._handle_citation(event.delta.citation))
+			case AnthropicStreamDeltaType.THINKING_DELTA:
+				return (StreamChunkType.REASONING, event.delta.thinking)
+			case AnthropicStreamDeltaType.CITATIONS_DELTA:
+				return (
+					StreamChunkType.CITATION,
+					self._handle_citation(event.delta.citation),
+				)
 		return None
 
 	def completion_response_with_stream(
@@ -306,23 +320,23 @@ class AnthropicEngine(BaseEngine):
 		stream: Stream[MessageStreamEvent],
 		new_block: MessageBlock,
 		**kwargs,
-	) -> Iterator[str | tuple[str, Any]]:
+	) -> Iterator[tuple[StreamChunkType, Any]]:
 		"""Processes streaming response from Anthropic API.
 
-		Yields ("reasoning", chunk), ("content", chunk), or ("citation", data).
+		Yields reasoning, content, or citation chunks.
 		"""
 		for event in stream:
 			match event.type:
-				case "content_block_delta":
+				case AnthropicStreamEventType.CONTENT_BLOCK_DELTA:
 					content = self._handle_content_block_delta(event)
 					if content is not None:
 						if isinstance(content, tuple):
 							yield content
 						else:
-							yield ("content", content)
-				case "message_delta":
+							yield (StreamChunkType.CONTENT, content)
+				case AnthropicStreamEventType.MESSAGE_DELTA:
 					pass
-				case "message_stop":
+				case AnthropicStreamEventType.MESSAGE_STOP:
 					break
 
 	def completion_response_without_stream(
@@ -347,11 +361,11 @@ class AnthropicEngine(BaseEngine):
 		reasoning_parts = []
 		for block in response.content:
 			block_type = getattr(block, "type", None)
-			if block_type == "thinking":
+			if block_type == AnthropicContentBlockType.THINKING:
 				thinking = getattr(block, "thinking", None) or ""
 				if thinking:
 					reasoning_parts.append(thinking)
-			elif block_type == "text":
+			elif block_type == AnthropicContentBlockType.TEXT:
 				text_parts.append(getattr(block, "text", None) or "")
 				for citation in getattr(block, "citations", None) or []:
 					citations.append(self._handle_citation(citation))

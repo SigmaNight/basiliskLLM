@@ -14,6 +14,10 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.generation_param import (
+	FILTERABLE_GENERATION_PARAMS,
+	FilterableGenerationParam,
+)
 from basilisk.provider_engine.provider_ui_spec import (
 	AudioOutputUISpec,
 	ReasoningUISpec,
@@ -24,7 +28,7 @@ if TYPE_CHECKING:
 
 
 def _load_models_from_json_url(url: str) -> list[ProviderAIModel]:
-	"""Load models from model-metadata JSON URL. Deferred import to avoid circular deps."""
+	"""Load models from model-metadata JSON URL."""
 	from basilisk.provider_engine.dynamic_model_loader import (
 		load_models_from_url,
 	)
@@ -103,21 +107,7 @@ class BaseEngine(ABC):
 
 	# Param keys that may be filtered by model.supported_parameters.
 	# Override _get_filterable_params() in subclasses to extend.
-	_FILTERABLE_PARAMS = frozenset(
-		{
-			"temperature",
-			"top_p",
-			"max_tokens",
-			"frequency_penalty",
-			"presence_penalty",
-			"seed",
-			"top_k",
-			"stop",
-			"reasoning",
-			"audio",
-			"web_search_mode",
-		}
-	)
+	_FILTERABLE_PARAMS = FILTERABLE_GENERATION_PARAMS
 
 	def _get_filterable_params(self) -> frozenset[str]:
 		"""Params that may be filtered by model.supported_parameters.
@@ -136,19 +126,25 @@ class BaseEngine(ABC):
 		must map in their completion implementation.
 		"""
 		params: dict[str, Any] = {}
-		if model.supports_parameter("frequency_penalty") and (
-			block.frequency_penalty != 0
-		):
+		if model.supports_parameter(
+			FilterableGenerationParam.FREQUENCY_PENALTY
+		) and (block.frequency_penalty != 0):
 			params["frequency_penalty"] = block.frequency_penalty
-		if model.supports_parameter("presence_penalty") and (
-			block.presence_penalty != 0
-		):
+		if model.supports_parameter(
+			FilterableGenerationParam.PRESENCE_PENALTY
+		) and (block.presence_penalty != 0):
 			params["presence_penalty"] = block.presence_penalty
-		if model.supports_parameter("seed") and block.seed is not None:
+		if model.supports_parameter(FilterableGenerationParam.SEED) and (
+			block.seed is not None
+		):
 			params["seed"] = block.seed
-		if model.supports_parameter("top_k") and block.top_k is not None:
+		if model.supports_parameter(FilterableGenerationParam.TOP_K) and (
+			block.top_k is not None
+		):
 			params["top_k"] = block.top_k
-		if model.supports_parameter("stop") and block.stop:
+		if model.supports_parameter(FilterableGenerationParam.STOP) and (
+			block.stop
+		):
 			params["stop"] = block.stop
 		return params
 
@@ -172,12 +168,14 @@ class BaseEngine(ABC):
 		if not supported:
 			return params
 		filterable = self._get_filterable_params()
-		result = {}
-		for k, v in params.items():
-			if k in filterable and k not in supported:
-				continue
-			result[k] = v
-		return result
+		allowed = frozenset(supported)
+		if not any(k in filterable and k not in allowed for k in params):
+			return params
+		return {
+			k: v
+			for k, v in params.items()
+			if k not in filterable or k in allowed
+		}
 
 	def get_web_search_tool_definitions(
 		self, model: ProviderAIModel
@@ -194,8 +192,6 @@ class BaseEngine(ABC):
 
 	def get_reasoning_ui_spec(self, model: ProviderAIModel) -> ReasoningUISpec:
 		"""Return UI spec for reasoning mode controls. Override per provider.
-
-		Engine injects its own settings—no provider_id checks in presenter.
 
 		Args:
 			model: The selected model.
@@ -234,12 +230,14 @@ class BaseEngine(ABC):
 		Raises:
 			ValueError: If multiple models are found with the same ID.
 		"""
-		model_list = [model for model in self.models if model.id == model_id]
-		if not model_list:
-			return None
-		if len(model_list) > 1:
-			raise ValueError(f"Multiple models with id {model_id}")
-		return model_list[0]
+		found: ProviderAIModel | None = None
+		for model in self.models:
+			if model.id != model_id:
+				continue
+			if found is not None:
+				raise ValueError(f"Multiple models with id {model_id}")
+			found = model
+		return found
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
@@ -336,8 +334,8 @@ class BaseEngine(ABC):
 	def completion_response_with_stream(self, stream: Any, **kwargs) -> Any:
 		"""Handle completion response with stream.
 
-		Must yield ("content", chunk) for text content and optionally
-		("reasoning", chunk) or ("citation", data). Never yield plain strings.
+		Must yield (content, chunk) for text and optionally reasoning or
+		citation chunks; see ``StreamChunkType``.
 
 		Args:
 			stream: Stream response from the provider.
@@ -357,7 +355,7 @@ class BaseEngine(ABC):
 
 	@staticmethod
 	def get_user_agent() -> str:
-		"""Get a user agent sting for the application."""
+		"""Get a user agent string for the application."""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
 
 	def get_transcription(self, *args, **kwargs) -> str:

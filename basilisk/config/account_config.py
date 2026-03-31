@@ -30,8 +30,11 @@ import basilisk.global_vars as global_vars
 from basilisk.consts import APP_NAME
 from basilisk.provider import Provider, get_provider, providers
 
-from .config_constants import MODEL_SORT_KEYS
-from .config_enums import AccountSource, KeyStorageMethodEnum
+from .config_enums import (
+	ACCOUNT_MODEL_SORT_KEYS,
+	AccountSource,
+	KeyStorageMethodEnum,
+)
 from .config_helper import (
 	BasiliskBaseSettings,
 	get_settings_config_dict,
@@ -155,7 +158,7 @@ class Account(BaseModel):
 	def _validate_model_sort_key(self) -> "Account":
 		if (
 			self.model_sort_key is not None
-			and self.model_sort_key not in MODEL_SORT_KEYS
+			and self.model_sort_key not in ACCOUNT_MODEL_SORT_KEYS
 		):
 			object.__setattr__(self, "model_sort_key", None)
 		return self

@@ -16,6 +16,7 @@ from basilisk.config import (
 	ACCOUNT_MODEL_SORT_KEYS,
 	CUSTOM_BASE_URL_PATTERN,
 	Account,
+	AccountModelSortKeyEnum,
 	AccountOrganization,
 	AccountSource,
 	KeyStorageMethodEnum,
@@ -251,7 +252,7 @@ class EditAccountPresenter:
 		sort_key = ACCOUNT_MODEL_SORT_KEYS[
 			sort_sel if 0 <= sort_sel < len(ACCOUNT_MODEL_SORT_KEYS) else 0
 		]
-		if sort_key == "default":
+		if sort_key == AccountModelSortKeyEnum.DEFAULT:
 			model_sort_key = None
 			model_sort_reverse = None
 		else:

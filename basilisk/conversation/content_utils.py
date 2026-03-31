@@ -7,8 +7,6 @@ import re
 START_BLOCK_REASONING = "<think>"
 END_REASONING = "</think>"
 
-# Display format for reasoning blocks. dynamicModels uses ```think...```;
-# feat/reasoning-storage and above use <think>...</think>.
 REASONING_DISPLAY_START = "```think"
 REASONING_DISPLAY_END = "```"
 
@@ -66,7 +64,6 @@ def split_reasoning_and_content_from_display(
 	"""
 	if not text:
 		return None, text or ""
-	# Try <think> format first, then legacy ```think
 	match = _REASONING_BLOCK_PATTERN.match(text)
 	if not match:
 		return split_reasoning_and_content(text)

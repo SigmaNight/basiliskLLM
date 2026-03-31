@@ -44,18 +44,22 @@ def fetch_models_json(url: str) -> dict[str, Any]:
 	return response.json()
 
 
+def _safe_int(val: Any, default: int) -> int:
+	"""Parse ``val`` as int; return ``default`` on failure or ``val is None``."""
+	if val is None:
+		return default
+	try:
+		return int(val)
+	except TypeError, ValueError:
+		return default
+
+
 def _get_max_completion_tokens(model: dict[str, Any]) -> int:
 	"""Extract max_completion_tokens from top_provider, or -1 if absent."""
 	top = model.get("top_provider")
 	if not top or not isinstance(top, dict):
 		return -1
-	val = top.get("max_completion_tokens")
-	if val is None:
-		return -1
-	try:
-		return int(val)
-	except TypeError, ValueError:
-		return -1
+	return _safe_int(top.get("max_completion_tokens"), -1)
 
 
 def _get_context_length(model: dict[str, Any]) -> int:
@@ -63,13 +67,14 @@ def _get_context_length(model: dict[str, Any]) -> int:
 	top = model.get("top_provider")
 	if not top or not isinstance(top, dict):
 		return 0
-	val = top.get("context_length")
-	if val is None:
-		return 0
-	try:
-		return int(val)
-	except TypeError, ValueError:
-		return 0
+	return _safe_int(top.get("context_length"), 0)
+
+
+def _normalized_modality_list(raw: Any) -> list[str]:
+	"""Return lowercased modality strings from JSON list fields."""
+	if not isinstance(raw, list):
+		return []
+	return [str(m).lower() for m in raw]
 
 
 def _modality_flags(architecture: dict[str, Any]) -> dict[str, bool]:
@@ -83,16 +88,10 @@ def _modality_flags(architecture: dict[str, Any]) -> dict[str, bool]:
 		Dict with vision, audio, document, image_output booleans.
 	"""
 	modality = (architecture.get("modality") or "").lower()
-	input_mods = architecture.get("input_modalities") or []
-	if isinstance(input_mods, list):
-		input_mods = [str(m).lower() for m in input_mods]
-	else:
-		input_mods = []
-	output_mods = architecture.get("output_modalities") or []
-	if isinstance(output_mods, list):
-		output_mods = [str(m).lower() for m in output_mods]
-	else:
-		output_mods = []
+	input_mods = _normalized_modality_list(architecture.get("input_modalities"))
+	output_mods = _normalized_modality_list(
+		architecture.get("output_modalities")
+	)
 	return {
 		"vision": "image" in modality or "image" in input_mods,
 		"audio": "audio" in modality or "audio" in input_mods,
@@ -125,13 +124,7 @@ def _has_web_search_capable(item: dict[str, Any], supported: list[str]) -> bool:
 
 def _get_created(model: dict[str, Any]) -> int:
 	"""Extract created Unix timestamp, or 0 if absent."""
-	val = model.get("created")
-	if val is None:
-		return 0
-	try:
-		return int(val)
-	except TypeError, ValueError:
-		return 0
+	return _safe_int(model.get("created"), 0)
 
 
 def _get_default_params(item: dict[str, Any]) -> dict[str, Any]:
@@ -184,8 +177,6 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 		modalities = _modality_flags(architecture)
 
 		reasoning_capable = _has_reasoning_capable(supported)
-		# reasoning_only: set by each engine in _postprocess_models (OpenAI o3,
-		# xAI grok-4, etc.). Loader stays generic—no provider-specific logic.
 		web_search_capable = _has_web_search_capable(item, supported)
 		default_params = _get_default_params(item)
 		def_temp = default_params.get("temperature")
@@ -219,7 +210,7 @@ def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
 
 
 def _get_cache_ttl_seconds() -> int:
-	"""Return cache TTL from config. Deferred import to avoid circular deps."""
+	"""Return cache TTL from config."""
 	import basilisk.config as config
 
 	return config.conf().general.model_metadata_cache_ttl_seconds

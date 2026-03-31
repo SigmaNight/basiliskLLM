@@ -104,3 +104,42 @@ def test_get_audio_output_spec_returns_none_by_default(engine):
 	"""Base engine returns None for audio output spec."""
 	model = ProviderAIModel(id="test", audio=True)
 	assert engine.get_audio_output_spec(model) is None
+
+
+def test_get_model_returns_match(mocker):
+	"""get_model returns the sole model with the given id."""
+	only = ProviderAIModel(id="mid")
+	mocker.patch.object(
+		_ConcreteEngine,
+		"models",
+		new_callable=lambda: property(lambda self: [only]),
+	)
+	eng = _ConcreteEngine(account=MagicMock())
+	assert eng.get_model("mid") is only
+
+
+def test_get_model_none_when_missing(mocker):
+	"""get_model returns None when id is not in the list."""
+	mocker.patch.object(
+		_ConcreteEngine,
+		"models",
+		new_callable=lambda: property(
+			lambda self: [ProviderAIModel(id="other")]
+		),
+	)
+	eng = _ConcreteEngine(account=MagicMock())
+	assert eng.get_model("missing") is None
+
+
+def test_get_model_raises_on_duplicate_ids(mocker):
+	"""get_model raises when more than one model shares the same id."""
+	a = ProviderAIModel(id="dup")
+	b = ProviderAIModel(id="dup")
+	mocker.patch.object(
+		_ConcreteEngine,
+		"models",
+		new_callable=lambda: property(lambda self: [a, b]),
+	)
+	eng = _ConcreteEngine(account=MagicMock())
+	with pytest.raises(ValueError, match="Multiple models"):
+		eng.get_model("dup")

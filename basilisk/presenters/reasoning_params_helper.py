@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from basilisk.conversation.conversation_params import ReasoningParamKey
+
 if TYPE_CHECKING:
 	from basilisk.provider_ai_model import ProviderAIModel
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -21,7 +23,6 @@ def get_reasoning_params_from_view(
 	"""Extract reasoning params from view widgets for MessageBlock/ConversationProfile.
 
 	Uses engine.get_reasoning_ui_spec(model) for effort options when available.
-	No provider_id—engine injects its settings.
 
 	Args:
 		view: View with reasoning_mode, reasoning_adaptive, reasoning_budget_spin,
@@ -34,26 +35,28 @@ def get_reasoning_params_from_view(
 		reasoning_adaptive. Safe to pass as MessageBlock kwargs.
 	"""
 	result: dict[str, Any] = {
-		"reasoning_mode": False,
-		"reasoning_budget_tokens": None,
-		"reasoning_effort": None,
-		"reasoning_adaptive": False,
+		ReasoningParamKey.REASONING_MODE: False,
+		ReasoningParamKey.REASONING_BUDGET_TOKENS: None,
+		ReasoningParamKey.REASONING_EFFORT: None,
+		ReasoningParamKey.REASONING_ADAPTIVE: False,
 	}
 	if not hasattr(view, "reasoning_mode") or not view.reasoning_mode.IsShown():
 		return result
 
 	val = view.reasoning_mode.GetValue()
-	result["reasoning_mode"] = bool(val) if isinstance(val, bool) else False
+	result[ReasoningParamKey.REASONING_MODE] = (
+		bool(val) if isinstance(val, bool) else False
+	)
 
 	if hasattr(view, "reasoning_adaptive"):
 		val = view.reasoning_adaptive.GetValue()
-		result["reasoning_adaptive"] = (
+		result[ReasoningParamKey.REASONING_ADAPTIVE] = (
 			bool(val) if isinstance(val, bool) else False
 		)
 
 	if hasattr(view, "reasoning_budget_spin"):
 		val = view.reasoning_budget_spin.GetValue()
-		result["reasoning_budget_tokens"] = (
+		result[ReasoningParamKey.REASONING_BUDGET_TOKENS] = (
 			val if isinstance(val, int) else None
 		)
 
@@ -69,7 +72,7 @@ def get_reasoning_params_from_view(
 			):
 				options = tuple(opts)
 		if not options:
-			result["reasoning_effort"] = None
+			result[ReasoningParamKey.REASONING_EFFORT] = None
 		else:
 			effort_idx = view.reasoning_effort_choice.GetSelection()
 			effort_val = None
@@ -77,7 +80,7 @@ def get_reasoning_params_from_view(
 				effort_val = options[effort_idx]
 			elif options:
 				effort_val = options[-1]
-			result["reasoning_effort"] = (
+			result[ReasoningParamKey.REASONING_EFFORT] = (
 				effort_val if isinstance(effort_val, str) else None
 			)
 

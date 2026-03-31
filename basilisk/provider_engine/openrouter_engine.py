@@ -34,6 +34,8 @@ from .dynamic_model_loader import (
 )
 from .legacy_openai_engine import LegacyOpenAIEngine
 from .provider_ui_spec import ReasoningUISpec
+from .reasoning_api_enums import OpenRouterReasoningEffort
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -256,9 +258,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 					"max_tokens": new_block.reasoning_budget_tokens or 16000
 				}
 			else:
-				effort = (new_block.reasoning_effort or "medium").lower()
-				if effort not in ("minimal", "low", "medium", "high", "xhigh"):
-					effort = "medium"
+				effort = OpenRouterReasoningEffort.normalize(
+					new_block.reasoning_effort
+				).value
 				extra_body["reasoning"] = {"effort": effort}
 		kwargs["extra_body"] = extra_body
 		return super().completion(
@@ -284,9 +286,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 				continue
 			reasoning = getattr(delta, "reasoning", None)
 			if reasoning:
-				yield ("reasoning", reasoning)
+				yield (StreamChunkType.REASONING, reasoning)
 			if delta.content:
-				yield ("content", delta.content)
+				yield (StreamChunkType.CONTENT, delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs

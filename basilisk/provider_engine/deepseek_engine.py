@@ -18,6 +18,7 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .legacy_openai_engine import LegacyOpenAIEngine
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -63,8 +64,7 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	):
 		"""Processes streaming response from DeepSeek API.
 
-		Yields ("content", chunk) with reasoning mixed into content using
-		```think``` markers. Separate reasoning storage is in feat/reasoning-storage.
+		Embeds reasoning deltas in content using ```think``` markers.
 		"""
 		reasoning_content_tag_sent = False
 		for chunk in stream:
@@ -77,19 +77,22 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 					if not reasoning_content_tag_sent:
 						reasoning_content_tag_sent = True
 						yield (
-							"content",
+							StreamChunkType.CONTENT,
 							f"```think\n{delta.reasoning_content}",
 						)
 					else:
-						yield ("content", delta.reasoning_content)
+						yield (StreamChunkType.CONTENT, delta.reasoning_content)
 				if delta.content:
 					if reasoning_content_tag_sent:
 						reasoning_content_tag_sent = False
-						yield ("content", f"\n```\n\n{delta.content}")
+						yield (
+							StreamChunkType.CONTENT,
+							f"\n```\n\n{delta.content}",
+						)
 					else:
-						yield ("content", delta.content)
+						yield (StreamChunkType.CONTENT, delta.content)
 		if reasoning_content_tag_sent:
-			yield ("content", "\n```")
+			yield (StreamChunkType.CONTENT, "\n```")
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs

@@ -7,12 +7,15 @@ from .account_config import (
 	AccountOrganization,
 )
 from .account_config import get_account_config as accounts
-from .config_constants import ACCOUNT_MODEL_SORT_KEYS, MODEL_SORT_KEYS
 from .config_enums import (
+	ACCOUNT_MODEL_SORT_KEYS,
+	MODEL_SORT_KEYS,
+	AccountModelSortKeyEnum,
 	AccountSource,
 	AutomaticUpdateModeEnum,
 	KeyStorageMethodEnum,
 	LogLevelEnum,
+	ModelSortKeyEnum,
 	ReleaseChannelEnum,
 )
 from .conversation_profile import ConversationProfile
@@ -25,7 +28,9 @@ from .main_config import get_basilisk_config as conf
 __all__ = [
 	"ACCOUNT_MODEL_SORT_KEYS",
 	"Account",
+	"AccountModelSortKeyEnum",
 	"MODEL_SORT_KEYS",
+	"ModelSortKeyEnum",
 	"AccountManager",
 	"AccountOrganization",
 	"AccountSource",

@@ -33,6 +33,7 @@ from basilisk.conversation import (
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
+from .stream_chunk_type import StreamChunkType
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -220,7 +221,7 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 				continue
 			delta = chunk.choices[0].delta
 			if delta and delta.content:
-				yield ("content", delta.content)
+				yield (StreamChunkType.CONTENT, delta.content)
 
 	def completion_response_without_stream(
 		self, response: ChatCompletion, new_block: MessageBlock, **kwargs

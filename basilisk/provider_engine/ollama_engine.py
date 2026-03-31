@@ -18,6 +18,7 @@ from basilisk.conversation import (
 from basilisk.decorators import measure_time
 
 from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ class OllamaEngine(BaseEngine):
 		for chunk in stream:
 			content = chunk.get("message", {}).get("content")
 			if content:
-				yield ("content", content)
+				yield (StreamChunkType.CONTENT, content)
 
 	def completion_response_without_stream(
 		self, response, new_block: MessageBlock, **kwargs

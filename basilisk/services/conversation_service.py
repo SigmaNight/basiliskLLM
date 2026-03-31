@@ -19,6 +19,7 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 from basilisk.provider_ai_model import AIModelInfo
+from basilisk.provider_engine.stream_chunk_type import StreamChunkType
 from basilisk.sound_manager import play_sound, stop_sound
 
 if TYPE_CHECKING:
@@ -265,7 +266,9 @@ class ConversationService:
 					response, new_block=new_block
 				):
 					chunk_type, chunk_data = chunk
-					if chunk_type == "content" and isinstance(chunk_data, str):
+					if chunk_type == StreamChunkType.CONTENT and isinstance(
+						chunk_data, str
+					):
 						content_parts.append(chunk_data)
 				return "".join(content_parts).strip(), None
 			new_block = engine.completion_response_without_stream(

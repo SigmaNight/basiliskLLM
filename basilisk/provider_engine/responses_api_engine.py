@@ -35,6 +35,7 @@ from basilisk.conversation import (
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.stream_chunk_type import StreamChunkType
 
 from .base_engine import BaseEngine
 
@@ -193,20 +194,15 @@ class ResponsesAPIEngine(BaseEngine):
 		new_block: MessageBlock,
 		**kwargs,
 	):
-		"""Processes a streaming Responses API response.
-
-		Yields ("content", delta) tuples for CompletionHandler compatibility.
-		Subclasses that support reasoning/audio override to yield additional
-		chunk types ("reasoning", "citation", etc.).
-		"""
+		"""Processes a streaming Responses API response."""
 		for event in stream:
 			if (
 				isinstance(event, ResponseReasoningTextDeltaEvent)
 				and event.delta
 			):
-				yield ("reasoning", event.delta)
+				yield (StreamChunkType.REASONING, event.delta)
 			elif isinstance(event, ResponseTextDeltaEvent) and event.delta:
-				yield ("content", event.delta)
+				yield (StreamChunkType.CONTENT, event.delta)
 			elif isinstance(event, ResponseCompletedEvent) and event.response:
 				pass
 			else:

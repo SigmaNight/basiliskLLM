@@ -28,7 +28,9 @@ from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
+
 from .base_engine import BaseEngine, ProviderCapability
+from .stream_chunk_type import StreamChunkType
 
 log = logging.getLogger(__name__)
 
@@ -204,7 +206,7 @@ class MistralAIEngine(BaseEngine):
 				continue
 			delta = data.choices[0].delta
 			if delta and delta.content:
-				yield ("content", delta.content)
+				yield (StreamChunkType.CONTENT, delta.content)
 
 	def completion_response_without_stream(
 		self,

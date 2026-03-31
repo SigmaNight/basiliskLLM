@@ -17,6 +17,7 @@ from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .provider_ui_spec import ReasoningUISpec
+from .reasoning_api_enums import OpenRouterReasoningEffort
 from .responses_api_engine import ResponsesAPIEngine
 
 if TYPE_CHECKING:
@@ -133,8 +134,11 @@ class XAIEngine(ResponsesAPIEngine):
 			kwargs,
 		)
 		if model.id in _XAI_REASONING_EFFORT_IDS and new_block.reasoning_mode:
-			effort = new_block.reasoning_effort or "high"
-			if effort == "medium":
-				effort = "high"
+			effort = (
+				new_block.reasoning_effort
+				or OpenRouterReasoningEffort.HIGH.value
+			)
+			if effort == OpenRouterReasoningEffort.MEDIUM:
+				effort = OpenRouterReasoningEffort.HIGH.value
 			params["reasoning"] = {"effort": effort}
 		return params

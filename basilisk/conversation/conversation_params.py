@@ -5,14 +5,21 @@ Keeps reasoning params in sync when copying between block and profile.
 
 from __future__ import annotations
 
+import enum
 from typing import Any
 
-# Keys shared by MessageBlock and ConversationProfile for reasoning mode.
-REASONING_PARAM_KEYS: tuple[str, ...] = (
-	"reasoning_mode",
-	"reasoning_budget_tokens",
-	"reasoning_effort",
-	"reasoning_adaptive",
+
+class ReasoningParamKey(enum.StrEnum):
+	"""Field names shared by MessageBlock and ConversationProfile for reasoning."""
+
+	REASONING_MODE = "reasoning_mode"
+	REASONING_BUDGET_TOKENS = "reasoning_budget_tokens"
+	REASONING_EFFORT = "reasoning_effort"
+	REASONING_ADAPTIVE = "reasoning_adaptive"
+
+
+REASONING_PARAM_KEYS: tuple[str, ...] = tuple(
+	m.value for m in ReasoningParamKey
 )
 
 
@@ -23,9 +30,9 @@ def get_reasoning_params_from_block(block: Any) -> dict[str, Any]:
 		block: MessageBlock (or object with same attributes).
 
 	Returns:
-		Dict with REASONING_PARAM_KEYS, values from block.
+		Dict with reasoning field names, values from block.
 	"""
-	return {k: getattr(block, k, None) for k in REASONING_PARAM_KEYS}
+	return {k.value: getattr(block, k.value, None) for k in ReasoningParamKey}
 
 
 def get_reasoning_params_from_profile(profile: Any) -> dict[str, Any]:
@@ -35,6 +42,6 @@ def get_reasoning_params_from_profile(profile: Any) -> dict[str, Any]:
 		profile: ConversationProfile (or object with same attributes).
 
 	Returns:
-		Dict with REASONING_PARAM_KEYS, values from profile.
+		Dict with reasoning field names, values from profile.
 	"""
-	return {k: getattr(profile, k, None) for k in REASONING_PARAM_KEYS}
+	return {k.value: getattr(profile, k.value, None) for k in ReasoningParamKey}
