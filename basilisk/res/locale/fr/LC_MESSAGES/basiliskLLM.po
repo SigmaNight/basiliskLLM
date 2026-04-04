@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-18 04:34+0000\n"
-"PO-Revision-Date: 2026-03-21 13:46\n"
+"POT-Creation-Date: 2026-04-02 04:23+0000\n"
+"PO-Revision-Date: 2026-04-04 13:55\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -21,11 +21,11 @@ msgstr ""
 #: basilisk/completion_handler.py:306
 #, python-format
 msgid "An error occurred during completion: %s"
-msgstr ""
+msgstr "Une erreur s’est produite lors de l’exécution : %s"
 
 #: basilisk/completion_handler.py:308
 msgid "Completion Error"
-msgstr ""
+msgstr "Erreur d’Exécution"
 
 #: basilisk/decorators.py:35
 msgid "A task is already running. Please wait for it to complete."
@@ -83,25 +83,25 @@ msgstr "Capture de la fenêtre (%s)"
 #: basilisk/provider_engine/anthropic_engine.py:99
 #: basilisk/provider_engine/anthropic_engine.py:110
 msgid "The most intelligent model for building agents and coding"
-msgstr ""
+msgstr "Le modèle le plus intelligent pour créer des agents et coder"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:121
 #: basilisk/provider_engine/anthropic_engine.py:130
 msgid "The best combination of speed and intelligence"
-msgstr ""
+msgstr "La meilleure combinaison de vitesse et d’intelligence"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:141
 #: basilisk/provider_engine/anthropic_engine.py:152
 msgid "The fastest model with near-frontier intelligence"
-msgstr ""
+msgstr "Le modèle le plus rapide avec une intelligence proche de l’avant-garde"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:164
 #: basilisk/provider_engine/anthropic_engine.py:175
 msgid "Best model for complex agents and coding with highest intelligence"
-msgstr ""
+msgstr "Le meilleur modèle pour des agents complexes et le codage avec l’intelligence la plus élevée"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:187
@@ -111,215 +111,216 @@ msgstr ""
 #: basilisk/provider_engine/anthropic_engine.py:252
 #: basilisk/provider_engine/anthropic_engine.py:263
 msgid "Exceptional model for specialized complex tasks"
-msgstr ""
+msgstr "Modèle exceptionnel pour les tâches complexes spécialisées"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:232
 #: basilisk/provider_engine/anthropic_engine.py:241
 msgid "High-performance model"
-msgstr ""
+msgstr "Modèle haute performance"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/anthropic_engine.py:274
 msgid "Previous intelligent model"
-msgstr ""
+msgstr "Modèle intelligent précédent"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/deepseek_engine.py:53
 msgid "Non-thinking mode for general chat, code and writing"
-msgstr ""
+msgstr "Mode sans réflexion pour chat général, code et écriture"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/deepseek_engine.py:65
 msgid "Thinking mode for chain-of-thought, research and logic"
-msgstr ""
+msgstr "Mode de réflexion pour le raisonnement, la recherche et la logique"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:96
 msgid "State-of-the-art open-weight general-purpose multimodal model"
-msgstr ""
+msgstr "Modèle multimodal polyvalent à la pointe de la technologie avec poids ouverts"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:108
 msgid "Frontier-class multimodal model released August 2025"
-msgstr ""
+msgstr "Modèle multimodal de classe avancée sorti en août 2025"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:119
 msgid "Updated small model released June 2025"
-msgstr ""
+msgstr "Petit modèle mis à jour sorti en juin 2025"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:130
 msgid "Frontier code agents model for software engineering tasks"
-msgstr ""
+msgstr "Modèle d'agents de code avancé pour les tâches de génie logiciel"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:141
 msgid "Powerful model with best-in-class text and vision capabilities"
-msgstr ""
+msgstr "Modèle puissant avec des capacités de texte et de vision de premier ordre"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:153
 msgid "Efficient model with best-in-class text and vision capabilities"
-msgstr ""
+msgstr "Modèle efficace avec des capacités de texte et de vision de premier ordre"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:165
 msgid "Tiny efficient model with best-in-class text and vision capabilities"
-msgstr ""
+msgstr "Petit modèle efficace avec des capacités de texte et de vision de premier ordre"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:177
 msgid "Cutting-edge language model for code completion"
-msgstr ""
+msgstr "Modèle linguistique de pointe pour l’autocomplétion de code"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:188
 msgid "Frontier-class multimodal model released November 2024"
-msgstr ""
+msgstr "Modèle multimodal de classe avancée sorti en novembre 2024"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/mistralai_engine.py:200
 msgid "Best multilingual open source model for text generation"
-msgstr ""
+msgstr "Meilleur modèle multilingue open source pour la génération de texte"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:114
 msgid "The best model for coding and agentic tasks across industries"
-msgstr ""
+msgstr "Le meilleur modèle pour le codage et les tâches agençantes dans divers secteurs"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:126
 msgid "Version of GPT-5.2 that produces smarter and more precise responses"
-msgstr ""
+msgstr "Version de GPT-5.2 qui produit des réponses plus intelligentes et plus précises"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:137
 msgid "GPT-5.2 model used in ChatGPT"
-msgstr ""
+msgstr "Modèle GPT-5.2 utilisé dans ChatGPT"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:148
 msgid "Best model for coding and agentic tasks with configurable reasoning effort"
-msgstr ""
+msgstr "Meilleur modèle pour le codage et les tâches agentiques, avec un effort de raisonnement configurable"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:159
 msgid "GPT-5.1 model used in ChatGPT"
-msgstr ""
+msgstr "Modèle GPT-5.1 utilisé dans ChatGPT"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:170
 msgid "Previous intelligent reasoning model for coding and agentic tasks"
-msgstr ""
+msgstr "Ancien modèle de raisonnement intelligent pour le codage et les tâches agentiques"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:182
 msgid "A faster, more cost-efficient version of GPT-5 for well-defined tasks"
-msgstr ""
+msgstr "Une version plus rapide et plus économique de GPT-5 pour des tâches bien définies"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:193
 msgid "Fastest, most cost-efficient version of GPT-5"
-msgstr ""
+msgstr "Version la plus rapide et la plus économique de GPT-5"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:203
 msgid "GPT-5 model used in ChatGPT"
-msgstr ""
+msgstr "Modèle GPT-5 utilisé dans ChatGPT"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:214
 msgid "Version of GPT-5 that produces smarter and more precise responses"
-msgstr ""
+msgstr "Version de GPT-5 qui produit des réponses plus intelligentes et plus précises"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:225
 msgid "Flagship GPT model for complex tasks"
-msgstr ""
+msgstr "Modèle GPT phare pour les tâches complexes"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:235
 msgid "Balanced for intelligence, speed, and cost"
-msgstr ""
+msgstr "Équilibre entre intelligence, vitesse et coût"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:245
 msgid "Fastest, most cost-effective GPT-4.1 model"
-msgstr ""
+msgstr "Modèle GPT-4.1 le plus rapide et le plus rentable"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:256
 msgid "Fast, cost-efficient reasoning model, succeeded by GPT-5 mini"
-msgstr ""
+msgstr "Modèle de raisonnement rapide et économique, remplacé par GPT-5 mini"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:268
 msgid "Reasoning model for complex tasks, succeeded by GPT-5"
-msgstr ""
+msgstr "Modèle de raisonnement pour les tâches complexes, remplacé par GPT-5"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:280
 msgid "Fast, intelligent, flexible GPT model"
-msgstr ""
+msgstr "Modèle GPT rapide, intelligent et flexible"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:290
 msgid "Fast, affordable small model for focused tasks"
-msgstr ""
+msgstr "Petit modèle rapide et abordable pour des tâches ciblées"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:301
 msgid "Small reasoning model for science, math and coding with Structured Outputs and function calling"
-msgstr ""
+msgstr "Petit modèle de raisonnement pour la science, les maths et le codage, avec sorties structurées et appel de fonctions"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:313
 msgid "Previous full o-series reasoning model"
-msgstr ""
+msgstr "Ancien modèle complet de raisonnement de la série o"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:325
 msgid "Older high-intelligence GPT model with vision capabilities"
-msgstr ""
+msgstr "Ancien modèle GPT à haute intelligence avec capacités de vision"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/openai_engine.py:337
 msgid "Legacy GPT model for cheaper chat and non-chat tasks"
-msgstr ""
+msgstr "Modèle GPT historique pour des tâches de chat et hors chat moins coûteux"
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:47
 msgid "Flagship frontier model for complex tasks with 256K context, tool use and structured output."
-msgstr ""
+msgstr "Modèle phare de pointe pour les tâches complexes, avec un contexte de 256K, l’utilisation d’outils et des sorties structurées."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:58
 msgid "High-throughput reasoning with 2M token context for rapid completions."
-msgstr ""
+msgstr "Raisonnement à haut débit avec un contexte de 2 M de tokens pour des complétions rapides."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:70
 msgid "Fast completions without reasoning tokens, cost-efficient with 2M context."
-msgstr ""
+msgstr "Complétions rapides sans tokens de raisonnement, économiques avec un contexte de 2 M."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:81
 msgid "Optimized for agentic coding tasks with 256K context."
-msgstr ""
+msgstr "Optimisé pour les tâches de codage agentiques avec un contexte de 256K."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:91
 msgid "Flagship model for enterprise tasks, extraction and coding."
-msgstr ""
+msgstr "Modèle phare pour les tâches en entreprise, l’extraction et le codage."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:101
 msgid "Cost-efficient, faster than Grok 3 for well-defined tasks."
-msgstr ""
+msgstr "Économique et plus rapide que Grok 3 pour des tâches bien définies."
 
 #. Translators: This is a model description
 #: basilisk/provider_engine/xai_engine.py:111
 msgid "Multimodal image understanding with 32K context."
-msgstr ""
+msgstr "Compréhension multimodale des images avec un contexte de 32K."
+
