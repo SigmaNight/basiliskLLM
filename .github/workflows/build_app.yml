@@ -6,68 +6,96 @@ permissions:
 
 jobs:
   build_windows:
-    runs-on: windows-2025
+    runs-on: ${{ matrix.runner }}
+    env:
+      UV_NO_DEV: true
     strategy:
       fail-fast: false
       matrix:
-        arch:
-          - x86_64
-          - x86
+        include:
+          - arch: x86_64
+            runner: windows-2025
+          - arch: x86
+            runner: windows-2025
+          - arch: arm64
+            runner: windows-11-arm
 
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - name: setup uv
         uses: astral-sh/setup-uv@v7
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
+      - name: install OpenSSL via vcpkg (arm64)
+        if: matrix.arch == 'arm64'
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v7
+        with:
+          pkgs: openssl
+          triplet: arm64-windows
+          token: ${{ github.token }}
+      - name: set OpenSSL env (arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          $installed = "${{ github.workspace }}\vcpkg\installed\arm64-windows"
+          echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          path: ${{ github.workspace }}/repo
       - name: Install dependencies
-        run: uv sync --frozen --no-dev --group build --group test
+        working-directory: ${{ github.workspace }}/repo
+        run: uv sync --frozen --compile --group build --group test
       - name: run tests
+        working-directory: ${{ github.workspace }}/repo
         run: uv run -m pytest --cov
       - name: compile translations
+        working-directory: ${{ github.workspace }}/repo
         run: uv run setup.py compile_catalog
       - name: Build executable
+        working-directory: ${{ github.workspace }}/repo
         run: uv run -m cx_Freeze build_exe
       - name: get variables
         id: get_variables
+        working-directory: ${{ github.workspace }}/repo
         run: |
           $version = (uv run -m setuptools_scm)
           echo version_number=$version >> $env:GITHUB_OUTPUT
           if ("${{ matrix.arch }}" -eq "x86_64") {
             echo arch="x64" >> $env:GITHUB_OUTPUT
+          } elseif ("${{ matrix.arch }}" -eq "arm64") {
+            echo arch="arm64" >> $env:GITHUB_OUTPUT
           } else {
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
       - name: build windows installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: .\win_installer.iss
+          path: repo\win_installer.iss
           options: |
             /O+
             /DAppArch=${{ steps.get_variables.outputs.arch }}
             /DMyAppVersion=${{ steps.get_variables.outputs.version_number }}
+
       - name: create user config file for portable version
+        working-directory: ${{ github.workspace }}/repo
         run: |
           New-Item -Path dist -Name user_data -ItemType directory
           New-Item -Path dist\user_data -Name config.yml -ItemType file
           echo "general:" >> dist\user_data\config.yml
           echo "  language: auto" >> dist\user_data\config.yml
           echo "  log_level: info" >> dist\user_data\config.yml
-
       - name: create and upload portable zip
         uses: actions/upload-artifact@v7
         with:
           name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
-          path: dist/*
+          path: ${{ github.workspace }}/repo/dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
         uses: actions/upload-artifact@v7
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
-          path: output_setup/*
+          path: ${{ github.workspace }}/repo/output_setup/*
           if-no-files-found: error
           retention-days: 30
