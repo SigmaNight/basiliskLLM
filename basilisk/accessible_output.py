@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 try:
 	import accessible_output3.outputs.auto
 
-	_ao3_available = True
+	_AO3_AVAILABLE = True
 except ImportError:
-	_ao3_available = False
+	_AO3_AVAILABLE = False
 
 if TYPE_CHECKING:
 	import accessible_output3.outputs.auto
@@ -23,6 +23,16 @@ from basilisk.decorators import measure_time
 
 log = logging.getLogger(__name__)
 RE_SPEECH_STREAM_BUFFER = re.compile(rf"{COMMON_PATTERN}")
+
+
+class _NullAccessibleOutput:
+	"""No-op fallback used when accessible_output3 is unavailable."""
+
+	def speak(self, text: str) -> None:
+		pass
+
+	def braille(self, text: str) -> None:
+		pass
 
 
 class AccessibleOutputHandler:
@@ -68,18 +78,18 @@ class AccessibleOutputHandler:
 	def use_accessible_output(self) -> bool:
 		"""Check if accessible output is enabled and available."""
 		return (
-			_ao3_available and config.conf().conversation.use_accessible_output
+			_AO3_AVAILABLE and config.conf().conversation.use_accessible_output
 		)
 
 	@measure_time
 	def _init_accessible_output(self, display_log: bool) -> None:
 		"""Initialize the Accessible Output library."""
-		if not _ao3_available:
+		if not _AO3_AVAILABLE:
 			if display_log:
 				log.debug(
 					"accessible_output3 is not available on this platform."
 				)
-			self._accessible_output = None
+			self._accessible_output = _NullAccessibleOutput()
 			return
 		if not self.use_accessible_output:
 			if display_log:
