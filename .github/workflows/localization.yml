@@ -37,6 +37,7 @@ jobs:
           path: basiliskLLM.pot
           if-no-files-found: error
           retention-days: 30
+          archive: false
 
   upload_on_crowdin:
     runs-on: ubuntu-latest
