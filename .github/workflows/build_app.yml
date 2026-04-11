@@ -19,10 +19,6 @@ jobs:
             runner: windows-11-arm
 
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - name: setup uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -35,12 +31,15 @@ jobs:
           pkgs: openssl
           triplet: arm64-windows
           token: ${{ github.token }}
-          vcpkg-subdir: '${{ runner.temp }}\vcpkg'
       - name: set OpenSSL env (arm64)
         if: matrix.arch == 'arm64'
         run: |
           $installed = "${{ runner.temp }}\vcpkg\installed\arm64-windows"
           echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - name: Install dependencies
         run: uv sync --frozen --compile --no-dev --group build --group test
       - name: run tests
