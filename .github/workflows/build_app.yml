@@ -34,6 +34,7 @@ jobs:
         with:
           pkgs: openssl
           triplet: arm64-windows
+          token: ${{ github.token }}
       - name: set OpenSSL env (arm64)
         if: matrix.arch == 'arm64'
         run: |
