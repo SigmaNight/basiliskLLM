@@ -96,6 +96,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
-          path: ${{ github.workspace }}/output_setup/*
+          path: ${{ github.workspace }}/repo/output_setup/*
           if-no-files-found: error
           retention-days: 30
