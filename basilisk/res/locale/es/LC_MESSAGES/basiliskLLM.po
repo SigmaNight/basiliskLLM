@@ -1964,4 +1964,3 @@ msgstr ""
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr ""
-
