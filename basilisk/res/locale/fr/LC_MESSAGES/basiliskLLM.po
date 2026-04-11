@@ -2053,4 +2053,3 @@ msgstr "Erreur durant la recherche des mises à jour : %s"
 
 #~ msgid "Update disabled"
 #~ msgstr "Mise à jour désactivée"
-
