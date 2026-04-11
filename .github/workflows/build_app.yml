@@ -69,11 +69,9 @@ jobs:
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
       - name: build windows installer
-        env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}\repo
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: .\win_installer.iss
+          path: repo\win_installer.iss
           options: |
             /O+
             /DAppArch=${{ steps.get_variables.outputs.arch }}
