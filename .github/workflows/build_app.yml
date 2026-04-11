@@ -69,13 +69,16 @@ jobs:
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
       - name: build windows installer
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}\repo
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: ${{ github.workspace }}\repo\win_installer.iss
+          path: .\win_installer.iss
           options: |
             /O+
             /DAppArch=${{ steps.get_variables.outputs.arch }}
             /DMyAppVersion=${{ steps.get_variables.outputs.version_number }}
+
       - name: create user config file for portable version
         working-directory: ${{ github.workspace }}/repo
         run: |
