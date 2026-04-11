@@ -21,10 +21,6 @@ jobs:
             runner: windows-11-arm
 
     steps:
-      - name: setup uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
       - name: install OpenSSL via vcpkg (arm64)
         if: matrix.arch == 'arm64'
         id: vcpkg
@@ -43,6 +39,11 @@ jobs:
         with:
           fetch-depth: 0
           path: ${{ github.workspace }}/repo
+      - name: setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
+          working-directory: ${{ github.workspace }}/repo
       - name: Install dependencies
         working-directory: ${{ github.workspace }}/repo
         run: uv sync --frozen --compile --group build --group test
