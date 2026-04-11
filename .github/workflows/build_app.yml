@@ -39,13 +39,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: microsoft/vcpkg
-          path: C:\vcpkg-build
+          path: vcpkg-build
       - name: install OpenSSL via vcpkg (arm64)
         if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}\vcpkg-build
         run: |
-          C:\vcpkg-build\bootstrap-vcpkg.bat -disableMetrics
-          C:\vcpkg-build\vcpkg.exe install openssl:arm64-windows
-          Move-Item C:\vcpkg-build\installed\arm64-windows C:\openssl-arm64
+          .\bootstrap-vcpkg.bat -disableMetrics
+          .\vcpkg.exe install openssl:arm64-windows
+           Move-Item .\installed\arm64-windows C:\openssl-arm64
       - name: set OpenSSL env (arm64)
         if: matrix.arch == 'arm64'
         run: echo "OPENSSL_DIR=C:\openssl-arm64" >> $env:GITHUB_ENV
