@@ -7,6 +7,8 @@ permissions:
 jobs:
   build_windows:
     runs-on: ${{ matrix.runner }}
+    env:
+      UV_NO_DEV: true
     strategy:
       fail-fast: false
       matrix:
@@ -34,22 +36,28 @@ jobs:
       - name: set OpenSSL env (arm64)
         if: matrix.arch == 'arm64'
         run: |
-          $installed = "${{ runner.temp }}\vcpkg\installed\arm64-windows"
+          $installed = "${{ github.workspace }}\vcpkg\installed\arm64-windows"
           echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
       - name: checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          path: ${{ github.workspace }}/repo
       - name: Install dependencies
-        run: uv sync --frozen --compile --no-dev --group build --group test
+        working-directory: ${{ github.workspace }}/repo
+        run: uv sync --frozen --compile --group build --group test
       - name: run tests
-        run: uv run --no-dev -m pytest --cov
+        working-directory: ${{ github.workspace }}/repo
+        run: uv run -m pytest --cov
       - name: compile translations
+        working-directory: ${{ github.workspace }}/repo
         run: uv run setup.py compile_catalog
       - name: Build executable
+        working-directory: ${{ github.workspace }}/repo
         run: uv run -m cx_Freeze build_exe
       - name: get variables
         id: get_variables
+        working-directory: ${{ github.workspace }}/repo
         run: |
           $version = (uv run -m setuptools_scm)
           echo version_number=$version >> $env:GITHUB_OUTPUT
@@ -63,30 +71,30 @@ jobs:
       - name: build windows installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: .\win_installer.iss
+          path: ${{ github.workspace }}/win_installer.iss
           options: |
             /O+
             /DAppArch=${{ steps.get_variables.outputs.arch }}
             /DMyAppVersion=${{ steps.get_variables.outputs.version_number }}
       - name: create user config file for portable version
+        working-directory: ${{ github.workspace }}/repo
         run: |
           New-Item -Path dist -Name user_data -ItemType directory
           New-Item -Path dist\user_data -Name config.yml -ItemType file
           echo "general:" >> dist\user_data\config.yml
           echo "  language: auto" >> dist\user_data\config.yml
           echo "  log_level: info" >> dist\user_data\config.yml
-
       - name: create and upload portable zip
         uses: actions/upload-artifact@v7
         with:
           name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
-          path: dist/*
+          path: ${{ github.workspace }}/repo/dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
         uses: actions/upload-artifact@v7
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
-          path: output_setup/*
+          path: ${{ github.workspace }}/output_setup/*
           if-no-files-found: error
           retention-days: 30
