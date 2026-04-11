@@ -71,7 +71,7 @@ jobs:
       - name: build windows installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
         with:
-          path: ${{ github.workspace }}/win_installer.iss
+          path: ${{ github.workspace }}/repo/win_installer.iss
           options: |
             /O+
             /DAppArch=${{ steps.get_variables.outputs.arch }}
