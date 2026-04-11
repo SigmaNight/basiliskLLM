@@ -27,29 +27,19 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
-      - name: cache OpenSSL (arm64)
-        if: matrix.arch == 'arm64'
-        uses: actions/cache@v4
-        id: cache-openssl-arm64
-        with:
-          path: C:\openssl-arm64
-          key: openssl-arm64-windows-3.5.0
-      - name: checkout vcpkg (arm64)
-        if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: microsoft/vcpkg
-          path: vcpkg-build
       - name: install OpenSSL via vcpkg (arm64)
-        if: matrix.arch == 'arm64' && steps.cache-openssl-arm64.outputs.cache-hit != 'true'
-        working-directory: ${{ github.workspace }}\vcpkg-build
-        run: |
-          .\bootstrap-vcpkg.bat -disableMetrics
-          .\vcpkg.exe install openssl:arm64-windows
-           Move-Item .\installed\arm64-windows C:\openssl-arm64
+        if: matrix.arch == 'arm64'
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v7
+        with:
+          pkgs: openssl
+          triplet: arm64-windows
       - name: set OpenSSL env (arm64)
         if: matrix.arch == 'arm64'
-        run: echo "OPENSSL_DIR=C:\openssl-arm64" >> $env:GITHUB_ENV
+        run: |
+          $installed = "${{ github.workspace }}\vcpkg\installed\arm64-windows"
+          echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         run: uv sync --frozen --no-dev --group build --group test
       - name: run tests
