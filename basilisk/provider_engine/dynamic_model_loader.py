@@ -185,6 +185,7 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		)
 
 	def convert_to_basilisk_model(self) -> ProviderAIModel | None:
+		"""Convert this metadata item to a ProviderAIModel, or None if not text-capable."""
 		if not self.architecture.supports_basilisk_text_output:
 			return None
 		modalities = self.architecture.modality_capabilities

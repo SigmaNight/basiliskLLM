@@ -132,7 +132,7 @@ def test_default_temperature_numeric_from_json():
 
 
 def test_image_input_and_output_from_modality_arrays():
-	"""image in both input and output arrays sets vision and image_output."""
+	"""Image in both input and output arrays sets vision and image_output."""
 	raw = {
 		"models": [
 			{
@@ -150,7 +150,7 @@ def test_image_input_and_output_from_modality_arrays():
 
 
 def test_audio_input_and_output_from_modality_arrays():
-	"""audio in both input and output arrays sets audio_input and audio_output."""
+	"""Audio in both input and output arrays sets audio_input and audio_output."""
 	raw = {
 		"models": [
 			{
