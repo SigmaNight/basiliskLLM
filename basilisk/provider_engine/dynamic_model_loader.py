@@ -33,6 +33,7 @@ from basilisk.provider_ai_model import ProviderAIModel
 log = logging.getLogger(__name__)
 
 _CACHE: dict[str, tuple[list[ProviderAIModel], float]] = {}
+_LAST_LOAD_ERROR: dict[str, str | None] = {}
 
 
 class ArchitectureModalityToken(StrEnum):
@@ -438,16 +439,24 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	if url in _CACHE:
 		cached_models, cached_at = _CACHE[url]
 		if now - cached_at < ttl:
+			_LAST_LOAD_ERROR[url] = None
 			return cached_models
 
 	try:
 		raw = fetch_models_json(url)
 		models = parse_model_metadata(raw)
 		_CACHE[url] = (models, now)
+		_LAST_LOAD_ERROR[url] = None
 		log.debug("Loaded %d models from %s", len(models), url)
 		return models
 	except (httpx.HTTPError, ValueError, TypeError) as e:
 		log.warning("Failed to load models from %s: %s", url, e)
+		_LAST_LOAD_ERROR[url] = str(e)
 		if url in _CACHE:
 			return _CACHE[url][0]
 		return []
+
+
+def get_last_load_error(url: str) -> str | None:
+	"""Get the most recent load error for a metadata URL."""
+	return _LAST_LOAD_ERROR.get(url)
