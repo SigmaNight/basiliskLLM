@@ -61,14 +61,16 @@ jobs:
     - name: Setup python
       if: matrix.language == 'python'
       uses: astral-sh/setup-uv@v7
+      with:
+        activate-environment: true
     - name: Install python dependencies
       if: matrix.language == 'python'
       run: uv sync --frozen --compile --group build --group test
     - name: compile python bytecode
       if: matrix.language == 'python'
       run: |
-          uv run -m compileall -f -o 1 .\basilisk
-          uv run -m compileall -f -o 1 .\tests
+          python -m compileall -f -o 1 .\basilisk
+          python -m compileall -f -o 1 .\tests
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
