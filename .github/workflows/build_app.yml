@@ -92,14 +92,14 @@ jobs:
           echo "  language: auto" >> dist\user_data\config.yml
           echo "  log_level: info" >> dist\user_data\config.yml
       - name: create and upload portable zip
-        uses: actions/upload-artifact@v7
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
           name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: ${{ github.workspace }}/repo/dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
-        uses: actions/upload-artifact@v7
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: ${{ github.workspace }}/repo/output_setup/*
