@@ -661,6 +661,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 	def cleanup_resources(self):
 		"""Clean up all running resources before closing the conversation tab."""
 		self._is_destroying = True
+		self.shutdown_model_loading()
 		self.presenter.cleanup()
 		self.ocr_handler.cleanup()
 

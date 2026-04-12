@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import TYPE_CHECKING, Optional
 
 import wx
@@ -72,6 +73,12 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._displayed_models: list[ProviderAIModel] = []
+		self._model_loading_thread: threading.Thread | None = None
+		self._model_loading_cancel_event: threading.Event | None = None
+		self._model_loading_generation = 0
+		self._pending_model_id: str | None = None
+		self._pending_model_account_id = None
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -216,9 +223,26 @@ class BaseConversation:
 
 	def update_model_list(self):
 		"""Update the model list with current engine's available models."""
+		account = self.current_account
+		engine = self.current_engine
+		self._pending_model_id = None
+		self._pending_model_account_id = None
+		self.shutdown_model_loading()
 		self.model_list.DeleteAllItems()
-		for model in self.get_display_models():
-			self.model_list.Append(model)
+		self._displayed_models = []
+		if not account or not engine:
+			return
+		self.model_list.Append((_("Loading..."), "", "", ""))
+		generation = self._model_loading_generation
+		cancel_event = threading.Event()
+		self._model_loading_cancel_event = cancel_event
+		self._model_loading_thread = threading.Thread(
+			target=self._load_models_in_background,
+			args=(account.id, engine, generation, cancel_event),
+			name=f"model-loader-{account.id}",
+			daemon=True,
+		)
+		self._model_loading_thread.start()
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		"""Get list of models for display.
@@ -234,13 +258,21 @@ class BaseConversation:
 		Args:
 			model: Model to select
 		"""
-		engine = self.current_engine
-		if not engine:
+		if model is None:
+			selected_index = self.model_list.GetFirstSelected()
+			if selected_index != wx.NOT_FOUND:
+				self.model_list.SetItemState(
+					selected_index,
+					0,
+					wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+				)
 			return
-		models = engine.models
 		index = wx.NOT_FOUND
 		if model:
-			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+			index = next(
+				locate(self._displayed_models, lambda m: m == model),
+				wx.NOT_FOUND,
+			)
 		if index != wx.NOT_FOUND:
 			self.model_list.SetItemState(
 				index,
@@ -256,13 +288,12 @@ class BaseConversation:
 		Returns:
 			The currently selected model or None if no model is selected.
 		"""
-		engine = self.current_engine
-		if not engine:
-			return None
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return None
-		return engine.models[model_index]
+		if model_index >= len(self._displayed_models):
+			return None
+		return self._displayed_models[model_index]
 
 	def on_model_change(self, event: wx.Event | None):
 		"""Handle model selection change events.
@@ -300,13 +331,120 @@ class BaseConversation:
 			return
 		if account:
 			self.set_account_combo(account)
-		engine = self.current_engine
-		if not engine:
-			return
 		if model_id:
-			model = engine.get_model(model_id)
-			if model:
-				self.set_model_list(model)
+			current_account = self.current_account
+			if not current_account:
+				return
+			self._pending_model_id = model_id
+			self._pending_model_account_id = current_account.id
+			self._try_select_pending_model()
+
+	def _load_models_in_background(
+		self,
+		account_id,
+		engine: BaseEngine,
+		generation: int,
+		cancel_event: threading.Event,
+	):
+		"""Load models in a worker thread and update UI asynchronously."""
+		error_message: str | None = None
+		try:
+			models = list(engine.models)
+			error_message = engine.get_model_loading_error()
+			# If loading failed and yielded no models, do not keep a sticky
+			# cached empty list; allow retry after connectivity is restored.
+			if error_message and not models:
+				engine.invalidate_models_cache()
+		except Exception:
+			log.exception("Failed to load models for account %s", account_id)
+			error_message = _(
+				"Failed to load models. Please check your network and account settings."
+			)
+			models = []
+		if cancel_event.is_set():
+			return
+		wx.CallAfter(
+			self._on_models_loaded,
+			account_id,
+			generation,
+			models,
+			error_message,
+		)
+
+	def _on_models_loaded(
+		self,
+		account_id,
+		generation: int,
+		models: list[ProviderAIModel],
+		error_message: str | None = None,
+	):
+		"""Render loaded models when the worker result is still relevant."""
+		if hasattr(self, "_is_widget_valid") and not self._is_widget_valid(
+			"model_list"
+		):
+			return
+		if generation != self._model_loading_generation:
+			return
+		current_account = self.current_account
+		if not current_account or current_account.id != account_id:
+			return
+		self._model_loading_thread = None
+		self._model_loading_cancel_event = None
+		self._displayed_models = models
+		self.model_list.DeleteAllItems()
+		for model in models:
+			self.model_list.Append(model.display_model)
+		if error_message:
+			if not models:
+				self.model_list.Append((_("Error loading models"), "", "", ""))
+			if hasattr(self, "SetStatusText"):
+				try:
+					self.SetStatusText(_("Model loading failed"))
+				except Exception:
+					log.debug(
+						"Could not set status text for model loading error"
+					)
+			if hasattr(self, "show_error"):
+				self.show_error(
+					_("An error occurred while loading models:\n%s")
+					% error_message,
+					_("Model loading error"),
+				)
+		self._try_select_pending_model()
+
+	def _try_select_pending_model(self):
+		"""Select a pending model ID once matching models are available."""
+		if not self._pending_model_id or self._pending_model_account_id is None:
+			return
+		if not self._displayed_models:
+			return
+		current_account = self.current_account
+		if (
+			not current_account
+			or current_account.id != self._pending_model_account_id
+		):
+			return
+		model = next(
+			(
+				m
+				for m in self._displayed_models
+				if m.id == self._pending_model_id
+			),
+			None,
+		)
+		self._pending_model_id = None
+		self._pending_model_account_id = None
+		if model:
+			self.set_model_list(model)
+
+	def shutdown_model_loading(self):
+		"""Cancel and invalidate any in-flight model loading worker."""
+		self._model_loading_generation += 1
+		cancel_event = self._model_loading_cancel_event
+		if cancel_event:
+			cancel_event.set()
+		self._model_loading_thread = None
+		self._model_loading_cancel_event = None
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.

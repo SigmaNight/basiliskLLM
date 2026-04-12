@@ -14,7 +14,10 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
-from basilisk.provider_engine.dynamic_model_loader import load_models_from_url
+from basilisk.provider_engine.dynamic_model_loader import (
+	get_last_load_error,
+	load_models_from_url,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -88,6 +91,16 @@ class BaseEngine(ABC):
 		if len(model_list) > 1:
 			raise ValueError(f"Multiple models with id {model_id}")
 		return model_list[0]
+
+	def get_model_loading_error(self) -> str | None:
+		"""Return the latest model-loading error for this engine."""
+		if not self.MODELS_JSON_URL:
+			return None
+		return get_last_load_error(self.MODELS_JSON_URL)
+
+	def invalidate_models_cache(self) -> None:
+		"""Clear the cached model list so the next access reloads it."""
+		self.__dict__.pop("models", None)
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
