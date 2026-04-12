@@ -61,9 +61,7 @@ def test_anthropic_loader_synthesizes_thinking_variants(monkeypatch):
 
 def test_loader_maps_reasoning_from_metadata_by_default():
 	"""Reasoning flag is mapped from metadata without extra loader options."""
-	from basilisk.provider_engine.dynamic_model_loader import (
-		parse_model_metadata,
-	)
+	from basilisk.provider_engine.dynamic_model_loader import ProviderMetadata
 
 	raw = {
 		"models": [
@@ -79,15 +77,13 @@ def test_loader_maps_reasoning_from_metadata_by_default():
 			},
 		]
 	}
-	out = parse_model_metadata(raw)
+	out = ProviderMetadata.model_validate(raw).get_provider_models()
 	assert [m.reasoning for m in out] == [True, False]
 
 
 def test_loader_mapping_does_not_force_reasoning_from_id():
 	"""ID naming alone does not enable reasoning when metadata says no."""
-	from basilisk.provider_engine.dynamic_model_loader import (
-		parse_model_metadata,
-	)
+	from basilisk.provider_engine.dynamic_model_loader import ProviderMetadata
 
 	raw = {
 		"models": [
@@ -98,6 +94,6 @@ def test_loader_mapping_does_not_force_reasoning_from_id():
 			}
 		]
 	}
-	out = parse_model_metadata(raw)
+	out = ProviderMetadata.model_validate(raw).get_provider_models()
 	assert len(out) == 1
 	assert out[0].reasoning is False

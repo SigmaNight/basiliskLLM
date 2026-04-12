@@ -14,16 +14,18 @@ from __future__ import annotations
 import logging
 import time
 from enum import StrEnum, auto
-from typing import Any, Iterator
+from functools import cached_property
+from typing import Annotated
 
 import httpx
 from pydantic import (
 	BaseModel,
 	ConfigDict,
 	Field,
+	OnErrorOmit,
 	StrictStr,
 	ValidationError,
-	field_validator,
+	computed_field,
 	model_validator,
 )
 
@@ -83,10 +85,8 @@ _DEFAULT_CONTEXT_WINDOW = 0
 _DEFAULT_MAX_OUTPUT_TOKENS = -1
 
 
-class ModalityCapabilities(BaseModel):
+class ModalityCapabilities(BaseModel, extra="forbid", frozen=True):
 	"""Inferred I/O capabilities for one model (before mapping to ``ProviderAIModel``)."""
-
-	model_config = ConfigDict(extra="forbid", frozen=True)
 
 	vision: bool
 	audio_input: bool
@@ -97,45 +97,57 @@ class ModalityCapabilities(BaseModel):
 	video_output: bool
 
 
-class ArchitectureMetadata(BaseModel):
+class ArchitectureMetadata(BaseModel, extra="ignore"):
 	"""Typed architecture metadata used for modality inference."""
 
-	model_config = ConfigDict(extra="ignore")
-
 	modality: str | None = None
-	input_modalities: list[str] = Field(default_factory=list)
-	output_modalities: list[str] = Field(default_factory=list)
+	input_modalities: set[ArchitectureModalityToken] = Field(
+		default_factory=set
+	)
+	output_modalities: set[ArchitectureModalityToken] = Field(
+		default_factory=set
+	)
 
-	@field_validator("modality", mode="before")
-	@classmethod
-	def _normalize_modality(cls, value: Any) -> str | None:
-		if value is None:
-			return None
-		return str(value)
+	def _extract_io_modalities(self) -> tuple[set[str], set[str]]:
+		"""Extract normalized input/output modality tokens from all schema fields."""
+		in_str, out_str = _parse_modality_arrow_string(self.modality or "")
+		return in_str | set(self.input_modalities), out_str | set(
+			self.output_modalities
+		)
 
-	@field_validator("input_modalities", "output_modalities", mode="before")
-	@classmethod
-	def _normalize_modalities(cls, value: Any) -> list[str]:
-		if not isinstance(value, list):
-			return []
-		return [str(v) for v in value if str(v).strip()]
+	def supports_basilisk_text_output(self) -> bool:
+		"""Return whether a model can produce text output used by Basilisk UI.
+
+		If output modalities are explicitly provided (either in ``modality`` arrow
+		string or ``output_modalities``), require ``text`` to be present.
+		When output is not explicit in metadata, assume text output for compatibility.
+		"""
+		_, output_tokens = self._extract_io_modalities()
+		if not output_tokens:
+			return True
+		return ArchitectureModalityToken.TEXT.value in output_tokens
+
+	@computed_field
+	@cached_property
+	def modality_capabilities(self) -> ModalityCapabilities:
+		"""Derive I/O flags from modality string and modality lists."""
+		input_tokens, output_tokens = self._extract_io_modalities()
+		return ModalityCapabilities(
+			vision=ArchitectureModalityToken.IMAGE in input_tokens,
+			audio_input=ArchitectureModalityToken.AUDIO in input_tokens,
+			document_input=ArchitectureModalityToken.FILE in input_tokens,
+			video_input=ArchitectureModalityToken.VIDEO in input_tokens,
+			image_output=ArchitectureModalityToken.IMAGE in output_tokens,
+			audio_output=ArchitectureModalityToken.AUDIO in output_tokens,
+			video_output=ArchitectureModalityToken.VIDEO in output_tokens,
+		)
 
 
-class TopProviderMetadata(BaseModel):
+class TopProviderMetadata(BaseModel, extra="ignore"):
 	"""Typed subset of top_provider values used for limits."""
 
-	model_config = ConfigDict(extra="ignore")
-
-	context_length: int | None = None
+	context_length: int = Field(default=_DEFAULT_CONTEXT_WINDOW)
 	max_completion_tokens: int | None = None
-
-	@field_validator("context_length", "max_completion_tokens", mode="before")
-	@classmethod
-	def _to_int_or_none(cls, value: Any) -> int | None:
-		try:
-			return int(value)
-		except TypeError, ValueError:
-			return None
 
 
 class DefaultParametersMetadata(BaseModel):
@@ -145,22 +157,11 @@ class DefaultParametersMetadata(BaseModel):
 
 	temperature: float | None = None
 
-	@field_validator("temperature", mode="before")
-	@classmethod
-	def _to_float_or_none(cls, value: Any) -> float | None:
-		if isinstance(value, bool) or value is None:
-			return None
-		if isinstance(value, (int, float)):
-			return float(value)
-		return None
 
-
-class ModelMetadataItem(BaseModel):
+class ModelMetadataItem(BaseModel, extra="ignore"):
 	"""Validated view of one model row from model-metadata JSON."""
 
-	model_config = ConfigDict(extra="ignore")
-
-	id: StrictStr
+	id: Annotated[StrictStr, Field(min_length=1)]
 	name: str | None = None
 	description: str | None = None
 	created: int = 0
@@ -176,46 +177,91 @@ class ModelMetadataItem(BaseModel):
 	supported_parameters: list[str] = Field(default_factory=list)
 	supports_web_search: bool | None = None
 
-	@model_validator(mode="before")
-	@classmethod
-	def _normalize_struct_fields(cls, value: Any) -> Any:
-		"""Coerce malformed nested values to safe defaults before validation."""
-		if not isinstance(value, dict):
-			return value
-		data = dict(value)
-		for key in ("architecture", "top_provider", "default_parameters"):
-			if not isinstance(data.get(key), dict):
-				data[key] = {}
-		if not isinstance(data.get("supported_parameters"), list):
-			data["supported_parameters"] = []
-		elif data["supported_parameters"] is not None:
-			data["supported_parameters"] = [
-				str(v) for v in data["supported_parameters"]
-			]
-		if not isinstance(data.get("supports_web_search"), bool):
-			data["supports_web_search"] = None
-		return data
+	@model_validator(mode="after")
+	def _set_web_search(self) -> ModelMetadataItem:
+		if self.supports_web_search is None:
+			self.supports_web_search = (
+				SupportedApiParameter.TOOLS.value in self.supported_parameters
+			)
+		return self
 
-	@field_validator("created", mode="before")
-	@classmethod
-	def _normalize_created(cls, value: Any) -> int:
-		try:
-			return int(value)
-		except TypeError, ValueError:
-			return 0
+	@property
+	def has_reasoning_capable(self) -> bool:
+		rp = SupportedApiParameter.REASONING.value
+		ir = SupportedApiParameter.INCLUDE_REASONING.value
+		return (
+			rp in self.supported_parameters or ir in self.supported_parameters
+		)
+
+	def convert_to_basilisk_model(self) -> ProviderAIModel | None:
+		if not self.architecture.supports_basilisk_text_output():
+			return None
+		modalities = self.architecture.modality_capabilities
+		return ProviderAIModel(
+			id=self.id,
+			name=self.name,
+			description=self.description,
+			context_window=self.top_provider.context_length,
+			max_output_tokens=(
+				self.top_provider.max_completion_tokens
+				if self.top_provider.max_completion_tokens is not None
+				else _DEFAULT_MAX_OUTPUT_TOKENS
+			),
+			max_temperature=_DEFAULT_MAX_TEMPERATURE_FROM_METADATA,
+			default_temperature=(
+				self.default_parameters.temperature
+				if self.default_parameters.temperature is not None
+				else _FALLBACK_DEFAULT_TEMPERATURE
+			),
+			vision=modalities.vision,
+			reasoning=self.has_reasoning_capable,
+			created=self.created,
+			extra_info={
+				ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
+				ModelExtraInfoKey.REASONING_CAPABLE.value: self.has_reasoning_capable,
+				ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.supports_web_search,
+				**modalities.model_dump(mode="python", exclude={"vision"}),
+			},
+		)
 
 
-def fetch_models_json(url: str) -> dict[str, Any]:
-	"""Fetch model metadata JSON from URL.
+class ProviderMetadata(BaseModel, extra="ignore"):
+	"""Root model for a model-metadata JSON file."""
+
+	models: list[OnErrorOmit[ModelMetadataItem]] = Field(default_factory=list)
+
+	def get_provider_models(self) -> list[ProviderAIModel]:
+		"""Convert validated model items to ProviderAIModel list, sorted by created desc.
+
+		Models without text output are excluded. Items that failed Pydantic
+		validation were already omitted by ``OnErrorOmit`` during parsing.
+
+		Returns:
+			List of ProviderAIModel instances, sorted by created descending.
+		"""
+		return sorted(
+			(
+				m
+				for m in (x.convert_to_basilisk_model() for x in self.models)
+				if m is not None
+			),
+			key=lambda m: m.created,
+			reverse=True,
+		)
+
+
+def fetch_models_json(url: str) -> ProviderMetadata:
+	"""Fetch and parse model metadata JSON from URL.
 
 	Args:
-		url: URL to fetch (e.g. model-metadata JSON).
+		url: URL pointing to a model-metadata JSON file.
 
 	Returns:
-		Parsed JSON dict with "models" key containing model list.
+		Parsed and validated ``ProviderMetadata`` instance.
 
 	Raises:
 		httpx.HTTPError: On request failure.
+		ValidationError: If the JSON structure is invalid.
 	"""
 	response = httpx.get(
 		url,
@@ -223,33 +269,7 @@ def fetch_models_json(url: str) -> dict[str, Any]:
 		timeout=_HTTP_TIMEOUT_SECONDS,
 	)
 	response.raise_for_status()
-	return response.json()
-
-
-def _get_max_completion_tokens(top_provider: TopProviderMetadata) -> int:
-	"""Extract max_completion_tokens from top_provider, or -1 if absent."""
-	if top_provider.max_completion_tokens is None:
-		return _DEFAULT_MAX_OUTPUT_TOKENS
-	return top_provider.max_completion_tokens
-
-
-def _get_context_length(top_provider: TopProviderMetadata) -> int:
-	"""Extract context_length from top_provider only (no top-level fallback)."""
-	if top_provider.context_length is None:
-		return _DEFAULT_CONTEXT_WINDOW
-	return top_provider.context_length
-
-
-def _normalize_modalities_list(raw: Any) -> set[str]:
-	"""Lowercase modality tokens from JSON list."""
-	if not isinstance(raw, list):
-		return set()
-	out: set[str] = set()
-	for m in raw:
-		s = str(m).strip().lower()
-		if s:
-			out.add(s)
-	return out
+	return ProviderMetadata.model_validate_json(response.text)
 
 
 def _parse_modality_arrow_string(modality: str) -> tuple[set[str], set[str]]:
@@ -276,156 +296,6 @@ def _parse_modality_arrow_string(modality: str) -> tuple[set[str], set[str]]:
 	return in_toks, set()
 
 
-def _extract_io_modalities(
-	architecture: ArchitectureMetadata,
-) -> tuple[set[str], set[str]]:
-	"""Extract normalized input/output modality tokens from all schema fields."""
-	in_str, out_str = _parse_modality_arrow_string(architecture.modality or "")
-	input_mods = _normalize_modalities_list(architecture.input_modalities)
-	output_mods = _normalize_modalities_list(architecture.output_modalities)
-	return in_str | input_mods, out_str | output_mods
-
-
-def _infer_modality_capabilities(
-	architecture: ArchitectureMetadata,
-) -> ModalityCapabilities:
-	"""Derive I/O flags from modality string and modality lists."""
-	input_tokens, output_tokens = _extract_io_modalities(architecture)
-
-	def has_in(token: ArchitectureModalityToken) -> bool:
-		return token.value in input_tokens
-
-	def has_out(token: ArchitectureModalityToken) -> bool:
-		return token.value in output_tokens
-
-	return ModalityCapabilities(
-		vision=has_in(ArchitectureModalityToken.IMAGE),
-		audio_input=has_in(ArchitectureModalityToken.AUDIO),
-		document_input=has_in(ArchitectureModalityToken.FILE),
-		video_input=has_in(ArchitectureModalityToken.VIDEO),
-		image_output=has_out(ArchitectureModalityToken.IMAGE),
-		audio_output=has_out(ArchitectureModalityToken.AUDIO),
-		video_output=has_out(ArchitectureModalityToken.VIDEO),
-	)
-
-
-def _supports_basilisk_text_output(architecture: ArchitectureMetadata) -> bool:
-	"""Return whether a model can produce text output used by Basilisk UI.
-
-	If output modalities are explicitly provided (either in ``modality`` arrow
-	string or ``output_modalities``), require ``text`` to be present.
-	When output is not explicit in metadata, assume text output for compatibility.
-	"""
-	_, output_tokens = _extract_io_modalities(architecture)
-	if not output_tokens:
-		return True
-	return ArchitectureModalityToken.TEXT.value in output_tokens
-
-
-def _has_reasoning_capable(supported: list[str]) -> bool:
-	rp = SupportedApiParameter.REASONING.value
-	ir = SupportedApiParameter.INCLUDE_REASONING.value
-	return rp in supported or ir in supported
-
-
-def _has_web_search_capable(
-	explicit: bool | None, supported: list[str]
-) -> bool:
-	if explicit is True:
-		return True
-	if explicit is False:
-		return False
-	return SupportedApiParameter.TOOLS.value in supported
-
-
-def _default_temperature(
-	default_parameters: DefaultParametersMetadata,
-) -> float:
-	"""Use numeric ``default_parameters.temperature`` when present."""
-	if default_parameters.temperature is None:
-		return _FALLBACK_DEFAULT_TEMPERATURE
-	return default_parameters.temperature
-
-
-def _iter_valid_model_items(raw: dict[str, Any]) -> Iterator[ModelMetadataItem]:
-	"""Validate model rows with pydantic and skip invalid entries."""
-	model_list = raw.get("models")
-	if not isinstance(model_list, list):
-		return
-	for row in model_list:
-		if not isinstance(row, dict):
-			continue
-		try:
-			item = ModelMetadataItem.model_validate(row)
-		except ValidationError:
-			continue
-		if not item.id:
-			continue
-		yield item
-
-
-def _extra_info_from_modalities(m: ModalityCapabilities) -> dict[str, bool]:
-	"""Map inferred modalities to ``extra_info`` booleans."""
-	return {
-		ModelExtraInfoKey.AUDIO_INPUT.value: m.audio_input,
-		ModelExtraInfoKey.DOCUMENT_INPUT.value: m.document_input,
-		ModelExtraInfoKey.VIDEO_INPUT.value: m.video_input,
-		ModelExtraInfoKey.IMAGE_OUTPUT.value: m.image_output,
-		ModelExtraInfoKey.AUDIO_OUTPUT.value: m.audio_output,
-		ModelExtraInfoKey.VIDEO_OUTPUT.value: m.video_output,
-	}
-
-
-def parse_model_metadata(raw: dict[str, Any]) -> list[ProviderAIModel]:
-	"""Parse model-metadata JSON into ProviderAIModel list.
-
-	Extended metadata (modalities beyond vision, supported_parameters, etc.)
-	is stored in ``extra_info`` so :class:`ProviderAIModel` stays small.
-
-	Args:
-		raw: JSON dict with "models" key containing model objects.
-
-	Returns:
-		List of ProviderAIModel instances, sorted by created desc.
-	"""
-	models: list[ProviderAIModel] = []
-	for item in _iter_valid_model_items(raw):
-		supported = item.supported_parameters
-		architecture = item.architecture
-		if not _supports_basilisk_text_output(architecture):
-			continue
-		modalities = _infer_modality_capabilities(architecture)
-
-		reasoning_capable = _has_reasoning_capable(supported)
-		models.append(
-			ProviderAIModel(
-				id=item.id,
-				name=item.name,
-				description=item.description,
-				context_window=_get_context_length(item.top_provider),
-				max_output_tokens=_get_max_completion_tokens(item.top_provider),
-				max_temperature=_DEFAULT_MAX_TEMPERATURE_FROM_METADATA,
-				default_temperature=_default_temperature(
-					item.default_parameters
-				),
-				vision=modalities.vision,
-				reasoning=reasoning_capable,
-				created=item.created,
-				extra_info={
-					ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: supported,
-					ModelExtraInfoKey.REASONING_CAPABLE.value: reasoning_capable,
-					ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: _has_web_search_capable(
-						item.supports_web_search, supported
-					),
-					**_extra_info_from_modalities(modalities),
-				},
-			)
-		)
-
-	models.sort(key=lambda m: m.created, reverse=True)
-	return models
-
-
 def _get_cache_ttl_seconds() -> int:
 	import basilisk.config as config
 
@@ -443,13 +313,13 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 			return cached_models
 
 	try:
-		raw = fetch_models_json(url)
-		models = parse_model_metadata(raw)
+		provider_metadata = fetch_models_json(url)
+		models = provider_metadata.get_provider_models()
 		_CACHE[url] = (models, now)
 		_LAST_LOAD_ERROR[url] = None
 		log.debug("Loaded %d models from %s", len(models), url)
 		return models
-	except (httpx.HTTPError, ValueError, TypeError) as e:
+	except (httpx.HTTPError, ValueError, TypeError, ValidationError) as e:
 		log.warning("Failed to load models from %s: %s", url, e)
 		_LAST_LOAD_ERROR[url] = str(e)
 		if url in _CACHE:

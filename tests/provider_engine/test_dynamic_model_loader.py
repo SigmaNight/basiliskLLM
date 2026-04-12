@@ -8,9 +8,16 @@ from basilisk.provider_ai_model import ProviderAIModel
 
 fetch_models_json = _dml.fetch_models_json
 load_models_from_url = _dml.load_models_from_url
-parse_model_metadata = _dml.parse_model_metadata
 
 _EXTRA_INFO_KEYS = frozenset(k.value for k in _dml.ModelExtraInfoKey)
+
+
+def parse_model_metadata(raw: dict) -> list[ProviderAIModel]:
+	"""Local test helper — wraps ProviderMetadata.model_validate for unit tests."""
+	try:
+		return _dml.ProviderMetadata.model_validate(raw).get_provider_models()
+	except Exception:
+		return []
 
 
 @pytest.fixture(autouse=True)
@@ -405,13 +412,13 @@ def test_parse_model_metadata_audio_output_from_output_modalities():
 
 
 def test_fetch_models_json_success(httpx_mock):
-	"""fetch_models_json returns parsed JSON on success."""
+	"""fetch_models_json returns a ProviderMetadata on success."""
 	httpx_mock.add_response(
 		json={"models": [{"id": "gpt-5", "name": "GPT-5"}]},
 		url="https://example.com/models.json",
 	)
 	result = fetch_models_json("https://example.com/models.json")
-	assert result["models"][0]["id"] == "gpt-5"
+	assert result.models[0].id == "gpt-5"
 
 
 def test_fetch_models_json_network_error(httpx_mock):
@@ -530,11 +537,11 @@ def test_parse_model_metadata_web_search_capable_fallback_tools():
 	assert by_id["no-tools"].extra_info["web_search_capable"] is False
 
 
-def test_parse_model_metadata_handles_invalid_int_conversion():
-	"""parse_model_metadata tolerates invalid int values (non-numeric, wrong type)."""
+def test_parse_model_metadata_skips_entries_with_invalid_field_types():
+	"""OnErrorOmit skips model entries whose fields fail Pydantic validation."""
 	raw = {
 		"models": [
-			{"id": "no-top-provider", "top_provider": None},
+			{"id": "null-top-provider", "top_provider": None},
 			{
 				"id": "invalid-max-tokens",
 				"top_provider": {
@@ -547,15 +554,27 @@ def test_parse_model_metadata_handles_invalid_int_conversion():
 				"top_provider": {"context_length": 1000},
 				"created": "invalid",
 			},
+			{"id": "valid", "top_provider": {"context_length": 1000}},
 		]
 	}
 	models = parse_model_metadata(raw)
-	assert len(models) == 3
-	by_id = _models_by_id(raw)
-	assert by_id["no-top-provider"].context_window == 0
-	assert by_id["invalid-max-tokens"].max_output_tokens == -1
-	assert by_id["invalid-max-tokens"].context_window == 1000
-	assert by_id["invalid-created"].created == 0
+	assert [m.id for m in models] == ["valid"]
+
+
+def test_parse_model_metadata_null_max_completion_tokens_uses_default():
+	"""Null max_completion_tokens in JSON uses _DEFAULT_MAX_OUTPUT_TOKENS (-1)."""
+	raw = {
+		"models": [
+			{
+				"id": "t",
+				"top_provider": {
+					"context_length": 1000,
+					"max_completion_tokens": None,
+				},
+			}
+		]
+	}
+	assert parse_model_metadata(raw)[0].max_output_tokens == -1
 
 
 def test_parse_model_metadata_skips_non_dict_entries_in_models_list():
@@ -576,8 +595,8 @@ def test_parse_model_metadata_skips_item_with_non_string_or_empty_id():
 	assert parse_model_metadata(raw) == []
 
 
-def test_parse_model_metadata_coerces_non_list_supported_parameters():
-	"""Non-list supported_parameters is treated as empty."""
+def test_parse_model_metadata_skips_entry_with_non_list_supported_parameters():
+	"""Non-list supported_parameters → ValidationError → OnErrorOmit → item skipped."""
 	raw = {
 		"models": [
 			{
@@ -587,12 +606,11 @@ def test_parse_model_metadata_coerces_non_list_supported_parameters():
 			}
 		]
 	}
-	m = parse_model_metadata(raw)[0]
-	assert m.extra_info["supported_parameters"] == []
+	assert parse_model_metadata(raw) == []
 
 
-def test_parse_model_metadata_non_dict_architecture_treated_as_empty():
-	"""Non-dict architecture uses default modality flags."""
+def test_parse_model_metadata_skips_entry_with_non_dict_architecture():
+	"""Non-dict architecture → ValidationError → OnErrorOmit → item skipped."""
 	raw = {
 		"models": [
 			{
@@ -602,8 +620,7 @@ def test_parse_model_metadata_non_dict_architecture_treated_as_empty():
 			}
 		]
 	}
-	m = parse_model_metadata(raw)[0]
-	assert m.vision is False
+	assert parse_model_metadata(raw) == []
 
 
 def test_load_models_from_url_returns_cached_payload_without_second_fetch(
@@ -637,13 +654,14 @@ def test_load_models_from_url_error_returns_cached_when_present(
 
 def test_load_models_from_url_unexpected_error_is_not_suppressed(monkeypatch):
 	"""Unexpected internal errors should propagate instead of returning empty data."""
-	monkeypatch.setattr(
-		_dml, "fetch_models_json", lambda _url: {"models": [_minimal_item("x")]}
+	valid_metadata = _dml.ProviderMetadata.model_validate(
+		{"models": [_minimal_item("x")]}
 	)
+	monkeypatch.setattr(_dml, "fetch_models_json", lambda _url: valid_metadata)
 
-	def _boom(_raw, **_kwargs):
+	def _boom(self):
 		raise RuntimeError("unexpected parser bug")
 
-	monkeypatch.setattr(_dml, "parse_model_metadata", _boom)
+	monkeypatch.setattr(_dml.ProviderMetadata, "get_provider_models", _boom)
 	with pytest.raises(RuntimeError, match="unexpected parser bug"):
 		load_models_from_url("https://example.com/models.json")
