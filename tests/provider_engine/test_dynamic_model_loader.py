@@ -5,13 +5,12 @@ import pytest
 
 import basilisk.provider_engine.dynamic_model_loader as _dml
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_engine.dynamic_model_loader import ModelExtraInfoKey
 
 fetch_models_json = _dml.fetch_models_json
 load_models_from_url = _dml.load_models_from_url
 parse_model_metadata = _dml.parse_model_metadata
 
-_EXTRA_INFO_KEYS = frozenset(k.value for k in ModelExtraInfoKey)
+_EXTRA_INFO_KEYS = frozenset(k.value for k in _dml.ModelExtraInfoKey)
 
 
 @pytest.fixture(autouse=True)
