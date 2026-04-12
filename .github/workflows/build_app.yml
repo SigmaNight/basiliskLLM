@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
           path: ${{ github.workspace }}/repo
       - name: setup uv
-        uses: "astral-sh/setup-uv@v8.0.0"
+        uses: "astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57"
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
           working-directory: ${{ github.workspace }}/repo
