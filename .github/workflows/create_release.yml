@@ -18,7 +18,7 @@ jobs:
         id: get_release_name
         run: echo "release_name=$(echo ${{ inputs.ref_name }} | cut -c 2-) ($(date '+%Y-%m-%d'))" >> "$GITHUB_OUTPUT"
       - name: download app portable
-        uses: actions/download-artifact@v8
+        uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
         with:
           pattern: portable_basiliskLLM_*
           path: portable_app
@@ -33,17 +33,17 @@ jobs:
             echo "::endgroup::"
           done
       - name: download app installer
-        uses: actions/download-artifact@v8
+        uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
         with:
           pattern: setup_basiliskLLM_*
           path: installer
           merge-multiple: true
       - name: download POT file
-        uses: actions/download-artifact@v8
+        uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
         with:
           name: basiliskLLM.pot
       - name: create release
-        uses: softprops/action-gh-release@v2
+        uses: "softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda"
         with:
           files: |
             basiliskLLM.pot

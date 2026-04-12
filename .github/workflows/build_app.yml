@@ -24,7 +24,7 @@ jobs:
       - name: install OpenSSL via vcpkg (arm64)
         if: matrix.arch == 'arm64'
         id: vcpkg
-        uses: johnwason/vcpkg-action@v7
+        uses: "johnwason/vcpkg-action@caa1c94fbb94d8b023a0cc93edf10cd3791349a7"
         with:
           pkgs: openssl
           triplet: arm64-windows
@@ -35,18 +35,23 @@ jobs:
           $installed = "${{ github.workspace }}\vcpkg\installed\arm64-windows"
           echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
       - name: checkout repository
-        uses: actions/checkout@v6
+        uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd"
         with:
           fetch-depth: 0
           path: ${{ github.workspace }}/repo
       - name: setup uv
-        uses: astral-sh/setup-uv@v7
+        uses: "astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57"
         with:
           python-version: 'cpython-3.14-windows-${{ matrix.arch }}-none'
           working-directory: ${{ github.workspace }}/repo
       - name: Install dependencies
         working-directory: ${{ github.workspace }}/repo
         run: uv sync --frozen --compile --group build --group test
+      - name: compile python bytecode
+        working-directory: ${{ github.workspace }}/repo
+        run: |
+          uv run -m compileall -f -o 1 .\basilisk
+          uv run -m compileall -f -o 1 .\tests
       - name: run tests
         working-directory: ${{ github.workspace }}/repo
         run: uv run -m pytest --cov
@@ -70,7 +75,7 @@ jobs:
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
       - name: build windows installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
+        uses: "Minionguyjpro/Inno-Setup-Action@36abc9fdddc244a69f4895566fa5b2d8d5854e43"
         with:
           path: repo\win_installer.iss
           options: |
@@ -87,14 +92,14 @@ jobs:
           echo "  language: auto" >> dist\user_data\config.yml
           echo "  log_level: info" >> dist\user_data\config.yml
       - name: create and upload portable zip
-        uses: actions/upload-artifact@v7
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
           name: portable_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: ${{ github.workspace }}/repo/dist/*
           if-no-files-found: error
           retention-days: 30
       - name: upload installer
-        uses: actions/upload-artifact@v7
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
           name: setup_basiliskLLM_${{ steps.get_variables.outputs.version_number }}_${{ runner.os }}_${{ steps.get_variables.outputs.arch }}
           path: ${{ github.workspace }}/repo/output_setup/*
