@@ -47,6 +47,11 @@ jobs:
       - name: Install dependencies
         working-directory: ${{ github.workspace }}/repo
         run: uv sync --frozen --compile --group build --group test
+      - name: compile python bytecode
+        working-directory: ${{ github.workspace }}/repo
+        run: |
+          uv run -m compileall -f -o 1 .\basilisk
+          uv run -m compileall -f -o 1 .\tests
       - name: run tests
         working-directory: ${{ github.workspace }}/repo
         run: uv run -m pytest --cov
