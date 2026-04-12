@@ -75,7 +75,7 @@ jobs:
             echo arch="x86" >> $env:GITHUB_OUTPUT
           }
       - name: build windows installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
+        uses: "Minionguyjpro/Inno-Setup-Action@36abc9fdddc244a69f4895566fa5b2d8d5854e43"
         with:
           path: repo\win_installer.iss
           options: |
