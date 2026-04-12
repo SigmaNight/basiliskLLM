@@ -179,8 +179,14 @@ class OpenAIEngine(BaseEngine):
 				)
 			)
 		model = self.get_model(new_block.model.model_id)
+		model_id = model.id if model else new_block.model.model_id
+		if model is None:
+			log.warning(
+				"Model metadata missing for %s; using stored model id",
+				new_block.model.model_id,
+			)
 		params = {
-			"model": model.id,
+			"model": model_id,
 			"input": self.get_messages(
 				new_block,
 				conversation,
