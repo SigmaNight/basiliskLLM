@@ -4,9 +4,8 @@ Provides reusable fetch and parse logic for providers that use the
 model-metadata JSON format (OpenAI, Anthropic, xAI, Mistral, etc.).
 
 Schema reference: https://github.com/SigmaNight/model-metadata — each model
-has ``architecture.modality`` (e.g. ``text+image+file->text`` or
-``text+audio->text+audio``), plus ``input_modalities`` / ``output_modalities``
-arrays. We merge string and array signals so flags match upstream JSON.
+has ``input_modalities`` / ``output_modalities`` arrays that declare the
+supported I/O token types (text, image, file, audio, video).
 """
 
 from __future__ import annotations
@@ -20,13 +19,11 @@ from typing import Annotated
 import httpx
 from pydantic import (
 	BaseModel,
-	ConfigDict,
 	Field,
 	OnErrorOmit,
 	StrictStr,
 	ValidationError,
 	computed_field,
-	model_validator,
 )
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
@@ -39,7 +36,7 @@ _LAST_LOAD_ERROR: dict[str, str | None] = {}
 
 
 class ArchitectureModalityToken(StrEnum):
-	"""Tokens in ``modality`` strings and modality arrays (lowercase per schema)."""
+	"""Tokens in modality arrays (lowercase per schema)."""
 
 	TEXT = auto()
 	IMAGE = auto()
@@ -70,9 +67,6 @@ class ModelExtraInfoKey(StrEnum):
 	VIDEO_OUTPUT = auto()
 
 
-_MODALITY_ARROW = "->"
-_MODALITY_SEPARATOR = "+"
-
 # HTTP client
 _HTTP_TIMEOUT_SECONDS = 30.0
 
@@ -100,7 +94,6 @@ class ModalityCapabilities(BaseModel, extra="forbid", frozen=True):
 class ArchitectureMetadata(BaseModel, extra="ignore"):
 	"""Typed architecture metadata used for modality inference."""
 
-	modality: str | None = None
 	input_modalities: set[ArchitectureModalityToken] = Field(
 		default_factory=set
 	)
@@ -108,38 +101,36 @@ class ArchitectureMetadata(BaseModel, extra="ignore"):
 		default_factory=set
 	)
 
-	def _extract_io_modalities(self) -> tuple[set[str], set[str]]:
-		"""Extract normalized input/output modality tokens from all schema fields."""
-		in_str, out_str = _parse_modality_arrow_string(self.modality or "")
-		return in_str | set(self.input_modalities), out_str | set(
-			self.output_modalities
-		)
-
+	@computed_field
+	@cached_property
 	def supports_basilisk_text_output(self) -> bool:
 		"""Return whether a model can produce text output used by Basilisk UI.
 
-		If output modalities are explicitly provided (either in ``modality`` arrow
-		string or ``output_modalities``), require ``text`` to be present.
-		When output is not explicit in metadata, assume text output for compatibility.
+		If output modalities are explicitly provided, require ``text`` to be present.
+		When the set is empty (no metadata), assume text output for compatibility.
 		"""
-		_, output_tokens = self._extract_io_modalities()
-		if not output_tokens:
+		if not self.output_modalities:
 			return True
-		return ArchitectureModalityToken.TEXT.value in output_tokens
+		return ArchitectureModalityToken.TEXT in self.output_modalities
 
 	@computed_field
 	@cached_property
 	def modality_capabilities(self) -> ModalityCapabilities:
-		"""Derive I/O flags from modality string and modality lists."""
-		input_tokens, output_tokens = self._extract_io_modalities()
+		"""Derive I/O flags directly from the typed modality sets."""
 		return ModalityCapabilities(
-			vision=ArchitectureModalityToken.IMAGE in input_tokens,
-			audio_input=ArchitectureModalityToken.AUDIO in input_tokens,
-			document_input=ArchitectureModalityToken.FILE in input_tokens,
-			video_input=ArchitectureModalityToken.VIDEO in input_tokens,
-			image_output=ArchitectureModalityToken.IMAGE in output_tokens,
-			audio_output=ArchitectureModalityToken.AUDIO in output_tokens,
-			video_output=ArchitectureModalityToken.VIDEO in output_tokens,
+			vision=ArchitectureModalityToken.IMAGE in self.input_modalities,
+			audio_input=ArchitectureModalityToken.AUDIO
+			in self.input_modalities,
+			document_input=ArchitectureModalityToken.FILE
+			in self.input_modalities,
+			video_input=ArchitectureModalityToken.VIDEO
+			in self.input_modalities,
+			image_output=ArchitectureModalityToken.IMAGE
+			in self.output_modalities,
+			audio_output=ArchitectureModalityToken.AUDIO
+			in self.output_modalities,
+			video_output=ArchitectureModalityToken.VIDEO
+			in self.output_modalities,
 		)
 
 
@@ -150,10 +141,8 @@ class TopProviderMetadata(BaseModel, extra="ignore"):
 	max_completion_tokens: int | None = None
 
 
-class DefaultParametersMetadata(BaseModel):
+class DefaultParametersMetadata(BaseModel, extra="ignore"):
 	"""Typed subset of default_parameters used by Basilisk."""
-
-	model_config = ConfigDict(extra="ignore")
 
 	temperature: float | None = None
 
@@ -177,24 +166,26 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 	supported_parameters: list[str] = Field(default_factory=list)
 	supports_web_search: bool | None = None
 
-	@model_validator(mode="after")
-	def _set_web_search(self) -> ModelMetadataItem:
-		if self.supports_web_search is None:
-			self.supports_web_search = (
-				SupportedApiParameter.TOOLS.value in self.supported_parameters
-			)
-		return self
+	@computed_field
+	@cached_property
+	def web_search_capable(self) -> bool:
+		"""Derive web search capability from explicit flag or supported_parameters."""
+		if self.supports_web_search is not None:
+			return self.supports_web_search
+		return SupportedApiParameter.TOOLS in self.supported_parameters
 
-	@property
+	@computed_field
+	@cached_property
 	def has_reasoning_capable(self) -> bool:
-		rp = SupportedApiParameter.REASONING.value
-		ir = SupportedApiParameter.INCLUDE_REASONING.value
+		"""Check whether the model supports reasoning parameters."""
 		return (
-			rp in self.supported_parameters or ir in self.supported_parameters
+			SupportedApiParameter.REASONING in self.supported_parameters
+			or SupportedApiParameter.INCLUDE_REASONING
+			in self.supported_parameters
 		)
 
 	def convert_to_basilisk_model(self) -> ProviderAIModel | None:
-		if not self.architecture.supports_basilisk_text_output():
+		if not self.architecture.supports_basilisk_text_output:
 			return None
 		modalities = self.architecture.modality_capabilities
 		return ProviderAIModel(
@@ -219,7 +210,7 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 			extra_info={
 				ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
 				ModelExtraInfoKey.REASONING_CAPABLE.value: self.has_reasoning_capable,
-				ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.supports_web_search,
+				ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.web_search_capable,
 				**modalities.model_dump(mode="python", exclude={"vision"}),
 			},
 		)
@@ -270,30 +261,6 @@ def fetch_models_json(url: str) -> ProviderMetadata:
 	)
 	response.raise_for_status()
 	return ProviderMetadata.model_validate_json(response.text)
-
-
-def _parse_modality_arrow_string(modality: str) -> tuple[set[str], set[str]]:
-	"""Split ``architecture.modality`` into input and output token sets.
-
-	Examples from model-metadata:
-	- ``text+image+file->text`` → inputs {text, image, file}, outputs {text}
-	- ``text+audio->text+audio`` → both sides carry audio for I/O
-	- ``text+image->text+image`` → image on input and output (e.g. Gemini)
-	"""
-	s = (modality or "").lower().strip()
-	if not s:
-		return set(), set()
-	if _MODALITY_ARROW in s:
-		left, right = s.split(_MODALITY_ARROW, 1)
-		in_toks = {
-			t.strip() for t in left.split(_MODALITY_SEPARATOR) if t.strip()
-		}
-		out_toks = {
-			t.strip() for t in right.split(_MODALITY_SEPARATOR) if t.strip()
-		}
-		return in_toks, out_toks
-	in_toks = {t.strip() for t in s.split(_MODALITY_SEPARATOR) if t.strip()}
-	return in_toks, set()
 
 
 def _get_cache_ttl_seconds() -> int:

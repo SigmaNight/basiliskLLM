@@ -55,7 +55,10 @@ def test_parse_model_metadata_openai_structure():
 				"id": "gpt-5.2",
 				"name": "GPT-5.2",
 				"description": "Best model",
-				"architecture": {"modality": "text+image->text"},
+				"architecture": {
+					"input_modalities": ["text", "image"],
+					"output_modalities": ["text"],
+				},
 				"top_provider": {
 					"context_length": 400000,
 					"max_completion_tokens": 128000,
@@ -128,13 +131,16 @@ def test_default_temperature_numeric_from_json():
 	assert parse_model_metadata(raw)[0].default_temperature == 0.42
 
 
-def test_modality_arrow_sets_image_output_without_output_modalities():
-	"""Gemini-style ``text+image->text+image`` marks image on the output side."""
+def test_image_input_and_output_from_modality_arrays():
+	"""image in both input and output arrays sets vision and image_output."""
 	raw = {
 		"models": [
 			{
 				"id": "gemini-image-out",
-				"architecture": {"modality": "text+image->text+image"},
+				"architecture": {
+					"input_modalities": ["text", "image"],
+					"output_modalities": ["text", "image"],
+				},
 			}
 		]
 	}
@@ -143,13 +149,16 @@ def test_modality_arrow_sets_image_output_without_output_modalities():
 	assert m.extra_info["image_output"] is True
 
 
-def test_modality_arrow_openai_audio_duplex():
-	"""OpenAI ``text+audio->text+audio`` sets audio input and output."""
+def test_audio_input_and_output_from_modality_arrays():
+	"""audio in both input and output arrays sets audio_input and audio_output."""
 	raw = {
 		"models": [
 			{
 				"id": "gpt-audio",
-				"architecture": {"modality": "text+audio->text+audio"},
+				"architecture": {
+					"input_modalities": ["text", "audio"],
+					"output_modalities": ["text", "audio"],
+				},
 			}
 		]
 	}
@@ -158,14 +167,21 @@ def test_modality_arrow_openai_audio_duplex():
 	assert m.extra_info["audio_output"] is True
 
 
-def test_modality_arrow_google_multimodal_inputs():
-	"""Google JSON uses ``text+image+file+audio+video->text`` on many models."""
+def test_google_multimodal_inputs_from_modality_arrays():
+	"""Google-style multimodal: many inputs, text-only output."""
 	raw = {
 		"models": [
 			{
 				"id": "gemini-pro",
 				"architecture": {
-					"modality": "text+image+file+audio+video->text"
+					"input_modalities": [
+						"text",
+						"image",
+						"file",
+						"audio",
+						"video",
+					],
+					"output_modalities": ["text"],
 				},
 			}
 		]
@@ -184,23 +200,24 @@ def test_parse_model_metadata_filters_models_without_text_output():
 		"models": [
 			{
 				"id": "image-only-model",
-				"architecture": {"modality": "text+image->image"},
+				"architecture": {"output_modalities": ["image"]},
 			},
 			{
 				"id": "video-only-model",
 				"architecture": {"output_modalities": ["video"]},
 			},
-			{"id": "text-model", "architecture": {"modality": "text->text"}},
+			{
+				"id": "text-model",
+				"architecture": {"output_modalities": ["text"]},
+			},
 		]
 	}
 	assert [m.id for m in parse_model_metadata(raw)] == ["text-model"]
 
 
 def test_parse_model_metadata_keeps_model_without_explicit_output_modalities():
-	"""When metadata has no explicit output modalities, keep model for compatibility."""
-	raw = {
-		"models": [{"id": "legacy-model", "architecture": {"modality": "text"}}]
-	}
+	"""When output_modalities is absent, keep model for compatibility."""
+	raw = {"models": [{"id": "legacy-model", "architecture": {}}]}
 	assert [m.id for m in parse_model_metadata(raw)] == ["legacy-model"]
 
 
@@ -248,15 +265,15 @@ def test_parse_model_metadata_context_length_only_from_top_provider():
 	assert m.max_output_tokens == 64000
 
 
-def test_parse_model_metadata_vision_from_modality():
-	"""parse_model_metadata derives vision from architecture.modality."""
+def test_parse_model_metadata_vision_from_input_modalities():
+	"""Vision flag set when image appears in input_modalities."""
 	raw = {
 		"models": [
 			{
 				"id": "with-vision",
-				"architecture": {"modality": "text+image->text"},
+				"architecture": {"input_modalities": ["text", "image"]},
 			},
-			{"id": "no-vision", "architecture": {"modality": "text->text"}},
+			{"id": "no-vision", "architecture": {"input_modalities": ["text"]}},
 		]
 	}
 	by_id = _models_by_id(raw)
@@ -264,31 +281,24 @@ def test_parse_model_metadata_vision_from_modality():
 	assert by_id["no-vision"].vision is False
 
 
-def test_parse_model_metadata_vision_from_input_modalities():
-	"""Vision when image appears in input_modalities but not in modality string."""
-	raw = {
-		"models": [
-			{
-				"id": "vision-via-input-modalities",
-				"architecture": {
-					"modality": "text->text",
-					"input_modalities": ["text", "image"],
-				},
-			}
-		]
-	}
-	assert _models_by_id(raw)["vision-via-input-modalities"].vision is True
-
-
-def test_parse_model_metadata_audio_from_modality():
+def test_parse_model_metadata_audio_from_modality_arrays():
 	"""parse_model_metadata records audio in extra_info."""
 	raw = {
 		"models": [
 			{
 				"id": "with-audio",
-				"architecture": {"modality": "text+audio->text"},
+				"architecture": {
+					"input_modalities": ["text", "audio"],
+					"output_modalities": ["text"],
+				},
 			},
-			{"id": "no-audio", "architecture": {"modality": "text->text"}},
+			{
+				"id": "no-audio",
+				"architecture": {
+					"input_modalities": ["text"],
+					"output_modalities": ["text"],
+				},
+			},
 		]
 	}
 	by_id = _models_by_id(raw)
@@ -296,37 +306,40 @@ def test_parse_model_metadata_audio_from_modality():
 	assert by_id["no-audio"].extra_info["audio_input"] is False
 
 
-def test_parse_model_metadata_document_from_modality_and_input():
-	"""Document/file input from modality string or input_modalities."""
+def test_parse_model_metadata_document_from_input_modalities():
+	"""Document/file input from input_modalities array."""
 	raw = {
 		"models": [
 			{
-				"id": "doc-modality",
-				"architecture": {"modality": "text+file->text"},
+				"id": "doc-arrays",
+				"architecture": {
+					"input_modalities": ["text", "file"],
+					"output_modalities": ["text"],
+				},
 			},
 			{
-				"id": "doc-input",
+				"id": "no-doc",
 				"architecture": {
-					"modality": "text->text",
-					"input_modalities": ["text", "file"],
+					"input_modalities": ["text"],
+					"output_modalities": ["text"],
 				},
 			},
 		]
 	}
 	by_id = _models_by_id(raw)
-	assert by_id["doc-modality"].extra_info["document_input"] is True
-	assert by_id["doc-input"].extra_info["document_input"] is True
+	assert by_id["doc-arrays"].extra_info["document_input"] is True
+	assert by_id["no-doc"].extra_info["document_input"] is False
 
 
 def test_parse_model_metadata_audio_from_input_modalities():
-	"""parse_model_metadata derives audio from input_modalities when modality lacks it."""
+	"""parse_model_metadata derives audio from input_modalities array."""
 	raw = {
 		"models": [
 			{
 				"id": "audio-via-input-modalities",
 				"architecture": {
-					"modality": "text->text",
 					"input_modalities": ["text", "audio"],
+					"output_modalities": ["text"],
 				},
 			}
 		]
