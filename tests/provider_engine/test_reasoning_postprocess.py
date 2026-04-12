@@ -28,7 +28,8 @@ def test_models_loader_uses_dynamic_loader(engine_cls, monkeypatch):
 		return []
 
 	monkeypatch.setattr(_base_engine, "load_models_from_url", _fake_loader)
-	_ = engine.models
+	discarded_models = engine.models
+	assert discarded_models == []
 	assert called_urls == [engine.MODELS_JSON_URL]
 
 
