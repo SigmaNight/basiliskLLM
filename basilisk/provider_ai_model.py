@@ -22,6 +22,7 @@ class ProviderAIModel:
 		default_temperature: The default temperature for the AI model.
 		reasoning: Whether the AI model supports reasoning.
 		vision: Whether the AI model supports vision.
+		created: Unix timestamp from model-metadata JSON (0 if unknown); used for sort order.
 		extra_info: Additional information for the AI model.
 	"""
 
@@ -34,6 +35,7 @@ class ProviderAIModel:
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	created: int = field(default=0)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property

@@ -14,6 +14,10 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
+from basilisk.provider_engine.dynamic_model_loader import (
+	get_last_load_error,
+	load_models_from_url,
+)
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -32,6 +36,7 @@ class BaseEngine(ABC):
 
 	capabilities: set[ProviderCapability] = set()
 	supported_attachment_formats: set[str] = set()
+	MODELS_JSON_URL: str | None = None
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
@@ -47,15 +52,26 @@ class BaseEngine(ABC):
 		"""Property to return the provider client object."""
 		pass
 
+	def _postprocess_models(
+		self, models: list[ProviderAIModel]
+	) -> list[ProviderAIModel]:
+		"""Hook to adjust dynamically loaded models for provider-specific parity."""
+		return models
+
 	@cached_property
-	@abstractmethod
 	def models(self) -> list[ProviderAIModel]:
 		"""Get models available for the provider.
 
 		Returns:
 			List of supported provider models with their configurations.
 		"""
-		pass
+		if not self.MODELS_JSON_URL:
+			raise NotImplementedError(
+				f"{self.__class__.__name__} must override models or set MODELS_JSON_URL"
+			)
+		return self._postprocess_models(
+			load_models_from_url(self.MODELS_JSON_URL)
+		)
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
@@ -75,6 +91,16 @@ class BaseEngine(ABC):
 		if len(model_list) > 1:
 			raise ValueError(f"Multiple models with id {model_id}")
 		return model_list[0]
+
+	def get_model_loading_error(self) -> str | None:
+		"""Return the latest model-loading error for this engine."""
+		if not self.MODELS_JSON_URL:
+			return None
+		return get_last_load_error(self.MODELS_JSON_URL)
+
+	def invalidate_models_cache(self) -> None:
+		"""Clear the cached model list so the next access reloads it."""
+		self.__dict__.pop("models", None)
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
@@ -184,7 +210,12 @@ class BaseEngine(ABC):
 	def completion_response_without_stream(
 		self, response: Any, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
-		"""Handle completion response without stream."""
+		"""Handle completion response without stream.
+
+		TODO: unify reasoning/thinking handling across providers so reasoning
+		traces are modeled as provider-agnostic metadata (not mixed into plain
+		response content), with a UI toggle to show/hide reasoning output.
+		"""
 		pass
 
 	@staticmethod

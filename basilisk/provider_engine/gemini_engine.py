@@ -7,7 +7,6 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
-import re
 from functools import cached_property
 from typing import Iterator
 
@@ -29,13 +28,10 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.decorators import measure_time
 
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability
 
 logger = logging.getLogger(__name__)
-
-re_gemini_model = re.compile(r"Gemini (\d+\.\d+)")
 
 
 class GeminiEngine(BaseEngine):
@@ -85,6 +81,8 @@ class GeminiEngine(BaseEngine):
 		"video/3gpp",
 	}
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/google.json"
+
 	@cached_property
 	def client(self) -> genai.Client:
 		"""Property to return the client object for the provider.
@@ -93,42 +91,6 @@ class GeminiEngine(BaseEngine):
 			Client object for the provider, initialized with the API key.
 		"""
 		return genai.Client(api_key=self.account.api_key.get_secret_value())
-
-	@cached_property
-	@measure_time
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the provider.
-
-		Returns:
-			List of supported provider models with their configurations.
-		"""
-		models = []
-		for model in self.client.models.list():
-			if "generateContent" not in model.supported_actions:
-				continue
-			models.append(
-				ProviderAIModel(
-					id=model.name,
-					name=model.display_name,
-					description=model.description,
-					context_window=(
-						model.output_token_limit + model.input_token_limit
-					),
-					max_output_tokens=model.output_token_limit,
-					vision=True,
-					reasoning="thinking" in model.name,
-				)
-			)
-		gemini_xy_models = [
-			m for m in models if re_gemini_model.match(m.display_name)
-		]
-		gemini_xy_models.sort(
-			key=lambda x: -float(re_gemini_model.match(x.display_name).group(1))
-		)
-		other_models = [
-			m for m in models if not re_gemini_model.match(m.display_name)
-		]
-		return gemini_xy_models + other_models
 
 	def convert_role(self, role: MessageRoleEnum) -> str:
 		"""Converts internal role enum to Gemini API role string.
