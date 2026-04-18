@@ -15,7 +15,8 @@ jobs:
     steps:
       - name: checkout repository
         uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd"
-      - name: download previous translation template from successful CI run
+      - name: find successful CI run
+        id: find_run
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,7 +28,12 @@ jobs:
             run_id=$(gh run list -b master -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
           fi
           echo "found run_id: $run_id"
-          gh run download $run_id  --name basiliskLLM.pot
+          echo "pot_run_id=$run_id" >> $GITHUB_OUTPUT
+      - name: download artifact from the run
+        uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
+        with:
+          name: basiliskLLM.pot
+          run-id: ${{ steps.find_run.outputs.pot_run_id }}
       - name: download translations
         uses: "crowdin/github-action@7ca9c452bfe9197d3bb7fa83a4d7e2b0c9ae835d"
         with:
