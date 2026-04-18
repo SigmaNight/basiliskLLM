@@ -185,13 +185,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 build = [
-    { name = "cx-freeze", specifier = ">=8.5.3" },
+    { name = "cx-freeze", specifier = ">=8.6.4" },
     { name = "setuptools" },
     { name = "setuptools-scm", specifier = ">=9.2.2" },
 ]
 dev = [
     { name = "commitizen", specifier = ">=4.13.10,<4.14" },
-    { name = "cx-freeze", specifier = ">=8.5.3" },
+    { name = "cx-freeze", specifier = ">=8.6.4" },
     { name = "prek", specifier = ">=0.3.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
@@ -431,7 +431,7 @@ wheels = [
 
 [[package]]
 name = "cx-freeze"
-version = "8.6.3"
+version = "8.6.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dmgbuild", marker = "sys_platform == 'darwin'" },
@@ -443,9 +443,9 @@ dependencies = [
     { name = "python-msilib", marker = "sys_platform == 'win32'" },
     { name = "setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d8/5a/d9b3e85db1639374652ff540e84a4912cb777053a30582d8c365d114f115/cx_freeze-8.6.3.tar.gz", hash = "sha256:d3bcdd0891f78d96f65d4879f362f163ad292bad76a42a1bddf58bcc9dcdb67b", size = 1377551, upload-time = "2026-03-23T22:18:45.68Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/9c/11c9386d4de038da0052910bce2a9aa2313b25cde2c2666069a5b333332c/cx_freeze-8.6.4.tar.gz", hash = "sha256:16227706ad06b4b96f77c48980e2b363f0302c971f66c6b05567fd63a27596a4", size = 1377425, upload-time = "2026-04-13T06:00:31.606Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/41/b67808de0f10931ceca7d08e7d19f9fe3cfcb1c95bb14593ff1994e330f6/cx_freeze-8.6.3-py3-none-any.whl", hash = "sha256:b37fe200551d95ef85bad0410651605f2c34be39454fee1303e5f4b7d60d6ce4", size = 251123, upload-time = "2026-03-23T22:18:44.357Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/b2/22eacec14d521da35211b5fc368da9ee68c2dc91b9fcf0c90bdbfe9b2306/cx_freeze-8.6.4-py3-none-any.whl", hash = "sha256:37f1ac07d1c2f5e6e28eaf71bc24cb8300045d5e9998447fdc9662471ce6df88", size = 251189, upload-time = "2026-04-13T06:00:29.421Z" },
 ]
 
 [[package]]
