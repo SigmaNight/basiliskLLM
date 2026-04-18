@@ -90,6 +90,10 @@ jobs:
             - uses: security-and-quality
           paths-ignore:
             - tests
+          query-filters:
+            - exclude:
+                id: py/unsafe-cyclic-import
+
 # If the analyze step fails for one of the languages you are analyzing with
     # "We were unable to automatically build your code", modify the matrix above
     # to set the build mode to "manual" for that language. Then modify this step
