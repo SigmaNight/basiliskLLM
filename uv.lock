@@ -44,7 +44,7 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.94.0"
+version = "0.96.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -56,9 +56,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/d7/11a649b986da06aaeb81334632f1843d70e3797f54ca4a9c5d604b7987d0/anthropic-0.94.0.tar.gz", hash = "sha256:dde8c57de73538c5136c1bca9b16da92e75446b53a73562cc911574e4934435c", size = 654236, upload-time = "2026-04-10T22:27:59.853Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/7e/672f533dee813028d2c699bfd2a7f52c9118d7353680d9aa44b9e23f717f/anthropic-0.96.0.tar.gz", hash = "sha256:9de947b737f39452f68aa520f1c2239d44119c9b73b0fb6d4e6ca80f00279ee6", size = 658210, upload-time = "2026-04-16T14:28:02.846Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/ac/7185750e8688f6ff79b0e3d6a61372c88b81ba81fcda8798c70598e18aca/anthropic-0.94.0-py3-none-any.whl", hash = "sha256:42550b401eed8fcd7f6654234560f99c428306301bca726d32bca4bfb6feb748", size = 627519, upload-time = "2026-04-10T22:27:57.541Z" },
+    { url = "https://files.pythonhosted.org/packages/48/5a/72f33204064b6e87601a71a6baf8d855769f8a0c1eaae8d06a1094872371/anthropic-0.96.0-py3-none-any.whl", hash = "sha256:9a6e335a354602a521cd9e777e92bfd46ba6e115bf9bbfe6135311e8fb2015b2", size = 635930, upload-time = "2026-04-16T14:28:01.436Z" },
 ]
 
 [[package]]
@@ -157,7 +157,7 @@ test = [
 requires-dist = [
     { name = "accessible-output3", marker = "platform_machine != 'ARM64' and sys_platform == 'win32'", git = "https://github.com/SigmaNight/accessible_output3.git" },
     { name = "alembic", specifier = ">=1.18,<1.19" },
-    { name = "anthropic", specifier = ">=0.94.0,<0.95" },
+    { name = "anthropic", specifier = ">=0.96.0,<0.97" },
     { name = "babel", specifier = ">=2.17,<2.19" },
     { name = "fsspec", specifier = ">=2025.9.0,<2026.4" },
     { name = "google-genai", specifier = ">=1.73.1,<1.74" },
