@@ -86,7 +86,7 @@ jobs:
         analysis-kinds: 'code-scanning,code-quality'
         config: |
           queries:
-            - uses: security-extended,
+            - uses: security-extended
             - uses: security-and-quality
           paths-ignore:
             - tests
