@@ -190,7 +190,7 @@ class AttachmentFileTypes(enum.StrEnum):
 	def _missing_(cls, value: object) -> AttachmentFileTypes:
 		"""Determine the enum value for a given input value.
 
-		This method is a custom implementation for handling enum value mapping when a non-standard value is provided. It maps specific string inputs to predefined ImageFileTypes.
+		This method is a custom implementation for handling enum value mapping when a non-standard value is provided. It maps specific string inputs to predefined AttachmentFileTypes.
 			The mapping is as follows:
 			- "http", "https", "data" -> AttachmentFileTypes.URL
 			- "zip" -> AttachmentFileTypes.LOCAL

@@ -26,7 +26,6 @@ __all__ = [
 	"Conversation",
 	"get_mime_type",
 	"ImageFile",
-	"ImageFileTypes",
 	"Message",
 	"MessageBlock",
 	"MessageRoleEnum",

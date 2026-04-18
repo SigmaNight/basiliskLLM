@@ -33,7 +33,6 @@ __all__ = [
 	"ConversationProfile",
 	"conversation_profiles",
 	"CUSTOM_BASE_URL_PATTERN",
-	"get_account_source_labels",
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",
