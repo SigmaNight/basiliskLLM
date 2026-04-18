@@ -34,6 +34,7 @@ jobs:
         with:
           name: basiliskLLM.pot
           run-id: ${{ steps.find_run.outputs.pot_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: download translations
         uses: "crowdin/github-action@7ca9c452bfe9197d3bb7fa83a4d7e2b0c9ae835d"
         with:
