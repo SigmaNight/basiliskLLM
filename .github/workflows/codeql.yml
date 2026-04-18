@@ -60,7 +60,7 @@ jobs:
     # or others). This is typically only required for manual builds.
     - name: Setup python
       if: matrix.language == 'python'
-      uses: "astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57"
+      uses: "astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b"
       with:
         activate-environment: true
     - name: Install python dependencies
