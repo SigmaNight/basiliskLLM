@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-11 13:43+0000\n"
-"PO-Revision-Date: 2026-04-11 13:57\n"
+"POT-Creation-Date: 2026-04-18 20:34+0000\n"
+"PO-Revision-Date: 2026-04-18 20:38\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -124,83 +124,83 @@ msgstr "Персональный"
 
 #: basilisk/config/account_config.py:493
 msgid "From environment variable"
-msgstr ""
+msgstr "Из переменной окружения"
 
 #. Translators: Account source label
 #: basilisk/config/config_enums.py:25
 msgid "Environment variable"
-msgstr ""
+msgstr "Переменная окружения"
 
 #. Translators: Account source label
 #: basilisk/config/config_enums.py:27
 msgid "Configuration file"
-msgstr ""
+msgstr "Конфигурационный файл"
 
 #. Translators: A label for the API key storage method in the account dialog
 #: basilisk/config/config_enums.py:48
 msgid "Plain text"
-msgstr ""
+msgstr "Обычный текст"
 
 #. Translators: A label for the API key storage method in the account dialog
 #: basilisk/config/config_enums.py:50
 msgid "System keyring"
-msgstr ""
+msgstr "Системное хранилище ключей"
 
 #. Translators: A label for the log level in the settings dialog
 #. Translators: A label for the automatic update mode in the settings dialog
 #: basilisk/config/config_enums.py:79 basilisk/config/config_enums.py:141
 msgid "Off"
-msgstr ""
+msgstr "Выключено"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/config/config_enums.py:81
 msgid "Debug"
-msgstr ""
+msgstr "Отладка"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/config/config_enums.py:83
 msgid "Info"
-msgstr ""
+msgstr "Информация"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/config/config_enums.py:85
 msgid "Warning"
-msgstr ""
+msgstr "Предупреждение"
 
 #. Translators: A label for the log level in the settings dialog
 #: basilisk/config/config_enums.py:89
 msgid "Critical"
-msgstr ""
+msgstr "Критический"
 
 #. Translators: A label for the release channel in the settings dialog
 #: basilisk/config/config_enums.py:112
 msgid "Stable"
-msgstr ""
+msgstr "Стабильный"
 
 #. Translators: A label for the release channel in the settings dialog
 #: basilisk/config/config_enums.py:114
 msgid "Beta"
-msgstr ""
+msgstr "Бета"
 
 #. Translators: A label for the release channel in the settings dialog
 #: basilisk/config/config_enums.py:116
 msgid "Development"
-msgstr ""
+msgstr "Для разработчиков"
 
 #. Translators: A label for the automatic update mode in the settings dialog
 #: basilisk/config/config_enums.py:143
 msgid "Notify new version"
-msgstr ""
+msgstr "Уведомлять о новой версии"
 
 #. Translators: A label for the automatic update mode in the settings dialog
 #: basilisk/config/config_enums.py:145
 msgid "Download new version"
-msgstr ""
+msgstr "Скачать новую версию"
 
 #. Translators: A label for the automatic update mode in the settings dialog
 #: basilisk/config/config_enums.py:147
 msgid "Install new version"
-msgstr ""
+msgstr "Установить новую версию"
 
 #. Translators: Summary of a conversation profile
 #: basilisk/config/conversation_profile.py:181
@@ -251,19 +251,19 @@ msgstr "Неизвестно"
 #. conversation
 #: basilisk/conversation/conversation_model.py:49
 msgid "User:"
-msgstr ""
+msgstr "Пользователь:"
 
 #. Translators: Label indicating that the message is from the assistant in a
 #. conversation
 #: basilisk/conversation/conversation_model.py:51
 msgid "Assistant:"
-msgstr ""
+msgstr "Ассистент:"
 
 #. Translators: Label indicating that the message is a system message in a
 #. conversation
 #: basilisk/conversation/conversation_model.py:53
 msgid "System:"
-msgstr ""
+msgstr "Система:"
 
 #: basilisk/presenters/account_presenter.py:62
 #: basilisk/presenters/account_presenter.py:184
@@ -307,7 +307,8 @@ msgstr "Движок недоступен. Пожалуйста, выберит�
 #, python-format
 msgid "This attachment format is not supported by the current provider. Source: \n"
 "%s"
-msgstr ""
+msgstr "Этот формат вложения не поддерживается текущим провайдером. Источник: \n"
+"%s"
 
 #. Translators: This message is displayed when there are no supported
 #. attachment formats.
@@ -320,7 +321,7 @@ msgstr "Этот поставщик не поддерживает никакие
 #: basilisk/presenters/attachment_panel_presenter.py:241
 #, python-format
 msgid "All supported formats (%s)|(%s)"
-msgstr ""
+msgstr "Все поддерживаемые форматы (%s)|(%s)"
 
 #. Translators: Error when user enters an invalid URL in the attachment URL
 #. dialog
@@ -341,12 +342,12 @@ msgstr "Пожалуйста, выберите модель"
 
 #: basilisk/presenters/attachment_panel_presenter.py:308
 msgid "Please select an engine"
-msgstr ""
+msgstr "Пожалуйста, выберите движок"
 
 #: basilisk/presenters/attachment_panel_presenter.py:318
 #, python-format
 msgid "The selected model does not support images. Please select a vision model instead (%s)."
-msgstr ""
+msgstr "Выбранная модель не поддерживает изображения. Пожалуйста, выберите модель с поддержкой зрения (%s)."
 
 #: basilisk/presenters/conversation_presenter.py:319
 #: basilisk/presenters/conversation_presenter.py:374
@@ -397,15 +398,15 @@ msgstr "Генерация ответа уже выполняется. Пожа�
 #: basilisk/presenters/conversation_presenter.py:467
 #, python-format
 msgid "An error occurred during title generation: %s"
-msgstr ""
+msgstr "Произошла ошибка при генерации заголовка: %s"
 
 #: basilisk/presenters/conversation_presenter.py:469
 msgid "An error occurred during title generation"
-msgstr ""
+msgstr "Произошла ошибка при генерации заголовка"
 
 #: basilisk/presenters/conversation_presenter.py:472
 msgid "Title Generation Error"
-msgstr ""
+msgstr "Ошибка генерации заголовка"
 
 #: basilisk/presenters/conversation_presenter.py:491
 #, python-format
@@ -414,24 +415,24 @@ msgstr "Произошла ошибка при сохранении разгов
 
 #: basilisk/presenters/conversation_presenter.py:493
 msgid "Save Error"
-msgstr ""
+msgstr "Ошибка сохранения"
 
 #: basilisk/presenters/enhanced_error_presenter.py:63
 msgid "Copied!"
-msgstr ""
+msgstr "Скопировано!"
 
 #: basilisk/presenters/enhanced_error_presenter.py:67
 msgid "Copy failed"
-msgstr ""
+msgstr "Ошибка копирования"
 
 #: basilisk/presenters/enhanced_error_presenter.py:74
 #, python-format
 msgid "Copy failed: %s"
-msgstr ""
+msgstr "Ошибка копирования: %s"
 
 #: basilisk/presenters/enhanced_error_presenter.py:100
 msgid "Open failed"
-msgstr ""
+msgstr "Ошибка открытия"
 
 #: basilisk/presenters/history_presenter.py:201
 #, python-format
@@ -450,13 +451,13 @@ msgstr "отключено"
 #: basilisk/presenters/history_presenter.py:248
 #, python-brace-format
 msgid "C.{start} .. {end}"
-msgstr ""
+msgstr "C.{start} .. {end}"
 
 #. Translators: This is a citation format for page locations
 #: basilisk/presenters/history_presenter.py:255
 #, python-brace-format
 msgid "P.{start} .. {end}"
-msgstr ""
+msgstr "P.{start} .. {end}"
 
 #. Translators: This is a citation format for unknown locations
 #: basilisk/presenters/history_presenter.py:260
@@ -466,7 +467,7 @@ msgstr "Неизвестное расположение"
 #: basilisk/presenters/history_presenter.py:265
 #, python-brace-format
 msgid "{document_title} / {location_text}"
-msgstr ""
+msgstr "{document_title} / {location_text}"
 
 #: basilisk/presenters/history_presenter.py:272
 #, python-brace-format
@@ -477,7 +478,7 @@ msgstr "Документ {document_index} / {location_text}"
 #: basilisk/presenters/history_presenter.py:280
 #, python-brace-format
 msgid "{location_text}: “{cited_text}”"
-msgstr ""
+msgstr "{location_text}: “{cited_text}”"
 
 #. Translators: This is a status message for the number of citations in the
 #. current message
@@ -512,7 +513,7 @@ msgstr "Не удалось открыть файл разговора: '%s', о
 #: basilisk/presenters/main_frame_presenter.py:212
 #, python-format
 msgid "Failed to open conversation: %s"
-msgstr ""
+msgstr "Не удалось открыть разговор: %s"
 
 #: basilisk/presenters/main_frame_presenter.py:248
 #: basilisk/presenters/main_frame_presenter.py:288
@@ -586,7 +587,7 @@ msgstr "Произошла ошибка при обработке результ
 #: basilisk/presenters/ocr_presenter.py:257
 #: basilisk/presenters/ocr_presenter.py:279
 msgid "OCR Error"
-msgstr ""
+msgstr "Ошибка распознавания текста (OCR)"
 
 #. Translators: A label for the language in the settings dialog
 #: basilisk/presenters/preferences_presenter.py:59
@@ -602,7 +603,7 @@ msgstr "Пожалуйста, введите текст для поиска."
 #: basilisk/presenters/search_presenter.py:246
 #, python-format
 msgid "Invalid regular expression: %s"
-msgstr ""
+msgstr "Неверное регулярное выражение: %s"
 
 #. Translators: Shown when updates are disabled for source builds
 #: basilisk/presenters/update_presenter.py:67
@@ -1174,7 +1175,7 @@ msgstr "Не удалось удалить разговор"
 #. the database
 #: basilisk/views/conversation_history_dialog.py:249
 msgid "Failed to load conversation history from the database."
-msgstr ""
+msgstr "Не удалось загрузить историю разговоров из базы данных."
 
 #: basilisk/views/conversation_history_dialog.py:272
 #, python-format
@@ -1228,7 +1229,7 @@ msgstr "Добавить профиль разговора"
 #. Translators: dialog title
 #: basilisk/views/conversation_profile_dialog.py:311
 msgid "Edit Conversation Profile"
-msgstr ""
+msgstr "Редактировать профиль разговора"
 
 #. Translators: Message box title for removing a conversation profile
 #: basilisk/views/conversation_profile_dialog.py:346
@@ -1268,7 +1269,7 @@ msgstr "Применить профиль"
 #. Translators: Error shown when a conversation cannot be made private
 #: basilisk/views/conversation_tab.py:629
 msgid "Failed to switch the conversation to private mode: the existing database record could not be deleted."
-msgstr ""
+msgstr "Не удалось переключить разговор в приватный режим: не удалось удалить существующую запись в базе данных."
 
 #. Translators: This is a label for audio file in the main window
 #: basilisk/views/conversation_tab.py:692
@@ -1287,7 +1288,7 @@ msgstr "Редактирование блока сообщений"
 #: basilisk/views/edit_block_dialog.py:66
 #, python-format
 msgid "Message block %d no longer exists in the conversation."
-msgstr ""
+msgstr "Блок сообщений %d больше не существует в разговоре."
 
 #. Translators: This is a label for assistant response in the edit dialog
 #: basilisk/views/edit_block_dialog.py:125
@@ -1301,24 +1302,24 @@ msgstr "&Перегенерировать ответ"
 
 #: basilisk/views/enhanced_error_dialog.py:115
 msgid "This completion error contains a URL that might provide more information about the issue:"
-msgstr ""
+msgstr "Эта ошибка генерации содержит URL, который может предоставить дополнительную информацию о проблеме:"
 
 #: basilisk/views/enhanced_error_dialog.py:119
 msgid "This error message contains a URL that might provide more information:"
-msgstr ""
+msgstr "Это сообщение об ошибке содержит URL, который может предоставить дополнительную информацию:"
 
 #: basilisk/views/enhanced_error_dialog.py:136
 msgid "Open in Browser"
-msgstr ""
+msgstr "Открыть в браузере"
 
 #. Translators: Button to copy the error message to the clipboard
 #: basilisk/views/enhanced_error_dialog.py:146
 msgid "Copy Error"
-msgstr ""
+msgstr "Скопировать текст ошибки"
 
 #: basilisk/views/enhanced_error_dialog.py:155
 msgid "OK"
-msgstr ""
+msgstr "ОК"
 
 #: basilisk/views/history_msg_text_ctrl.py:277
 msgid "Read current message"
@@ -1408,7 +1409,7 @@ msgstr "Новый разговор"
 #. Translators: A label for a menu item to create a new private conversation
 #: basilisk/views/main_frame.py:100
 msgid "New private conversation"
-msgstr ""
+msgstr "Новый приватный разговор"
 
 #. Translators: A label for a menu item to create a new conversation from a
 #. profile
@@ -1425,7 +1426,7 @@ msgstr "Открыть разговор"
 #. Translators: A label for a menu item to browse conversation history
 #: basilisk/views/main_frame.py:123
 msgid "Conversation &history"
-msgstr ""
+msgstr "И&стория разговоров"
 
 #. Translators: A label for a menu item to name a conversation
 #: basilisk/views/main_frame.py:129 basilisk/views/main_frame.py:817
@@ -1516,7 +1517,7 @@ msgstr "Файлы разговоров Basilisk"
 #. Translators: Label appended to window title when conversation is private
 #: basilisk/views/main_frame.py:671 basilisk/views/main_frame.py:684
 msgid "private"
-msgstr ""
+msgstr "приватный"
 
 #. Translators: An error message when a conversation profile is not found
 #: basilisk/views/main_frame.py:714
@@ -1549,7 +1550,7 @@ msgstr "Применить профиль разговора"
 #. saved to database)
 #: basilisk/views/main_frame.py:822
 msgid "&Private conversation"
-msgstr ""
+msgstr "П&риватный разговор"
 
 #: basilisk/views/main_frame.py:891
 msgid "Failed to open log file"
@@ -1597,7 +1598,9 @@ msgstr "Распознать текст во вложениях"
 msgid "OCR completed successfully. Text extracted to:\n"
 "%s\n\n"
 "Do you want to open the files?"
-msgstr ""
+msgstr "Распознавание текста (OCR) успешно завершено. Текст извлечён в:\n"
+"%s\n\n"
+"Вы хотите открыть эти файлы?"
 
 #: basilisk/views/ocr_handler.py:134 basilisk/views/ocr_handler.py:140
 #: basilisk/views/ocr_handler.py:150
@@ -1656,7 +1659,7 @@ msgstr "Собственная метка роли для ассистента:"
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/views/preferences_dialog.py:158
 msgid "Message Selection on Previous/Next Navigation"
-msgstr "Выбор сообщения при навигации Назад/Вперёд"
+msgstr "Выделение сообщения при навигации назад/вперёд"
 
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/views/preferences_dialog.py:166
@@ -1675,17 +1678,17 @@ msgstr "Устанавливать фокус на историю сообщен
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/views/preferences_dialog.py:194
 msgid "Automatically save conversations to &database"
-msgstr ""
+msgstr "Автоматически сохранять разговоры в &базу данных"
 
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/views/preferences_dialog.py:205
 msgid "Auto-save &draft prompt text"
-msgstr ""
+msgstr "Автоматически сохранять &черновик промпта"
 
 #. Translators: A label for a checkbox in the preferences dialog
 #: basilisk/views/preferences_dialog.py:214
 msgid "&Reopen last conversation on startup"
-msgstr ""
+msgstr "&Открывать последний разговор при запуске"
 
 #: basilisk/views/preferences_dialog.py:225
 msgid "Images"
@@ -1813,7 +1816,7 @@ msgstr "Размеры"
 #: basilisk/views/prompt_attachments_panel.py:629
 #, python-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s: %s"
 
 #: basilisk/views/prompt_attachments_panel.py:633
 msgid "Attachment details"
@@ -1858,7 +1861,7 @@ msgstr "&Обычный текст"
 #. Translators: Search dialog label; \n, \t, \r are escape sequences
 #: basilisk/views/search_dialog.py:102
 msgid "E&xtended (\\n, \\t, \\r...)"
-msgstr ""
+msgstr "&Расширенный (\\n, \\t, \\r...)"
 
 #. Translators: Search dialog label
 #: basilisk/views/search_dialog.py:107
@@ -1879,7 +1882,7 @@ msgstr "&Учитывать регистр"
 #: basilisk/views/search_dialog.py:242
 #, python-format
 msgid "\"%s\" not found."
-msgstr ""
+msgstr "\"%s\" не найдено."
 
 #. Translators: Search dialog result title
 #: basilisk/views/search_dialog.py:244
