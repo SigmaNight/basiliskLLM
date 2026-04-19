@@ -378,13 +378,15 @@ class BaseConversation:
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
 
-		Use Enter key to show model details.
+		Use Enter key to show model details and F5 to refresh models.
 
 		Args:
 			event: The key event triggering the model key down event
 		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_show_model_details(None)
+		elif event.GetKeyCode() == wx.WXK_F5:
+			self.on_refresh_model_list(None)
 		else:
 			event.Skip()
 
@@ -403,8 +405,24 @@ class BaseConversation:
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for refreshing model list
+			_("Refresh") + " (F5)",
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_refresh_model_list, item)
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_refresh_model_list(self, event: wx.CommandEvent | None):
+		"""Refresh model list by invalidating current engine cache."""
+		engine = self.current_engine
+		if not engine:
+			return
+		engine.invalidate_models_cache()
+		self.update_model_list()
 
 	def on_show_model_details(self, event: wx.CommandEvent | None):
 		"""Show model details dialog.
