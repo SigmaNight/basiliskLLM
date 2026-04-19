@@ -24,8 +24,10 @@ def parse_model_metadata(raw: dict) -> list[ProviderAIModel]:
 def _clear_dynamic_model_cache():
 	"""Isolate tests: module-level model cache must not leak between cases."""
 	_dml._CACHE.clear()
+	_dml._LAST_LOAD_ERROR.clear()
 	yield
 	_dml._CACHE.clear()
+	_dml._LAST_LOAD_ERROR.clear()
 
 
 def _models_by_id(raw: dict) -> dict[str, ProviderAIModel]:
