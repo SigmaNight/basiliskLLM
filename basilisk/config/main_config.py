@@ -30,7 +30,7 @@ class GeneralSettings(BaseModel):
 		default=3600,
 		ge=60,
 		le=86400,
-		description="TTL for cached model-metadata JSON fetches",
+		description="TTL for provider model-list refresh cache",
 	)
 	advanced_mode: bool = Field(default=False)
 	log_level: LogLevelEnum = Field(default=LogLevelEnum.INFO)

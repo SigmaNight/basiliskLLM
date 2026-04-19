@@ -35,9 +35,8 @@ class OllamaEngine(BaseEngine):
 		"image/webp",
 	}
 
-	@cached_property
 	@measure_time
-	def models(self) -> list[ProviderAIModel]:
+	def _load_models(self) -> list[ProviderAIModel]:
 		"""Get Ollama models.
 
 		Returns:
