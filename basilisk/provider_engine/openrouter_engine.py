@@ -82,7 +82,10 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		response = httpx.get(url, headers={"User-Agent": self.get_user_agent()})
 		if response.status_code == 200:
 			data = response.json()
-			for model in sorted(data["data"], key=lambda m: m["name"].lower()):
+			for model in data["data"]:
+				created_timestamp = self._parse_created_timestamp(
+					model.get("created")
+				)
 				extra_info = {}
 				for k, v in sorted(model.items()):
 					match k:
@@ -99,9 +102,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 							if summary:
 								extra_info["Pricing"] = summary
 						case "created":
-							extra_info[k] = datetime.fromtimestamp(v).strftime(
-								"%Y-%m-%d %H:%M:%S"
-							)
+							extra_info[k] = datetime.fromtimestamp(
+								created_timestamp
+							).strftime("%Y-%m-%d %H:%M:%S")
 						case _:
 							if v is None:
 								continue
@@ -119,9 +122,11 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						max_temperature=2.0,
 						vision="text+image->text"
 						in model.get("architecture", {}).get("modality", ""),
+						created=created_timestamp,
 						extra_info=extra_info,
 					)
 				)
+			models = sorted(models, key=lambda m: m.created, reverse=True)
 			log.debug("Got %d models", len(models))
 		else:
 			log.error(
@@ -130,6 +135,14 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 				response.text,
 			)
 		return models
+
+	@staticmethod
+	def _parse_created_timestamp(value) -> int:
+		"""Return OpenRouter ``created`` value as an integer timestamp."""
+		try:
+			return int(value)
+		except TypeError, ValueError:
+			return 0
 
 	def completion(
 		self,
