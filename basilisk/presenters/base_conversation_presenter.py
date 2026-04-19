@@ -11,13 +11,13 @@ import logging
 import threading
 from typing import TYPE_CHECKING, Callable
 
-import wx
-
 import basilisk.config as config
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
+	from uuid import UUID
+
 	from basilisk.provider_engine.base_engine import BaseEngine
 
 log = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class BaseConversationPresenter:
 		self._model_loading_cancel_event: threading.Event | None = None
 		self._model_loading_generation: int = 0
 		self._pending_model_id: str | None = None
-		self._pending_model_account_id = None
+		self._pending_model_account_id: UUID | None = None
 
 	def get_engine(self, account: config.Account) -> BaseEngine:
 		"""Get or create an engine for the given account.
@@ -140,7 +140,7 @@ class BaseConversationPresenter:
 			return
 		if generation != self._model_loading_generation:
 			return
-		wx.CallAfter(on_loaded, account_id, models, error_message)
+		on_loaded(account_id, models, error_message)
 
 	def shutdown_model_loading(self) -> None:
 		"""Cancel and invalidate any in-flight model loading worker."""
@@ -151,7 +151,7 @@ class BaseConversationPresenter:
 		self._model_loading_thread = None
 		self._model_loading_cancel_event = None
 
-	def set_pending_model(self, model_id: str, account_id) -> None:
+	def set_pending_model(self, model_id: str, account_id: UUID) -> None:
 		"""Store a deferred model selection to be applied once models load.
 
 		Args:
@@ -162,7 +162,7 @@ class BaseConversationPresenter:
 		self._pending_model_account_id = account_id
 
 	def pop_pending_model(
-		self, displayed_models: list[ProviderAIModel], account_id
+		self, displayed_models: list[ProviderAIModel], account_id: UUID
 	) -> ProviderAIModel | None:
 		"""Find and clear the pending model selection.
 
