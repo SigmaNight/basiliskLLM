@@ -85,8 +85,7 @@ def test_models_cached_within_ttl(monkeypatch):
 	engine = _engine([[_model("one")]])
 	monkeypatch.setattr(engine, "_get_models_cache_ttl_seconds", lambda: 60)
 	monkeypatch.setattr(
-		"basilisk.provider_engine.base_engine.time.time",
-		lambda: 100.0,
+		"basilisk.provider_engine.base_engine.time.time", lambda: 100.0
 	)
 	assert [m.id for m in engine.models] == ["one"]
 	assert [m.id for m in engine.models] == ["one"]
@@ -99,8 +98,7 @@ def test_models_reloaded_after_ttl_expires(monkeypatch):
 	monkeypatch.setattr(engine, "_get_models_cache_ttl_seconds", lambda: 10)
 	times = iter([100.0, 111.0])
 	monkeypatch.setattr(
-		"basilisk.provider_engine.base_engine.time.time",
-		lambda: next(times),
+		"basilisk.provider_engine.base_engine.time.time", lambda: next(times)
 	)
 	assert [m.id for m in engine.models] == ["old"]
 	assert [m.id for m in engine.models] == ["new"]
@@ -113,8 +111,7 @@ def test_failed_refresh_returns_stale_cache(monkeypatch):
 	monkeypatch.setattr(engine, "_get_models_cache_ttl_seconds", lambda: 10)
 	times = iter([100.0, 111.0])
 	monkeypatch.setattr(
-		"basilisk.provider_engine.base_engine.time.time",
-		lambda: next(times),
+		"basilisk.provider_engine.base_engine.time.time", lambda: next(times)
 	)
 	assert [m.id for m in engine.models] == ["cached"]
 	assert [m.id for m in engine.models] == ["cached"]
@@ -127,8 +124,7 @@ def test_failed_initial_load_returns_empty(monkeypatch):
 	engine = _engine([RuntimeError("network down")])
 	monkeypatch.setattr(engine, "_get_models_cache_ttl_seconds", lambda: 10)
 	monkeypatch.setattr(
-		"basilisk.provider_engine.base_engine.time.time",
-		lambda: 100.0,
+		"basilisk.provider_engine.base_engine.time.time", lambda: 100.0
 	)
 	assert engine.models == []
 	assert engine.get_model_loading_error() == "network down"
@@ -139,8 +135,7 @@ def test_invalidate_models_cache_forces_reload(monkeypatch):
 	engine = _engine([[_model("first")], [_model("second")]])
 	monkeypatch.setattr(engine, "_get_models_cache_ttl_seconds", lambda: 60)
 	monkeypatch.setattr(
-		"basilisk.provider_engine.base_engine.time.time",
-		lambda: 100.0,
+		"basilisk.provider_engine.base_engine.time.time", lambda: 100.0
 	)
 	assert [m.id for m in engine.models] == ["first"]
 	engine.invalidate_models_cache()
