@@ -7,6 +7,7 @@ import pytest
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
 # ---------------------------------------------------------------------------
@@ -197,3 +198,191 @@ class TestResolveAccountAndModel:
 		account, model_id = p.resolve_account_and_model(profile)
 		assert account is None
 		assert model_id is None
+
+
+# ---------------------------------------------------------------------------
+# shutdown_model_loading()
+# ---------------------------------------------------------------------------
+
+
+class TestShutdownModelLoading:
+	"""Tests for BaseConversationPresenter.shutdown_model_loading()."""
+
+	def test_increments_generation(self, presenter):
+		"""shutdown_model_loading() increments _model_loading_generation."""
+		assert presenter._model_loading_generation == 0
+		presenter.shutdown_model_loading()
+		assert presenter._model_loading_generation == 1
+
+	def test_sets_cancel_event(self, presenter):
+		"""shutdown_model_loading() calls set() on the existing cancel event."""
+		cancel_event = MagicMock()
+		presenter._model_loading_cancel_event = cancel_event
+		presenter.shutdown_model_loading()
+		cancel_event.set.assert_called_once()
+
+	def test_clears_thread_and_event_refs(self, presenter):
+		"""shutdown_model_loading() sets thread and cancel event refs to None."""
+		presenter._model_loading_thread = MagicMock()
+		presenter._model_loading_cancel_event = MagicMock()
+		presenter.shutdown_model_loading()
+		assert presenter._model_loading_thread is None
+		assert presenter._model_loading_cancel_event is None
+
+	def test_no_error_when_no_cancel_event(self, presenter):
+		"""shutdown_model_loading() does not raise when cancel event is None."""
+		presenter._model_loading_cancel_event = None
+		presenter.shutdown_model_loading()  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# set_pending_model()
+# ---------------------------------------------------------------------------
+
+
+class TestSetPendingModel:
+	"""Tests for BaseConversationPresenter.set_pending_model()."""
+
+	def test_stores_model_id_and_account_id(self, presenter):
+		"""set_pending_model() stores both identifiers on the presenter."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
+
+
+# ---------------------------------------------------------------------------
+# pop_pending_model()
+# ---------------------------------------------------------------------------
+
+
+def _make_provider_model(model_id: str) -> MagicMock:
+	"""Return a mock ProviderAIModel with the given id."""
+	m = MagicMock(spec=ProviderAIModel)
+	m.id = model_id
+	return m
+
+
+class TestPopPendingModel:
+	"""Tests for BaseConversationPresenter.pop_pending_model()."""
+
+	def test_returns_none_when_no_pending(self, presenter):
+		"""Returns None when no pending model is set."""
+		result = presenter.pop_pending_model([], "acct-1")
+		assert result is None
+
+	def test_returns_none_when_wrong_account(self, presenter):
+		"""Returns None when the account_id does not match."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model(
+			[_make_provider_model("gpt-4")], "acct-2"
+		)
+		assert result is None
+
+	def test_returns_none_when_no_displayed_models(self, presenter):
+		"""Returns None when displayed_models is empty."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model([], "acct-1")
+		assert result is None
+
+	def test_returns_matching_model_and_clears_state(self, presenter):
+		"""Returns the matching model and resets pending state."""
+		model = _make_provider_model("gpt-4")
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model([model], "acct-1")
+		assert result is model
+		assert presenter._pending_model_id is None
+		assert presenter._pending_model_account_id is None
+
+	def test_returns_none_when_model_not_found(self, presenter):
+		"""Returns None when no displayed model matches the pending id."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model(
+			[_make_provider_model("claude-3")], "acct-1"
+		)
+		assert result is None
+		assert presenter._pending_model_id is None
+		assert presenter._pending_model_account_id is None
+
+
+# ---------------------------------------------------------------------------
+# _load_models_in_background()
+# ---------------------------------------------------------------------------
+
+
+class TestLoadModelsInBackground:
+	"""Tests for BaseConversationPresenter._load_models_in_background()."""
+
+	def _make_engine(self, models=None, error=None):
+		engine = MagicMock()
+		engine.models = models or []
+		engine.get_model_loading_error.return_value = error
+		return engine
+
+	def test_calls_on_loaded_with_models(self, presenter, mocker):
+		"""Calls wx.CallAfter(on_loaded, account_id, models, None) on success."""
+		mock_call_after = mocker.patch("wx.CallAfter")
+		on_loaded = MagicMock()
+		model = _make_provider_model("gpt-4")
+		engine = self._make_engine(models=[model])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		mock_call_after.assert_called_once_with(
+			on_loaded, "acct-1", [model], None
+		)
+
+	def test_skips_callback_when_cancelled(self, presenter, mocker):
+		"""Does not call wx.CallAfter when cancel_event is set."""
+		mock_call_after = mocker.patch("wx.CallAfter")
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = True
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		mock_call_after.assert_not_called()
+
+	def test_skips_callback_when_generation_stale(self, presenter, mocker):
+		"""Does not call wx.CallAfter when generation counter has advanced."""
+		mock_call_after = mocker.patch("wx.CallAfter")
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._model_loading_generation = 1  # advanced past generation 0
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		mock_call_after.assert_not_called()
+
+	def test_invalidates_cache_on_error_with_no_models(self, presenter, mocker):
+		"""Calls invalidate_models_cache() when there is an error but no models."""
+		mocker.patch("wx.CallAfter")
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[], error="Network error")
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		engine.invalidate_models_cache.assert_called_once()
+
+	def test_exception_yields_empty_models_and_error(self, presenter, mocker):
+		"""On exception, calls wx.CallAfter with empty models and an error message."""
+		mock_call_after = mocker.patch("wx.CallAfter")
+		on_loaded = MagicMock()
+		engine = MagicMock()
+		engine.models = MagicMock(side_effect=RuntimeError("boom"))
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		mock_call_after.assert_called_once()
+		__, account_id, models, error_message = mock_call_after.call_args[0]
+		assert account_id == "acct-1"
+		assert models == []
+		assert error_message is not None

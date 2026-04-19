@@ -27,12 +27,13 @@ from pydantic import (
 )
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
+from basilisk.decorators import measure_time
 from basilisk.provider_ai_model import ProviderAIModel
 
 log = logging.getLogger(__name__)
 
 _CACHE: dict[str, tuple[list[ProviderAIModel], float]] = {}
-_LAST_LOAD_ERROR: dict[str, str | None] = {}
+_LAST_LOAD_ERROR: dict[str, Exception | None] = {}
 
 
 class ArchitectureModalityToken(StrEnum):
@@ -270,6 +271,7 @@ def _get_cache_ttl_seconds() -> int:
 	return config.conf().general.model_metadata_cache_ttl_seconds
 
 
+@measure_time
 def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	"""Fetch and parse models from URL, with caching."""
 	now = time.monotonic()
@@ -287,14 +289,14 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 		_LAST_LOAD_ERROR[url] = None
 		log.debug("Loaded %d models from %s", len(models), url)
 		return models
-	except (httpx.HTTPError, ValueError, TypeError, ValidationError) as e:
+	except (httpx.HTTPError, ValidationError, ValueError, TypeError) as e:
 		log.warning("Failed to load models from %s: %s", url, e)
-		_LAST_LOAD_ERROR[url] = str(e)
+		_LAST_LOAD_ERROR[url] = e
 		if url in _CACHE:
 			return _CACHE[url][0]
 		return []
 
 
-def get_last_load_error(url: str) -> str | None:
+def get_last_load_error(url: str) -> Exception | None:
 	"""Get the most recent load error for a metadata URL."""
 	return _LAST_LOAD_ERROR.get(url)
