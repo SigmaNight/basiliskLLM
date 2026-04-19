@@ -11,6 +11,7 @@ supported I/O token types (text, image, file, audio, video).
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from enum import StrEnum, auto
 from functools import cached_property
@@ -33,7 +34,8 @@ from basilisk.provider_ai_model import ProviderAIModel
 log = logging.getLogger(__name__)
 
 _CACHE: dict[str, tuple[list[ProviderAIModel], float]] = {}
-_LAST_LOAD_ERROR: dict[str, Exception | None] = {}
+_CACHE_LOCK = threading.Lock()
+_LAST_LOAD_ERROR: dict[str, str | None] = {}
 
 
 class ArchitectureModalityToken(StrEnum):
@@ -276,27 +278,30 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	"""Fetch and parse models from URL, with caching."""
 	now = time.monotonic()
 	ttl = _get_cache_ttl_seconds()
-	if url in _CACHE:
-		cached_models, cached_at = _CACHE[url]
-		if now - cached_at < ttl:
-			_LAST_LOAD_ERROR[url] = None
-			return cached_models
+	with _CACHE_LOCK:
+		if url in _CACHE:
+			cached_models, cached_at = _CACHE[url]
+			if now - cached_at < ttl:
+				_LAST_LOAD_ERROR[url] = None
+				return cached_models
 
 	try:
 		provider_metadata = fetch_models_json(url)
 		models = provider_metadata.get_provider_models()
-		_CACHE[url] = (models, now)
-		_LAST_LOAD_ERROR[url] = None
+		with _CACHE_LOCK:
+			_CACHE[url] = (models, now)
+			_LAST_LOAD_ERROR[url] = None
 		log.debug("Loaded %d models from %s", len(models), url)
 		return models
 	except (httpx.HTTPError, ValidationError, ValueError, TypeError) as e:
 		log.warning("Failed to load models from %s: %s", url, e)
-		_LAST_LOAD_ERROR[url] = e
-		if url in _CACHE:
-			return _CACHE[url][0]
-		return []
+		with _CACHE_LOCK:
+			_LAST_LOAD_ERROR[url] = str(e)
+			stale = _CACHE.get(url)
+		return stale[0] if stale else []
 
 
-def get_last_load_error(url: str) -> Exception | None:
+def get_last_load_error(url: str) -> str | None:
 	"""Get the most recent load error for a metadata URL."""
-	return _LAST_LOAD_ERROR.get(url)
+	with _CACHE_LOCK:
+		return _LAST_LOAD_ERROR.get(url)

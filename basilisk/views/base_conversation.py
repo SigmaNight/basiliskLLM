@@ -226,7 +226,9 @@ class BaseConversation:
 			return
 		self.model_list.Append((_("Loading..."), "", "", ""))
 		self.base_conv_presenter.start_model_loading(
-			account, engine, self._on_models_loaded
+			account,
+			engine,
+			lambda *args: wx.CallAfter(self._on_models_loaded, *args),
 		)
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
@@ -344,21 +346,16 @@ class BaseConversation:
 		for model in models:
 			self.model_list.Append(model.display_model)
 		if error_message:
+			if hasattr(self, "SetStatusText"):
+				self.SetStatusText(_("Model loading failed"))
 			if not models:
 				self.model_list.Append((_("Error loading models"), "", "", ""))
-			if hasattr(self, "SetStatusText"):
-				try:
-					self.SetStatusText(_("Model loading failed"))
-				except Exception:
-					log.debug(
-						"Could not set status text for model loading error"
+				if hasattr(self, "show_error"):
+					self.show_error(
+						_("An error occurred while loading models:\n%s")
+						% error_message,
+						_("Model loading error"),
 					)
-			if hasattr(self, "show_error"):
-				self.show_error(
-					_("An error occurred while loading models:\n%s")
-					% error_message,
-					_("Model loading error"),
-				)
 		self._try_select_pending_model()
 
 	def _try_select_pending_model(self):

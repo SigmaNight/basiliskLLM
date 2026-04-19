@@ -318,9 +318,8 @@ class TestLoadModelsInBackground:
 		engine.get_model_loading_error.return_value = error
 		return engine
 
-	def test_calls_on_loaded_with_models(self, presenter, mocker):
-		"""Calls wx.CallAfter(on_loaded, account_id, models, None) on success."""
-		mock_call_after = mocker.patch("wx.CallAfter")
+	def test_calls_on_loaded_with_models(self, presenter):
+		"""Calls on_loaded(account_id, models, None) directly on success."""
 		on_loaded = MagicMock()
 		model = _make_provider_model("gpt-4")
 		engine = self._make_engine(models=[model])
@@ -329,13 +328,10 @@ class TestLoadModelsInBackground:
 		presenter._load_models_in_background(
 			"acct-1", engine, 0, cancel_event, on_loaded
 		)
-		mock_call_after.assert_called_once_with(
-			on_loaded, "acct-1", [model], None
-		)
+		on_loaded.assert_called_once_with("acct-1", [model], None)
 
-	def test_skips_callback_when_cancelled(self, presenter, mocker):
-		"""Does not call wx.CallAfter when cancel_event is set."""
-		mock_call_after = mocker.patch("wx.CallAfter")
+	def test_skips_callback_when_cancelled(self, presenter):
+		"""Does not call on_loaded when cancel_event is set."""
 		on_loaded = MagicMock()
 		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
 		cancel_event = MagicMock()
@@ -343,11 +339,10 @@ class TestLoadModelsInBackground:
 		presenter._load_models_in_background(
 			"acct-1", engine, 0, cancel_event, on_loaded
 		)
-		mock_call_after.assert_not_called()
+		on_loaded.assert_not_called()
 
-	def test_skips_callback_when_generation_stale(self, presenter, mocker):
-		"""Does not call wx.CallAfter when generation counter has advanced."""
-		mock_call_after = mocker.patch("wx.CallAfter")
+	def test_skips_callback_when_generation_stale(self, presenter):
+		"""Does not call on_loaded when generation counter has advanced."""
 		on_loaded = MagicMock()
 		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
 		cancel_event = MagicMock()
@@ -356,11 +351,10 @@ class TestLoadModelsInBackground:
 		presenter._load_models_in_background(
 			"acct-1", engine, 0, cancel_event, on_loaded
 		)
-		mock_call_after.assert_not_called()
+		on_loaded.assert_not_called()
 
-	def test_invalidates_cache_on_error_with_no_models(self, presenter, mocker):
+	def test_invalidates_cache_on_error_with_no_models(self, presenter):
 		"""Calls invalidate_models_cache() when there is an error but no models."""
-		mocker.patch("wx.CallAfter")
 		on_loaded = MagicMock()
 		engine = self._make_engine(models=[], error="Network error")
 		cancel_event = MagicMock()
@@ -370,9 +364,8 @@ class TestLoadModelsInBackground:
 		)
 		engine.invalidate_models_cache.assert_called_once()
 
-	def test_exception_yields_empty_models_and_error(self, presenter, mocker):
-		"""On exception, calls wx.CallAfter with empty models and an error message."""
-		mock_call_after = mocker.patch("wx.CallAfter")
+	def test_exception_yields_empty_models_and_error(self, presenter):
+		"""On exception, calls on_loaded with empty models and an error message."""
 		on_loaded = MagicMock()
 		engine = MagicMock()
 		engine.models = MagicMock(side_effect=RuntimeError("boom"))
@@ -381,8 +374,8 @@ class TestLoadModelsInBackground:
 		presenter._load_models_in_background(
 			"acct-1", engine, 0, cancel_event, on_loaded
 		)
-		mock_call_after.assert_called_once()
-		__, account_id, models, error_message = mock_call_after.call_args[0]
+		on_loaded.assert_called_once()
+		account_id, models, error_message = on_loaded.call_args[0]
 		assert account_id == "acct-1"
 		assert models == []
 		assert error_message is not None
