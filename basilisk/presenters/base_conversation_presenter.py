@@ -8,9 +8,13 @@ conversation panel.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+import threading
+from typing import TYPE_CHECKING, Callable
+
+import wx
 
 import basilisk.config as config
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
 if TYPE_CHECKING:
@@ -42,6 +46,11 @@ class BaseConversationPresenter:
 		self.account_model_service: AccountModelService = (
 			account_model_service or AccountModelService()
 		)
+		self._model_loading_thread: threading.Thread | None = None
+		self._model_loading_cancel_event: threading.Event | None = None
+		self._model_loading_generation: int = 0
+		self._pending_model_id: str | None = None
+		self._pending_model_account_id = None
 
 	def get_engine(self, account: config.Account) -> BaseEngine:
 		"""Get or create an engine for the given account.
@@ -83,6 +92,98 @@ class BaseConversationPresenter:
 		if not engine:
 			return []
 		return [m.display_model for m in engine.models]
+
+	def start_model_loading(
+		self, account: config.Account, engine: BaseEngine, on_loaded: Callable
+	) -> None:
+		"""Spawn a background thread to load models and call on_loaded when done.
+
+		Args:
+			account: The account whose models to load.
+			engine: The engine to load models from.
+			on_loaded: Callback invoked on the UI thread with
+				(account_id, models, error_message).
+		"""
+		generation = self._model_loading_generation
+		cancel_event = threading.Event()
+		self._model_loading_cancel_event = cancel_event
+		self._model_loading_thread = threading.Thread(
+			target=self._load_models_in_background,
+			args=(account.id, engine, generation, cancel_event, on_loaded),
+			name=f"model-loader-{account.id}",
+			daemon=True,
+		)
+		self._model_loading_thread.start()
+
+	def _load_models_in_background(
+		self,
+		account_id,
+		engine: BaseEngine,
+		generation: int,
+		cancel_event: threading.Event,
+		on_loaded: Callable,
+	) -> None:
+		"""Worker: load models and marshal result back to the UI thread."""
+		error_message: str | None = None
+		try:
+			models = list(engine.models)
+			error_message = engine.get_model_loading_error()
+			if error_message and not models:
+				engine.invalidate_models_cache()
+		except Exception:
+			log.exception("Failed to load models for account %s", account_id)
+			error_message = _(
+				"Failed to load models. Please check your network and account settings."
+			)
+			models = []
+		if cancel_event.is_set():
+			return
+		if generation != self._model_loading_generation:
+			return
+		wx.CallAfter(on_loaded, account_id, models, error_message)
+
+	def shutdown_model_loading(self) -> None:
+		"""Cancel and invalidate any in-flight model loading worker."""
+		self._model_loading_generation += 1
+		cancel_event = self._model_loading_cancel_event
+		if cancel_event:
+			cancel_event.set()
+		self._model_loading_thread = None
+		self._model_loading_cancel_event = None
+
+	def set_pending_model(self, model_id: str, account_id) -> None:
+		"""Store a deferred model selection to be applied once models load.
+
+		Args:
+			model_id: The model ID to select.
+			account_id: The account ID the selection belongs to.
+		"""
+		self._pending_model_id = model_id
+		self._pending_model_account_id = account_id
+
+	def pop_pending_model(
+		self, displayed_models: list[ProviderAIModel], account_id
+	) -> ProviderAIModel | None:
+		"""Find and clear the pending model selection.
+
+		Args:
+			displayed_models: The currently displayed models.
+			account_id: The current account ID.
+
+		Returns:
+			The matching model, or None if not found or account mismatch.
+		"""
+		if not self._pending_model_id or self._pending_model_account_id is None:
+			return None
+		if self._pending_model_account_id != account_id:
+			return None
+		model = next(
+			(m for m in displayed_models if m.id == self._pending_model_id),
+			None,
+		)
+		self._pending_model_id = None
+		self._pending_model_account_id = None
+		return model
 
 	def resolve_account_and_model(
 		self,

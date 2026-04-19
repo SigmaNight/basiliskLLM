@@ -501,11 +501,12 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			)
 			if account:
 				self.set_account_combo(account)
-			engine = self.current_engine
-			if engine:
-				model = engine.get_model(model_id)
-				if model:
-					self.set_model_list(model)
+			current_account = self.current_account
+			if current_account and model_id:
+				self.base_conv_presenter.set_pending_model(
+					model_id, current_account.id
+				)
+				self._try_select_pending_model()
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 
