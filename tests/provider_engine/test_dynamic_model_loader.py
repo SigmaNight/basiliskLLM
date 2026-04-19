@@ -20,16 +20,6 @@ def parse_model_metadata(raw: dict) -> list[ProviderAIModel]:
 		return []
 
 
-@pytest.fixture(autouse=True)
-def _clear_dynamic_model_cache():
-	"""Isolate tests: module-level model cache must not leak between cases."""
-	_dml._CACHE.clear()
-	_dml._LAST_LOAD_ERROR.clear()
-	yield
-	_dml._CACHE.clear()
-	_dml._LAST_LOAD_ERROR.clear()
-
-
 def _models_by_id(raw: dict) -> dict[str, ProviderAIModel]:
 	return {m.id: m for m in parse_model_metadata(raw)}
 
@@ -638,33 +628,25 @@ def test_parse_model_metadata_skips_entry_with_non_dict_architecture():
 	assert parse_model_metadata(raw) == []
 
 
-def test_load_models_from_url_returns_cached_payload_without_second_fetch(
-	httpx_mock,
-):
-	"""Second load within TTL does not trigger another HTTP request."""
-	url = "https://example.com/only-one-fetch.json"
+def test_load_models_from_url_fetches_on_each_call(httpx_mock):
+	"""No cache here: each call fetches models from the endpoint."""
+	url = "https://example.com/fetch-every-time.json"
 	httpx_mock.add_response(json={"models": [_minimal_item("first")]}, url=url)
+	httpx_mock.add_response(json={"models": [_minimal_item("second")]}, url=url)
 	first = load_models_from_url(url)
-	assert first[0].id == "first"
 	second = load_models_from_url(url)
-	assert second[0].id == "first"
-	assert len(httpx_mock.get_requests()) == 1
+	assert first[0].id == "first"
+	assert second[0].id == "second"
+	assert len(httpx_mock.get_requests()) == 2
 
 
-def test_load_models_from_url_error_returns_cached_when_present(
-	httpx_mock, monkeypatch
-):
-	"""On fetch failure, previously cached models are returned if available."""
-	url = "https://example.com/stale-on-error.json"
-	httpx_mock.add_response(json={"models": [_minimal_item("stale")]}, url=url)
-	assert load_models_from_url(url)[0].id == "stale"
+def test_load_models_from_url_error_after_success_returns_empty(httpx_mock):
+	"""Fallback to stale data is now handled by BaseEngine, not the loader."""
+	url = "https://example.com/no-stale-in-loader.json"
+	httpx_mock.add_response(json={"models": [_minimal_item("fresh")]}, url=url)
+	assert load_models_from_url(url)[0].id == "fresh"
 	httpx_mock.add_response(status_code=500, url=url)
-	cached_models, _ = _dml._CACHE[url]
-	_dml._CACHE[url] = (cached_models, 0.0)
-	monkeypatch.setattr(_dml.time, "monotonic", lambda: 1e9)
-	out = load_models_from_url(url)
-	assert len(out) == 1
-	assert out[0].id == "stale"
+	assert load_models_from_url(url) == []
 
 
 def test_load_models_from_url_unexpected_error_is_not_suppressed(monkeypatch):

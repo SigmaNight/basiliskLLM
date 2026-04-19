@@ -6,6 +6,9 @@ establishing the common interface and shared functionality.
 
 from __future__ import annotations
 
+import logging
+import threading
+import time
 from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, Optional
@@ -14,13 +17,12 @@ from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
-from basilisk.provider_engine.dynamic_model_loader import (
-	get_last_load_error,
-	load_models_from_url,
-)
+from basilisk.provider_engine.dynamic_model_loader import load_models_from_url
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
+
+log = logging.getLogger(__name__)
 
 
 class BaseEngine(ABC):
@@ -45,6 +47,10 @@ class BaseEngine(ABC):
 		account: The provider account configuration.
 		"""
 		self.account = account
+		self._models_cache: list[ProviderAIModel] | None = None
+		self._models_cached_at: float | None = None
+		self._models_last_error: str | None = None
+		self._models_cache_lock = threading.Lock()
 
 	@cached_property
 	@abstractmethod
@@ -58,13 +64,8 @@ class BaseEngine(ABC):
 		"""Hook to adjust dynamically loaded models for provider-specific parity."""
 		return models
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Get models available for the provider.
-
-		Returns:
-			List of supported provider models with their configurations.
-		"""
+	def _load_models(self) -> list[ProviderAIModel]:
+		"""Load provider models without applying engine-level cache."""
 		if not self.MODELS_JSON_URL:
 			raise NotImplementedError(
 				f"{self.__class__.__name__} must override models or set MODELS_JSON_URL"
@@ -72,6 +73,47 @@ class BaseEngine(ABC):
 		return self._postprocess_models(
 			load_models_from_url(self.MODELS_JSON_URL)
 		)
+
+	def _get_models_cache_ttl_seconds(self) -> int:
+		"""Return model-list cache TTL in seconds from configuration."""
+		import basilisk.config as config
+
+		return config.conf().general.model_metadata_cache_ttl_seconds
+
+	@property
+	def models(self) -> list[ProviderAIModel]:
+		"""Get models available for the provider.
+
+		Returns:
+			List of supported provider models with their configurations.
+		"""
+		now = time.monotonic()
+		ttl_seconds = self._get_models_cache_ttl_seconds()
+		with self._models_cache_lock:
+			if (
+				self._models_cache is not None
+				and self._models_cached_at is not None
+				and now - self._models_cached_at < ttl_seconds
+			):
+				return self._models_cache
+		try:
+			models = self._load_models()
+		except Exception as exc:
+			log.warning(
+				"Failed to refresh models for %s: %s",
+				self.__class__.__name__,
+				exc,
+			)
+			with self._models_cache_lock:
+				self._models_last_error = str(exc)
+				if self._models_cache is not None:
+					return self._models_cache
+			return []
+		with self._models_cache_lock:
+			self._models_cache = models
+			self._models_cached_at = now
+			self._models_last_error = None
+			return self._models_cache
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
@@ -94,13 +136,14 @@ class BaseEngine(ABC):
 
 	def get_model_loading_error(self) -> str | None:
 		"""Return the latest model-loading error for this engine."""
-		if not self.MODELS_JSON_URL:
-			return None
-		return get_last_load_error(self.MODELS_JSON_URL)
+		return self._models_last_error
 
 	def invalidate_models_cache(self) -> None:
 		"""Clear the cached model list so the next access reloads it."""
-		self.__dict__.pop("models", None)
+		with self._models_cache_lock:
+			self._models_cache = None
+			self._models_cached_at = None
+			self._models_last_error = None
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:

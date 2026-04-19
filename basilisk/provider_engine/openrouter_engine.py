@@ -7,7 +7,6 @@ implementing capabilities for text and image generation across multiple AI model
 import logging
 from datetime import datetime
 from decimal import Decimal, getcontext
-from functools import cached_property
 from typing import Generator, Union
 
 import httpx
@@ -68,9 +67,8 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 				)
 		return out.rstrip()
 
-	@cached_property
 	@measure_time
-	def models(self) -> list[ProviderAIModel]:
+	def _load_models(self) -> list[ProviderAIModel]:
 		"""Retrieves available models from OpenRouter API.
 
 		Returns:
