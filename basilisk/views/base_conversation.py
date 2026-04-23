@@ -72,6 +72,7 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._displayed_models: list[ProviderAIModel] = []
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -216,9 +217,19 @@ class BaseConversation:
 
 	def update_model_list(self):
 		"""Update the model list with current engine's available models."""
+		account = self.current_account
+		engine = self.current_engine
+		self.base_conv_presenter.shutdown_model_loading()
 		self.model_list.DeleteAllItems()
-		for model in self.get_display_models():
-			self.model_list.Append(model)
+		self._displayed_models = []
+		if not account or not engine:
+			return
+		self.model_list.Append((_("Loading..."), "", "", ""))
+		self.base_conv_presenter.start_model_loading(
+			account,
+			engine,
+			lambda *args: wx.CallAfter(self._on_models_loaded, *args),
+		)
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		"""Get list of models for display.
@@ -234,13 +245,21 @@ class BaseConversation:
 		Args:
 			model: Model to select
 		"""
-		engine = self.current_engine
-		if not engine:
+		if model is None:
+			selected_index = self.model_list.GetFirstSelected()
+			if selected_index != wx.NOT_FOUND:
+				self.model_list.SetItemState(
+					selected_index,
+					0,
+					wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+				)
 			return
-		models = engine.models
 		index = wx.NOT_FOUND
 		if model:
-			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+			index = next(
+				locate(self._displayed_models, lambda m: m == model),
+				wx.NOT_FOUND,
+			)
 		if index != wx.NOT_FOUND:
 			self.model_list.SetItemState(
 				index,
@@ -256,13 +275,12 @@ class BaseConversation:
 		Returns:
 			The currently selected model or None if no model is selected.
 		"""
-		engine = self.current_engine
-		if not engine:
-			return None
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return None
-		return engine.models[model_index]
+		if model_index >= len(self._displayed_models):
+			return None
+		return self._displayed_models[model_index]
 
 	def on_model_change(self, event: wx.Event | None):
 		"""Handle model selection change events.
@@ -300,24 +318,75 @@ class BaseConversation:
 			return
 		if account:
 			self.set_account_combo(account)
-		engine = self.current_engine
-		if not engine:
-			return
 		if model_id:
-			model = engine.get_model(model_id)
-			if model:
-				self.set_model_list(model)
+			current_account = self.current_account
+			if not current_account:
+				return
+			self.base_conv_presenter.set_pending_model(
+				model_id, current_account.id
+			)
+			self._try_select_pending_model()
+
+	def _on_models_loaded(
+		self,
+		account_id,
+		models: list[ProviderAIModel],
+		error_message: str | None = None,
+	):
+		"""Render loaded models — pure UI callback from presenter worker."""
+		if hasattr(self, "_is_widget_valid") and not self._is_widget_valid(
+			"model_list"
+		):
+			return
+		current_account = self.current_account
+		if not current_account or current_account.id != account_id:
+			return
+		self._displayed_models = models
+		self.model_list.DeleteAllItems()
+		for model in models:
+			self.model_list.Append(model.display_model)
+		if error_message:
+			if hasattr(self, "SetStatusText"):
+				self.SetStatusText(_("Model loading failed"))
+			if not models:
+				self.model_list.Append((_("Error loading models"), "", "", ""))
+				if hasattr(self, "show_error"):
+					self.show_error(
+						_("An error occurred while loading models:\n%s")
+						% error_message,
+						_("Model loading error"),
+					)
+		self._try_select_pending_model()
+
+	def _try_select_pending_model(self):
+		"""Select the pending model once displayed models are available."""
+		if not self._displayed_models:
+			return
+		account = self.current_account
+		if not account:
+			return
+		model = self.base_conv_presenter.pop_pending_model(
+			self._displayed_models, account.id
+		)
+		if model:
+			self.set_model_list(model)
+
+	def shutdown_model_loading(self):
+		"""Cancel and invalidate any in-flight model loading worker."""
+		self.base_conv_presenter.shutdown_model_loading()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
 
-		Use Enter key to show model details.
+		Use Enter key to show model details and F5 to refresh models.
 
 		Args:
 			event: The key event triggering the model key down event
 		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_show_model_details(None)
+		elif event.GetKeyCode() == wx.WXK_F5:
+			self.on_refresh_model_list(None)
 		else:
 			event.Skip()
 
@@ -336,8 +405,24 @@ class BaseConversation:
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for refreshing model list
+			_("Refresh") + " (F5)",
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_refresh_model_list, item)
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_refresh_model_list(self, event: wx.CommandEvent | None):
+		"""Refresh model list by invalidating current engine cache."""
+		engine = self.current_engine
+		if not engine:
+			return
+		engine.invalidate_models_cache()
+		self.update_model_list()
 
 	def on_show_model_details(self, event: wx.CommandEvent | None):
 		"""Show model details dialog.

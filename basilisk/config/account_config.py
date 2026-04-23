@@ -29,6 +29,9 @@ from pydantic import (
 import basilisk.global_vars as global_vars
 from basilisk.consts import APP_NAME
 from basilisk.provider import Provider, get_provider, providers
+from basilisk.provider_engine.model_cache_registry import (
+	remove_account_model_cache,
+)
 
 from .config_enums import AccountSource, KeyStorageMethodEnum
 from .config_helper import (
@@ -578,6 +581,7 @@ class AccountManager(BasiliskBaseSettings):
 			ValueError: If the account is not found in the configuration.
 		"""
 		account.delete_keyring_password()
+		remove_account_model_cache(str(account.id))
 		self.accounts.remove(account)
 
 	def clear(self):

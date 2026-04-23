@@ -22,11 +22,11 @@ from basilisk.conversation import (
 )
 from basilisk.conversation.attached_file import AttachmentFile
 
+from .base_engine import BaseEngine, ProviderCapability
 from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
@@ -55,6 +55,8 @@ class MistralAIEngine(BaseEngine):
 		"application/pdf",
 	}
 
+	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/mistralai.json"
+
 	def __init__(self, account: Account) -> None:
 		"""Initializes the MistralAI engine.
 
@@ -76,134 +78,6 @@ class MistralAIEngine(BaseEngine):
 			server_url=self.account.custom_base_url
 			or self.account.provider.base_url,
 		)
-
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available MistralAI models.
-
-		Returns:
-			List of supported MistralAI models with their configurations.
-		"""
-		super().models
-		log.debug("Getting MistralAI models")
-		# See <https://docs.mistral.ai/models/>
-		return [
-			ProviderAIModel(
-				id="mistral-large-2512",
-				name="Mistral Large 3",
-				# Translators: This is a model description
-				description=_(
-					"State-of-the-art open-weight general-purpose multimodal model"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-medium-2508",
-				name="Mistral Medium 3.1",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released August 2025"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-small-2506",
-				name="Mistral Small 3.2",
-				# Translators: This is a model description
-				description=_("Updated small model released June 2025"),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="devstral-2512",
-				name="Devstral 2",
-				# Translators: This is a model description
-				description=_(
-					"Frontier code agents model for software engineering tasks"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="ministral-14b-2512",
-				name="Ministral 3 14B",
-				# Translators: This is a model description
-				description=_(
-					"Powerful model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-8b-2512",
-				name="Ministral 3 8B",
-				# Translators: This is a model description
-				description=_(
-					"Efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-3b-2512",
-				name="Ministral 3 3B",
-				# Translators: This is a model description
-				description=_(
-					"Tiny efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="codestral-2508",
-				name="Codestral",
-				# Translators: This is a model description
-				description=_(
-					"Cutting-edge language model for code completion"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="pixtral-large-2411",
-				name="Pixtral Large",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released November 2024"
-				),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="open-mistral-nemo",
-				name="Mistral Nemo 12B",
-				# Translators: This is a model description
-				description=_(
-					"Best multilingual open source model for text generation"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-		]
 
 	def prepare_message_request(self, message: Message) -> dict[str, Any]:
 		"""Prepares a message for MistralAI API request.
