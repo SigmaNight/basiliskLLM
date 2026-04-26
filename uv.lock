@@ -164,7 +164,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "keyring", specifier = ">=25.7.0,<25.8" },
     { name = "markdown2", specifier = ">=2.5.4,<2.6" },
-    { name = "mistralai", specifier = ">=2.4.0,<2.4.1" },
+    { name = "mistralai", specifier = ">=2.4.2,<2.4.3" },
     { name = "more-itertools", specifier = ">=11.0.2,<11.0.3" },
     { name = "numpy", specifier = ">=2.4.0,<2.5" },
     { name = "ollama", specifier = ">=0.6.1,<0.7" },
@@ -887,7 +887,7 @@ wheels = [
 
 [[package]]
 name = "mistralai"
-version = "2.4.0"
+version = "2.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
@@ -899,9 +899,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/6f/3d402b0bf00014d9a078997ba772e5324287157421c4daa4cf1f74be4425/mistralai-2.4.0.tar.gz", hash = "sha256:ddca732ec7073d686f07775f749f250092a33b1864b40ec1b07db050a0192572", size = 404754, upload-time = "2026-04-16T12:03:34.218Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5f/f9/0e67c37f305b127d4df005f4a216d3570c4cf3330aa775415bde90d2f662/mistralai-2.4.2.tar.gz", hash = "sha256:7896ffa763e0be1ec05e5b436d2c21ae089e4b5438cda9033dcd1b25bc3021a2", size = 416708, upload-time = "2026-04-23T15:11:00.809Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/96/08a297dc9914f0ff43eed342827e5a803aa2233663d774de83b03f0c9b43/mistralai-2.4.0-py3-none-any.whl", hash = "sha256:e10846049f2c527d355ce4bebfcf9c94aba1d8350d9d2ead81be9b70d23fd4ab", size = 951501, upload-time = "2026-04-16T12:03:32.656Z" },
+    { url = "https://files.pythonhosted.org/packages/97/3e/d6df4c222e1845d16c75c5d12981b15fc4f6413a968cd7647691bf8d03d3/mistralai-2.4.2-py3-none-any.whl", hash = "sha256:caf57734078b5a6f2777157a8cd5ffe6a7d530078755f18b9884092d918299f4", size = 980037, upload-time = "2026-04-23T15:10:59.223Z" },
 ]
 
 [[package]]
