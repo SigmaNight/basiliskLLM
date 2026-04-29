@@ -257,6 +257,13 @@ def test_parse_model_metadata_context_length_only_from_top_provider():
 	assert m.max_output_tokens == 64000
 
 
+def test_parse_model_metadata_context_length_falls_back_to_root_field():
+	"""If top_provider lacks context length, use root context_length."""
+	raw = {"models": [{"id": "root-ctx", "context_length": 32000}]}
+	model = parse_model_metadata(raw)[0]
+	assert model.context_window == 32000
+
+
 def test_parse_model_metadata_vision_from_input_modalities():
 	"""Vision flag set when image appears in input_modalities."""
 	raw = {
@@ -271,6 +278,93 @@ def test_parse_model_metadata_vision_from_input_modalities():
 	by_id = _models_by_id(raw)
 	assert by_id["with-vision"].vision is True
 	assert by_id["no-vision"].vision is False
+
+
+def test_parse_model_metadata_vision_fallback_to_modality_string():
+	"""Vision falls back to architecture.modality when array is absent."""
+	raw = {
+		"models": [
+			{
+				"id": "with-vision-fallback",
+				"architecture": {"modality": "text+image->text"},
+			},
+			{
+				"id": "no-vision-fallback",
+				"architecture": {"modality": "text->text"},
+			},
+		]
+	}
+	by_id = _models_by_id(raw)
+	assert by_id["with-vision-fallback"].vision is True
+	assert by_id["no-vision-fallback"].vision is False
+
+
+def test_parse_model_metadata_input_modality_arrays_override_string():
+	"""When input array exists, it takes precedence over modality string."""
+	raw = {
+		"models": [
+			{
+				"id": "array-wins",
+				"architecture": {
+					"input_modalities": ["text"],
+					"modality": "text+image->text",
+				},
+			}
+		]
+	}
+	model = parse_model_metadata(raw)[0]
+	assert model.vision is False
+
+
+def test_parse_model_metadata_output_modalities_fallback_to_modality_string():
+	"""Output capabilities and filtering can fall back to modality string."""
+	raw = {
+		"models": [
+			{
+				"id": "image-out",
+				"architecture": {"modality": "text->text+image"},
+			},
+			{"id": "video-only", "architecture": {"modality": "text->video"}},
+		]
+	}
+	models = parse_model_metadata(raw)
+	assert [m.id for m in models] == ["image-out"]
+	assert models[0].extra_info["image_output"] is True
+
+
+def test_parse_model_metadata_ignores_unknown_modality_tokens():
+	"""Unknown tokens in modality are ignored instead of failing."""
+	raw = {
+		"models": [
+			{
+				"id": "unknown-token-safe",
+				"architecture": {
+					"modality": "text+embeddings+audio->text+speech"
+				},
+			}
+		]
+	}
+	model = parse_model_metadata(raw)[0]
+	assert model.vision is False
+	assert model.extra_info["audio_input"] is True
+	assert model.extra_info["audio_output"] is False
+
+
+def test_parse_model_metadata_output_arrays_override_modality_fallback():
+	"""Explicit output_modalities overrides output from modality string."""
+	raw = {
+		"models": [
+			{
+				"id": "output-array-wins",
+				"architecture": {
+					"output_modalities": ["text"],
+					"modality": "text->image",
+				},
+			}
+		]
+	}
+	model = parse_model_metadata(raw)[0]
+	assert model.extra_info["image_output"] is False
 
 
 def test_parse_model_metadata_audio_from_modality_arrays():
@@ -563,7 +657,23 @@ def test_parse_model_metadata_skips_entries_with_invalid_field_types():
 		]
 	}
 	models = parse_model_metadata(raw)
-	assert [m.id for m in models] == ["valid"]
+	assert [m.id for m in models] == ["invalid-created", "valid"]
+	assert models[0].created == 0
+
+
+def test_parse_model_metadata_pricing_summary_added_to_extra_info():
+	"""Pricing map is summarized in extra_info when present."""
+	raw = {
+		"models": [
+			{
+				"id": "priced-model",
+				"pricing": {"prompt": "0.000001", "completion": "0.000005"},
+			}
+		]
+	}
+	model = parse_model_metadata(raw)[0]
+	assert "Pricing" in model.extra_info
+	assert "prompt:" in model.extra_info["Pricing"]
 
 
 def test_parse_model_metadata_null_max_completion_tokens_uses_default():

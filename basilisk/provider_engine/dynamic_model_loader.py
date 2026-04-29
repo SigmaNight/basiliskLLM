@@ -11,9 +11,11 @@ supported I/O token types (text, image, file, audio, video).
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from decimal import Decimal, getcontext
 from enum import StrEnum, auto
 from functools import cached_property
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from pydantic import (
@@ -30,6 +32,7 @@ from basilisk.decorators import measure_time
 from basilisk.provider_ai_model import ProviderAIModel
 
 log = logging.getLogger(__name__)
+getcontext().prec = 20
 
 
 class ArchitectureModalityToken(StrEnum):
@@ -74,6 +77,8 @@ _DEFAULT_MAX_TEMPERATURE_FROM_METADATA = 2.0
 _FALLBACK_DEFAULT_TEMPERATURE = 1.0
 _DEFAULT_CONTEXT_WINDOW = 0
 _DEFAULT_MAX_OUTPUT_TOKENS = -1
+_INPUT_MODALITY_INDEX = 0
+_OUTPUT_MODALITY_INDEX = 1
 
 
 class ModalityCapabilities(BaseModel, extra="forbid", frozen=True):
@@ -97,6 +102,46 @@ class ArchitectureMetadata(BaseModel, extra="ignore"):
 	output_modalities: set[ArchitectureModalityToken] = Field(
 		default_factory=set
 	)
+	modality: str | None = None
+
+	@staticmethod
+	def _split_modality_tokens(
+		modality: str | None, side: int
+	) -> set[ArchitectureModalityToken]:
+		"""Extract typed modality tokens from ``modality`` string side."""
+		if not modality:
+			return set()
+		parts = modality.split("->", maxsplit=1)
+		if side >= len(parts):
+			return set()
+		tokens: set[ArchitectureModalityToken] = set()
+		for raw in parts[side].split("+"):
+			token = raw.strip().lower()
+			if not token:
+				continue
+			try:
+				tokens.add(ArchitectureModalityToken(token))
+			except ValueError:
+				continue
+		return tokens
+
+	@computed_field
+	@cached_property
+	def inferred_input_modalities(self) -> set[ArchitectureModalityToken]:
+		"""Return input modality tokens, falling back to ``modality``."""
+		if self.input_modalities:
+			return self.input_modalities
+		return self._split_modality_tokens(self.modality, _INPUT_MODALITY_INDEX)
+
+	@computed_field
+	@cached_property
+	def inferred_output_modalities(self) -> set[ArchitectureModalityToken]:
+		"""Return output modality tokens, falling back to ``modality``."""
+		if self.output_modalities:
+			return self.output_modalities
+		return self._split_modality_tokens(
+			self.modality, _OUTPUT_MODALITY_INDEX
+		)
 
 	@computed_field
 	@cached_property
@@ -106,35 +151,32 @@ class ArchitectureMetadata(BaseModel, extra="ignore"):
 		If output modalities are explicitly provided, require ``text`` to be present.
 		When the set is empty (no metadata), assume text output for compatibility.
 		"""
-		if not self.output_modalities:
+		modalities = self.inferred_output_modalities
+		if not modalities:
 			return True
-		return ArchitectureModalityToken.TEXT in self.output_modalities
+		return ArchitectureModalityToken.TEXT in modalities
 
 	@computed_field
 	@cached_property
 	def modality_capabilities(self) -> ModalityCapabilities:
 		"""Derive I/O flags directly from the typed modality sets."""
+		input_modalities = self.inferred_input_modalities
+		output_modalities = self.inferred_output_modalities
 		return ModalityCapabilities(
-			vision=ArchitectureModalityToken.IMAGE in self.input_modalities,
-			audio_input=ArchitectureModalityToken.AUDIO
-			in self.input_modalities,
-			document_input=ArchitectureModalityToken.FILE
-			in self.input_modalities,
-			video_input=ArchitectureModalityToken.VIDEO
-			in self.input_modalities,
-			image_output=ArchitectureModalityToken.IMAGE
-			in self.output_modalities,
-			audio_output=ArchitectureModalityToken.AUDIO
-			in self.output_modalities,
-			video_output=ArchitectureModalityToken.VIDEO
-			in self.output_modalities,
+			vision=ArchitectureModalityToken.IMAGE in input_modalities,
+			audio_input=ArchitectureModalityToken.AUDIO in input_modalities,
+			document_input=ArchitectureModalityToken.FILE in input_modalities,
+			video_input=ArchitectureModalityToken.VIDEO in input_modalities,
+			image_output=ArchitectureModalityToken.IMAGE in output_modalities,
+			audio_output=ArchitectureModalityToken.AUDIO in output_modalities,
+			video_output=ArchitectureModalityToken.VIDEO in output_modalities,
 		)
 
 
 class TopProviderMetadata(BaseModel, extra="ignore"):
 	"""Typed subset of top_provider values used for limits."""
 
-	context_length: int = Field(default=_DEFAULT_CONTEXT_WINDOW)
+	context_length: int | None = None
 	max_completion_tokens: int | None = None
 
 
@@ -150,7 +192,8 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 	id: Annotated[StrictStr, Field(min_length=1)]
 	name: str | None = None
 	description: str | None = None
-	created: int = 0
+	created: int | str | None = 0
+	context_length: int | None = None
 	architecture: ArchitectureMetadata = Field(
 		default_factory=ArchitectureMetadata
 	)
@@ -162,6 +205,23 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 	)
 	supported_parameters: list[str] = Field(default_factory=list)
 	supports_web_search: bool | None = None
+	pricing: dict[str, str | int | float | None] = Field(default_factory=dict)
+
+	@computed_field
+	@cached_property
+	def created_timestamp(self) -> int:
+		"""Return normalized created timestamp (int, fallback 0)."""
+		return parse_created_timestamp(self.created)
+
+	@computed_field
+	@cached_property
+	def resolved_context_length(self) -> int:
+		"""Prefer ``top_provider.context_length``, fallback to root value."""
+		if self.top_provider.context_length is not None:
+			return self.top_provider.context_length
+		if self.context_length is not None:
+			return self.context_length
+		return _DEFAULT_CONTEXT_WINDOW
 
 	@computed_field
 	@cached_property
@@ -186,11 +246,23 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		if not self.architecture.supports_basilisk_text_output:
 			return None
 		modalities = self.architecture.modality_capabilities
+		pricing_summary = summarize_pricing(self.pricing)
+		extra_info = {
+			ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
+			ModelExtraInfoKey.REASONING_CAPABLE.value: self.has_reasoning_capable,
+			ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.web_search_capable,
+			**modalities.model_dump(mode="python", exclude={"vision"}),
+		}
+		if pricing_summary:
+			extra_info["Pricing"] = pricing_summary
+			extra_info["created"] = datetime.fromtimestamp(
+				self.created_timestamp
+			).strftime("%Y-%m-%d %H:%M:%S")
 		return ProviderAIModel(
 			id=self.id,
 			name=self.name,
 			description=self.description,
-			context_window=self.top_provider.context_length,
+			context_window=self.resolved_context_length,
 			max_output_tokens=(
 				self.top_provider.max_completion_tokens
 				if self.top_provider.max_completion_tokens is not None
@@ -204,13 +276,8 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 			),
 			vision=modalities.vision,
 			reasoning=self.has_reasoning_capable,
-			created=self.created,
-			extra_info={
-				ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
-				ModelExtraInfoKey.REASONING_CAPABLE.value: self.has_reasoning_capable,
-				ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.web_search_capable,
-				**modalities.model_dump(mode="python", exclude={"vision"}),
-			},
+			created=self.created_timestamp,
+			extra_info=extra_info,
 		)
 
 
@@ -259,6 +326,51 @@ def fetch_models_json(url: str) -> ProviderMetadata:
 	)
 	response.raise_for_status()
 	return ProviderMetadata.model_validate_json(response.text)
+
+
+def parse_model_rows(rows: list[Any]) -> list[ProviderAIModel]:
+	"""Convert raw model rows into ProviderAIModel list."""
+	return ProviderMetadata.model_validate(
+		{"models": rows}
+	).get_provider_models()
+
+
+def parse_created_timestamp(value: Any) -> int:
+	"""Return ``created`` value as int timestamp, fallback to 0."""
+	try:
+		return int(value)
+	except TypeError, ValueError:
+		return 0
+
+
+def summarize_pricing(pricing: dict[str, Any]) -> str:
+	"""Format pricing map into human-readable model details text."""
+	if not isinstance(pricing, dict):
+		return ""
+	out = "\n"
+	for usage_type, raw_price in pricing.items():
+		if raw_price is None:
+			continue
+		price = str(raw_price)
+		if price == "0":
+			continue
+		try:
+			if usage_type == "image":
+				price_1k = round(Decimal(price) * Decimal(1000), 3)
+				if price_1k == 0:
+					continue
+				out += (
+					f"  {usage_type}: ${price_1k}/K input imgs "
+					f"(${price}/input img)\n"
+				)
+			else:
+				price_1m = round(Decimal(price) * Decimal(1000000), 2)
+				out += (
+					f"  {usage_type}: ${price_1m}/M tokens (${price}/token)\n"
+				)
+		except ArithmeticError:
+			continue
+	return out.rstrip()
 
 
 @measure_time
