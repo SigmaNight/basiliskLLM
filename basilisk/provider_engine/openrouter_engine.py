@@ -83,6 +83,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		if response.status_code == 200:
 			data = response.json()
 			for model in sorted(data["data"], key=lambda m: m["name"].lower()):
+				architecture = model.get("architecture", {})
 				extra_info = {}
 				for k, v in sorted(model.items()):
 					match k:
@@ -117,8 +118,17 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 						)
 						or -1,
 						max_temperature=2.0,
-						vision="text+image->text"
-						in model.get("architecture", {}).get("modality", ""),
+						vision=(
+							"image"
+							in (
+								architecture.get("input_modalities")
+								if architecture.get("input_modalities")
+								is not None
+								else architecture.get("modality", "")
+								.split("->")[0]
+								.split("+")
+							)
+						),
 						extra_info=extra_info,
 					)
 				)
