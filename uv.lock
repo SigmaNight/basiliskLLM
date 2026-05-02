@@ -159,7 +159,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.18,<1.19" },
     { name = "anthropic", specifier = ">=0.97.0,<0.98" },
     { name = "babel", specifier = ">=2.17,<2.19" },
-    { name = "fsspec", specifier = ">=2025.9.0,<2026.4" },
+    { name = "fsspec", specifier = ">=2026.4.0,<2026.5" },
     { name = "google-genai", specifier = ">=1.73.1,<1.74" },
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "keyring", specifier = ">=25.7.0,<25.8" },
@@ -563,11 +563,11 @@ wheels = [
 
 [[package]]
 name = "fsspec"
-version = "2026.3.0"
+version = "2026.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e1/cf/b50ddf667c15276a9ab15a70ef5f257564de271957933ffea49d2cdbcdfb/fsspec-2026.3.0.tar.gz", hash = "sha256:1ee6a0e28677557f8c2f994e3eea77db6392b4de9cd1f5d7a9e87a0ae9d01b41", size = 313547, upload-time = "2026-03-27T19:11:14.892Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/8d/1c51c094345df128ca4a990d633fe1a0ff28726c9e6b3c41ba65087bba1d/fsspec-2026.4.0.tar.gz", hash = "sha256:301d8ac70ae90ef3ad05dcf94d6c3754a097f9b5fe4667d2787aa359ec7df7e4", size = 312760, upload-time = "2026-04-29T20:42:38.635Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/1f/5f4a3cd9e4440e9d9bc78ad0a91a1c8d46b4d429d5239ebe6793c9fe5c41/fsspec-2026.3.0-py3-none-any.whl", hash = "sha256:d2ceafaad1b3457968ed14efa28798162f1638dbb5d2a6868a2db002a5ee39a4", size = 202595, upload-time = "2026-03-27T19:11:13.595Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/0c/043d5e551459da400957a1395e0febbf771446ff34291afcbe3d8be2a279/fsspec-2026.4.0-py3-none-any.whl", hash = "sha256:11ef7bb35dab8a394fde6e608221d5cf3e8499401c249bebaeaad760a1a8dec2", size = 203402, upload-time = "2026-04-29T20:42:36.842Z" },
 ]
 
 [[package]]
