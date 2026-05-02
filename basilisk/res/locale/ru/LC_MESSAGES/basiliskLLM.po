@@ -1968,4 +1968,3 @@ msgstr "Вы используете последнюю версию basiliskLLM"
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Ошибка проверки обновлений: %s"
-

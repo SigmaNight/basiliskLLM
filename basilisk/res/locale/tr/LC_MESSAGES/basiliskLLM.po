@@ -1964,4 +1964,3 @@ msgstr "BasiliskLLM'nin en son sürümünü kullanıyorsunuz"
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Güncellemeler denetlenirken hata oluştu: %s"
-
