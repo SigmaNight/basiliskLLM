@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import basilisk.config as config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
@@ -53,11 +53,14 @@ class BaseEngine(ABC):
 	Attributes:
 		capabilities: Set of supported provider capabilities.
 		supported_attachment_formats: Set of MIME types for supported attachments.
+		catalog_strip_candidate_keys: Top-level client kwargs subject to catalog
+			stripping; ``None`` means do not strip (e.g. Ollama).
 	"""
 
 	capabilities: set[ProviderCapability] = set()
 	supported_attachment_formats: set[str] = set()
 	MODELS_JSON_URL: str | None = None
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = None
 	_last_cache_prune_at: float = 0.0
 	_cache_prune_lock = threading.Lock()
 
@@ -379,7 +382,12 @@ class BaseEngine(ABC):
 		self, model: ProviderAIModel | None, params: dict[str, Any]
 	) -> None:
 		"""Drop sampling kwargs rejected by catalog metadata for this model."""
-		strip_disallowed_completion_dict_params(model, params)
+		keys = type(self).catalog_strip_candidate_keys
+		if keys is None:
+			return
+		strip_disallowed_completion_dict_params(
+			model, params, regulated_keys=keys
+		)
 
 	def get_model_loading_error(self) -> str | None:
 		"""Return the latest model-loading error for this engine."""

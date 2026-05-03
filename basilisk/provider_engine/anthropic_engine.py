@@ -9,7 +9,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, ClassVar, Iterator
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
@@ -29,6 +29,7 @@ from basilisk.model_metadata_catalog import ANTHROPIC_MODEL_METADATA_URL
 from basilisk.provider_ai_model import ProviderAIModel
 
 from .base_engine import BaseEngine, ProviderCapability
+from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream
@@ -52,6 +53,9 @@ class AnthropicEngine(BaseEngine):
 			text and image generation.
 	"""
 
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
+		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,

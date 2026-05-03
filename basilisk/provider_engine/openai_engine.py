@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, ClassVar, Generator
 
 from openai import OpenAI
 from openai.types.responses import (
@@ -35,6 +35,7 @@ from basilisk.model_metadata_catalog import OPENAI_MODEL_METADATA_URL
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
+from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -52,6 +53,9 @@ class OpenAIEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text, image, STT, and TTS.
 	"""
 
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
+		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,

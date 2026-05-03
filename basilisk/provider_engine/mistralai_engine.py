@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, ClassVar, Generator
 
 from mistralai.client import Mistral
 from mistralai.client.models import ChatCompletionResponse, CompletionEvent
@@ -24,6 +24,7 @@ from basilisk.conversation.attached_file import AttachmentFile
 from basilisk.model_metadata_catalog import MISTRAL_MODEL_METADATA_URL
 
 from .base_engine import BaseEngine, ProviderCapability
+from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
@@ -42,6 +43,9 @@ class MistralAIEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text, image, document, and OCR.
 	"""
 
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
+		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,

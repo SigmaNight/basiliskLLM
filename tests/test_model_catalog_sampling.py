@@ -11,6 +11,9 @@ from basilisk.model_catalog_sampling import (
 	strip_disallowed_completion_dict_params,
 )
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_engine.completion_request_strip_keys import (
+	CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS,
+)
 
 
 @pytest.mark.parametrize(
@@ -57,7 +60,9 @@ def test_strip_disallowed_completion_dict_params_removes_top_p() -> None:
 		"temperature": 0.5,
 		"top_p": 0.9,
 	}
-	strip_disallowed_completion_dict_params(model, params)
+	strip_disallowed_completion_dict_params(
+		model, params, regulated_keys=CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	assert params["temperature"] == 0.5
 	assert "top_p" not in params
 	assert params["model"] == "gpt-test"
@@ -66,7 +71,9 @@ def test_strip_disallowed_completion_dict_params_removes_top_p() -> None:
 def test_strip_skips_when_model_none() -> None:
 	"""Without catalog metadata, no keys are removed."""
 	params = {"temperature": 1.0, "top_p": 1.0}
-	strip_disallowed_completion_dict_params(None, params)
+	strip_disallowed_completion_dict_params(
+		None, params, regulated_keys=CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	assert params["top_p"] == 1.0
 
 

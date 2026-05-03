@@ -18,24 +18,6 @@ log = logging.getLogger(__name__)
 SUPPORTED_PARAMETERS_EXTRA_KEY = "supported_parameters"
 UNSUPPORTED_PARAMETERS_EXTRA_KEY = "unsupported_parameters"
 
-OPENAI_STYLE_REGULATED_TOP_LEVEL_KEYS: frozenset[str] = frozenset(
-	{
-		"temperature",
-		"top_p",
-		"max_tokens",
-		"max_completion_tokens",
-		"frequency_penalty",
-		"presence_penalty",
-		"seed",
-		"stop",
-		"n",
-		"logit_bias",
-		"logprobs",
-		"top_logprobs",
-		"response_format",
-	}
-)
-
 _MAX_TOKEN_PARAM_ALIASES: frozenset[str] = frozenset(
 	{"max_tokens", "max_completion_tokens", "max_output_tokens"}
 )
@@ -110,22 +92,22 @@ def sampling_visibility_for_main_ui(model: Any) -> dict[str, bool]:
 
 
 def strip_disallowed_completion_dict_params(
-	model: Any,
-	params: dict[str, Any],
-	*,
-	regulated_keys: frozenset[str] | None = None,
+	model: Any, params: dict[str, Any], *, regulated_keys: frozenset[str]
 ) -> None:
-	"""Drop regulated top-level keys rejected by model metadata (in place).
+	"""Drop top-level keys rejected by model metadata (in place).
+
+	Only keys present in ``regulated_keys`` are considered (callers pass the
+	set their engine puts in the client request dict, so structural fields
+	are never removed).
 
 	Args:
 		model: Catalog model; may be None if metadata is unknown.
-		params: Client request kwargs (e.g. OpenAI chat completion).
-		regulated_keys: Candidate keys to evaluate; defaults to OpenAI-style
-			sampling parameters only (never removes ``model``, ``messages``, …).
+		params: Client request kwargs.
+		regulated_keys: Candidate top-level names the catalog may veto.
 	"""
 	if model is None:
 		return
-	keys = regulated_keys or OPENAI_STYLE_REGULATED_TOP_LEVEL_KEYS
+	keys = regulated_keys
 	model_id = getattr(model, "id", "?")
 	for key in list(params):
 		if key not in keys:
