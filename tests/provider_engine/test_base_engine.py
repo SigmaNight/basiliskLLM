@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_engine import engine_model_list_cache
 from basilisk.provider_engine.base_engine import BaseEngine
 from basilisk.provider_engine.model_cache_registry import get_models_cache_dir
 
@@ -76,8 +77,7 @@ def _isolated_models_cache_dir(tmp_path, monkeypatch):
 		"basilisk.provider_engine.model_cache_registry.global_vars.user_data_path",
 		tmp_path,
 	)
-	BaseEngine._last_cache_prune_at = 0.0
-	DummyEngine._last_cache_prune_at = 0.0
+	engine_model_list_cache._last_prune_at = 0.0
 
 
 def test_models_cached_within_ttl(monkeypatch):
@@ -264,7 +264,7 @@ def test_prune_removes_obsolete_cache_files(tmp_path, monkeypatch):
 		encoding="utf-8",
 	)
 	bad_file.write_text("not-json", encoding="utf-8")
-	DummyEngine._last_cache_prune_at = 0.0
+	engine_model_list_cache._last_prune_at = 0.0
 	monkeypatch.setattr(
 		engine, "_get_models_cache_max_stale_seconds", lambda _ttl: 20
 	)

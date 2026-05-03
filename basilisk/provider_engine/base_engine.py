@@ -6,13 +6,10 @@ establishing the common interface and shared functionality.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from dataclasses import asdict
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Optional
@@ -26,22 +23,19 @@ from basilisk.model_catalog_sampling import (
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.provider_engine.dynamic_model_loader import load_models_from_url
-from basilisk.provider_engine.model_cache_registry import (
-	get_models_cache_dir,
-	get_registry_filename,
-	prune_model_cache_registry,
-	register_model_cache_file,
-	remove_cache_file_from_registry,
-	write_json_atomic,
+from basilisk.provider_engine.engine_model_list_cache import (
+	STALE_TTL_MULTIPLIER,
+	delete_model_list_disk_cache_file,
+	model_list_disk_cache_path,
+	prune_model_list_cache_dir,
+	read_model_list_disk_cache,
+	write_model_list_disk_cache,
 )
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
 
 log = logging.getLogger(__name__)
-_MODELS_CACHE_PAYLOAD_VERSION = 1
-_CACHE_PRUNE_INTERVAL_SECONDS = 3600
-_CACHE_STALE_MULTIPLIER = 7
 
 
 class BaseEngine(ABC):
@@ -61,8 +55,6 @@ class BaseEngine(ABC):
 	supported_attachment_formats: set[str] = set()
 	MODELS_JSON_URL: str | None = None
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = None
-	_last_cache_prune_at: float = 0.0
-	_cache_prune_lock = threading.Lock()
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the engine with the given account.
@@ -106,27 +98,22 @@ class BaseEngine(ABC):
 
 	def _get_models_cache_max_stale_seconds(self, ttl_seconds: int) -> int:
 		"""Return max age allowed for stale cache fallback."""
-		return ttl_seconds * _CACHE_STALE_MULTIPLIER
+		return ttl_seconds * STALE_TTL_MULTIPLIER
 
 	@cached_property
 	def _models_cache_file_path(self) -> Path:
 		"""Return persistent cache file path for this engine/account."""
-		cache_key_payload = {
-			"account_id": str(self.account.id),
-			"provider_id": str(self.account.provider.id),
-			"base_url": (
+		return model_list_disk_cache_path(
+			account_id=str(self.account.id),
+			provider_id=str(self.account.provider.id),
+			custom_base_url=(
 				str(self.account.custom_base_url)
 				if self.account.custom_base_url is not None
 				else None
 			),
-			"engine_cls": self.__class__.__name__,
-			"models_json_url": self.MODELS_JSON_URL,
-		}
-		cache_key = hashlib.sha256(
-			json.dumps(cache_key_payload, sort_keys=True).encode("utf-8")
-		).hexdigest()
-		cache_dir = get_models_cache_dir()
-		return cache_dir / f"{cache_key}.json"
+			engine_cls_name=self.__class__.__name__,
+			models_json_url=self.MODELS_JSON_URL,
+		)
 
 	def _set_models_ram_cache(
 		self, models: list[ProviderAIModel], cached_at: float
@@ -140,22 +127,12 @@ class BaseEngine(ABC):
 		self, models: list[ProviderAIModel], cached_at: float
 	) -> None:
 		"""Persist model cache payload to disk."""
-		cache_file = self._models_cache_file_path
-		payload = {
-			"version": _MODELS_CACHE_PAYLOAD_VERSION,
-			"cached_at": cached_at,
-			"models": [asdict(model) for model in models],
-		}
-		write_json_atomic(cache_file, payload)
-		register_model_cache_file(str(self.account.id), cache_file)
-
-	def _delete_cache_file(self, cache_file: Path) -> None:
-		"""Delete one cache file, logging only on failure."""
-		try:
-			cache_file.unlink(missing_ok=True)
-		except OSError:
-			log.debug("Could not delete models cache file %s", cache_file)
-		remove_cache_file_from_registry(cache_file.name)
+		write_model_list_disk_cache(
+			self._models_cache_file_path,
+			str(self.account.id),
+			models,
+			cached_at,
+		)
 
 	def _read_models_disk_cache(
 		self,
@@ -165,97 +142,23 @@ class BaseEngine(ABC):
 		max_stale_seconds: int | None = None,
 	) -> tuple[list[ProviderAIModel], float] | None:
 		"""Read model cache payload from disk when valid for current TTL."""
-		cache_file = self._models_cache_file_path
-		if not cache_file.exists():
-			return None
-		try:
-			payload = json.loads(cache_file.read_text(encoding="utf-8"))
-			if not isinstance(payload, dict):
-				raise TypeError("invalid cache payload")
-			if payload.get("version") != _MODELS_CACHE_PAYLOAD_VERSION:
-				raise ValueError("unsupported cache payload version")
-			cached_at = float(payload["cached_at"])
-			cache_age_seconds = now - cached_at
-			if not allow_stale and cache_age_seconds >= ttl_seconds:
-				log.debug(
-					"Models disk cache expired for %s (age=%.1fs, ttl=%ss)",
-					self.__class__.__name__,
-					cache_age_seconds,
-					ttl_seconds,
-				)
-				return None
-			if (
-				allow_stale
-				and max_stale_seconds is not None
-				and cache_age_seconds >= max_stale_seconds
-			):
-				log.debug(
-					"Models stale disk cache exceeded retention for %s (age=%.1fs, max_stale=%ss)",
-					self.__class__.__name__,
-					cache_age_seconds,
-					max_stale_seconds,
-				)
-				self._delete_cache_file(cache_file)
-				return None
-			model_rows = payload.get("models")
-			if not isinstance(model_rows, list):
-				raise TypeError("invalid models cache payload")
-			models = [ProviderAIModel(**x) for x in model_rows]
-			return models, cached_at
-		except (
-			OSError,
-			json.JSONDecodeError,
-			KeyError,
-			TypeError,
-			ValueError,
-		) as exc:
-			log.warning("Failed reading models disk cache: %s", exc)
-			self._delete_cache_file(cache_file)
-			return None
+		return read_model_list_disk_cache(
+			self._models_cache_file_path,
+			cache_kind_label=self.__class__.__name__,
+			now=now,
+			ttl_seconds=ttl_seconds,
+			allow_stale=allow_stale,
+			max_stale_seconds=max_stale_seconds,
+		)
 
 	def _prune_models_cache_dir(self, now: float, ttl_seconds: int) -> None:
 		"""Periodically remove obsolete cache files to limit file growth."""
-		last_prune_at = BaseEngine._last_cache_prune_at
-		if (
-			last_prune_at > 0
-			and now - last_prune_at < _CACHE_PRUNE_INTERVAL_SECONDS
-		):
-			return
-		with BaseEngine._cache_prune_lock:
-			last_prune_at = BaseEngine._last_cache_prune_at
-			if (
-				last_prune_at > 0
-				and now - last_prune_at < _CACHE_PRUNE_INTERVAL_SECONDS
-			):
-				return
-			BaseEngine._last_cache_prune_at = now
-		prune_model_cache_registry()
-		cache_dir = get_models_cache_dir()
-		if not cache_dir.exists():
-			return
-		max_stale_seconds = self._get_models_cache_max_stale_seconds(
-			ttl_seconds
+		prune_model_list_cache_dir(
+			now=now,
+			max_stale_seconds=self._get_models_cache_max_stale_seconds(
+				ttl_seconds
+			),
 		)
-		for cache_file in cache_dir.glob("*.json"):
-			if cache_file.name == get_registry_filename():
-				continue
-			try:
-				payload = json.loads(cache_file.read_text(encoding="utf-8"))
-				cached_at = float(payload["cached_at"])
-				version = payload.get("version")
-				if version != _MODELS_CACHE_PAYLOAD_VERSION:
-					self._delete_cache_file(cache_file)
-					continue
-				if now - cached_at >= max_stale_seconds:
-					self._delete_cache_file(cache_file)
-			except (
-				OSError,
-				json.JSONDecodeError,
-				KeyError,
-				TypeError,
-				ValueError,
-			):
-				self._delete_cache_file(cache_file)
 
 	@property
 	def models(self) -> list[ProviderAIModel]:
@@ -399,7 +302,7 @@ class BaseEngine(ABC):
 			self._models_cache = None
 			self._models_cached_at = None
 			self._models_last_error = None
-			self._delete_cache_file(self._models_cache_file_path)
+			delete_model_list_disk_cache_file(self._models_cache_file_path)
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:
