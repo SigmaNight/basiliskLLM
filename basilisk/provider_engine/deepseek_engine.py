@@ -4,7 +4,6 @@ This module provides the DeepSeekAIEngine class for interacting with the DeepSee
 implementing capabilities for text generation using various DeepSeek models.
 """
 
-import logging
 from typing import Generator
 
 from openai.types.chat import (
@@ -14,27 +13,10 @@ from openai.types.chat import (
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import sigma_night_data_file
 from .legacy_openai_engine import LegacyOpenAIEngine
-
-log = logging.getLogger(__name__)
-
-_DEFAULT_DEEPSEEK_MODELS = [
-	ProviderAIModel(
-		id="deepseek-chat",
-		name="DeepSeek Chat",
-		description="Fallback metadata when remote catalog is unavailable.",
-	),
-	ProviderAIModel(
-		id="deepseek-reasoner",
-		name="DeepSeek Reasoner",
-		description="Fallback metadata when remote catalog is unavailable.",
-		reasoning=True,
-	),
-]
 
 
 class DeepSeekAIEngine(LegacyOpenAIEngine):
@@ -50,19 +32,6 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
 	MODELS_JSON_URL = sigma_night_data_file("deepseek.json")
-
-	def _load_models(self) -> list[ProviderAIModel]:
-		"""Load DeepSeek models with static fallback on remote failure."""
-		try:
-			return super()._load_models()
-		except Exception as exc:
-			log.warning(
-				"Failed to load DeepSeek models from %s: %s. "
-				"Using bundled fallback models.",
-				self.MODELS_JSON_URL,
-				exc,
-			)
-			return list(_DEFAULT_DEEPSEEK_MODELS)
 
 	def completion_response_with_stream(
 		self, stream: Generator[ChatCompletionChunk, None, None]
