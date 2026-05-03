@@ -49,7 +49,14 @@ def _write_text_atomic(path: Path, content: str) -> None:
 	"""Write text atomically to avoid partial-file corruption."""
 	temp_path = path.with_suffix(f"{path.suffix}.tmp")
 	temp_path.write_text(content, encoding="utf-8")
-	temp_path.replace(path)
+	try:
+		temp_path.replace(path)
+	except Exception:
+		try:
+			temp_path.unlink(missing_ok=True)
+		except OSError:
+			pass
+		raise
 
 
 def write_json_atomic(path: Path, payload: dict | list) -> None:
@@ -187,9 +194,9 @@ def prune_model_cache_registry() -> None:
 		did_change = False
 		for account_id in list(accounts):
 			normalized = [
-				_normalize_cache_name(cache_name)
+				cache_name
 				for cache_name in accounts[account_id]
-				if (cache_dir / _normalize_cache_name(cache_name)).exists()
+				if (cache_dir / cache_name).exists()
 			]
 			existing = sorted(set(normalized))
 			if accounts.get(account_id) == existing:

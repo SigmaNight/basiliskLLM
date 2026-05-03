@@ -78,21 +78,30 @@ class AnthropicEngine(BaseEngine):
 		ids = {m.id for m in models}
 		out: list[ProviderAIModel] = []
 		for m in models:
-			base_model = (
-				m
-				if not m.reasoning
-				else dataclasses.replace(m, reasoning=False)
-			)
-			out.append(base_model)
+			out.append(m)
+			if m.reasoning or m.id.endswith(_REASONING_ID_SUFFIX):
+				base_id = m.id.removesuffix(_REASONING_ID_SUFFIX)
+				if base_id in ids:
+					continue
+				base_name = (
+					m.name.removesuffix(" (thinking)") if m.name else m.name
+				)
+				out.append(
+					dataclasses.replace(
+						m, id=base_id, name=base_name, reasoning=False
+					)
+				)
+				ids.add(base_id)
+				continue
 			if not m.extra_info.get("reasoning_capable"):
 				continue
 			twin_id = f"{m.id}{_REASONING_ID_SUFFIX}"
 			if twin_id in ids:
 				continue
-			think_label = f"{base_model.name or base_model.id} (thinking)"
+			think_label = f"{m.name or m.id} (thinking)"
 			out.append(
 				dataclasses.replace(
-					base_model, id=twin_id, name=think_label, reasoning=True
+					m, id=twin_id, name=think_label, reasoning=True
 				)
 			)
 			ids.add(twin_id)
@@ -222,6 +231,11 @@ class AnthropicEngine(BaseEngine):
 		if web_search:
 			tools.append({"type": "web_search_20250305", "name": "web_search"})
 		model = self.get_model(new_block.model.model_id)
+		if model is None:
+			raise ValueError(
+				f"Unknown model id for Anthropic completion: "
+				f"{new_block.model.model_id}"
+			)
 		params = {
 			"model": model.id,
 			"messages": self.get_messages(
@@ -241,7 +255,7 @@ class AnthropicEngine(BaseEngine):
 			params["tools"] = tools
 		if model.reasoning:
 			params.pop("top_p", None)
-			params["model"] = model.id.replace(_REASONING_ID_SUFFIX, "")
+			params["model"] = model.id.removesuffix(_REASONING_ID_SUFFIX)
 			params["thinking"] = {
 				"type": "enabled",
 				"budget_tokens": kwargs.get("budget_tokens", 16000),

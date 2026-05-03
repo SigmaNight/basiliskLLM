@@ -19,3 +19,21 @@ def test_remove_account_also_removes_model_cache(mocker):
 	account.delete_keyring_password.assert_called_once()
 	remove_cache.assert_called_once_with("acct-1")
 	assert account not in manager.accounts
+
+
+def test_remove_account_best_effort_cleanup_failures(mocker):
+	"""Account is removed even when keyring/cache cleanup fails."""
+	account = MagicMock()
+	account.id = "acct-2"
+	account.delete_keyring_password.side_effect = RuntimeError("keyring down")
+	manager = AccountManager.model_construct(
+		accounts=[account], default_account_info=None
+	)
+	remove_cache = mocker.patch(
+		"basilisk.config.account_config.remove_account_model_cache",
+		side_effect=RuntimeError("cache locked"),
+	)
+	manager.remove(account)
+	account.delete_keyring_password.assert_called_once()
+	remove_cache.assert_called_once_with("acct-2")
+	assert account not in manager.accounts

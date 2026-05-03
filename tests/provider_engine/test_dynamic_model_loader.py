@@ -591,12 +591,13 @@ def test_load_models_from_url_success(httpx_mock):
 	assert models[0].id == "gpt-5"
 
 
-def test_load_models_from_url_network_error_returns_empty(httpx_mock):
-	"""load_models_from_url returns empty list on fetch error when no cache."""
+def test_load_models_from_url_network_error_raises(httpx_mock):
+	"""load_models_from_url propagates fetch errors to callers."""
 	httpx_mock.add_response(
 		status_code=404, url="https://example.com/nonexistent.json"
 	)
-	assert load_models_from_url("https://example.com/nonexistent.json") == []
+	with pytest.raises(httpx.HTTPStatusError):
+		load_models_from_url("https://example.com/nonexistent.json")
 
 
 def test_parse_model_metadata_web_search_capable_from_json():
@@ -636,7 +637,7 @@ def test_parse_model_metadata_web_search_capable_fallback_tools():
 	assert by_id["no-tools"].extra_info["web_search_capable"] is False
 
 
-def test_parse_model_metadata_skips_entries_with_invalid_field_types():
+def test_parse_model_metadata_skips_invalid_fields_but_defaults_created():
 	"""OnErrorOmit skips model entries whose fields fail Pydantic validation."""
 	raw = {
 		"models": [
@@ -750,13 +751,14 @@ def test_load_models_from_url_fetches_on_each_call(httpx_mock):
 	assert len(httpx_mock.get_requests()) == 2
 
 
-def test_load_models_from_url_error_after_success_returns_empty(httpx_mock):
-	"""Fallback to stale data is now handled by BaseEngine, not the loader."""
+def test_load_models_from_url_error_after_success_raises(httpx_mock):
+	"""Fallback to stale data is handled by BaseEngine after loader errors."""
 	url = "https://example.com/no-stale-in-loader.json"
 	httpx_mock.add_response(json={"models": [_minimal_item("fresh")]}, url=url)
 	assert load_models_from_url(url)[0].id == "fresh"
 	httpx_mock.add_response(status_code=500, url=url)
-	assert load_models_from_url(url) == []
+	with pytest.raises(httpx.HTTPStatusError):
+		load_models_from_url(url)
 
 
 def test_load_models_from_url_unexpected_error_is_not_suppressed(monkeypatch):

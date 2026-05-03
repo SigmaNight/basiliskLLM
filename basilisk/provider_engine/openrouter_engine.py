@@ -49,18 +49,19 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		response = httpx.get(
 			url, headers={"User-Agent": self.get_user_agent()}, timeout=30.0
 		)
-		if response.status_code == 200:
-			data = response.json()
-			models = parse_model_rows(data.get("data", []))
-			log.debug("Got %d models", len(models))
-			return models
-		else:
-			log.error(
-				"Failed to get models from '%s'. Response: %s",
-				url,
-				response.text,
+		if response.status_code != 200:
+			raise httpx.HTTPStatusError(
+				(
+					f"Failed to get models from '{url}' "
+					f"(status={response.status_code}): {response.text}"
+				),
+				request=response.request,
+				response=response,
 			)
-		return []
+		data = response.json()
+		models = parse_model_rows(data.get("data", []))
+		log.debug("Got %d models", len(models))
+		return models
 
 	def completion(
 		self,

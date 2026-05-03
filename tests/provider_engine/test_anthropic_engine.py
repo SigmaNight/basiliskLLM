@@ -85,6 +85,10 @@ def test_postprocess_skips_twin_when_json_already_has_reasoning_id(
 	out = anthropic_engine._postprocess_models([base, existing])
 	ids = [m.id for m in out]
 	assert ids.count("claude-opus-4-6" + _REASONING_ID_SUFFIX) == 1
+	twin = next(
+		m for m in out if m.id == "claude-opus-4-6" + _REASONING_ID_SUFFIX
+	)
+	assert twin.reasoning is True
 
 
 def test_completion_response_without_stream_renders_thinking_block(
@@ -116,3 +120,21 @@ def test_completion_response_without_stream_uses_legacy_response_thinking(
 	anthropic_engine.completion_response_without_stream(response, new_block)
 	assert "```think\nlegacy thoughts\n```" in new_block.response.content
 	assert new_block.response.content.endswith("result")
+
+
+def test_completion_raises_for_unknown_model_id(
+	anthropic_engine: AnthropicEngine,
+):
+	"""Completion fails fast when the requested model id is unknown."""
+	anthropic_engine.get_model = MagicMock(return_value=None)
+	new_block = SimpleNamespace(
+		model=SimpleNamespace(model_id="missing-model"),
+		temperature=1.0,
+		max_tokens=0,
+		stream=False,
+		top_p=1.0,
+	)
+	with pytest.raises(ValueError, match="Unknown model id"):
+		anthropic_engine.completion(
+			new_block, SimpleNamespace(messages=[]), system_message=None
+		)

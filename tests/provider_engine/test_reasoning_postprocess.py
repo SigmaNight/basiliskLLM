@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 
 import basilisk.provider_engine.base_engine as _base_engine
@@ -31,6 +32,20 @@ def test_models_loader_uses_dynamic_loader(engine_cls, monkeypatch):
 	discarded_models = engine.models
 	assert discarded_models == []
 	assert called_urls == [engine.MODELS_JSON_URL]
+
+
+def test_deepseek_loader_falls_back_to_default_models(monkeypatch):
+	"""DeepSeek returns bundled models when remote metadata fetch fails."""
+	acc = MagicMock()
+	acc.api_key.get_secret_value.return_value = "sk-test"
+	engine = DeepSeekAIEngine(acc)
+
+	def _boom_loader(_url: str):
+		raise httpx.HTTPError("network down")
+
+	monkeypatch.setattr(_base_engine, "load_models_from_url", _boom_loader)
+	model_ids = [m.id for m in engine.models]
+	assert model_ids == ["deepseek-chat", "deepseek-reasoner"]
 
 
 def test_anthropic_loader_synthesizes_thinking_variants(monkeypatch):

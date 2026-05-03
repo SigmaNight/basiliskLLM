@@ -101,9 +101,10 @@ class BaseConversationPresenter:
 		Args:
 			account: The account whose models to load.
 			engine: The engine to load models from.
-			on_loaded: Callback invoked on the UI thread with
+			on_loaded: Callback invoked on the worker thread with
 				(account_id, models, error_message).
 		"""
+		self.shutdown_model_loading()
 		generation = self._model_loading_generation
 		cancel_event = threading.Event()
 		self._model_loading_cancel_event = cancel_event
@@ -123,7 +124,7 @@ class BaseConversationPresenter:
 		cancel_event: threading.Event,
 		on_loaded: Callable,
 	) -> None:
-		"""Worker: load models and marshal result back to the UI thread."""
+		"""Worker: load models and invoke the callback on this worker thread."""
 		error_message: str | None = None
 		try:
 			models = list(engine.models)

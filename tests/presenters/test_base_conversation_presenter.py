@@ -201,6 +201,28 @@ class TestResolveAccountAndModel:
 
 
 # ---------------------------------------------------------------------------
+# start_model_loading()
+# ---------------------------------------------------------------------------
+
+
+class TestStartModelLoading:
+	"""Tests for BaseConversationPresenter.start_model_loading()."""
+
+	def test_cancels_previous_loader_before_starting_new(self, presenter):
+		"""Existing cancel event is signaled before a new worker is created."""
+		old_cancel_event = MagicMock()
+		presenter._model_loading_cancel_event = old_cancel_event
+		presenter._model_loading_thread = MagicMock()
+		account = MagicMock()
+		account.id = "acct-1"
+		engine = MagicMock()
+		on_loaded = MagicMock()
+		presenter.start_model_loading(account, engine, on_loaded)
+		old_cancel_event.set.assert_called_once()
+		assert presenter._model_loading_generation == 1
+
+
+# ---------------------------------------------------------------------------
 # shutdown_model_loading()
 # ---------------------------------------------------------------------------
 
@@ -367,8 +389,13 @@ class TestLoadModelsInBackground:
 	def test_exception_yields_empty_models_and_error(self, presenter):
 		"""On exception, calls on_loaded with empty models and an error message."""
 		on_loaded = MagicMock()
-		engine = MagicMock()
-		engine.models = MagicMock(side_effect=RuntimeError("boom"))
+
+		class _RaisingEngine:
+			@property
+			def models(self):
+				raise RuntimeError("boom")
+
+		engine = _RaisingEngine()
 		cancel_event = MagicMock()
 		cancel_event.is_set.return_value = False
 		presenter._load_models_in_background(

@@ -7,7 +7,6 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
-from abc import ABC
 from functools import cached_property
 from typing import TYPE_CHECKING, Generator, Union
 
@@ -40,7 +39,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class LegacyOpenAIEngine(BaseEngine, ABC):
+class LegacyOpenAIEngine(BaseEngine):
 	"""Engine implementation for OpenAI API integration.
 
 	Provides functionality for interacting with OpenAI's models, supporting text,

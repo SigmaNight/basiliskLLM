@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import pytest
+
+import basilisk.provider_engine.model_cache_registry as _registry
 from basilisk.provider_engine.model_cache_registry import (
 	get_models_cache_dir,
 	prune_model_cache_registry,
@@ -53,6 +56,24 @@ def test_remove_account_model_cache_deletes_files(monkeypatch, tmp_path):
 	assert "acct-2" in index_content
 
 
+def test_remove_account_model_cache_keeps_shared_files(monkeypatch, tmp_path):
+	"""Shared cache files are kept when still referenced by other accounts."""
+	monkeypatch.setattr(
+		"basilisk.provider_engine.model_cache_registry.global_vars.user_data_path",
+		tmp_path,
+	)
+	cache_dir = get_models_cache_dir()
+	shared_file = cache_dir / "shared.json"
+	shared_file.write_text("{}", encoding="utf-8")
+	register_model_cache_file("acct-1", shared_file)
+	register_model_cache_file("acct-2", shared_file)
+	remove_account_model_cache("acct-1")
+	assert shared_file.exists()
+	index_content = _read_index(tmp_path)
+	assert "acct-1" not in index_content
+	assert "acct-2" in index_content
+
+
 def test_prune_model_cache_registry_removes_missing_references(
 	monkeypatch, tmp_path
 ):
@@ -90,3 +111,21 @@ def test_remove_cache_file_from_registry_removes_file_for_all_accounts(
 	index_content = _read_index(tmp_path)
 	assert "acct-1" not in index_content
 	assert "acct-2" not in index_content
+
+
+def test_write_text_atomic_removes_temp_file_on_replace_error(
+	monkeypatch, tmp_path
+):
+	"""Failed replace should clean up the temporary file before raising."""
+	target = tmp_path / "index.json"
+	original_replace = Path.replace
+
+	def _raising_replace(self: Path, target_path: Path):
+		if self.suffix == ".tmp":
+			raise OSError("replace failed")
+		return original_replace(self, target_path)
+
+	monkeypatch.setattr(Path, "replace", _raising_replace)
+	with pytest.raises(OSError, match="replace failed"):
+		_registry._write_text_atomic(target, '{"ok": true}')
+	assert not target.with_suffix(".json.tmp").exists()

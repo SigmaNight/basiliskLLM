@@ -383,4 +383,4 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 		return models
 	except (httpx.HTTPError, ValidationError, ValueError, TypeError) as e:
 		log.warning("Failed to load models from %s: %s", url, e)
-		return []
+		raise

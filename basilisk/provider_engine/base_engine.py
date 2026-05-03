@@ -354,7 +354,7 @@ class BaseEngine(ABC):
 			self._models_cache = None
 			self._models_cached_at = None
 			self._models_last_error = None
-		self._delete_cache_file(self._models_cache_file_path)
+			self._delete_cache_file(self._models_cache_file_path)
 
 	@abstractmethod
 	def prepare_message_request(self, message: Message) -> Any:

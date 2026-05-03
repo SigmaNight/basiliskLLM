@@ -496,15 +496,20 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
-			account = next(
+			matched_account = next(
 				config.accounts().get_accounts_by_provider(provider_id), None
 			)
-			if account:
-				self.set_account_combo(account)
+			if matched_account:
+				self.set_account_combo(matched_account)
 			current_account = self.current_account
-			if current_account and model_id:
+			if (
+				current_account
+				and matched_account
+				and model_id
+				and matched_account.id == current_account.id
+			):
 				self.base_conv_presenter.set_pending_model(
-					model_id, current_account.id
+					model_id, matched_account.id
 				)
 				self._try_select_pending_model()
 		except Exception:

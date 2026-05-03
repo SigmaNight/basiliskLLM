@@ -580,9 +580,24 @@ class AccountManager(BasiliskBaseSettings):
 		Raises:
 			ValueError: If the account is not found in the configuration.
 		"""
-		account.delete_keyring_password()
-		remove_account_model_cache(str(account.id))
 		self.accounts.remove(account)
+		account_id = str(account.id)
+		try:
+			account.delete_keyring_password()
+		except Exception as exc:
+			log.warning(
+				"Failed to delete keyring password for account %s: %s",
+				account_id,
+				exc,
+			)
+		try:
+			remove_account_model_cache(account_id)
+		except Exception as exc:
+			log.warning(
+				"Failed to remove model cache for account %s: %s",
+				account_id,
+				exc,
+			)
 
 	def clear(self):
 		"""Clear all accounts from the configuration."""
