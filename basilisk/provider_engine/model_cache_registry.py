@@ -160,9 +160,17 @@ def remove_account_model_cache(account_id: str) -> None:
 		cache_names = accounts.pop(account_id, [])
 		if not cache_names:
 			return
+		referenced_cache_names = {
+			_normalize_cache_name(cache_name)
+			for account_cache_names in accounts.values()
+			for cache_name in account_cache_names
+		}
 		cache_dir = get_models_cache_dir()
 		for cache_name in cache_names:
-			cache_file = cache_dir / _normalize_cache_name(cache_name)
+			normalized_cache_name = _normalize_cache_name(cache_name)
+			if normalized_cache_name in referenced_cache_names:
+				continue
+			cache_file = cache_dir / normalized_cache_name
 			try:
 				cache_file.unlink(missing_ok=True)
 			except OSError:

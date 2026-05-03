@@ -194,7 +194,13 @@ class BaseEngine(ABC):
 				raise TypeError("invalid models cache payload")
 			models = [ProviderAIModel(**x) for x in model_rows]
 			return models, cached_at
-		except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+		except (
+			OSError,
+			json.JSONDecodeError,
+			KeyError,
+			TypeError,
+			ValueError,
+		) as exc:
 			log.warning("Failed reading models disk cache: %s", exc)
 			self._delete_cache_file(cache_file)
 			return None

@@ -46,7 +46,9 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		"""
 		log.debug("Getting openRouter models")
 		url = "https://openrouter.ai/api/v1/models"
-		response = httpx.get(url, headers={"User-Agent": self.get_user_agent()})
+		response = httpx.get(
+			url, headers={"User-Agent": self.get_user_agent()}, timeout=30.0
+		)
 		if response.status_code == 200:
 			data = response.json()
 			models = parse_model_rows(data.get("data", []))
