@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import Iterator
+from typing import Any, Iterator
 
 from google import genai
 from google.genai.types import (
@@ -28,6 +28,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.provider_ai_model import model_allows_api_sampling_param
 
 from .base_engine import BaseEngine, ProviderCapability
 
@@ -185,17 +186,22 @@ class GeminiEngine(BaseEngine):
 		tools = None
 		if web_search:
 			tools = [Tool(google_search=GoogleSearch())]
-		config = GenerateContentConfig(
-			system_instruction=system_message.content
+		model = self.get_model(new_block.model.model_id)
+		cfg_kwargs: dict[str, Any] = {
+			"system_instruction": system_message.content
 			if system_message
 			else None,
-			max_output_tokens=new_block.max_tokens
-			if new_block.max_tokens
-			else None,
-			temperature=new_block.temperature,
-			top_p=new_block.top_p,
-			tools=tools,
-		)
+			"tools": tools,
+		}
+		if new_block.max_tokens and model_allows_api_sampling_param(
+			model, "max_output_tokens"
+		):
+			cfg_kwargs["max_output_tokens"] = new_block.max_tokens
+		if model_allows_api_sampling_param(model, "temperature"):
+			cfg_kwargs["temperature"] = new_block.temperature
+		if model_allows_api_sampling_param(model, "top_p"):
+			cfg_kwargs["top_p"] = new_block.top_p
+		config = GenerateContentConfig(**cfg_kwargs)
 
 		generate_kwargs = {
 			"model": new_block.model.model_id,

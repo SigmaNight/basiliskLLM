@@ -25,7 +25,10 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model import (
+	ProviderAIModel,
+	strip_disallowed_completion_dict_params,
+)
 
 from .base_engine import BaseEngine, ProviderCapability
 
@@ -262,6 +265,7 @@ class AnthropicEngine(BaseEngine):
 				"budget_tokens": kwargs.get("budget_tokens", 16000),
 			}
 		params.update(kwargs)
+		strip_disallowed_completion_dict_params(model, params)
 		response = self.client.messages.create(**params)
 		return response
 

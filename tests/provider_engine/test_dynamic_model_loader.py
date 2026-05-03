@@ -97,6 +97,7 @@ def test_parse_model_metadata_openai_structure():
 	assert m.created == 0
 	assert m.extra_info["reasoning_capable"] is True
 	assert "include_reasoning" in m.extra_info["supported_parameters"]
+	assert m.extra_info["unsupported_parameters"] == []
 	assert_extra_info_shape(m)
 
 
@@ -113,6 +114,7 @@ def test_parse_model_metadata_extra_info_defaults():
 	m = parse_model_metadata(raw)[0]
 	assert_extra_info_shape(m)
 	assert m.extra_info["supported_parameters"] == []
+	assert m.extra_info["unsupported_parameters"] == []
 	assert m.extra_info["reasoning_capable"] is False
 	assert m.extra_info["web_search_capable"] is False
 	assert m.extra_info["audio_input"] is False

@@ -13,7 +13,10 @@ import basilisk.config as config
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
-from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model import (
+	ProviderAIModel,
+	model_allows_api_sampling_param,
+)
 from basilisk.services.account_model_service import AccountModelService
 from basilisk.views.view_mixins import _guard_view_destroying
 
@@ -75,6 +78,8 @@ class BaseConversation:
 		)
 		self._displayed_models: list[ProviderAIModel] = []
 		self._is_destroying = False
+		# When True, sampling rows follow catalog only (e.g. edit dialog).
+		self._sampling_visibility_ignore_advanced = False
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -292,12 +297,37 @@ class BaseConversation:
 			event: The event triggering the model change
 		"""
 		model = self.current_model
-		if not model:
+		if model:
+			self.temperature_spinner.SetMax(model.max_temperature)
+			self.temperature_spinner.SetValue(model.default_temperature)
+			self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
+			self.max_tokens_spin_ctrl.SetValue(0)
+		self.refresh_sampling_controls_visibility(model)
+
+	def refresh_sampling_controls_visibility(
+		self, model: Optional[ProviderAIModel] = None
+	) -> None:
+		"""Show or hide max-tokens / temperature / top-P rows from catalog metadata.
+
+		When advanced mode is off (main tab / profile), sampling rows stay
+		hidden; :meth:`adjust_advanced_mode_setting` owns that state.
+		"""
+		if (
+			not self._sampling_visibility_ignore_advanced
+			and not config.conf().general.advanced_mode
+		):
 			return
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
+		resolved = model if model is not None else self.current_model
+		show_max = model_allows_api_sampling_param(resolved, "max_tokens")
+		show_temp = model_allows_api_sampling_param(resolved, "temperature")
+		show_top_p = model_allows_api_sampling_param(resolved, "top_p")
+		for w in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
+			w.Show(show_max)
+		for w in (self.temperature_spinner_label, self.temperature_spinner):
+			w.Show(show_temp)
+		for w in (self.top_p_spinner_label, self.top_p_spinner):
+			w.Show(show_top_p)
+		self.Layout()
 
 	def set_account_and_model_from_profile(
 		self,
@@ -360,6 +390,7 @@ class BaseConversation:
 						_("Model loading error"),
 					)
 		self._try_select_pending_model()
+		self.refresh_sampling_controls_visibility(self.current_model)
 
 	def _try_select_pending_model(self):
 		"""Select the pending model once displayed models are available."""
@@ -558,20 +589,26 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		self.refresh_sampling_controls_visibility()
 
 	def adjust_advanced_mode_setting(self):
 		"""Update UI controls visibility based on advanced mode setting."""
-		controls = (
+		sampling = (
 			self.max_tokens_spin_label,
 			self.max_tokens_spin_ctrl,
 			self.temperature_spinner_label,
 			self.temperature_spinner,
 			self.top_p_spinner_label,
 			self.top_p_spinner,
-			self.stream_mode,
 		)
+		stream = self.stream_mode
 		advanced_mode = config.conf().general.advanced_mode
-		for control in controls:
-			control.Enable(advanced_mode)
-			control.Show(advanced_mode)
+		if not advanced_mode:
+			for control in (*sampling, stream):
+				control.Enable(False)
+				control.Show(False)
+		else:
+			stream.Enable(True)
+			stream.Show(True)
+			self.refresh_sampling_controls_visibility()
 		self.Layout()

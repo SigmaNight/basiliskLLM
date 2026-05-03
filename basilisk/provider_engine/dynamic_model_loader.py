@@ -55,6 +55,7 @@ class ModelExtraInfoKey(StrEnum):
 	"""Keys stored in ``ProviderAIModel.extra_info`` for loader-derived data."""
 
 	SUPPORTED_PARAMETERS = auto()
+	UNSUPPORTED_PARAMETERS = auto()
 	REASONING_CAPABLE = auto()
 	WEB_SEARCH_CAPABLE = auto()
 	AUDIO_INPUT = auto()
@@ -200,6 +201,7 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		default_factory=DefaultParametersMetadata
 	)
 	supported_parameters: list[str] = Field(default_factory=list)
+	unsupported_parameters: list[str] = Field(default_factory=list)
 	supports_web_search: bool | None = None
 	pricing: dict[str, str | int | float | None] = Field(default_factory=dict)
 
@@ -245,6 +247,9 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		pricing_summary = summarize_pricing(self.pricing)
 		extra_info = {
 			ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
+			ModelExtraInfoKey.UNSUPPORTED_PARAMETERS.value: list(
+				self.unsupported_parameters
+			),
 			ModelExtraInfoKey.REASONING_CAPABLE.value: self.has_reasoning_capable,
 			ModelExtraInfoKey.WEB_SEARCH_CAPABLE.value: self.web_search_capable,
 			**modalities.model_dump(mode="python", exclude={"vision"}),

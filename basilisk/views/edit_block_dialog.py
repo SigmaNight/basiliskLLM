@@ -51,6 +51,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		BaseConversation.__init__(
 			self, account_model_service=parent.account_model_service
 		)
+		self._sampling_visibility_ignore_advanced = True
 		self.conversation: Conversation = parent.conversation
 		self.a_output = parent.messages.a_output
 		self.block_index = message_block_index
@@ -289,6 +290,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		self.max_tokens_spin_ctrl.SetValue(self.block.max_tokens)
 		self.top_p_spinner.SetValue(self.block.top_p)
 		self.stream_mode.SetValue(self.block.stream)
+		self.refresh_sampling_controls_visibility()
 
 	def on_account_change(self, event):
 		"""Handle account selection changes.
@@ -304,6 +306,7 @@ class EditBlockDialog(wx.Dialog, BaseConversation):
 		# Update the engine in the prompt_attachments_panel
 		if self.current_engine:
 			self.prompt_panel.set_engine(self.current_engine)
+		self.refresh_sampling_controls_visibility()
 
 	def on_ok(self, event: wx.CommandEvent):
 		"""Handle the OK button click.
