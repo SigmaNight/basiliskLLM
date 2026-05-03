@@ -1,20 +1,64 @@
 """Tests for reasoning-capable loading configuration across providers."""
 
+from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-import basilisk.provider_engine.base_engine as _base_engine
+from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_engine import base_engine
 from basilisk.provider_engine.anthropic_engine import AnthropicEngine
 from basilisk.provider_engine.deepseek_engine import DeepSeekAIEngine
 from basilisk.provider_engine.dynamic_model_loader import (
 	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
+	ProviderMetadata,
 )
-from basilisk.provider_engine.gemini_engine import GeminiEngine
 from basilisk.provider_engine.mistralai_engine import MistralAIEngine
 from basilisk.provider_engine.openai_engine import OpenAIEngine
 from basilisk.provider_engine.xai_engine import XAIEngine
+
+
+class _GeminiSigmaNightCatalogStub(base_engine.BaseEngine):
+	"""Same catalog URL as GeminiEngine without importing google-genai.
+
+	On Windows ARM64, ``cryptography`` often has no usable wheel; importing
+	``google.genai`` pulls that stack and breaks test collection.
+	"""
+
+	MODELS_JSON_URL = base_engine.sigma_night_data_file("google.json")
+
+	@cached_property
+	def client(self):
+		return MagicMock()
+
+	def prepare_message_request(self, message: Message) -> Any:
+		raise NotImplementedError
+
+	def prepare_message_response(self, response: Any) -> Message:
+		raise NotImplementedError
+
+	def completion(
+		self,
+		new_block: MessageBlock,
+		conversation: Conversation,
+		system_message: Message | None,
+		stop_block_index: int | None = None,
+		**kwargs: Any,
+	) -> Any:
+		raise NotImplementedError
+
+	def completion_response_with_stream(
+		self, stream: Any, **kwargs: Any
+	) -> Any:
+		raise NotImplementedError
+
+	def completion_response_without_stream(
+		self, response: Any, new_block: MessageBlock, **kwargs: Any
+	) -> MessageBlock:
+		raise NotImplementedError
+
 
 _SIGMA_NIGHT_CATALOG_ENGINES = [
 	OpenAIEngine,
@@ -22,7 +66,7 @@ _SIGMA_NIGHT_CATALOG_ENGINES = [
 	XAIEngine,
 	MistralAIEngine,
 	AnthropicEngine,
-	GeminiEngine,
+	_GeminiSigmaNightCatalogStub,
 ]
 
 
@@ -39,7 +83,7 @@ def test_models_loader_uses_dynamic_loader(engine_cls, monkeypatch):
 		called_urls.append(url)
 		return []
 
-	monkeypatch.setattr(_base_engine, "load_models_from_url", _fake_loader)
+	monkeypatch.setattr(base_engine, "load_models_from_url", _fake_loader)
 	discarded_models = engine.models
 	assert discarded_models == []
 	assert called_urls == [engine.MODELS_JSON_URL]
@@ -57,7 +101,7 @@ def test_sigma_night_catalog_fetch_failure_returns_empty_models(
 	def _boom_loader(_url: str):
 		raise RuntimeError("network down")
 
-	monkeypatch.setattr(_base_engine, "load_models_from_url", _boom_loader)
+	monkeypatch.setattr(base_engine, "load_models_from_url", _boom_loader)
 	assert engine.models == []
 	assert engine.get_model_loading_error() == "network down"
 
@@ -80,7 +124,7 @@ def test_anthropic_loader_synthesizes_thinking_variants(monkeypatch):
 			)
 		]
 
-	monkeypatch.setattr(_base_engine, "load_models_from_url", _fake_loader)
+	monkeypatch.setattr(base_engine, "load_models_from_url", _fake_loader)
 	out = engine.models
 	assert called_urls == [engine.MODELS_JSON_URL]
 	assert len(out) == 2
@@ -90,8 +134,6 @@ def test_anthropic_loader_synthesizes_thinking_variants(monkeypatch):
 
 def test_loader_maps_reasoning_from_metadata_by_default():
 	"""Reasoning flag is mapped from metadata without extra loader options."""
-	from basilisk.provider_engine.dynamic_model_loader import ProviderMetadata
-
 	raw = {
 		"models": [
 			{
@@ -117,8 +159,6 @@ def test_loader_maps_reasoning_from_metadata_by_default():
 
 def test_loader_mapping_does_not_force_reasoning_from_id():
 	"""ID naming alone does not enable reasoning when metadata says no."""
-	from basilisk.provider_engine.dynamic_model_loader import ProviderMetadata
-
 	raw = {
 		"models": [
 			{
