@@ -309,7 +309,7 @@ class BaseEngine(ABC):
 				models = self._load_models()
 				try:
 					self._write_models_disk_cache(models, now)
-				except OSError as write_exc:
+				except (OSError, TypeError, ValueError) as write_exc:
 					log.warning(
 						"Failed writing models disk cache: %s", write_exc
 					)

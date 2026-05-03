@@ -182,6 +182,8 @@ class BaseConversationPresenter:
 			(m for m in displayed_models if m.id == self._pending_model_id),
 			None,
 		)
+		if model is None:
+			return None
 		self._pending_model_id = None
 		self._pending_model_account_id = None
 		return model

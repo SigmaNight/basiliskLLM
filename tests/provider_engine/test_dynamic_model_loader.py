@@ -437,8 +437,8 @@ def test_parse_model_metadata_document_from_input_modalities():
 	assert by_id["no-doc"].extra_info["document_input"] is False
 
 
-def test_parse_model_metadata_audio_from_input_modalities():
-	"""parse_model_metadata derives audio from input_modalities array."""
+def test_parse_model_metadata_audio_from_input_modalities_singleton():
+	"""parse_model_metadata derives audio from input_modalities (single model)."""
 	raw = {
 		"models": [
 			{

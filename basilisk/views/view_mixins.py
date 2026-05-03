@@ -2,13 +2,29 @@
 
 Provides:
 - ``ErrorDisplayMixin``: unified error display for wx-based views.
+- ``_guard_view_destroying``: decorator skipping callbacks during view teardown.
 """
 
 from __future__ import annotations
 
+import functools
+from typing import Callable
+
 import wx
 
 from basilisk.views.enhanced_error_dialog import show_enhanced_error_dialog
+
+
+def _guard_view_destroying(method: Callable) -> Callable:
+	"""Decorator: no-op if ``self._is_destroying`` is True (view teardown)."""
+
+	@functools.wraps(method)
+	def wrapper(self, *args, **kwargs):
+		if getattr(self, "_is_destroying", False):
+			return None
+		return method(self, *args, **kwargs)
+
+	return wrapper
 
 
 class ErrorDisplayMixin:

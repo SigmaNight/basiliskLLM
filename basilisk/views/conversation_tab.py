@@ -497,7 +497,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
 			matched_account = next(
-				config.accounts().get_accounts_by_provider(provider_id), None
+				config.accounts().get_accounts_by_provider_id(provider_id), None
 			)
 			if matched_account:
 				self.set_account_combo(matched_account)
@@ -511,7 +511,6 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 				self.base_conv_presenter.set_pending_model(
 					model_id, matched_account.id
 				)
-				self._try_select_pending_model()
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 

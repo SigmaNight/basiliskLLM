@@ -247,10 +247,12 @@ class TestPopPendingModel:
 		assert result is None
 
 	def test_returns_none_when_no_displayed_models(self, presenter):
-		"""Returns None when displayed_models is empty."""
+		"""Returns None when displayed_models is empty; pending stays for later."""
 		presenter.set_pending_model("gpt-4", "acct-1")
 		result = presenter.pop_pending_model([], "acct-1")
 		assert result is None
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
 
 	def test_returns_matching_model_and_clears_state(self, presenter):
 		"""Returns the matching model and resets pending state."""
@@ -262,14 +264,14 @@ class TestPopPendingModel:
 		assert presenter._pending_model_account_id is None
 
 	def test_returns_none_when_model_not_found(self, presenter):
-		"""Returns None when no displayed model matches the pending id."""
+		"""Returns None when no displayed model matches; pending kept for reload."""
 		presenter.set_pending_model("gpt-4", "acct-1")
 		result = presenter.pop_pending_model(
 			[_make_provider_model("claude-3")], "acct-1"
 		)
 		assert result is None
-		assert presenter._pending_model_id is None
-		assert presenter._pending_model_account_id is None
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
 
 
 class TestLoadModelsInBackground:

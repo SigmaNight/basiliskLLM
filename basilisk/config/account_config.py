@@ -571,6 +571,21 @@ class AccountManager(BasiliskBaseSettings):
 		"""
 		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
+	def get_accounts_by_provider_id(
+		self, provider_id: Optional[str] = None
+	) -> Iterable[Account]:
+		"""Get accounts whose provider id matches (e.g. ``openai``, ``anthropic``).
+
+		Args:
+			provider_id: ``Provider.id`` string to filter accounts.
+
+		Returns:
+			Iterable of accounts for that provider id.
+		"""
+		if provider_id is None:
+			return iter(())
+		return filter(lambda x: x.provider.id == provider_id, self.accounts)
+
 	def remove(self, account: Account):
 		"""Remove an account from the configuration.
 
@@ -598,6 +613,15 @@ class AccountManager(BasiliskBaseSettings):
 				account_id,
 				exc,
 			)
+		info = self.default_account_info
+		if isinstance(info, UUID) and info == account.id:
+			self.default_account_info = None
+			self.__dict__.pop("default_account", None)
+		elif self.__dict__.get("default_account") is not None:
+			cached = self.__dict__["default_account"]
+			if getattr(cached, "id", None) == account.id:
+				self.default_account_info = None
+				self.__dict__.pop("default_account", None)
 
 	def clear(self):
 		"""Clear all accounts from the configuration."""

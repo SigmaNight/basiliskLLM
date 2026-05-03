@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal, getcontext
 from typing import Any
 
@@ -250,7 +251,7 @@ def _details_pricing_lines(ex: dict[str, Any], consumed: set[str]) -> list[str]:
 
 
 def _details_provider_lines(
-	ex: dict[str, Any], consumed: set[str]
+	model: ProviderAIModel, ex: dict[str, Any], consumed: set[str]
 ) -> list[str]:
 	out: list[str] = []
 	if tok := ex.get("tokenizer"):
@@ -266,10 +267,23 @@ def _details_provider_lines(
 		im = ex["is_moderated"]
 		# Translators: AI model details
 		out.append(_("Provider-moderated:") + " " + _yes_no_label(bool(im)))
-	if cr := ex.get("created"):
-		consumed.add("created")
+	catalog: str | None = None
+	if model.created:
+		try:
+			catalog = datetime.fromtimestamp(model.created).strftime(
+				"%Y-%m-%d %H:%M:%S"
+			)
+		except OSError, OverflowError, ValueError:
+			catalog = None
+	if not catalog and isinstance(ex.get("created"), str):
+		st = ex["created"].strip()
+		if st:
+			catalog = st
+	if catalog:
+		if "created" in ex:
+			consumed.add("created")
 		# Translators: AI model details (release / catalog timestamp)
-		out.append(_("Catalog created:") + f" {cr}")
+		out.append(_("Catalog created:") + f" {catalog}")
 	return out
 
 
@@ -308,7 +322,7 @@ def _build_provider_model_display_details(model: ProviderAIModel) -> str:
 		_details_limits_lines(model),
 		_details_modality_lines(model, ex, consumed),
 		_details_feature_lines(model, ex, consumed),
-		_details_provider_lines(ex, consumed),
+		_details_provider_lines(model, ex, consumed),
 	]
 	# Run pricing before ``remaining`` so price keys stay out of leftover lines,
 	# but append the pricing block last in the dialog.

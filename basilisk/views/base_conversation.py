@@ -15,6 +15,7 @@ from basilisk.presenters.base_conversation_presenter import (
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
+from basilisk.views.view_mixins import _guard_view_destroying
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -73,6 +74,7 @@ class BaseConversation:
 			account_model_service
 		)
 		self._displayed_models: list[ProviderAIModel] = []
+		self._is_destroying = False
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -326,8 +328,8 @@ class BaseConversation:
 			self.base_conv_presenter.set_pending_model(
 				model_id, current_account.id
 			)
-			self._try_select_pending_model()
 
+	@_guard_view_destroying
 	def _on_models_loaded(
 		self,
 		account_id,
@@ -335,12 +337,6 @@ class BaseConversation:
 		error_message: str | None = None,
 	):
 		"""Render loaded models — pure UI callback from presenter worker."""
-		if getattr(self, "_is_destroying", False):
-			return
-		if hasattr(self, "_is_widget_valid") and not self._is_widget_valid(
-			"model_list"
-		):
-			return
 		current_account = self.current_account
 		if not current_account or current_account.id != account_id:
 			return
