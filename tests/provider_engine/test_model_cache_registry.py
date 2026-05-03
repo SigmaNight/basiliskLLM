@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-import basilisk.provider_engine.model_cache_registry as _registry
 from basilisk.provider_engine.model_cache_registry import (
+	_write_text_atomic,
 	get_models_cache_dir,
 	prune_model_cache_registry,
 	register_model_cache_file,
@@ -127,5 +127,5 @@ def test_write_text_atomic_removes_temp_file_on_replace_error(
 
 	monkeypatch.setattr(Path, "replace", _raising_replace)
 	with pytest.raises(OSError, match="replace failed"):
-		_registry._write_text_atomic(target, '{"ok": true}')
+		_write_text_atomic(target, '{"ok": true}')
 	assert not target.with_suffix(".json.tmp").exists()

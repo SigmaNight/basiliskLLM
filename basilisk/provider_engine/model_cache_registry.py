@@ -54,8 +54,12 @@ def _write_text_atomic(path: Path, content: str) -> None:
 	except Exception:
 		try:
 			temp_path.unlink(missing_ok=True)
-		except OSError:
-			pass
+		except OSError as unlink_exc:
+			log.debug(
+				"Could not remove temporary model cache file %s: %s",
+				temp_path,
+				unlink_exc,
+			)
 		raise
 
 

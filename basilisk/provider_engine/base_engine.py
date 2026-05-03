@@ -69,6 +69,8 @@ class BaseEngine(ABC):
 		self._models_cached_at: float | None = None
 		self._models_last_error: str | None = None
 		self._models_cache_lock = threading.Lock()
+		self._models_refresh_cv = threading.Condition(self._models_cache_lock)
+		self._models_refresh_in_progress = False
 
 	@cached_property
 	@abstractmethod
@@ -262,68 +264,90 @@ class BaseEngine(ABC):
 			ttl_seconds
 		)
 		self._prune_models_cache_dir(now, ttl_seconds)
-		with self._models_cache_lock:
-			if (
+
+		def _ram_ttl_ok() -> bool:
+			return (
 				self._models_cache is not None
 				and self._models_cached_at is not None
 				and now - self._models_cached_at < ttl_seconds
-			):
+			)
+
+		with self._models_refresh_cv:
+			if _ram_ttl_ok():
 				log.debug(
 					"Using models from RAM cache for %s",
 					self.__class__.__name__,
 				)
 				return self._models_cache
-		disk_cache = self._read_models_disk_cache(now, ttl_seconds)
-		if disk_cache is not None:
-			models, cached_at = disk_cache
-			with self._models_cache_lock:
-				self._set_models_ram_cache(models, cached_at)
-				self._models_last_error = None
+			while self._models_refresh_in_progress:
+				self._models_refresh_cv.wait()
+			if _ram_ttl_ok():
 				log.debug(
-					"Using models from disk cache for %s",
+					"Using models from RAM cache for %s",
 					self.__class__.__name__,
 				)
 				return self._models_cache
+			self._models_refresh_in_progress = True
+
 		try:
-			log.debug(
-				"Loading models from provider source for %s",
-				self.__class__.__name__,
-			)
-			models = self._load_models()
-			try:
-				self._write_models_disk_cache(models, now)
-			except OSError as write_exc:
-				log.warning("Failed writing models disk cache: %s", write_exc)
-		except Exception as exc:
-			log.warning(
-				"Failed to refresh models for %s: %s",
-				self.__class__.__name__,
-				exc,
-			)
-			with self._models_cache_lock:
-				self._models_last_error = str(exc)
-				if self._models_cache is not None:
-					return self._models_cache
-			stale_disk_cache = self._read_models_disk_cache(
-				now,
-				ttl_seconds,
-				allow_stale=True,
-				max_stale_seconds=max_stale_seconds,
-			)
-			if stale_disk_cache is not None:
-				models, cached_at = stale_disk_cache
-				with self._models_cache_lock:
+			disk_cache = self._read_models_disk_cache(now, ttl_seconds)
+			if disk_cache is not None:
+				models, cached_at = disk_cache
+				with self._models_refresh_cv:
 					self._set_models_ram_cache(models, cached_at)
+					self._models_last_error = None
 					log.debug(
-						"Using stale models from disk cache fallback for %s",
+						"Using models from disk cache for %s",
 						self.__class__.__name__,
 					)
 					return self._models_cache
-			return []
-		with self._models_cache_lock:
-			self._set_models_ram_cache(models, now)
-			self._models_last_error = None
-			return self._models_cache
+			try:
+				log.debug(
+					"Loading models from provider source for %s",
+					self.__class__.__name__,
+				)
+				models = self._load_models()
+				try:
+					self._write_models_disk_cache(models, now)
+				except OSError as write_exc:
+					log.warning(
+						"Failed writing models disk cache: %s", write_exc
+					)
+			except Exception as exc:
+				log.warning(
+					"Failed to refresh models for %s: %s",
+					self.__class__.__name__,
+					exc,
+				)
+				with self._models_refresh_cv:
+					self._models_last_error = str(exc)
+					if self._models_cache is not None:
+						return self._models_cache
+				stale_disk_cache = self._read_models_disk_cache(
+					now,
+					ttl_seconds,
+					allow_stale=True,
+					max_stale_seconds=max_stale_seconds,
+				)
+				if stale_disk_cache is not None:
+					models, cached_at = stale_disk_cache
+					with self._models_refresh_cv:
+						self._set_models_ram_cache(models, cached_at)
+						log.debug(
+							"Using stale models from disk cache fallback for %s",
+							self.__class__.__name__,
+						)
+						return self._models_cache
+				with self._models_refresh_cv:
+					return []
+			with self._models_refresh_cv:
+				self._set_models_ram_cache(models, now)
+				self._models_last_error = None
+				return self._models_cache
+		finally:
+			with self._models_refresh_cv:
+				self._models_refresh_in_progress = False
+				self._models_refresh_cv.notify_all()
 
 	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
 		"""Retrieves a specific model by its ID.
@@ -350,7 +374,7 @@ class BaseEngine(ABC):
 
 	def invalidate_models_cache(self) -> None:
 		"""Clear the cached model list so the next access reloads it."""
-		with self._models_cache_lock:
+		with self._models_refresh_cv:
 			self._models_cache = None
 			self._models_cached_at = None
 			self._models_last_error = None

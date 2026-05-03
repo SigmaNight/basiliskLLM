@@ -224,6 +224,7 @@ class BaseConversation:
 		self._displayed_models = []
 		if not account or not engine:
 			return
+		# Translators: Placeholder row in the model list while models load
 		self.model_list.Append((_("Loading..."), "", "", ""))
 		self.base_conv_presenter.start_model_loading(
 			account,
@@ -334,6 +335,8 @@ class BaseConversation:
 		error_message: str | None = None,
 	):
 		"""Render loaded models — pure UI callback from presenter worker."""
+		if getattr(self, "_is_destroying", False):
+			return
 		if hasattr(self, "_is_widget_valid") and not self._is_widget_valid(
 			"model_list"
 		):
@@ -347,13 +350,17 @@ class BaseConversation:
 			self.model_list.Append(model.display_model)
 		if error_message:
 			if hasattr(self, "SetStatusText"):
+				# Translators: Short status bar message when model list failed to load
 				self.SetStatusText(_("Model loading failed"))
 			if not models:
+				# Translators: Placeholder row when the model catalog failed to load
 				self.model_list.Append((_("Error loading models"), "", "", ""))
 				if hasattr(self, "show_error"):
 					self.show_error(
+						# Translators: Body of error dialog after model loading failure
 						_("An error occurred while loading models:\n%s")
 						% error_message,
+						# Translators: Title of error dialog for model loading failure
 						_("Model loading error"),
 					)
 		self._try_select_pending_model()

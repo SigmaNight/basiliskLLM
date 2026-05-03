@@ -2,6 +2,7 @@
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 import basilisk.provider_engine.dynamic_model_loader as _dml
 from basilisk.provider_ai_model import ProviderAIModel
@@ -14,10 +15,7 @@ _EXTRA_INFO_KEYS = frozenset(k.value for k in _dml.ModelExtraInfoKey)
 
 def parse_model_metadata(raw: dict) -> list[ProviderAIModel]:
 	"""Local test helper — wraps ProviderMetadata.model_validate for unit tests."""
-	try:
-		return _dml.ProviderMetadata.model_validate(raw).get_provider_models()
-	except Exception:
-		return []
+	return _dml.ProviderMetadata.model_validate(raw).get_provider_models()
 
 
 def _models_by_id(raw: dict) -> dict[str, ProviderAIModel]:
@@ -31,12 +29,17 @@ def _minimal_item(model_id: str, **extra) -> dict:
 
 
 @pytest.mark.parametrize(
-	("raw", "expected_len"),
-	[({}, 0), ({"models": []}, 0), ({"models": None}, 0)],
+	("raw", "expected_len"), [({}, 0), ({"models": []}, 0)]
 )
 def test_parse_model_metadata_empty(raw, expected_len):
-	"""parse_model_metadata returns empty list for empty or invalid models key."""
+	"""parse_model_metadata returns empty list for empty models key."""
 	assert len(parse_model_metadata(raw)) == expected_len
+
+
+def test_parse_model_metadata_models_none_raises():
+	"""Null models key fails validation (parser errors must surface)."""
+	with pytest.raises(ValidationError, match="models"):
+		parse_model_metadata({"models": None})
 
 
 def test_parse_model_metadata_openai_structure():

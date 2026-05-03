@@ -255,9 +255,17 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		}
 		if pricing_summary:
 			extra_info["Pricing"] = pricing_summary
-			extra_info["created"] = datetime.fromtimestamp(
-				self.created_timestamp
-			).strftime("%Y-%m-%d %H:%M:%S")
+			try:
+				extra_info["created"] = datetime.fromtimestamp(
+					self.created_timestamp
+				).strftime("%Y-%m-%d %H:%M:%S")
+			except (OSError, OverflowError, ValueError) as exc:
+				log.debug(
+					"Skipping extra_info created for model %s (timestamp=%r): %s",
+					self.id,
+					self.created_timestamp,
+					exc,
+				)
 		return ProviderAIModel(
 			id=self.id,
 			name=self.name,
