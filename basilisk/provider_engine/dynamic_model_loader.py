@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from decimal import Decimal, getcontext
 from enum import StrEnum, auto
 from functools import cached_property
 from typing import Annotated, Any
@@ -29,10 +28,9 @@ from pydantic import (
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.decorators import measure_time
-from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model import ProviderAIModel, summarize_pricing
 
 log = logging.getLogger(__name__)
-getcontext().prec = 20
 
 
 class ArchitectureModalityToken(StrEnum):
@@ -67,13 +65,8 @@ class ModelExtraInfoKey(StrEnum):
 	VIDEO_OUTPUT = auto()
 
 
-# HTTP client
 _HTTP_TIMEOUT_SECONDS = 30.0
-
-# Schema does not expose max temperature; keep aligned with prior static model lists.
 _DEFAULT_MAX_TEMPERATURE_FROM_METADATA = 2.0
-
-# When ``default_parameters.temperature`` is null or absent; matches ProviderAIModel default.
 _FALLBACK_DEFAULT_TEMPERATURE = 1.0
 _DEFAULT_CONTEXT_WINDOW = 0
 _DEFAULT_MAX_OUTPUT_TOKENS = -1
@@ -103,6 +96,8 @@ class ArchitectureMetadata(BaseModel, extra="ignore"):
 		default_factory=set
 	)
 	modality: str | None = None
+	tokenizer: str | None = None
+	instruct_type: str | None = None
 
 	@staticmethod
 	def _split_modality_tokens(
@@ -178,6 +173,7 @@ class TopProviderMetadata(BaseModel, extra="ignore"):
 
 	context_length: int | None = None
 	max_completion_tokens: int | None = None
+	is_moderated: bool | None = None
 
 
 class DefaultParametersMetadata(BaseModel, extra="ignore"):
@@ -255,6 +251,7 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		}
 		if pricing_summary:
 			extra_info["Pricing"] = pricing_summary
+		if self.created_timestamp:
 			try:
 				extra_info["created"] = datetime.fromtimestamp(
 					self.created_timestamp
@@ -266,6 +263,24 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 					self.created_timestamp,
 					exc,
 				)
+		in_mod = self.architecture.inferred_input_modalities
+		out_mod = self.architecture.inferred_output_modalities
+		if in_mod:
+			extra_info["input_modalities"] = ", ".join(
+				sorted(t.value for t in in_mod)
+			)
+		if out_mod:
+			extra_info["output_modalities"] = ", ".join(
+				sorted(t.value for t in out_mod)
+			)
+		if self.architecture.modality:
+			extra_info["modality_route"] = self.architecture.modality
+		if self.architecture.tokenizer:
+			extra_info["tokenizer"] = self.architecture.tokenizer
+		if self.architecture.instruct_type is not None:
+			extra_info["instruct_type"] = str(self.architecture.instruct_type)
+		if self.top_provider.is_moderated is not None:
+			extra_info["is_moderated"] = self.top_provider.is_moderated
 		return ProviderAIModel(
 			id=self.id,
 			name=self.name,
@@ -349,36 +364,6 @@ def parse_created_timestamp(value: Any) -> int:
 		return int(value)
 	except TypeError, ValueError:
 		return 0
-
-
-def summarize_pricing(pricing: dict[str, Any]) -> str:
-	"""Format pricing map into human-readable model details text."""
-	if not isinstance(pricing, dict):
-		return ""
-	out = "\n"
-	for usage_type, raw_price in pricing.items():
-		if raw_price is None:
-			continue
-		price = str(raw_price)
-		if price == "0":
-			continue
-		try:
-			if usage_type == "image":
-				price_1k = round(Decimal(price) * Decimal(1000), 3)
-				if price_1k == 0:
-					continue
-				out += (
-					f"  {usage_type}: ${price_1k}/K input imgs "
-					f"(${price}/input img)\n"
-				)
-			else:
-				price_1m = round(Decimal(price) * Decimal(1000000), 2)
-				out += (
-					f"  {usage_type}: ${price_1m}/M tokens (${price}/token)\n"
-				)
-		except ArithmeticError:
-			continue
-	return out.rstrip()
 
 
 @measure_time

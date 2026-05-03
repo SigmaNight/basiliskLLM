@@ -10,7 +10,22 @@ from basilisk.provider_ai_model import ProviderAIModel
 fetch_models_json = _dml.fetch_models_json
 load_models_from_url = _dml.load_models_from_url
 
-_EXTRA_INFO_KEYS = frozenset(k.value for k in _dml.ModelExtraInfoKey)
+_LOADER_EXTRA_INFO_REQUIRED = frozenset(k.value for k in _dml.ModelExtraInfoKey)
+_LOADER_EXTRA_INFO_OPTIONAL = frozenset(
+	{
+		"input_modalities",
+		"output_modalities",
+		"modality_route",
+		"tokenizer",
+		"instruct_type",
+		"is_moderated",
+		"Pricing",
+		"created",
+	}
+)
+_ALLOWED_LOADER_EXTRA_KEYS = (
+	_LOADER_EXTRA_INFO_REQUIRED | _LOADER_EXTRA_INFO_OPTIONAL
+)
 
 
 def parse_model_metadata(raw: dict) -> list[ProviderAIModel]:
@@ -87,7 +102,9 @@ def test_parse_model_metadata_openai_structure():
 
 def assert_extra_info_shape(m: ProviderAIModel) -> None:
 	"""Document the loader's extra_info contract."""
-	assert set(m.extra_info.keys()) == _EXTRA_INFO_KEYS
+	keys = set(m.extra_info.keys())
+	assert _LOADER_EXTRA_INFO_REQUIRED <= keys
+	assert keys <= _ALLOWED_LOADER_EXTRA_KEYS
 
 
 def test_parse_model_metadata_extra_info_defaults():
