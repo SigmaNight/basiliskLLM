@@ -5,6 +5,10 @@ import logging
 import wx
 
 import basilisk.config as config
+from basilisk.config.main_config import (
+	MODEL_METADATA_CACHE_TTL_MAX_SECONDS,
+	MODEL_METADATA_CACHE_TTL_MIN_SECONDS,
+)
 from basilisk.presenters.preferences_presenter import (
 	AUTO_UPDATE_MODES,
 	LOG_LEVELS,
@@ -288,6 +292,22 @@ class PreferencesDialog(wx.Dialog):
 		)
 		self.use_system_cert_store.SetValue(conf.network.use_system_cert_store)
 		network_sizer.Add(self.use_system_cert_store, 0, wx.ALL, 5)
+
+		label = wx.StaticText(
+			network_group,
+			# Translators: Label for model catalog HTTP cache duration in preferences
+			label=_("Model list &cache duration (seconds):"),
+			style=wx.ALIGN_LEFT,
+		)
+		network_sizer.Add(label, 0, wx.ALL, 5)
+		self.model_metadata_cache_ttl = wx.SpinCtrl(
+			network_group,
+			value=str(conf.general.model_metadata_cache_ttl_seconds),
+			min=MODEL_METADATA_CACHE_TTL_MIN_SECONDS,
+			max=MODEL_METADATA_CACHE_TTL_MAX_SECONDS,
+		)
+		network_sizer.Add(self.model_metadata_cache_ttl, 0, wx.ALL, 5)
+
 		sizer.Add(network_sizer, 0, wx.ALL, 5)
 
 		server_group = wx.StaticBox(panel, label=_("Server"))

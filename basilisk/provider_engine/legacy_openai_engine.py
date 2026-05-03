@@ -7,9 +7,8 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
-from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import TYPE_CHECKING, Generator, Union
+from typing import TYPE_CHECKING, ClassVar, Generator, Union
 
 from openai import OpenAI
 from openai.types.chat import (
@@ -30,10 +29,10 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
+from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
@@ -41,7 +40,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class LegacyOpenAIEngine(BaseEngine, ABC):
+class LegacyOpenAIEngine(BaseEngine):
 	"""Engine implementation for OpenAI API integration.
 
 	Provides functionality for interacting with OpenAI's models, supporting text,
@@ -51,6 +50,9 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		capabilities: Set of supported capabilities including text, image, STT, and TTS.
 	"""
 
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
+		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
@@ -91,15 +93,6 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			base_url=self.account.custom_base_url
 			or str(self.account.provider.base_url),
 		)
-
-	@abstractmethod
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available OpenAI models.
-
-		Returns:
-			List of supported OpenAI models with their configurations.
-		"""
-		pass
 
 	def prepare_message_request(
 		self, message: Message
@@ -176,6 +169,7 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
 		model_id = new_block.model.model_id
+		model = self.get_model(model_id)
 		params = {
 			"model": model_id,
 			"messages": self.get_messages(
@@ -191,6 +185,7 @@ class LegacyOpenAIEngine(BaseEngine, ABC):
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
+		self._strip_catalog_sampling_params(model, params)
 		response = self.client.chat.completions.create(**params)
 		return response
 

@@ -7,11 +7,8 @@ import pytest
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -24,11 +21,6 @@ def mock_service():
 def presenter(mock_service):
 	"""Return a BaseConversationPresenter with a mock service."""
 	return BaseConversationPresenter(account_model_service=mock_service)
-
-
-# ---------------------------------------------------------------------------
-# Helpers (used inline for custom state)
-# ---------------------------------------------------------------------------
 
 
 def _make_account(display_name: str) -> MagicMock:
@@ -59,11 +51,6 @@ def _make_model(display_model: tuple) -> MagicMock:
 	return model
 
 
-# ---------------------------------------------------------------------------
-# Initialisation
-# ---------------------------------------------------------------------------
-
-
 class TestBaseConversationPresenterInit:
 	"""Tests for BaseConversationPresenter.__init__."""
 
@@ -76,11 +63,6 @@ class TestBaseConversationPresenterInit:
 		"""The provided service instance is stored unchanged."""
 		p = BaseConversationPresenter(account_model_service=mock_service)
 		assert p.account_model_service is mock_service
-
-
-# ---------------------------------------------------------------------------
-# get_display_accounts()
-# ---------------------------------------------------------------------------
 
 
 class TestGetDisplayAccounts:
@@ -116,11 +98,6 @@ class TestGetDisplayAccounts:
 		accounts[0].reset_active_organization.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# get_display_models()
-# ---------------------------------------------------------------------------
-
-
 class TestGetDisplayModels:
 	"""Tests for BaseConversationPresenter.get_display_models()."""
 
@@ -148,11 +125,6 @@ class TestGetDisplayModels:
 		assert presenter.get_display_models(engine) == []
 
 
-# ---------------------------------------------------------------------------
-# get_engine()
-# ---------------------------------------------------------------------------
-
-
 class TestGetEngine:
 	"""Tests for BaseConversationPresenter.get_engine()."""
 
@@ -165,11 +137,6 @@ class TestGetEngine:
 		result = p.get_engine(account)
 		mock_service.get_engine.assert_called_once_with(account)
 		assert result is engine
-
-
-# ---------------------------------------------------------------------------
-# resolve_account_and_model()
-# ---------------------------------------------------------------------------
 
 
 class TestResolveAccountAndModel:
@@ -197,3 +164,220 @@ class TestResolveAccountAndModel:
 		account, model_id = p.resolve_account_and_model(profile)
 		assert account is None
 		assert model_id is None
+
+
+class TestStartModelLoading:
+	"""Tests for BaseConversationPresenter.start_model_loading()."""
+
+	def test_cancels_previous_loader_before_starting_new(self, presenter):
+		"""Existing cancel event is signaled before a new worker is created."""
+		old_cancel_event = MagicMock()
+		presenter._model_loading_cancel_event = old_cancel_event
+		presenter._model_loading_thread = MagicMock()
+		account = MagicMock()
+		account.id = "acct-1"
+		engine = MagicMock()
+		on_loaded = MagicMock()
+		presenter.start_model_loading(account, engine, on_loaded)
+		old_cancel_event.set.assert_called_once()
+		assert presenter._model_loading_generation == 1
+
+
+class TestShutdownModelLoading:
+	"""Tests for BaseConversationPresenter.shutdown_model_loading()."""
+
+	def test_increments_generation(self, presenter):
+		"""shutdown_model_loading() increments _model_loading_generation."""
+		assert presenter._model_loading_generation == 0
+		presenter.shutdown_model_loading()
+		assert presenter._model_loading_generation == 1
+
+	def test_sets_cancel_event(self, presenter):
+		"""shutdown_model_loading() calls set() on the existing cancel event."""
+		cancel_event = MagicMock()
+		presenter._model_loading_cancel_event = cancel_event
+		presenter.shutdown_model_loading()
+		cancel_event.set.assert_called_once()
+
+	def test_clears_thread_and_event_refs(self, presenter):
+		"""shutdown_model_loading() sets thread and cancel event refs to None."""
+		thread = MagicMock()
+		thread.is_alive.return_value = False
+		presenter._model_loading_thread = thread
+		presenter._model_loading_cancel_event = MagicMock()
+		presenter.shutdown_model_loading()
+		assert presenter._model_loading_thread is None
+		assert presenter._model_loading_cancel_event is None
+
+	def test_joins_alive_thread(self, presenter):
+		"""shutdown_model_loading() joins a still-running worker briefly."""
+		thread = MagicMock()
+		thread.is_alive.return_value = True
+		presenter._model_loading_thread = thread
+		presenter._model_loading_cancel_event = MagicMock()
+		presenter.shutdown_model_loading()
+		thread.join.assert_called_once_with(timeout=5.0)
+
+	def test_no_error_when_no_cancel_event(self, presenter):
+		"""shutdown_model_loading() does not raise when cancel event is None."""
+		presenter._model_loading_cancel_event = None
+		presenter.shutdown_model_loading()
+
+
+class TestSetPendingModel:
+	"""Tests for BaseConversationPresenter.set_pending_model()."""
+
+	def test_stores_model_id_and_account_id(self, presenter):
+		"""set_pending_model() stores both identifiers on the presenter."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
+
+
+def _make_provider_model(model_id: str) -> MagicMock:
+	"""Return a mock ProviderAIModel with the given id."""
+	m = MagicMock(spec=ProviderAIModel)
+	m.id = model_id
+	return m
+
+
+class TestPopPendingModel:
+	"""Tests for BaseConversationPresenter.pop_pending_model()."""
+
+	def test_returns_none_when_no_pending(self, presenter):
+		"""Returns None when no pending model is set."""
+		result = presenter.pop_pending_model([], "acct-1")
+		assert result is None
+
+	def test_returns_none_when_wrong_account(self, presenter):
+		"""Returns None when the account_id does not match."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model(
+			[_make_provider_model("gpt-4")], "acct-2"
+		)
+		assert result is None
+
+	def test_returns_none_when_no_displayed_models(self, presenter):
+		"""Returns None when displayed_models is empty; pending stays for later."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model([], "acct-1")
+		assert result is None
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
+
+	def test_returns_matching_model_and_clears_state(self, presenter):
+		"""Returns the matching model and resets pending state."""
+		model = _make_provider_model("gpt-4")
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model([model], "acct-1")
+		assert result is model
+		assert presenter._pending_model_id is None
+		assert presenter._pending_model_account_id is None
+
+	def test_returns_none_when_model_not_found(self, presenter):
+		"""Returns None when no displayed model matches; pending kept for reload."""
+		presenter.set_pending_model("gpt-4", "acct-1")
+		result = presenter.pop_pending_model(
+			[_make_provider_model("claude-3")], "acct-1"
+		)
+		assert result is None
+		assert presenter._pending_model_id == "gpt-4"
+		assert presenter._pending_model_account_id == "acct-1"
+
+
+class TestLoadModelsInBackground:
+	"""Tests for BaseConversationPresenter._load_models_in_background()."""
+
+	def _make_engine(self, models=None, error=None):
+		engine = MagicMock()
+		engine.models = models or []
+		engine.get_model_loading_error.return_value = error
+		return engine
+
+	def test_calls_on_loaded_with_models(self, presenter):
+		"""Calls on_loaded(account_id, models, None) directly on success."""
+		on_loaded = MagicMock()
+		model = _make_provider_model("gpt-4")
+		engine = self._make_engine(models=[model])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		on_loaded.assert_called_once_with("acct-1", [model], None)
+
+	def test_skips_callback_when_cancelled(self, presenter):
+		"""Does not call on_loaded when cancel_event is set."""
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = True
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		on_loaded.assert_not_called()
+
+	def test_skips_callback_when_generation_stale(self, presenter):
+		"""Does not call on_loaded when generation counter has advanced."""
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[_make_provider_model("gpt-4")])
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._model_loading_generation = 1
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		on_loaded.assert_not_called()
+
+	def test_invalidates_cache_on_error_with_no_models(self, presenter):
+		"""Calls invalidate_models_cache() when there is an error but no models."""
+		on_loaded = MagicMock()
+		engine = self._make_engine(models=[], error="Network error")
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		engine.invalidate_models_cache.assert_called_once()
+
+	def test_exception_yields_empty_models_and_error(self, presenter):
+		"""On exception, calls on_loaded with empty models and an error message."""
+		on_loaded = MagicMock()
+
+		class _RaisingEngine:
+			@property
+			def models(self):
+				raise RuntimeError("boom")
+
+		engine = _RaisingEngine()
+		cancel_event = MagicMock()
+		cancel_event.is_set.return_value = False
+		presenter._load_models_in_background(
+			"acct-1", engine, 0, cancel_event, on_loaded
+		)
+		on_loaded.assert_called_once()
+		account_id, models, error_message = on_loaded.call_args[0]
+		assert account_id == "acct-1"
+		assert models == []
+		assert error_message is not None
+
+
+class TestEngineCacheAndSamplingUI:
+	"""Tests for cache invalidation and sampling visibility delegation."""
+
+	def test_invalidate_engine_models_cache_noop_when_none(self, presenter):
+		"""Passing None does not raise."""
+		presenter.invalidate_engine_models_cache(None)
+
+	def test_invalidate_engine_models_cache_delegates(self, presenter):
+		"""Delegates to engine.invalidate_models_cache when engine is set."""
+		engine = MagicMock()
+		presenter.invalidate_engine_models_cache(engine)
+		engine.invalidate_models_cache.assert_called_once()
+
+	def test_get_main_ui_sampling_controls_visibility_none_model(
+		self, presenter
+	):
+		"""No model metadata means all main sampling rows stay visible."""
+		out = presenter.get_main_ui_sampling_controls_visibility(None)
+		assert all(out.values())

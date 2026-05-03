@@ -10,11 +10,13 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+from basilisk.model_catalog.sampling import MAIN_UI_SAMPLING_PARAM_KEYS
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
+from basilisk.views.view_mixins import _guard_view_destroying
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine
@@ -72,6 +74,8 @@ class BaseConversation:
 		self.base_conv_presenter = BaseConversationPresenter(
 			account_model_service
 		)
+		self._displayed_models: list[ProviderAIModel] = []
+		self._is_destroying = False
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -216,9 +220,20 @@ class BaseConversation:
 
 	def update_model_list(self):
 		"""Update the model list with current engine's available models."""
+		account = self.current_account
+		engine = self.current_engine
+		self.base_conv_presenter.shutdown_model_loading()
 		self.model_list.DeleteAllItems()
-		for model in self.get_display_models():
-			self.model_list.Append(model)
+		self._displayed_models = []
+		if not account or not engine:
+			return
+		# Translators: Placeholder row in the model list while models load
+		self.model_list.Append((_("Loading..."), "", "", ""))
+		self.base_conv_presenter.start_model_loading(
+			account,
+			engine,
+			lambda *args: wx.CallAfter(self._on_models_loaded, *args),
+		)
 
 	def get_display_models(self) -> list[tuple[str, str, str]]:
 		"""Get list of models for display.
@@ -234,13 +249,21 @@ class BaseConversation:
 		Args:
 			model: Model to select
 		"""
-		engine = self.current_engine
-		if not engine:
+		if model is None:
+			selected_index = self.model_list.GetFirstSelected()
+			if selected_index != wx.NOT_FOUND:
+				self.model_list.SetItemState(
+					selected_index,
+					0,
+					wx.LIST_STATE_SELECTED | wx.LIST_STATE_FOCUSED,
+				)
 			return
-		models = engine.models
 		index = wx.NOT_FOUND
 		if model:
-			index = next(locate(models, lambda m: m == model), wx.NOT_FOUND)
+			index = next(
+				locate(self._displayed_models, lambda m: m == model),
+				wx.NOT_FOUND,
+			)
 		if index != wx.NOT_FOUND:
 			self.model_list.SetItemState(
 				index,
@@ -256,13 +279,12 @@ class BaseConversation:
 		Returns:
 			The currently selected model or None if no model is selected.
 		"""
-		engine = self.current_engine
-		if not engine:
-			return None
 		model_index = self.model_list.GetFirstSelected()
 		if model_index == wx.NOT_FOUND:
 			return None
-		return engine.models[model_index]
+		if model_index >= len(self._displayed_models):
+			return None
+		return self._displayed_models[model_index]
 
 	def on_model_change(self, event: wx.Event | None):
 		"""Handle model selection change events.
@@ -271,12 +293,42 @@ class BaseConversation:
 			event: The event triggering the model change
 		"""
 		model = self.current_model
-		if not model:
+		if model:
+			self.temperature_spinner.SetMax(model.max_temperature)
+			self.temperature_spinner.SetValue(model.default_temperature)
+			self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
+			self.max_tokens_spin_ctrl.SetValue(0)
+		self.refresh_sampling_controls_visibility(model)
+
+	def refresh_sampling_controls_visibility(
+		self,
+		model: Optional[ProviderAIModel] = None,
+		*,
+		gate_on_advanced_mode: bool = True,
+	) -> None:
+		"""Show or hide max-tokens / temperature / top-P rows from catalog metadata.
+
+		When ``gate_on_advanced_mode`` is True and advanced mode is off (main tab
+		/ profile), sampling rows stay hidden; :meth:`adjust_advanced_mode_setting`
+		owns that state until advanced mode is enabled.
+		"""
+		if gate_on_advanced_mode and not config.conf().general.advanced_mode:
 			return
-		self.temperature_spinner.SetMax(model.max_temperature)
-		self.temperature_spinner.SetValue(model.default_temperature)
-		self.max_tokens_spin_ctrl.SetMax(model.effective_max_output_tokens)
-		self.max_tokens_spin_ctrl.SetValue(0)
+		resolved = model if model is not None else self.current_model
+		vis = self.base_conv_presenter.get_main_ui_sampling_controls_visibility(
+			resolved
+		)
+		rows = (
+			(self.max_tokens_spin_label, self.max_tokens_spin_ctrl),
+			(self.temperature_spinner_label, self.temperature_spinner),
+			(self.top_p_spinner_label, self.top_p_spinner),
+		)
+		for key, pair in zip(MAIN_UI_SAMPLING_PARAM_KEYS, rows, strict=True):
+			show = vis[key]
+			for w in pair:
+				w.Show(show)
+				w.Enable(show)
+		self.Layout()
 
 	def set_account_and_model_from_profile(
 		self,
@@ -300,24 +352,76 @@ class BaseConversation:
 			return
 		if account:
 			self.set_account_combo(account)
-		engine = self.current_engine
-		if not engine:
-			return
 		if model_id:
-			model = engine.get_model(model_id)
-			if model:
-				self.set_model_list(model)
+			current_account = self.current_account
+			if not current_account:
+				return
+			self.base_conv_presenter.set_pending_model(
+				model_id, current_account.id
+			)
+
+	@_guard_view_destroying
+	def _on_models_loaded(
+		self,
+		account_id,
+		models: list[ProviderAIModel],
+		error_message: str | None = None,
+	):
+		"""Render loaded models — pure UI callback from presenter worker."""
+		current_account = self.current_account
+		if not current_account or current_account.id != account_id:
+			return
+		self._displayed_models = models
+		self.model_list.DeleteAllItems()
+		for model in models:
+			self.model_list.Append(model.display_model)
+		if error_message:
+			if hasattr(self, "SetStatusText"):
+				# Translators: Short status bar message when model list failed to load
+				self.SetStatusText(_("Model loading failed"))
+			if not models:
+				# Translators: Placeholder row when the model catalog failed to load
+				self.model_list.Append((_("Error loading models"), "", "", ""))
+				if hasattr(self, "show_error"):
+					self.show_error(
+						# Translators: Body of error dialog after model loading failure
+						_("An error occurred while loading models:\n%s")
+						% error_message,
+						# Translators: Title of error dialog for model loading failure
+						_("Model loading error"),
+					)
+		self._try_select_pending_model()
+		self.refresh_sampling_controls_visibility(self.current_model)
+
+	def _try_select_pending_model(self):
+		"""Select the pending model once displayed models are available."""
+		if not self._displayed_models:
+			return
+		account = self.current_account
+		if not account:
+			return
+		model = self.base_conv_presenter.pop_pending_model(
+			self._displayed_models, account.id
+		)
+		if model:
+			self.set_model_list(model)
+
+	def shutdown_model_loading(self):
+		"""Cancel and invalidate any in-flight model loading worker."""
+		self.base_conv_presenter.shutdown_model_loading()
 
 	def on_model_key_down(self, event: wx.KeyEvent):
 		"""Handle key down events for model list control.
 
-		Use Enter key to show model details.
+		Use Enter key to show model details and F5 to refresh models.
 
 		Args:
 			event: The key event triggering the model key down event
 		"""
 		if event.GetKeyCode() == wx.WXK_RETURN:
 			self.on_show_model_details(None)
+		elif event.GetKeyCode() == wx.WXK_F5:
+			self.on_refresh_model_list(None)
 		else:
 			event.Skip()
 
@@ -336,8 +440,23 @@ class BaseConversation:
 		)
 		menu.Append(item)
 		self.Bind(wx.EVT_MENU, self.on_show_model_details, item)
+		item = wx.MenuItem(
+			menu,
+			wx.ID_ANY,
+			# Translators: This is a label for refreshing model list
+			_("Refresh") + " (F5)",
+		)
+		menu.Append(item)
+		self.Bind(wx.EVT_MENU, self.on_refresh_model_list, item)
 		self.model_list.PopupMenu(menu)
 		menu.Destroy()
+
+	def on_refresh_model_list(self, event: wx.CommandEvent | None):
+		"""Refresh model list by invalidating current engine cache."""
+		self.base_conv_presenter.invalidate_engine_models_cache(
+			self.current_engine
+		)
+		self.update_model_list()
 
 	def on_show_model_details(self, event: wx.CommandEvent | None):
 		"""Show model details dialog.
@@ -470,20 +589,28 @@ class BaseConversation:
 		if profile.top_p is not None:
 			self.top_p_spinner.SetValue(profile.top_p)
 		self.stream_mode.SetValue(profile.stream_mode)
+		self.refresh_sampling_controls_visibility()
 
 	def adjust_advanced_mode_setting(self):
 		"""Update UI controls visibility based on advanced mode setting."""
-		controls = (
+		sampling = (
 			self.max_tokens_spin_label,
 			self.max_tokens_spin_ctrl,
 			self.temperature_spinner_label,
 			self.temperature_spinner,
 			self.top_p_spinner_label,
 			self.top_p_spinner,
-			self.stream_mode,
 		)
+		stream = self.stream_mode
 		advanced_mode = config.conf().general.advanced_mode
-		for control in controls:
-			control.Enable(advanced_mode)
-			control.Show(advanced_mode)
+		if not advanced_mode:
+			for control in (*sampling, stream):
+				control.Enable(False)
+				control.Show(False)
+		else:
+			stream.Enable(True)
+			stream.Show(True)
+			self.refresh_sampling_controls_visibility(
+				gate_on_advanced_mode=False
+			)
 		self.Layout()

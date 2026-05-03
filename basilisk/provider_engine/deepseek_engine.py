@@ -4,8 +4,6 @@ This module provides the DeepSeekAIEngine class for interacting with the DeepSee
 implementing capabilities for text generation using various DeepSeek models.
 """
 
-import logging
-from functools import cached_property
 from typing import Generator
 
 from openai.types.chat import (
@@ -17,10 +15,8 @@ from openai.types.chat import (
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
 from basilisk.provider_capability import ProviderCapability
 
-from .base_engine import ProviderAIModel
+from .base_engine import sigma_night_data_file
 from .legacy_openai_engine import LegacyOpenAIEngine
-
-log = logging.getLogger(__name__)
 
 
 class DeepSeekAIEngine(LegacyOpenAIEngine):
@@ -29,49 +25,18 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	Extends LegacyOpenAIEngine to provide DeepSeek-specific model configurations and capabilities.
 	Supports text generation and reasoning capabilities.
 
+	Model metadata uses the same ``BaseEngine.models`` pipeline as OpenAI,
+	Anthropic, Gemini, Mistral, and xAI: sigma-night JSON at ``MODELS_JSON_URL``,
+	fetched via ``load_models_from_url``, with the shared RAM and disk model-list
+	cache and TTL behavior.
+
 	Attributes:
 		capabilities: Set of supported capabilities (currently text only).
 	"""
 
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available DeepSeek models.
-
-		Returns:
-			List of supported DeepSeek models with their configurations.
-		"""
-		log.debug("Getting DeepSeek models")
-		# See <https://api-docs.deepseek.com/quick_start/pricing>
-		models = [
-			ProviderAIModel(
-				id="deepseek-chat",
-				name="DeepSeek-V3.2",
-				# Translators: This is a model description
-				description=_(
-					"Non-thinking mode for general chat, code and writing"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=8000,
-			),
-			ProviderAIModel(
-				id="deepseek-reasoner",
-				name="DeepSeek-R1",
-				# Translators: This is a model description
-				description=_(
-					"Thinking mode for chain-of-thought, research and logic"
-				),
-				context_window=128000,
-				max_temperature=2.0,
-				default_temperature=1.0,
-				max_output_tokens=64000,
-				reasoning=True,
-			),
-		]
-		return models
+	MODELS_JSON_URL = sigma_night_data_file("deepseek.json")
 
 	def completion_response_with_stream(
 		self, stream: Generator[ChatCompletionChunk, None, None]

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Any, ClassVar, Generator
 
 from mistralai.client import Mistral
 from mistralai.client.models import ChatCompletionResponse, CompletionEvent
@@ -22,11 +22,12 @@ from basilisk.conversation import (
 )
 from basilisk.conversation.attached_file import AttachmentFile
 
+from .base_engine import BaseEngine, ProviderCapability, sigma_night_data_file
+from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 from .mistralai_ocr import handle_ocr
 
 if TYPE_CHECKING:
 	from basilisk.config import Account
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +42,9 @@ class MistralAIEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text, image, document, and OCR.
 	"""
 
+	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
+		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
+	)
 	capabilities: set[ProviderCapability] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
@@ -54,6 +58,8 @@ class MistralAIEngine(BaseEngine):
 		"image/webp",
 		"application/pdf",
 	}
+
+	MODELS_JSON_URL = sigma_night_data_file("mistralai.json")
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the MistralAI engine.
@@ -76,134 +82,6 @@ class MistralAIEngine(BaseEngine):
 			server_url=self.account.custom_base_url
 			or self.account.provider.base_url,
 		)
-
-	@cached_property
-	def models(self) -> list[ProviderAIModel]:
-		"""Retrieves available MistralAI models.
-
-		Returns:
-			List of supported MistralAI models with their configurations.
-		"""
-		super().models
-		log.debug("Getting MistralAI models")
-		# See <https://docs.mistral.ai/models/>
-		return [
-			ProviderAIModel(
-				id="mistral-large-2512",
-				name="Mistral Large 3",
-				# Translators: This is a model description
-				description=_(
-					"State-of-the-art open-weight general-purpose multimodal model"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-medium-2508",
-				name="Mistral Medium 3.1",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released August 2025"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="mistral-small-2506",
-				name="Mistral Small 3.2",
-				# Translators: This is a model description
-				description=_("Updated small model released June 2025"),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="devstral-2512",
-				name="Devstral 2",
-				# Translators: This is a model description
-				description=_(
-					"Frontier code agents model for software engineering tasks"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="ministral-14b-2512",
-				name="Ministral 3 14B",
-				# Translators: This is a model description
-				description=_(
-					"Powerful model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-8b-2512",
-				name="Ministral 3 8B",
-				# Translators: This is a model description
-				description=_(
-					"Efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="ministral-3b-2512",
-				name="Ministral 3 3B",
-				# Translators: This is a model description
-				description=_(
-					"Tiny efficient model with best-in-class text and vision capabilities"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="codestral-2508",
-				name="Codestral",
-				# Translators: This is a model description
-				description=_(
-					"Cutting-edge language model for code completion"
-				),
-				context_window=256000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-			ProviderAIModel(
-				id="pixtral-large-2411",
-				name="Pixtral Large",
-				# Translators: This is a model description
-				description=_(
-					"Frontier-class multimodal model released November 2024"
-				),
-				context_window=131000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-				vision=True,
-			),
-			ProviderAIModel(
-				id="open-mistral-nemo",
-				name="Mistral Nemo 12B",
-				# Translators: This is a model description
-				description=_(
-					"Best multilingual open source model for text generation"
-				),
-				context_window=128000,
-				max_temperature=1.0,
-				default_temperature=0.7,
-			),
-		]
 
 	def prepare_message_request(self, message: Message) -> dict[str, Any]:
 		"""Prepares a message for MistralAI API request.
@@ -267,6 +145,7 @@ class MistralAIEngine(BaseEngine):
 		super().completion(
 			new_block, conversation, system_message, stop_block_index, **kwargs
 		)
+		model = self.get_model(new_block.model.model_id)
 		params = {
 			"model": new_block.model.model_id,
 			"messages": self.get_messages(
@@ -282,6 +161,7 @@ class MistralAIEngine(BaseEngine):
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
+		self._strip_catalog_sampling_params(model, params)
 		if new_block.stream:
 			return self.client.chat.stream(**params)
 		return self.client.chat.complete(**params)

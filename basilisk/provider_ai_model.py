@@ -1,4 +1,6 @@
-"""Module to provide structure for AI model information."""
+"""Structures for catalog AI models and lightweight export model references."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -22,6 +24,7 @@ class ProviderAIModel:
 		default_temperature: The default temperature for the AI model.
 		reasoning: Whether the AI model supports reasoning.
 		vision: Whether the AI model supports vision.
+		created: Unix timestamp from model-metadata JSON (0 if unknown); used for sort order.
 		extra_info: Additional information for the AI model.
 	"""
 
@@ -34,6 +37,7 @@ class ProviderAIModel:
 	default_temperature: float = field(default=1.0)
 	vision: bool = field(default=False)
 	reasoning: bool = field(default=False)
+	created: int = field(default=0)
 	extra_info: dict[str, Any] = field(default_factory=dict)
 
 	@property
@@ -47,10 +51,10 @@ class ProviderAIModel:
 
 	@property
 	def display_model(self) -> tuple[str, str, str]:
-		"""Get the display model information for model list view.
+		"""Row cells for the model list: name, vision, context, max output.
 
 		Returns:
-			A tuple containing the display name, vision support, context window size, and max output tokens.
+			(display_name, vision yes/no, context_window, max_output or "").
 		"""
 		return (
 			self.display_name,
@@ -63,24 +67,20 @@ class ProviderAIModel:
 	def display_details(self) -> str:
 		"""Get the display details of the AI model.
 
+		Plain text for the model-details dialog: display name, fenced description
+		when present, then limits (no separate Vision line), a single
+		``Modality: …`` summary for every model, then features, provider metadata,
+		leftover ``extra_info`` keys, and finally the ``Pricing:`` block when
+		present. No trailing blank line.
+
 		Returns:
 			The display details of the AI model.
 		"""
-		details = f"{self.display_name}\n"
-		vision_value = _("yes") if self.vision else _("no")
-		# Translators: AI model details
-		details += _("Vision:") + f" {vision_value}\n"
-		# Translators: AI model details
-		details += _("Context window:") + f" {self.context_window}\n"
-		if self.max_output_tokens > 0:
-			# Translators: AI model details
-			details += _("Max output tokens:") + f" {self.max_output_tokens}\n"
-		details += f"\n```\n{self.description}\n```"
-		if self.extra_info:
-			details += "\n\n" + "\n".join(
-				f"{k}: {v}" for k, v in self.extra_info.items()
-			)
-		return details
+		from basilisk.model_catalog.display import (
+			build_provider_model_display_details,
+		)
+
+		return build_provider_model_display_details(self)
 
 	@property
 	def effective_max_output_tokens(self) -> int:
@@ -114,11 +114,10 @@ class AIModelInfo(BaseModel):
 		"""Retrieve a provider instance by its unique identifier.
 
 		Args:
-		provider_id: The unique identifier of the provider to retrieve.
-		model_id: The unique identifier of the AI model.
+			provider_id: The provider to retrieve.
 
 		Returns:
-			Provider: The provider instance corresponding to the given provider ID.
+			The ``Provider`` for ``provider_id``.
 
 		Raises:
 			ValueError: If no provider is found with the specified ID.
@@ -137,7 +136,7 @@ class AIModelInfo(BaseModel):
 			value: The provider ID to validate.
 
 		Returns:
-		The original provider ID if a valid provider is found.
+			The original provider ID if a valid provider is found.
 
 		Raises:
 			ValueError: If no provider is found for the given provider ID.

@@ -29,6 +29,9 @@ from pydantic import (
 import basilisk.global_vars as global_vars
 from basilisk.consts import APP_NAME
 from basilisk.provider import Provider, get_provider, providers
+from basilisk.provider_engine.model_cache_registry import (
+	remove_account_model_cache,
+)
 
 from .config_enums import AccountSource, KeyStorageMethodEnum
 from .config_helper import (
@@ -568,6 +571,21 @@ class AccountManager(BasiliskBaseSettings):
 		"""
 		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
+	def get_accounts_by_provider_id(
+		self, provider_id: Optional[str] = None
+	) -> Iterable[Account]:
+		"""Get accounts whose provider id matches (e.g. ``openai``, ``anthropic``).
+
+		Args:
+			provider_id: ``Provider.id`` string to filter accounts.
+
+		Returns:
+			Iterable of accounts for that provider id.
+		"""
+		if provider_id is None:
+			return iter(())
+		return filter(lambda x: x.provider.id == provider_id, self.accounts)
+
 	def remove(self, account: Account):
 		"""Remove an account from the configuration.
 
@@ -577,8 +595,33 @@ class AccountManager(BasiliskBaseSettings):
 		Raises:
 			ValueError: If the account is not found in the configuration.
 		"""
-		account.delete_keyring_password()
 		self.accounts.remove(account)
+		account_id = str(account.id)
+		try:
+			account.delete_keyring_password()
+		except Exception as exc:
+			log.warning(
+				"Failed to delete keyring password for account %s: %s",
+				account_id,
+				exc,
+			)
+		try:
+			remove_account_model_cache(account_id)
+		except Exception as exc:
+			log.warning(
+				"Failed to remove model cache for account %s: %s",
+				account_id,
+				exc,
+			)
+		info = self.default_account_info
+		if isinstance(info, UUID) and info == account.id:
+			self.default_account_info = None
+			self.__dict__.pop("default_account", None)
+		elif self.__dict__.get("default_account") is not None:
+			cached = self.__dict__["default_account"]
+			if getattr(cached, "id", None) == account.id:
+				self.default_account_info = None
+				self.__dict__.pop("default_account", None)
 
 	def clear(self):
 		"""Clear all accounts from the configuration."""

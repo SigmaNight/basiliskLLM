@@ -496,16 +496,21 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		try:
 			provider_id = draft_block.model.provider_id
 			model_id = draft_block.model.model_id
-			account = next(
-				config.accounts().get_accounts_by_provider(provider_id), None
+			matched_account = next(
+				config.accounts().get_accounts_by_provider_id(provider_id), None
 			)
-			if account:
-				self.set_account_combo(account)
-			engine = self.current_engine
-			if engine:
-				model = engine.get_model(model_id)
-				if model:
-					self.set_model_list(model)
+			if matched_account:
+				self.set_account_combo(matched_account)
+			current_account = self.current_account
+			if (
+				current_account
+				and matched_account
+				and model_id
+				and matched_account.id == current_account.id
+			):
+				self.base_conv_presenter.set_pending_model(
+					model_id, matched_account.id
+				)
 		except Exception:
 			log.debug("Could not restore draft model selection", exc_info=True)
 
@@ -661,6 +666,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 	def cleanup_resources(self):
 		"""Clean up all running resources before closing the conversation tab."""
 		self._is_destroying = True
+		self.shutdown_model_loading()
 		self.presenter.cleanup()
 		self.ocr_handler.cleanup()
 
