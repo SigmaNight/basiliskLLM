@@ -12,7 +12,7 @@ import time
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import Any, ClassVar, Optional
 
 import basilisk.config as config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
@@ -32,9 +32,6 @@ from basilisk.provider_engine.engine_model_list_cache import (
 	write_model_list_disk_cache,
 )
 
-if TYPE_CHECKING:
-	from basilisk.config import Account
-
 log = logging.getLogger(__name__)
 
 
@@ -43,6 +40,15 @@ class BaseEngine(ABC):
 
 	Defines the interface that all provider-specific engines must implement,
 	providing common functionality and type definitions.
+
+	Model list discovery (``models``) is uniform for all subclasses: in-process
+	RAM cache plus a disk cache (see ``engine_model_list_cache``), TTL from
+	general settings. By default, engines set ``MODELS_JSON_URL`` to a
+	sigma-night catalog URL and ``_load_models`` fetches it with
+	``load_models_from_url`` — the same path for OpenAI, Anthropic, Gemini,
+	Mistral, DeepSeek, and xAI. Override ``_load_models`` for other sources
+	(e.g. OpenRouter API, Ollama ``list``); the ``models`` property still applies
+	the same caching and stale-disk fallback.
 
 	Attributes:
 		capabilities: Set of supported provider capabilities.
@@ -56,7 +62,7 @@ class BaseEngine(ABC):
 	MODELS_JSON_URL: str | None = None
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = None
 
-	def __init__(self, account: Account) -> None:
+	def __init__(self, account: config.Account) -> None:
 		"""Initializes the engine with the given account.
 
 		Args:
@@ -83,7 +89,12 @@ class BaseEngine(ABC):
 		return models
 
 	def _load_models(self) -> list[ProviderAIModel]:
-		"""Load provider models without applying engine-level cache."""
+		"""Load provider models without applying engine-level cache.
+
+		Used by the ``models`` property after RAM/disk cache misses. Subclasses
+		that only set ``MODELS_JSON_URL`` share this implementation with other
+		sigma-night catalog providers.
+		"""
 		if not self.MODELS_JSON_URL:
 			raise NotImplementedError(
 				f"{self.__class__.__name__} must override models or set MODELS_JSON_URL"

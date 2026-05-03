@@ -30,7 +30,8 @@ MODEL_LIST_CACHE_PAYLOAD_VERSION = 1
 PRUNE_INTERVAL_SECONDS = 3600
 STALE_TTL_MULTIPLIER = 7
 
-_last_prune_at: float = 0.0
+# Mutable throttle timestamp without a ``global`` statement.
+_prune_last_at: list[float] = [0.0]
 _prune_lock = threading.Lock()
 
 
@@ -143,15 +144,14 @@ def write_model_list_disk_cache(
 
 def prune_model_list_cache_dir(*, now: float, max_stale_seconds: int) -> None:
 	"""Periodically remove obsolete cache files to limit file growth."""
-	global _last_prune_at
-	last_prune_at = _last_prune_at
+	last_prune_at = _prune_last_at[0]
 	if last_prune_at > 0 and now - last_prune_at < PRUNE_INTERVAL_SECONDS:
 		return
 	with _prune_lock:
-		last_prune_at = _last_prune_at
+		last_prune_at = _prune_last_at[0]
 		if last_prune_at > 0 and now - last_prune_at < PRUNE_INTERVAL_SECONDS:
 			return
-		_last_prune_at = now
+		_prune_last_at[0] = now
 	prune_model_cache_registry()
 	cache_dir = get_models_cache_dir()
 	if not cache_dir.exists():

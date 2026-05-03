@@ -77,7 +77,7 @@ def _isolated_models_cache_dir(tmp_path, monkeypatch):
 		"basilisk.provider_engine.model_cache_registry.global_vars.user_data_path",
 		tmp_path,
 	)
-	engine_model_list_cache._last_prune_at = 0.0
+	engine_model_list_cache._prune_last_at[0] = 0.0
 
 
 def test_models_cached_within_ttl(monkeypatch):
@@ -264,7 +264,7 @@ def test_prune_removes_obsolete_cache_files(tmp_path, monkeypatch):
 		encoding="utf-8",
 	)
 	bad_file.write_text("not-json", encoding="utf-8")
-	engine_model_list_cache._last_prune_at = 0.0
+	engine_model_list_cache._prune_last_at[0] = 0.0
 	monkeypatch.setattr(
 		engine, "_get_models_cache_max_stale_seconds", lambda _ttl: 20
 	)

@@ -7,9 +7,6 @@ from pydantic import ValidationError
 import basilisk.provider_engine.dynamic_model_loader as _dml
 from basilisk.model_catalog.sampling import METADATA_CATALOG_EXTRA_KEY
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_engine.dynamic_model_loader import (
-	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
-)
 
 fetch_models_json = _dml.fetch_models_json
 load_models_from_url = _dml.load_models_from_url
@@ -104,7 +101,10 @@ def test_parse_model_metadata_openai_structure():
 	assert m.extra_info["reasoning_capable"] is True
 	assert "include_reasoning" in m.extra_info["supported_parameters"]
 	assert m.extra_info["unsupported_parameters"] == []
-	assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	assert (
+		m.extra_info["metadata_catalog"]
+		== _dml.CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	)
 	assert_extra_info_shape(m)
 
 
@@ -122,7 +122,10 @@ def test_parse_model_metadata_extra_info_defaults():
 	assert_extra_info_shape(m)
 	assert m.extra_info["supported_parameters"] == []
 	assert m.extra_info["unsupported_parameters"] == []
-	assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	assert (
+		m.extra_info["metadata_catalog"]
+		== _dml.CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	)
 	assert m.extra_info["reasoning_capable"] is False
 	assert m.extra_info["web_search_capable"] is False
 	assert m.extra_info["audio_input"] is False

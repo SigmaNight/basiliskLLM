@@ -25,6 +25,11 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 	Extends LegacyOpenAIEngine to provide DeepSeek-specific model configurations and capabilities.
 	Supports text generation and reasoning capabilities.
 
+	Model metadata uses the same ``BaseEngine.models`` pipeline as OpenAI,
+	Anthropic, Gemini, Mistral, and xAI: sigma-night JSON at ``MODELS_JSON_URL``,
+	fetched via ``load_models_from_url``, with the shared RAM and disk model-list
+	cache and TTL behavior.
+
 	Attributes:
 		capabilities: Set of supported capabilities (currently text only).
 	"""

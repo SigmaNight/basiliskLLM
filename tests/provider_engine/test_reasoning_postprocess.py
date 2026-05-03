@@ -11,13 +11,22 @@ from basilisk.provider_engine.deepseek_engine import DeepSeekAIEngine
 from basilisk.provider_engine.dynamic_model_loader import (
 	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
 )
+from basilisk.provider_engine.gemini_engine import GeminiEngine
+from basilisk.provider_engine.mistralai_engine import MistralAIEngine
 from basilisk.provider_engine.openai_engine import OpenAIEngine
 from basilisk.provider_engine.xai_engine import XAIEngine
 
+_SIGMA_NIGHT_CATALOG_ENGINES = [
+	OpenAIEngine,
+	DeepSeekAIEngine,
+	XAIEngine,
+	MistralAIEngine,
+	AnthropicEngine,
+	GeminiEngine,
+]
 
-@pytest.mark.parametrize(
-	"engine_cls", [OpenAIEngine, DeepSeekAIEngine, XAIEngine]
-)
+
+@pytest.mark.parametrize("engine_cls", _SIGMA_NIGHT_CATALOG_ENGINES)
 def test_models_loader_uses_dynamic_loader(engine_cls, monkeypatch):
 	"""Providers with dynamic metadata delegate model loading to base loader."""
 	acc = MagicMock()
@@ -36,11 +45,14 @@ def test_models_loader_uses_dynamic_loader(engine_cls, monkeypatch):
 	assert called_urls == [engine.MODELS_JSON_URL]
 
 
-def test_deepseek_models_empty_when_catalog_fetch_fails(monkeypatch):
-	"""DeepSeek has no bundled list; failed JSON load yields empty models."""
+@pytest.mark.parametrize("engine_cls", _SIGMA_NIGHT_CATALOG_ENGINES)
+def test_sigma_night_catalog_fetch_failure_returns_empty_models(
+	engine_cls, monkeypatch
+):
+	"""Sigma-night catalog engines share BaseEngine cache; fetch failure is empty."""
 	acc = MagicMock()
 	acc.api_key.get_secret_value.return_value = "sk-test"
-	engine = DeepSeekAIEngine(acc)
+	engine = engine_cls(acc)
 
 	def _boom_loader(_url: str):
 		raise RuntimeError("network down")
