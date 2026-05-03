@@ -10,7 +10,7 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
-from basilisk.model_catalog_sampling import MAIN_UI_SAMPLING_PARAM_KEYS
+from basilisk.model_catalog.sampling import MAIN_UI_SAMPLING_PARAM_KEYS
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )

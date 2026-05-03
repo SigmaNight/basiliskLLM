@@ -28,15 +28,14 @@ from pydantic import (
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.decorators import measure_time
-from basilisk.model_metadata_catalog import (
-	CATALOG_SOURCE_OPENROUTER_API,
-	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
-	METADATA_CATALOG_EXTRA_KEY,
-)
+from basilisk.model_catalog.display import summarize_pricing
+from basilisk.model_catalog.sampling import METADATA_CATALOG_EXTRA_KEY
 from basilisk.provider_ai_model import ProviderAIModel
-from basilisk.provider_ai_model_display import summarize_pricing
 
 log = logging.getLogger(__name__)
+
+CATALOG_SOURCE_SIGMA_NIGHT_MASTER = "sigma_night/master"
+CATALOG_SOURCE_OPENROUTER_API = "openrouter/api"
 
 
 class ArchitectureModalityToken(StrEnum):

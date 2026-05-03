@@ -3,9 +3,9 @@
 Maps ``supported_parameters`` / ``unsupported_parameters`` from model-metadata
 into allow/deny decisions shared by engines and conversation views.
 
-Models loaded from SigmaNight ``data/*.json`` URLs are tagged in
-``extra_info[metadata_catalog]`` (see :mod:`basilisk.model_metadata_catalog`);
-OpenRouter API rows use a separate tag so policy stays explicit per source.
+``extra_info`` may include ``metadata_catalog`` (see
+:data:`METADATA_CATALOG_EXTRA_KEY`) and supported/unsupported parameter lists;
+OpenRouter API rows use a distinct catalog tag from SigmaNight JSON.
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ log = logging.getLogger(__name__)
 
 SUPPORTED_PARAMETERS_EXTRA_KEY = "supported_parameters"
 UNSUPPORTED_PARAMETERS_EXTRA_KEY = "unsupported_parameters"
+# Same key as written by ``dynamic_model_loader`` into ``ProviderAIModel.extra_info``.
+METADATA_CATALOG_EXTRA_KEY = "metadata_catalog"
 
 _MAX_TOKEN_PARAM_ALIASES: frozenset[str] = frozenset(
 	{"max_tokens", "max_completion_tokens", "max_output_tokens"}

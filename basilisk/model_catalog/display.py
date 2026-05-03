@@ -1,8 +1,4 @@
-"""Human-readable model details and pricing summaries for ``ProviderAIModel``.
-
-Separated from :mod:`basilisk.provider_ai_model` so the core dataclass stays
-small; this module is imported after ``ProviderAIModel`` is defined.
-"""
+"""Human-readable model details and pricing summaries for ``ProviderAIModel``."""
 
 from __future__ import annotations
 
@@ -13,11 +9,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
 	from basilisk.provider_ai_model import ProviderAIModel
 
-from basilisk.model_catalog_sampling import (
+from basilisk.model_catalog.sampling import (
+	METADATA_CATALOG_EXTRA_KEY,
 	SUPPORTED_PARAMETERS_EXTRA_KEY,
 	UNSUPPORTED_PARAMETERS_EXTRA_KEY,
 )
-from basilisk.model_metadata_catalog import METADATA_CATALOG_EXTRA_KEY
 
 getcontext().prec = 20
 

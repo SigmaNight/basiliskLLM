@@ -21,9 +21,8 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.conversation.attached_file import AttachmentFile
-from basilisk.model_metadata_catalog import MISTRAL_MODEL_METADATA_URL
 
-from .base_engine import BaseEngine, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability, sigma_night_data_file
 from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 from .mistralai_ocr import handle_ocr
 
@@ -60,7 +59,7 @@ class MistralAIEngine(BaseEngine):
 		"application/pdf",
 	}
 
-	MODELS_JSON_URL = MISTRAL_MODEL_METADATA_URL
+	MODELS_JSON_URL = sigma_night_data_file("mistralai.json")
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the MistralAI engine.

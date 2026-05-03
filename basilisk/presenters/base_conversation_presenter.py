@@ -12,7 +12,7 @@ import threading
 from typing import TYPE_CHECKING, Callable
 
 import basilisk.config as config
-from basilisk.model_catalog_sampling import sampling_visibility_for_main_ui
+from basilisk.model_catalog.sampling import sampling_visibility_for_main_ui
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 

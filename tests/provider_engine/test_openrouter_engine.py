@@ -5,7 +5,9 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
-from basilisk.model_metadata_catalog import CATALOG_SOURCE_OPENROUTER_API
+from basilisk.provider_engine.dynamic_model_loader import (
+	CATALOG_SOURCE_OPENROUTER_API,
+)
 from basilisk.provider_engine.openrouter_engine import OpenRouterEngine
 
 

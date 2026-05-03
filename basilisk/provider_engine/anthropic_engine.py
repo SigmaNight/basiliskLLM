@@ -25,10 +25,9 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
-from basilisk.model_metadata_catalog import ANTHROPIC_MODEL_METADATA_URL
 from basilisk.provider_ai_model import ProviderAIModel
 
-from .base_engine import BaseEngine, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability, sigma_night_data_file
 from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 
 if TYPE_CHECKING:
@@ -72,7 +71,7 @@ class AnthropicEngine(BaseEngine):
 		"text/plain",
 	}
 
-	MODELS_JSON_URL = ANTHROPIC_MODEL_METADATA_URL
+	MODELS_JSON_URL = sigma_night_data_file("anthropic.json")
 
 	def _postprocess_models(
 		self, models: list[ProviderAIModel]

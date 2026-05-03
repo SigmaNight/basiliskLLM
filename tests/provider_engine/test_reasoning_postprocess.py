@@ -6,10 +6,12 @@ import httpx
 import pytest
 
 import basilisk.provider_engine.base_engine as _base_engine
-from basilisk.model_metadata_catalog import CATALOG_SOURCE_SIGMA_NIGHT_MASTER
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_engine.anthropic_engine import AnthropicEngine
 from basilisk.provider_engine.deepseek_engine import DeepSeekAIEngine
+from basilisk.provider_engine.dynamic_model_loader import (
+	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
+)
 from basilisk.provider_engine.openai_engine import OpenAIEngine
 from basilisk.provider_engine.xai_engine import XAIEngine
 

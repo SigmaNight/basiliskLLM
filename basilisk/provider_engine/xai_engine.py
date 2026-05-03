@@ -6,9 +6,9 @@ implementing capabilities for both text and image generation.
 
 import logging
 
-from basilisk.model_metadata_catalog import XAI_MODEL_METADATA_URL
 from basilisk.provider_capability import ProviderCapability
 
+from .base_engine import sigma_night_data_file
 from .legacy_openai_engine import LegacyOpenAIEngine
 
 log = logging.getLogger(__name__)
@@ -29,4 +29,4 @@ class XAIEngine(LegacyOpenAIEngine):
 		ProviderCapability.TEXT,
 	}
 
-	MODELS_JSON_URL = XAI_MODEL_METADATA_URL
+	MODELS_JSON_URL = sigma_night_data_file("x-ai.json")

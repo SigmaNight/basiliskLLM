@@ -76,7 +76,7 @@ class ProviderAIModel:
 		Returns:
 			The display details of the AI model.
 		"""
-		from basilisk.provider_ai_model_display import (
+		from basilisk.model_catalog.display import (
 			build_provider_model_display_details,
 		)
 

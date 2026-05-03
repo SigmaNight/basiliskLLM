@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional
 import basilisk.config as config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
-from basilisk.model_catalog_sampling import (
+from basilisk.model_catalog.sampling import (
 	strip_disallowed_completion_dict_params,
 )
 from basilisk.provider_ai_model import ProviderAIModel
@@ -430,3 +430,21 @@ class BaseEngine(ABC):
 		raise NotImplementedError(
 			"Transcription not implemented for this engine"
 		)
+
+
+_SIGMA_NIGHT_MASTER_DATA_BASE = (
+	"https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data"
+)
+
+
+def sigma_night_data_file(filename: str) -> str:
+	"""Return the raw GitHub URL for ``data/{filename}`` in SigmaNight model-metadata.
+
+	Args:
+		filename: File under ``data/`` (e.g. ``openai.json``).
+
+	Returns:
+		HTTPS URL suitable for :func:`basilisk.provider_engine.dynamic_model_loader.load_models_from_url`.
+	"""
+	name = filename.lstrip("/").removeprefix("data/")
+	return f"{_SIGMA_NIGHT_MASTER_DATA_BASE}/{name}"

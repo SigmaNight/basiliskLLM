@@ -31,10 +31,9 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.model_metadata_catalog import OPENAI_MODEL_METADATA_URL
 from basilisk.provider_capability import ProviderCapability
 
-from .base_engine import BaseEngine
+from .base_engine import BaseEngine, sigma_night_data_file
 from .completion_request_strip_keys import CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 
 if TYPE_CHECKING:
@@ -71,7 +70,7 @@ class OpenAIEngine(BaseEngine):
 		"image/webp",
 	}
 
-	MODELS_JSON_URL = OPENAI_MODEL_METADATA_URL
+	MODELS_JSON_URL = sigma_night_data_file("openai.json")
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the OpenAI engine.

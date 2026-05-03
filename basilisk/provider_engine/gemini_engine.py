@@ -28,10 +28,9 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.model_catalog_sampling import model_allows_api_sampling_param
-from basilisk.model_metadata_catalog import GOOGLE_MODEL_METADATA_URL
+from basilisk.model_catalog.sampling import model_allows_api_sampling_param
 
-from .base_engine import BaseEngine, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability, sigma_night_data_file
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +82,7 @@ class GeminiEngine(BaseEngine):
 		"video/3gpp",
 	}
 
-	MODELS_JSON_URL = GOOGLE_MODEL_METADATA_URL
+	MODELS_JSON_URL = sigma_night_data_file("google.json")
 
 	@cached_property
 	def client(self) -> genai.Client:

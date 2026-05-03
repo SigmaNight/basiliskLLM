@@ -1,7 +1,7 @@
 """Top-level tuning kwargs that chat HTTP/SDK engines pass in one dict.
 
 These names are the only keys ``strip_disallowed_completion_dict_params``
-(in :mod:`basilisk.model_catalog_sampling`) may remove when catalog metadata
+(in :mod:`basilisk.model_catalog.sampling`) may remove when catalog metadata
 disallows them. Structural fields (``model``, ``messages``, ``stream``,
 ``input``, ``tools``, …) must not appear here.
 

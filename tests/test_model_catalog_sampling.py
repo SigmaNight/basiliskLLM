@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from basilisk.model_catalog_sampling import (
+from basilisk.model_catalog.sampling import (
 	MAIN_UI_SAMPLING_PARAM_KEYS,
 	model_allows_api_sampling_param,
 	sampling_visibility_for_main_ui,
