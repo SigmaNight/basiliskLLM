@@ -21,7 +21,6 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.conversation.attached_file import AttachmentFile
-from basilisk.provider_ai_model import strip_disallowed_completion_dict_params
 
 from .base_engine import BaseEngine, ProviderCapability
 from .mistralai_ocr import handle_ocr
@@ -158,7 +157,7 @@ class MistralAIEngine(BaseEngine):
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
-		strip_disallowed_completion_dict_params(model, params)
+		self._strip_catalog_sampling_params(model, params)
 		if new_block.stream:
 			return self.client.chat.stream(**params)
 		return self.client.chat.complete(**params)

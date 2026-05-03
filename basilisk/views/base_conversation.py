@@ -10,13 +10,14 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
+from basilisk.model_catalog_sampling import (
+	MAIN_UI_SAMPLING_PARAM_KEYS,
+	sampling_visibility_for_main_ui,
+)
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
-from basilisk.provider_ai_model import (
-	ProviderAIModel,
-	model_allows_api_sampling_param,
-)
+from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 from basilisk.views.view_mixins import _guard_view_destroying
 
@@ -78,8 +79,6 @@ class BaseConversation:
 		)
 		self._displayed_models: list[ProviderAIModel] = []
 		self._is_destroying = False
-		# When True, sampling rows follow catalog only (e.g. edit dialog).
-		self._sampling_visibility_ignore_advanced = False
 
 	@property
 	def account_model_service(self) -> AccountModelService:
@@ -305,28 +304,31 @@ class BaseConversation:
 		self.refresh_sampling_controls_visibility(model)
 
 	def refresh_sampling_controls_visibility(
-		self, model: Optional[ProviderAIModel] = None
+		self,
+		model: Optional[ProviderAIModel] = None,
+		*,
+		gate_on_advanced_mode: bool = True,
 	) -> None:
 		"""Show or hide max-tokens / temperature / top-P rows from catalog metadata.
 
-		When advanced mode is off (main tab / profile), sampling rows stay
-		hidden; :meth:`adjust_advanced_mode_setting` owns that state.
+		When ``gate_on_advanced_mode`` is True and advanced mode is off (main tab
+		/ profile), sampling rows stay hidden; :meth:`adjust_advanced_mode_setting`
+		owns that state until advanced mode is enabled.
 		"""
-		if (
-			not self._sampling_visibility_ignore_advanced
-			and not config.conf().general.advanced_mode
-		):
+		if gate_on_advanced_mode and not config.conf().general.advanced_mode:
 			return
 		resolved = model if model is not None else self.current_model
-		show_max = model_allows_api_sampling_param(resolved, "max_tokens")
-		show_temp = model_allows_api_sampling_param(resolved, "temperature")
-		show_top_p = model_allows_api_sampling_param(resolved, "top_p")
-		for w in (self.max_tokens_spin_label, self.max_tokens_spin_ctrl):
-			w.Show(show_max)
-		for w in (self.temperature_spinner_label, self.temperature_spinner):
-			w.Show(show_temp)
-		for w in (self.top_p_spinner_label, self.top_p_spinner):
-			w.Show(show_top_p)
+		vis = sampling_visibility_for_main_ui(resolved)
+		rows = (
+			(self.max_tokens_spin_label, self.max_tokens_spin_ctrl),
+			(self.temperature_spinner_label, self.temperature_spinner),
+			(self.top_p_spinner_label, self.top_p_spinner),
+		)
+		for key, pair in zip(MAIN_UI_SAMPLING_PARAM_KEYS, rows, strict=True):
+			show = vis[key]
+			for w in pair:
+				w.Show(show)
+				w.Enable(show)
 		self.Layout()
 
 	def set_account_and_model_from_profile(
@@ -610,5 +612,7 @@ class BaseConversation:
 		else:
 			stream.Enable(True)
 			stream.Show(True)
-			self.refresh_sampling_controls_visibility()
+			self.refresh_sampling_controls_visibility(
+				gate_on_advanced_mode=False
+			)
 		self.Layout()

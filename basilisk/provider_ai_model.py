@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal, getcontext
@@ -10,120 +9,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
+from basilisk.model_catalog_sampling import (
+	SUPPORTED_PARAMETERS_EXTRA_KEY,
+	UNSUPPORTED_PARAMETERS_EXTRA_KEY,
+)
+
 from .provider import Provider, get_provider
 
 getcontext().prec = 20
-
-log = logging.getLogger(__name__)
-
-_SUPPORTED_PARAMS_EXTRA_KEY = "supported_parameters"
-_UNSUPPORTED_PARAMS_EXTRA_KEY = "unsupported_parameters"
-
-_OPENAI_STYLE_REGULATED_TOP_LEVEL_KEYS: frozenset[str] = frozenset(
-	{
-		"temperature",
-		"top_p",
-		"max_tokens",
-		"max_completion_tokens",
-		"frequency_penalty",
-		"presence_penalty",
-		"seed",
-		"stop",
-		"n",
-		"logit_bias",
-		"logprobs",
-		"top_logprobs",
-		"response_format",
-	}
-)
-
-_MAX_TOKEN_PARAM_ALIASES: frozenset[str] = frozenset(
-	{"max_tokens", "max_completion_tokens", "max_output_tokens"}
-)
-
-
-def _normalized_str_set(raw: Any) -> frozenset[str] | None:
-	if not isinstance(raw, list) or not raw:
-		return None
-	out = {
-		str(x).strip().lower() for x in raw if x is not None and str(x).strip()
-	}
-	return frozenset(out) if out else None
-
-
-def _metadata_supported_set(
-	model: ProviderAIModel | None,
-) -> frozenset[str] | None:
-	if model is None:
-		return None
-	return _normalized_str_set(
-		model.extra_info.get(_SUPPORTED_PARAMS_EXTRA_KEY)
-	)
-
-
-def _metadata_unsupported_set(model: ProviderAIModel | None) -> frozenset[str]:
-	if model is None:
-		return frozenset()
-	raw = model.extra_info.get(_UNSUPPORTED_PARAMS_EXTRA_KEY)
-	if not isinstance(raw, list):
-		return frozenset()
-	return frozenset(
-		str(x).strip().lower() for x in raw if x is not None and str(x).strip()
-	)
-
-
-def model_allows_api_sampling_param(
-	model: ProviderAIModel | None, api_param_name: str
-) -> bool:
-	"""Whether catalog metadata allows sending this sampling-related API field.
-
-	``unsupported_parameters`` in ``extra_info`` rejects by name.
-	When ``supported_parameters`` is non-empty, only listed names pass
-	(plus max-token family aliases). Missing or empty metadata allows all.
-	"""
-	if model is None:
-		return True
-	name = api_param_name.strip().lower()
-	if name in _metadata_unsupported_set(model):
-		return False
-	supported = _metadata_supported_set(model)
-	if supported is None:
-		return True
-	if name in supported:
-		return True
-	if name in _MAX_TOKEN_PARAM_ALIASES:
-		return bool(supported & _MAX_TOKEN_PARAM_ALIASES)
-	return False
-
-
-def strip_disallowed_completion_dict_params(
-	model: ProviderAIModel | None,
-	params: dict[str, Any],
-	*,
-	regulated_keys: frozenset[str] | None = None,
-) -> None:
-	"""Drop regulated top-level keys rejected by model metadata (in place).
-
-	Args:
-		model: Catalog model; may be None if metadata is unknown.
-		params: Client request kwargs (e.g. OpenAI chat completion).
-		regulated_keys: Candidate keys to evaluate; defaults to OpenAI-style
-			sampling parameters only (never removes ``model``, ``messages``, …).
-	"""
-	if model is None:
-		return
-	keys = regulated_keys or _OPENAI_STYLE_REGULATED_TOP_LEVEL_KEYS
-	for key in list(params):
-		if key not in keys:
-			continue
-		if model_allows_api_sampling_param(model, key):
-			continue
-		params.pop(key, None)
-		log.debug(
-			"Omitted completion param %r for model %s (catalog metadata)",
-			key,
-			model.id,
-		)
 
 
 def summarize_pricing(pricing: dict[str, Any]) -> str:
@@ -295,15 +188,15 @@ def _details_feature_lines(
 	model: ProviderAIModel, ex: dict[str, Any], consumed: set[str]
 ) -> list[str]:
 	out: list[str] = []
-	if params := ex.get("supported_parameters"):
-		consumed.add("supported_parameters")
+	if params := ex.get(SUPPORTED_PARAMETERS_EXTRA_KEY):
+		consumed.add(SUPPORTED_PARAMETERS_EXTRA_KEY)
 		if isinstance(params, list) and params:
 			joined = ", ".join(str(p) for p in params)
 			# Translators: AI model details
 			out.append(_("Supported parameters:") + f" {joined}")
-	if _UNSUPPORTED_PARAMS_EXTRA_KEY in ex:
-		consumed.add(_UNSUPPORTED_PARAMS_EXTRA_KEY)
-		uparams = ex.get(_UNSUPPORTED_PARAMS_EXTRA_KEY)
+	if UNSUPPORTED_PARAMETERS_EXTRA_KEY in ex:
+		consumed.add(UNSUPPORTED_PARAMETERS_EXTRA_KEY)
+		uparams = ex.get(UNSUPPORTED_PARAMETERS_EXTRA_KEY)
 		if isinstance(uparams, list) and uparams:
 			joined = ", ".join(str(p) for p in uparams)
 			# Translators: AI model details

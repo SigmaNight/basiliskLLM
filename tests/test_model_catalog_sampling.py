@@ -1,14 +1,16 @@
-"""Tests for catalog-driven completion parameter filtering."""
+"""Tests for catalog-driven sampling policy (API + main UI)."""
 
 from __future__ import annotations
 
 import pytest
 
-from basilisk.provider_ai_model import (
-	ProviderAIModel,
+from basilisk.model_catalog_sampling import (
+	MAIN_UI_SAMPLING_PARAM_KEYS,
 	model_allows_api_sampling_param,
+	sampling_visibility_for_main_ui,
 	strip_disallowed_completion_dict_params,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 
 
 @pytest.mark.parametrize(
@@ -66,3 +68,16 @@ def test_strip_skips_when_model_none() -> None:
 	params = {"temperature": 1.0, "top_p": 1.0}
 	strip_disallowed_completion_dict_params(None, params)
 	assert params["top_p"] == 1.0
+
+
+def test_sampling_visibility_for_main_ui_matches_key_order() -> None:
+	"""Visibility map keys follow ``MAIN_UI_SAMPLING_PARAM_KEYS`` order."""
+	model = ProviderAIModel(
+		id="x",
+		extra_info={"supported_parameters": ["max_tokens", "temperature"]},
+	)
+	vis = sampling_visibility_for_main_ui(model)
+	assert tuple(vis.keys()) == MAIN_UI_SAMPLING_PARAM_KEYS
+	assert vis["max_tokens"] is True
+	assert vis["temperature"] is True
+	assert vis["top_p"] is False

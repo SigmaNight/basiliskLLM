@@ -31,7 +31,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import strip_disallowed_completion_dict_params
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -204,7 +203,7 @@ class OpenAIEngine(BaseEngine):
 		if tools:
 			params["tools"] = tools
 		params.update(kwargs)
-		strip_disallowed_completion_dict_params(model, params)
+		self._strip_catalog_sampling_params(model, params)
 		response = self.client.responses.create(**params)
 		return response
 

@@ -28,7 +28,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import model_allows_api_sampling_param
+from basilisk.model_catalog_sampling import model_allows_api_sampling_param
 
 from .base_engine import BaseEngine, ProviderCapability
 

@@ -20,6 +20,9 @@ from typing import TYPE_CHECKING, Any, Optional
 import basilisk.config as config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
+from basilisk.model_catalog_sampling import (
+	strip_disallowed_completion_dict_params,
+)
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 from basilisk.provider_engine.dynamic_model_loader import load_models_from_url
@@ -371,6 +374,12 @@ class BaseEngine(ABC):
 					raise ValueError(f"Multiple models with id {model_id}")
 				found = model
 		return found
+
+	def _strip_catalog_sampling_params(
+		self, model: ProviderAIModel | None, params: dict[str, Any]
+	) -> None:
+		"""Drop sampling kwargs rejected by catalog metadata for this model."""
+		strip_disallowed_completion_dict_params(model, params)
 
 	def get_model_loading_error(self) -> str | None:
 		"""Return the latest model-loading error for this engine."""

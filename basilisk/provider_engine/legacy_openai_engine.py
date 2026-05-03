@@ -29,7 +29,6 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
-from basilisk.provider_ai_model import strip_disallowed_completion_dict_params
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -182,7 +181,7 @@ class LegacyOpenAIEngine(BaseEngine):
 		if new_block.max_tokens:
 			params["max_tokens"] = new_block.max_tokens
 		params.update(kwargs)
-		strip_disallowed_completion_dict_params(model, params)
+		self._strip_catalog_sampling_params(model, params)
 		response = self.client.chat.completions.create(**params)
 		return response
 
