@@ -28,6 +28,10 @@ from pydantic import (
 
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.decorators import measure_time
+from basilisk.model_metadata_catalog import (
+	CATALOG_SOURCE_OPENROUTER_API,
+	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
+)
 from basilisk.provider_ai_model import ProviderAIModel, summarize_pricing
 
 log = logging.getLogger(__name__)
@@ -56,6 +60,7 @@ class ModelExtraInfoKey(StrEnum):
 
 	SUPPORTED_PARAMETERS = auto()
 	UNSUPPORTED_PARAMETERS = auto()
+	METADATA_CATALOG = auto()
 	REASONING_CAPABLE = auto()
 	WEB_SEARCH_CAPABLE = auto()
 	AUDIO_INPUT = auto()
@@ -239,13 +244,21 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 			in self.supported_parameters
 		)
 
-	def convert_to_basilisk_model(self) -> ProviderAIModel | None:
-		"""Convert this metadata item to a ProviderAIModel, or None if not text-capable."""
+	def convert_to_basilisk_model(
+		self, catalog_source: str = CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	) -> ProviderAIModel | None:
+		"""Convert this metadata item to a ProviderAIModel, or None if not text-capable.
+
+		Args:
+			catalog_source: Stored in ``extra_info`` so UI and completion policy
+				know which catalog produced this row (SigmaNight vs OpenRouter API).
+		"""
 		if not self.architecture.supports_basilisk_text_output:
 			return None
 		modalities = self.architecture.modality_capabilities
 		pricing_summary = summarize_pricing(self.pricing)
 		extra_info = {
+			ModelExtraInfoKey.METADATA_CATALOG.value: catalog_source,
 			ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
 			ModelExtraInfoKey.UNSUPPORTED_PARAMETERS.value: list(
 				self.unsupported_parameters
@@ -314,11 +327,16 @@ class ProviderMetadata(BaseModel, extra="ignore"):
 
 	models: list[OnErrorOmit[ModelMetadataItem]] = Field(default_factory=list)
 
-	def get_provider_models(self) -> list[ProviderAIModel]:
+	def get_provider_models(
+		self, catalog_source: str = CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	) -> list[ProviderAIModel]:
 		"""Convert validated model items to ProviderAIModel list, sorted by created desc.
 
 		Models without text output are excluded. Items that failed Pydantic
 		validation were already omitted by ``OnErrorOmit`` during parsing.
+
+		Args:
+			catalog_source: Label written to each model's ``extra_info``.
 
 		Returns:
 			List of ProviderAIModel instances, sorted by created descending.
@@ -326,7 +344,10 @@ class ProviderMetadata(BaseModel, extra="ignore"):
 		return sorted(
 			(
 				m
-				for m in (x.convert_to_basilisk_model() for x in self.models)
+				for m in (
+					x.convert_to_basilisk_model(catalog_source=catalog_source)
+					for x in self.models
+				)
 				if m is not None
 			),
 			key=lambda m: m.created,
@@ -357,10 +378,10 @@ def fetch_models_json(url: str) -> ProviderMetadata:
 
 
 def parse_model_rows(rows: list[Any]) -> list[ProviderAIModel]:
-	"""Convert raw model rows into ProviderAIModel list."""
+	"""Convert raw model rows into ProviderAIModel list (e.g. OpenRouter API)."""
 	return ProviderMetadata.model_validate(
 		{"models": rows}
-	).get_provider_models()
+	).get_provider_models(catalog_source=CATALOG_SOURCE_OPENROUTER_API)
 
 
 def parse_created_timestamp(value: Any) -> int:
@@ -376,7 +397,9 @@ def load_models_from_url(url: str) -> list[ProviderAIModel]:
 	"""Fetch and parse models from URL without engine-level caching."""
 	try:
 		provider_metadata = fetch_models_json(url)
-		models = provider_metadata.get_provider_models()
+		models = provider_metadata.get_provider_models(
+			catalog_source=CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+		)
 		log.debug("Loaded %d models from %s", len(models), url)
 		return models
 	except (httpx.HTTPError, ValidationError, ValueError, TypeError) as e:

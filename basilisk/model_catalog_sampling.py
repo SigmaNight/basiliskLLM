@@ -2,6 +2,10 @@
 
 Maps ``supported_parameters`` / ``unsupported_parameters`` from model-metadata
 into allow/deny decisions shared by engines and conversation views.
+
+Models loaded from SigmaNight ``data/*.json`` URLs are tagged in
+``extra_info[metadata_catalog]`` (see :mod:`basilisk.model_metadata_catalog`);
+OpenRouter API rows use a separate tag so policy stays explicit per source.
 """
 
 from __future__ import annotations

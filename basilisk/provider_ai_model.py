@@ -13,6 +13,7 @@ from basilisk.model_catalog_sampling import (
 	SUPPORTED_PARAMETERS_EXTRA_KEY,
 	UNSUPPORTED_PARAMETERS_EXTRA_KEY,
 )
+from basilisk.model_metadata_catalog import METADATA_CATALOG_EXTRA_KEY
 
 from .provider import Provider, get_provider
 
@@ -188,6 +189,10 @@ def _details_feature_lines(
 	model: ProviderAIModel, ex: dict[str, Any], consumed: set[str]
 ) -> list[str]:
 	out: list[str] = []
+	if cs := ex.get(METADATA_CATALOG_EXTRA_KEY):
+		consumed.add(METADATA_CATALOG_EXTRA_KEY)
+		# Translators: AI model details (catalog origin label)
+		out.append(_("Metadata catalog:") + f" {cs}")
 	if params := ex.get(SUPPORTED_PARAMETERS_EXTRA_KEY):
 		consumed.add(SUPPORTED_PARAMETERS_EXTRA_KEY)
 		if isinstance(params, list) and params:

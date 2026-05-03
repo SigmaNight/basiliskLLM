@@ -29,6 +29,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 )
 from basilisk.model_catalog_sampling import model_allows_api_sampling_param
+from basilisk.model_metadata_catalog import GOOGLE_MODEL_METADATA_URL
 
 from .base_engine import BaseEngine, ProviderCapability
 
@@ -82,7 +83,7 @@ class GeminiEngine(BaseEngine):
 		"video/3gpp",
 	}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/google.json"
+	MODELS_JSON_URL = GOOGLE_MODEL_METADATA_URL
 
 	@cached_property
 	def client(self) -> genai.Client:

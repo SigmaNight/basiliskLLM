@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 import basilisk.provider_engine.dynamic_model_loader as _dml
+from basilisk.model_metadata_catalog import CATALOG_SOURCE_SIGMA_NIGHT_MASTER
 from basilisk.provider_ai_model import ProviderAIModel
 
 fetch_models_json = _dml.fetch_models_json
@@ -98,6 +99,7 @@ def test_parse_model_metadata_openai_structure():
 	assert m.extra_info["reasoning_capable"] is True
 	assert "include_reasoning" in m.extra_info["supported_parameters"]
 	assert m.extra_info["unsupported_parameters"] == []
+	assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_SIGMA_NIGHT_MASTER
 	assert_extra_info_shape(m)
 
 
@@ -115,6 +117,7 @@ def test_parse_model_metadata_extra_info_defaults():
 	assert_extra_info_shape(m)
 	assert m.extra_info["supported_parameters"] == []
 	assert m.extra_info["unsupported_parameters"] == []
+	assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_SIGMA_NIGHT_MASTER
 	assert m.extra_info["reasoning_capable"] is False
 	assert m.extra_info["web_search_capable"] is False
 	assert m.extra_info["audio_input"] is False
@@ -790,7 +793,7 @@ def test_load_models_from_url_unexpected_error_is_not_suppressed(monkeypatch):
 	)
 	monkeypatch.setattr(_dml, "fetch_models_json", lambda _url: valid_metadata)
 
-	def _boom(self):
+	def _boom(self, catalog_source=None):
 		raise RuntimeError("unexpected parser bug")
 
 	monkeypatch.setattr(_dml.ProviderMetadata, "get_provider_models", _boom)

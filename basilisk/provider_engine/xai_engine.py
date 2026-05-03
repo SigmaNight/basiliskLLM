@@ -6,6 +6,7 @@ implementing capabilities for both text and image generation.
 
 import logging
 
+from basilisk.model_metadata_catalog import XAI_MODEL_METADATA_URL
 from basilisk.provider_capability import ProviderCapability
 
 from .legacy_openai_engine import LegacyOpenAIEngine
@@ -28,4 +29,4 @@ class XAIEngine(LegacyOpenAIEngine):
 		ProviderCapability.TEXT,
 	}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/x-ai.json"
+	MODELS_JSON_URL = XAI_MODEL_METADATA_URL

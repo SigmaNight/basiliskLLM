@@ -25,6 +25,7 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.model_metadata_catalog import ANTHROPIC_MODEL_METADATA_URL
 from basilisk.provider_ai_model import ProviderAIModel
 
 from .base_engine import BaseEngine, ProviderCapability
@@ -67,7 +68,7 @@ class AnthropicEngine(BaseEngine):
 		"text/plain",
 	}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/anthropic.json"
+	MODELS_JSON_URL = ANTHROPIC_MODEL_METADATA_URL
 
 	def _postprocess_models(
 		self, models: list[ProviderAIModel]

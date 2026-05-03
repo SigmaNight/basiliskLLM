@@ -14,6 +14,7 @@ from openai.types.chat import (
 )
 
 from basilisk.conversation import Message, MessageBlock, MessageRoleEnum
+from basilisk.model_metadata_catalog import DEEPSEEK_MODEL_METADATA_URL
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_capability import ProviderCapability
 
@@ -48,7 +49,7 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 
 	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/deepseek.json"
+	MODELS_JSON_URL = DEEPSEEK_MODEL_METADATA_URL
 
 	def _load_models(self) -> list[ProviderAIModel]:
 		"""Load DeepSeek models with static fallback on remote failure."""

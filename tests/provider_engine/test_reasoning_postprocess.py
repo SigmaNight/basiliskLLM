@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 import basilisk.provider_engine.base_engine as _base_engine
+from basilisk.model_metadata_catalog import CATALOG_SOURCE_SIGMA_NIGHT_MASTER
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.provider_engine.anthropic_engine import AnthropicEngine
 from basilisk.provider_engine.deepseek_engine import DeepSeekAIEngine
@@ -94,6 +95,11 @@ def test_loader_maps_reasoning_from_metadata_by_default():
 	}
 	out = ProviderMetadata.model_validate(raw).get_provider_models()
 	assert [m.reasoning for m in out] == [True, False]
+	for m in out:
+		assert (
+			m.extra_info["metadata_catalog"]
+			== CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+		)
 
 
 def test_loader_mapping_does_not_force_reasoning_from_id():
@@ -112,3 +118,7 @@ def test_loader_mapping_does_not_force_reasoning_from_id():
 	out = ProviderMetadata.model_validate(raw).get_provider_models()
 	assert len(out) == 1
 	assert out[0].reasoning is False
+	assert (
+		out[0].extra_info["metadata_catalog"]
+		== CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+	)

@@ -31,6 +31,7 @@ from basilisk.conversation import (
 	MessageBlock,
 	MessageRoleEnum,
 )
+from basilisk.model_metadata_catalog import OPENAI_MODEL_METADATA_URL
 from basilisk.provider_capability import ProviderCapability
 
 from .base_engine import BaseEngine
@@ -66,7 +67,7 @@ class OpenAIEngine(BaseEngine):
 		"image/webp",
 	}
 
-	MODELS_JSON_URL = "https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data/openai.json"
+	MODELS_JSON_URL = OPENAI_MODEL_METADATA_URL
 
 	def __init__(self, account: Account) -> None:
 		"""Initializes the OpenAI engine.

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
+from basilisk.model_metadata_catalog import CATALOG_SOURCE_OPENROUTER_API
 from basilisk.provider_engine.openrouter_engine import OpenRouterEngine
 
 
@@ -49,6 +50,8 @@ def test_models_sorted_by_created_desc(httpx_mock, monkeypatch, tmp_path):
 	models = engine.models
 	assert [model.id for model in models] == ["newer", "middle", "older"]
 	assert [model.created for model in models] == [3000, 2000, 1000]
+	for m in models:
+		assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_OPENROUTER_API
 
 
 def test_models_invalid_created_falls_back_to_zero(
