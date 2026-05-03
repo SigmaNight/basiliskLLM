@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_MODEL_LOADER_JOIN_TIMEOUT_S = 5.0
+
 
 class BaseConversationPresenter:
 	"""Presenter for account and model resolution in conversation views.
@@ -147,10 +149,13 @@ class BaseConversationPresenter:
 		"""Cancel and invalidate any in-flight model loading worker."""
 		self._model_loading_generation += 1
 		cancel_event = self._model_loading_cancel_event
-		if cancel_event:
+		if cancel_event is not None:
 			cancel_event.set()
+		thread = self._model_loading_thread
 		self._model_loading_thread = None
 		self._model_loading_cancel_event = None
+		if thread is not None and thread.is_alive():
+			thread.join(timeout=_MODEL_LOADER_JOIN_TIMEOUT_S)
 
 	def set_pending_model(self, model_id: str, account_id: UUID) -> None:
 		"""Store a deferred model selection to be applied once models load.

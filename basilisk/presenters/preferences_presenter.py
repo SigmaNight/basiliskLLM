@@ -13,6 +13,10 @@ from basilisk.config import (
 	LogLevelEnum,
 	ReleaseChannelEnum,
 )
+from basilisk.config.main_config import (
+	MODEL_METADATA_CACHE_TTL_MAX_SECONDS,
+	MODEL_METADATA_CACHE_TTL_MIN_SECONDS,
+)
 from basilisk.localization import get_app_locale, get_supported_locales
 from basilisk.logger import set_log_level
 
@@ -114,6 +118,11 @@ class PreferencesPresenter:
 		conf.images.quality = int(self.view.image_quality.GetValue())
 		conf.network.use_system_cert_store = (
 			self.view.use_system_cert_store.GetValue()
+		)
+		ttl_raw = int(self.view.model_metadata_cache_ttl.GetValue())
+		conf.general.model_metadata_cache_ttl_seconds = max(
+			MODEL_METADATA_CACHE_TTL_MIN_SECONDS,
+			min(MODEL_METADATA_CACHE_TTL_MAX_SECONDS, ttl_raw),
 		)
 		conf.server.enable = self.view.server_enable.GetValue()
 		conf.server.port = int(self.view.server_port.GetValue())

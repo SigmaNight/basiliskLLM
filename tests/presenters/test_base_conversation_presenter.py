@@ -201,11 +201,22 @@ class TestShutdownModelLoading:
 
 	def test_clears_thread_and_event_refs(self, presenter):
 		"""shutdown_model_loading() sets thread and cancel event refs to None."""
-		presenter._model_loading_thread = MagicMock()
+		thread = MagicMock()
+		thread.is_alive.return_value = False
+		presenter._model_loading_thread = thread
 		presenter._model_loading_cancel_event = MagicMock()
 		presenter.shutdown_model_loading()
 		assert presenter._model_loading_thread is None
 		assert presenter._model_loading_cancel_event is None
+
+	def test_joins_alive_thread(self, presenter):
+		"""shutdown_model_loading() joins a still-running worker briefly."""
+		thread = MagicMock()
+		thread.is_alive.return_value = True
+		presenter._model_loading_thread = thread
+		presenter._model_loading_cancel_event = MagicMock()
+		presenter.shutdown_model_loading()
+		thread.join.assert_called_once_with(timeout=5.0)
 
 	def test_no_error_when_no_cancel_event(self, presenter):
 		"""shutdown_model_loading() does not raise when cancel event is None."""

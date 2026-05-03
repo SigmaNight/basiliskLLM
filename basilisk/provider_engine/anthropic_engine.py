@@ -25,8 +25,9 @@ from basilisk.conversation import (
 	MessageRoleEnum,
 	SystemMessage,
 )
+from basilisk.provider_ai_model import ProviderAIModel
 
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability
 
 if TYPE_CHECKING:
 	from anthropic._streaming import Stream

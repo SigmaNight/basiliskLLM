@@ -289,6 +289,9 @@ class BaseEngine(ABC):
 				return self._models_cache
 			self._models_refresh_in_progress = True
 
+		# Disk/network refresh runs without holding the condition lock so
+		# invalidate_models_cache() can interleave; disk writes are atomic
+		# and invalidate only removes the matching cache file for this engine.
 		try:
 			disk_cache = self._read_models_disk_cache(now, ttl_seconds)
 			if disk_cache is not None:
@@ -361,12 +364,13 @@ class BaseEngine(ABC):
 		Raises:
 			ValueError: If multiple models are found with the same ID.
 		"""
-		model_list = [model for model in self.models if model.id == model_id]
-		if not model_list:
-			return None
-		if len(model_list) > 1:
-			raise ValueError(f"Multiple models with id {model_id}")
-		return model_list[0]
+		found: ProviderAIModel | None = None
+		for model in self.models:
+			if model.id == model_id:
+				if found is not None:
+					raise ValueError(f"Multiple models with id {model_id}")
+				found = model
+		return found
 
 	def get_model_loading_error(self) -> str | None:
 		"""Return the latest model-loading error for this engine."""
@@ -498,7 +502,7 @@ class BaseEngine(ABC):
 
 	@staticmethod
 	def get_user_agent() -> str:
-		"""Get a user agent sting for the application."""
+		"""Get a user agent string for the application."""
 		return f"{APP_NAME} ({APP_SOURCE_URL})"
 
 	def get_transcription(self, *args, **kwargs) -> str:

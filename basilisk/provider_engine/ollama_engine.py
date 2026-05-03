@@ -16,8 +16,9 @@ from basilisk.conversation import (
 	SystemMessage,
 )
 from basilisk.decorators import measure_time
+from basilisk.provider_ai_model import ProviderAIModel
 
-from .base_engine import BaseEngine, ProviderAIModel, ProviderCapability
+from .base_engine import BaseEngine, ProviderCapability
 
 log = logging.getLogger(__name__)
 

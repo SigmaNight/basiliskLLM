@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 
 config_file_name = "config.yml"
 
+MODEL_METADATA_CACHE_TTL_MIN_SECONDS = 60
+MODEL_METADATA_CACHE_TTL_MAX_SECONDS = 86400
+
 
 class GeneralSettings(BaseModel):
 	"""General settings for BasiliskLLM."""
@@ -28,8 +31,8 @@ class GeneralSettings(BaseModel):
 	language: str = Field(default="auto")
 	model_metadata_cache_ttl_seconds: int = Field(
 		default=3600,
-		ge=60,
-		le=86400,
+		ge=MODEL_METADATA_CACHE_TTL_MIN_SECONDS,
+		le=MODEL_METADATA_CACHE_TTL_MAX_SECONDS,
 		description="TTL for provider model-list refresh cache",
 	)
 	advanced_mode: bool = Field(default=False)

@@ -32,6 +32,7 @@ def mock_view():
 	view.image_max_width.GetValue.return_value = 1200
 	view.image_quality.GetValue.return_value = 85
 	view.use_system_cert_store.GetValue.return_value = False
+	view.model_metadata_cache_ttl.GetValue.return_value = 7200
 	view.server_enable.GetValue.return_value = False
 	view.server_port.GetValue.return_value = "8080"
 	return view
@@ -137,3 +138,17 @@ class TestOnOk:
 		presenter.on_ok()
 
 		mock_set_log.assert_called_once_with(mock_conf.general.log_level.name)
+
+	def test_model_metadata_cache_ttl_saved(
+		self, mock_view, make_presenter, mocker
+	):
+		"""on_ok should persist model list cache TTL from the spin control."""
+		mock_wx = MagicMock()
+		mocker.patch.dict(sys.modules, {"wx": mock_wx})
+		mocker.patch("basilisk.presenters.preferences_presenter.set_log_level")
+		mock_view.model_metadata_cache_ttl.GetValue.return_value = 1800
+		presenter, mock_conf = make_presenter(view=mock_view)
+
+		presenter.on_ok()
+
+		assert mock_conf.general.model_metadata_cache_ttl_seconds == 1800
