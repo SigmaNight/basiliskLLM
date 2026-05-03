@@ -5,13 +5,18 @@ import pytest
 from pydantic import ValidationError
 
 import basilisk.provider_engine.dynamic_model_loader as _dml
-from basilisk.model_metadata_catalog import CATALOG_SOURCE_SIGMA_NIGHT_MASTER
+from basilisk.model_metadata_catalog import (
+	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
+	METADATA_CATALOG_EXTRA_KEY,
+)
 from basilisk.provider_ai_model import ProviderAIModel
 
 fetch_models_json = _dml.fetch_models_json
 load_models_from_url = _dml.load_models_from_url
 
-_LOADER_EXTRA_INFO_REQUIRED = frozenset(k.value for k in _dml.ModelExtraInfoKey)
+_LOADER_EXTRA_INFO_REQUIRED = frozenset(
+	k.value for k in _dml.ModelExtraInfoKey
+) | {METADATA_CATALOG_EXTRA_KEY}
 _LOADER_EXTRA_INFO_OPTIONAL = frozenset(
 	{
 		"input_modalities",

@@ -12,6 +12,7 @@ import threading
 from typing import TYPE_CHECKING, Callable
 
 import basilisk.config as config
+from basilisk.model_catalog_sampling import sampling_visibility_for_main_ui
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService
 
@@ -64,6 +65,17 @@ class BaseConversationPresenter:
 			The engine instance for the account.
 		"""
 		return self.account_model_service.get_engine(account)
+
+	def invalidate_engine_models_cache(self, engine: BaseEngine | None) -> None:
+		"""Clear the engine's model list cache so the next access reloads it."""
+		if engine is not None:
+			engine.invalidate_models_cache()
+
+	def get_main_ui_sampling_controls_visibility(
+		self, model: ProviderAIModel | None
+	) -> dict[str, bool]:
+		"""Return visibility flags for max-tokens / temperature / top-P from catalog."""
+		return sampling_visibility_for_main_ui(model)
 
 	def get_display_accounts(self, force_refresh: bool = False) -> list[str]:
 		"""Return a list of account display names.

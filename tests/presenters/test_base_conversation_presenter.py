@@ -360,3 +360,24 @@ class TestLoadModelsInBackground:
 		assert account_id == "acct-1"
 		assert models == []
 		assert error_message is not None
+
+
+class TestEngineCacheAndSamplingUI:
+	"""Tests for cache invalidation and sampling visibility delegation."""
+
+	def test_invalidate_engine_models_cache_noop_when_none(self, presenter):
+		"""Passing None does not raise."""
+		presenter.invalidate_engine_models_cache(None)
+
+	def test_invalidate_engine_models_cache_delegates(self, presenter):
+		"""Delegates to engine.invalidate_models_cache when engine is set."""
+		engine = MagicMock()
+		presenter.invalidate_engine_models_cache(engine)
+		engine.invalidate_models_cache.assert_called_once()
+
+	def test_get_main_ui_sampling_controls_visibility_none_model(
+		self, presenter
+	):
+		"""No model metadata means all main sampling rows stay visible."""
+		out = presenter.get_main_ui_sampling_controls_visibility(None)
+		assert all(out.values())

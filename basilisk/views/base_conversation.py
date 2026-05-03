@@ -10,10 +10,7 @@ from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
 import basilisk.config as config
-from basilisk.model_catalog_sampling import (
-	MAIN_UI_SAMPLING_PARAM_KEYS,
-	sampling_visibility_for_main_ui,
-)
+from basilisk.model_catalog_sampling import MAIN_UI_SAMPLING_PARAM_KEYS
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
 )
@@ -318,7 +315,9 @@ class BaseConversation:
 		if gate_on_advanced_mode and not config.conf().general.advanced_mode:
 			return
 		resolved = model if model is not None else self.current_model
-		vis = sampling_visibility_for_main_ui(resolved)
+		vis = self.base_conv_presenter.get_main_ui_sampling_controls_visibility(
+			resolved
+		)
 		rows = (
 			(self.max_tokens_spin_label, self.max_tokens_spin_ctrl),
 			(self.temperature_spinner_label, self.temperature_spinner),
@@ -454,10 +453,9 @@ class BaseConversation:
 
 	def on_refresh_model_list(self, event: wx.CommandEvent | None):
 		"""Refresh model list by invalidating current engine cache."""
-		engine = self.current_engine
-		if not engine:
-			return
-		engine.invalidate_models_cache()
+		self.base_conv_presenter.invalidate_engine_models_cache(
+			self.current_engine
+		)
 		self.update_model_list()
 
 	def on_show_model_details(self, event: wx.CommandEvent | None):

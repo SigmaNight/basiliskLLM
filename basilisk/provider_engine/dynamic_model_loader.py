@@ -31,8 +31,10 @@ from basilisk.decorators import measure_time
 from basilisk.model_metadata_catalog import (
 	CATALOG_SOURCE_OPENROUTER_API,
 	CATALOG_SOURCE_SIGMA_NIGHT_MASTER,
+	METADATA_CATALOG_EXTRA_KEY,
 )
-from basilisk.provider_ai_model import ProviderAIModel, summarize_pricing
+from basilisk.provider_ai_model import ProviderAIModel
+from basilisk.provider_ai_model_display import summarize_pricing
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +62,6 @@ class ModelExtraInfoKey(StrEnum):
 
 	SUPPORTED_PARAMETERS = auto()
 	UNSUPPORTED_PARAMETERS = auto()
-	METADATA_CATALOG = auto()
 	REASONING_CAPABLE = auto()
 	WEB_SEARCH_CAPABLE = auto()
 	AUDIO_INPUT = auto()
@@ -258,7 +259,7 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 		modalities = self.architecture.modality_capabilities
 		pricing_summary = summarize_pricing(self.pricing)
 		extra_info = {
-			ModelExtraInfoKey.METADATA_CATALOG.value: catalog_source,
+			METADATA_CATALOG_EXTRA_KEY: catalog_source,
 			ModelExtraInfoKey.SUPPORTED_PARAMETERS.value: self.supported_parameters,
 			ModelExtraInfoKey.UNSUPPORTED_PARAMETERS.value: list(
 				self.unsupported_parameters

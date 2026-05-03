@@ -14,7 +14,7 @@ SIGMA_NIGHT_MASTER_DATA_BASE = (
 	"https://raw.githubusercontent.com/SigmaNight/model-metadata/master/data"
 )
 
-# Stored on ``ProviderAIModel.extra_info`` (see ``ModelExtraInfoKey``).
+# Stored on ``ProviderAIModel.extra_info``; written by ``dynamic_model_loader``.
 METADATA_CATALOG_EXTRA_KEY = "metadata_catalog"
 CATALOG_SOURCE_SIGMA_NIGHT_MASTER = "sigma_night/master"
 CATALOG_SOURCE_OPENROUTER_API = "openrouter/api"
@@ -39,14 +39,3 @@ MISTRAL_MODEL_METADATA_URL = sigma_night_data_file("mistralai.json")
 GOOGLE_MODEL_METADATA_URL = sigma_night_data_file("google.json")
 XAI_MODEL_METADATA_URL = sigma_night_data_file("x-ai.json")
 DEEPSEEK_MODEL_METADATA_URL = sigma_night_data_file("deepseek.json")
-
-SIGMA_NIGHT_MODEL_LIST_URLS: frozenset[str] = frozenset(
-	{
-		OPENAI_MODEL_METADATA_URL,
-		ANTHROPIC_MODEL_METADATA_URL,
-		MISTRAL_MODEL_METADATA_URL,
-		GOOGLE_MODEL_METADATA_URL,
-		XAI_MODEL_METADATA_URL,
-		DEEPSEEK_MODEL_METADATA_URL,
-	}
-)
