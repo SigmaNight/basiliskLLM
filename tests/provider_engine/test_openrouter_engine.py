@@ -36,8 +36,8 @@ def _model_row(model_id: str, created=0) -> dict:
 	}
 
 
-def test_models_sorted_by_created_desc(httpx_mock, monkeypatch, tmp_path):
-	"""OpenRouter model list is sorted by created timestamp descending."""
+def test_models_sorted_alphabetically(httpx_mock, monkeypatch, tmp_path):
+	"""OpenRouter model list is sorted alphabetically by name."""
 	httpx_mock.add_response(
 		json={
 			"data": [
@@ -50,8 +50,7 @@ def test_models_sorted_by_created_desc(httpx_mock, monkeypatch, tmp_path):
 	)
 	engine = _make_engine(monkeypatch, tmp_path)
 	models = engine.models
-	assert [model.id for model in models] == ["newer", "middle", "older"]
-	assert [model.created for model in models] == [3000, 2000, 1000]
+	assert [model.id for model in models] == ["middle", "newer", "older"]
 	for m in models:
 		assert m.extra_info["metadata_catalog"] == CATALOG_SOURCE_OPENROUTER_API
 
@@ -71,11 +70,15 @@ def test_models_invalid_created_falls_back_to_zero(
 	)
 	engine = _make_engine(monkeypatch, tmp_path)
 	models = engine.models
+	# Alphabetical order: invalid-created < valid-created
 	assert [model.id for model in models] == [
-		"valid-created",
 		"invalid-created",
+		"valid-created",
 	]
-	assert [model.created for model in models] == [42, 0]
+	assert {m.id: m.created for m in models} == {
+		"valid-created": 42,
+		"invalid-created": 0,
+	}
 
 
 def test_models_non_200_response_raises(httpx_mock, monkeypatch, tmp_path):

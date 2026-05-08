@@ -61,6 +61,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		data = response.json()
 		models = parse_model_rows(data.get("data", []))
 		log.debug("Got %d models", len(models))
+		models.sort(key=lambda m: (m.name or m.id).casefold())
 		return models
 
 	def completion(
