@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-04-18 20:34+0000\n"
-"PO-Revision-Date: 2026-04-18 20:38\n"
+"POT-Creation-Date: 2026-05-03 17:47+0000\n"
+"PO-Revision-Date: 2026-05-09 14:17\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -61,13 +61,13 @@ msgstr "Задача уже запущена. Пожалуйста, дождит
 #: basilisk/views/account_dialog.py:930 basilisk/views/account_dialog.py:977
 #: basilisk/views/conversation_history_dialog.py:217
 #: basilisk/views/conversation_history_dialog.py:251
-#: basilisk/views/conversation_tab.py:633
+#: basilisk/views/conversation_tab.py:638
 #: basilisk/views/edit_block_dialog.py:69
 #: basilisk/views/enhanced_error_dialog.py:35 basilisk/views/main_frame.py:500
 #: basilisk/views/main_frame.py:629 basilisk/views/main_frame.py:649
 #: basilisk/views/main_frame.py:716 basilisk/views/main_frame.py:891
 #: basilisk/views/name_conversation_dialog.py:103
-#: basilisk/views/view_mixins.py:34
+#: basilisk/views/view_mixins.py:50
 msgid "Error"
 msgstr "Ошибка"
 
@@ -77,31 +77,13 @@ msgid "Failed to activate system certificate store"
 msgstr "Не удалось активировать хранилище системных сертификатов"
 
 #. Translators: Summary of a conversation profile
-#: basilisk/config/conversation_profile.py:198 basilisk/provider_ai_model.py:57
-#: basilisk/provider_ai_model.py:70
+#: basilisk/config/conversation_profile.py:198 basilisk/provider_ai_model.py:61
 msgid "yes"
 msgstr "да"
 
-#: basilisk/config/conversation_profile.py:198 basilisk/provider_ai_model.py:57
-#: basilisk/provider_ai_model.py:70
+#: basilisk/config/conversation_profile.py:198 basilisk/provider_ai_model.py:61
 msgid "no"
 msgstr "нет"
-
-#. Translators: AI model details
-#: basilisk/provider_ai_model.py:72
-msgid "Vision:"
-msgstr "Зрение:"
-
-#. Translators: AI model details
-#: basilisk/provider_ai_model.py:74
-msgid "Context window:"
-msgstr "Контекстное окно:"
-
-#. Translators: AI model details
-#. Translators: Summary of a conversation profile
-#: basilisk/config/conversation_profile.py:190 basilisk/provider_ai_model.py:77
-msgid "Max output tokens:"
-msgstr "Максимальное число выходных токенов:"
 
 #: basilisk/screen_capture_thread.py:109
 #, python-format
@@ -118,11 +100,11 @@ msgstr "Снимок области экрана (%s)"
 msgid "Window screen capture (%s)"
 msgstr "Снимок окна (%s)"
 
-#: basilisk/config/account_config.py:378 basilisk/views/account_dialog.py:570
+#: basilisk/config/account_config.py:381 basilisk/views/account_dialog.py:570
 msgid "Personal"
 msgstr "Персональный"
 
-#: basilisk/config/account_config.py:493
+#: basilisk/config/account_config.py:496
 msgid "From environment variable"
 msgstr "Из переменной окружения"
 
@@ -216,6 +198,11 @@ msgstr "Название аккаунта:"
 #: basilisk/config/conversation_profile.py:187
 msgid "Model:"
 msgstr "Модель:"
+
+#. Translators: Summary of a conversation profile
+#: basilisk/config/conversation_profile.py:190
+msgid "Max output tokens:"
+msgstr "Максимальное число выходных токенов:"
 
 #. Translators: Summary of a conversation profile
 #: basilisk/config/conversation_profile.py:193
@@ -348,6 +335,10 @@ msgstr "Пожалуйста, выберите движок"
 #, python-format
 msgid "The selected model does not support images. Please select a vision model instead (%s)."
 msgstr "Выбранная модель не поддерживает изображения. Пожалуйста, выберите модель с поддержкой зрения (%s)."
+
+#: basilisk/presenters/base_conversation_presenter.py:151
+msgid "Failed to load models. Please check your network and account settings."
+msgstr ""
 
 #: basilisk/presenters/conversation_presenter.py:319
 #: basilisk/presenters/conversation_presenter.py:374
@@ -590,7 +581,7 @@ msgid "OCR Error"
 msgstr "Ошибка распознавания текста (OCR)"
 
 #. Translators: A label for the language in the settings dialog
-#: basilisk/presenters/preferences_presenter.py:59
+#: basilisk/presenters/preferences_presenter.py:63
 msgid "System default (auto)"
 msgstr "По умолчанию как в системе (авто)"
 
@@ -609,251 +600,6 @@ msgstr "Неверное регулярное выражение: %s"
 #: basilisk/presenters/update_presenter.py:67
 msgid "Update are disabled for source application"
 msgstr "Обновление отключено для приложения, запущенного из исходного кода"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:99
-#: basilisk/provider_engine/anthropic_engine.py:110
-msgid "The most intelligent model for building agents and coding"
-msgstr "Самая интеллектуальная модель для создания агентов и написания кода"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:121
-#: basilisk/provider_engine/anthropic_engine.py:130
-msgid "The best combination of speed and intelligence"
-msgstr "Лучшее сочетание скорости и интеллекта"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:141
-#: basilisk/provider_engine/anthropic_engine.py:152
-msgid "The fastest model with near-frontier intelligence"
-msgstr "Самая быстрая модель с интеллектом, близким к флагманскому уровню"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:164
-#: basilisk/provider_engine/anthropic_engine.py:175
-msgid "Best model for complex agents and coding with highest intelligence"
-msgstr "Лучшая модель для сложных агентов и кодирования с высочайшим интеллектом"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:187
-#: basilisk/provider_engine/anthropic_engine.py:198
-#: basilisk/provider_engine/anthropic_engine.py:210
-#: basilisk/provider_engine/anthropic_engine.py:221
-#: basilisk/provider_engine/anthropic_engine.py:252
-#: basilisk/provider_engine/anthropic_engine.py:263
-msgid "Exceptional model for specialized complex tasks"
-msgstr "Исключительная модель для специализированных сложных задач"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:232
-#: basilisk/provider_engine/anthropic_engine.py:241
-msgid "High-performance model"
-msgstr "Высокопроизводительная модель"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/anthropic_engine.py:274
-msgid "Previous intelligent model"
-msgstr "Предыдущая интеллектуальная модель"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/deepseek_engine.py:53
-msgid "Non-thinking mode for general chat, code and writing"
-msgstr "Режим без размышлений для обычного чата, кода и текстов"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/deepseek_engine.py:65
-msgid "Thinking mode for chain-of-thought, research and logic"
-msgstr "Режим размышления для цепочек рассуждений, исследований и логики"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:96
-msgid "State-of-the-art open-weight general-purpose multimodal model"
-msgstr "Передовая мультимодальная модель общего назначения"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:108
-msgid "Frontier-class multimodal model released August 2025"
-msgstr "Мультимодальная модель флагманского уровня, выпущенная в августе 2025 года"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:119
-msgid "Updated small model released June 2025"
-msgstr "Обновлённая компактная модель, выпущенная в июне 2025 года"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:130
-msgid "Frontier code agents model for software engineering tasks"
-msgstr "Флагманская модель программных агентов для задач разработки ПО"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:141
-msgid "Powerful model with best-in-class text and vision capabilities"
-msgstr "Мощная модель с лучшими в своём классе возможностями работы с текстом и изображениями"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:153
-msgid "Efficient model with best-in-class text and vision capabilities"
-msgstr "Эффективная модель с лучшими в своем классе возможностями работы с текстом и изображениями"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:165
-msgid "Tiny efficient model with best-in-class text and vision capabilities"
-msgstr "Компактная эффективная модель с лучшими в своем классе возможностями работы с текстом и изображениями"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:177
-msgid "Cutting-edge language model for code completion"
-msgstr "Передовая языковая модель для автодополнения кода"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:188
-msgid "Frontier-class multimodal model released November 2024"
-msgstr "Мультимодальная модель флагманского уровня, выпущенная в ноябре 2024 года"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/mistralai_engine.py:200
-msgid "Best multilingual open source model for text generation"
-msgstr "Лучшая многоязычная модель с открытым исходным кодом для генерации текста"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:114
-msgid "The best model for coding and agentic tasks across industries"
-msgstr "Лучшая модель для написания кода и агентных задач в различных отраслях"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:126
-msgid "Version of GPT-5.2 that produces smarter and more precise responses"
-msgstr "Версия GPT-5.2, создающая более умные и точные ответы"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:137
-msgid "GPT-5.2 model used in ChatGPT"
-msgstr "Модель GPT-5.2, используемая в ChatGPT"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:148
-msgid "Best model for coding and agentic tasks with configurable reasoning effort"
-msgstr "Лучшая модель для написания кода и агентных задач с настраиваемым уровнем рассуждения"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:159
-msgid "GPT-5.1 model used in ChatGPT"
-msgstr "Модель GPT-5.1, используемая в ChatGPT"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:170
-msgid "Previous intelligent reasoning model for coding and agentic tasks"
-msgstr "Предыдущая модель с интеллектуальным рассуждением для написания кода и агентных задач"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:182
-msgid "A faster, more cost-efficient version of GPT-5 for well-defined tasks"
-msgstr "Более быстрая и экономичная версия GPT-5 для чётко определённых задач"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:193
-msgid "Fastest, most cost-efficient version of GPT-5"
-msgstr "Самая быстрая и экономичная версия GPT-5"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:203
-msgid "GPT-5 model used in ChatGPT"
-msgstr "Модель GPT-5, используемая в ChatGPT"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:214
-msgid "Version of GPT-5 that produces smarter and more precise responses"
-msgstr "Версия GPT-5, создающая более умные и точные ответы"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:225
-msgid "Flagship GPT model for complex tasks"
-msgstr "Флагманская GPT-модель для сложных задач"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:235
-msgid "Balanced for intelligence, speed, and cost"
-msgstr "Оптимальное сочетание интеллекта, скорости и стоимости"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:245
-msgid "Fastest, most cost-effective GPT-4.1 model"
-msgstr "Самая быстрая и экономичная модель GPT-4.1"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:256
-msgid "Fast, cost-efficient reasoning model, succeeded by GPT-5 mini"
-msgstr "Быстрая и экономичная модель рассуждений, предшественница GPT-5 mini"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:268
-msgid "Reasoning model for complex tasks, succeeded by GPT-5"
-msgstr "Модель рассуждений для сложных задач, предшественница GPT-5"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:280
-msgid "Fast, intelligent, flexible GPT model"
-msgstr "Быстрая, интеллектуальная и гибкая модель GPT"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:290
-msgid "Fast, affordable small model for focused tasks"
-msgstr "Быстрая и доступная компактная модель для узкоспециализированных задач"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:301
-msgid "Small reasoning model for science, math and coding with Structured Outputs and function calling"
-msgstr "Компактная модель рассуждений для задач в сфере науки, математики и программирования с поддержкой структурированного вывода и вызова функций"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:313
-msgid "Previous full o-series reasoning model"
-msgstr "Предыдущая полноразмерная модель рассуждений серии o"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:325
-msgid "Older high-intelligence GPT model with vision capabilities"
-msgstr "Более старая высокоинтеллектуальная модель GPT с возможностями компьютерного зрения"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/openai_engine.py:337
-msgid "Legacy GPT model for cheaper chat and non-chat tasks"
-msgstr "Устаревшая модель GPT для недорогого чата и задач без использования чат-интерфейса"
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:47
-msgid "Flagship frontier model for complex tasks with 256K context, tool use and structured output."
-msgstr "Флагманская передовая модель для сложных задач с контекстом 256K, использованием инструментов и структурированным выводом."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:58
-msgid "High-throughput reasoning with 2M token context for rapid completions."
-msgstr "Высокопроизводительные рассуждения с контекстом 2M токенов для быстрого получения ответов."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:70
-msgid "Fast completions without reasoning tokens, cost-efficient with 2M context."
-msgstr "Быстрые ответы без токенов рассуждения, экономичность и контекст 2M токенов."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:81
-msgid "Optimized for agentic coding tasks with 256K context."
-msgstr "Оптимизировано для агентных задач программирования с контекстом 256K токенов."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:91
-msgid "Flagship model for enterprise tasks, extraction and coding."
-msgstr "Флагманская модель для корпоративных задач, извлечения данных и программирования."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:101
-msgid "Cost-efficient, faster than Grok 3 for well-defined tasks."
-msgstr "Экономичная модель, быстрее Grok 3 для четко определенных задач."
-
-#. Translators: This is a model description
-#: basilisk/provider_engine/xai_engine.py:111
-msgid "Multimodal image understanding with 32K context."
-msgstr "Мультимодальное понимание изображений с контекстом 32K токенов."
 
 #. Translators: Error message shown when an HTTP error occurs while downloading
 #. an attachment
@@ -900,7 +646,7 @@ msgstr "Организации"
 #. Translators: This label appears in the main window's list of models
 #. Translators: This is a label for attachment name
 #: basilisk/views/account_dialog.py:208 basilisk/views/account_dialog.py:734
-#: basilisk/views/base_conversation.py:201
+#: basilisk/views/base_conversation.py:205
 #: basilisk/views/prompt_attachments_panel.py:109
 #: basilisk/views/prompt_attachments_panel.py:617
 msgid "Name"
@@ -1033,69 +779,101 @@ msgid "Cannot remove account from environment variable"
 msgstr "Невозможно удалить аккаунт, полученный из переменных среды"
 
 #. Translators: This is a label for account in the main window
-#: basilisk/views/base_conversation.py:102
+#: basilisk/views/base_conversation.py:106
 msgid "&Account:"
 msgstr "&Аккаунт:"
 
 #. Translators: This is a label for system prompt in the main window
-#: basilisk/views/base_conversation.py:183
+#: basilisk/views/base_conversation.py:187
 msgid "S&ystem prompt:"
 msgstr "&Системная подсказка:"
 
-#: basilisk/views/base_conversation.py:198
+#: basilisk/views/base_conversation.py:202
 msgid "M&odels:"
 msgstr "&Модели:"
 
 #. Translators: This label appears in the main window's list of models to
 #. indicate whether the model supports images
-#: basilisk/views/base_conversation.py:203
+#: basilisk/views/base_conversation.py:207
 msgid "Vision"
 msgstr "Зрение"
 
 #. Translators: This label appears in the main window's list of models
-#: basilisk/views/base_conversation.py:205
+#: basilisk/views/base_conversation.py:209
 msgid "Context window"
 msgstr "Контекстное окно"
 
 #. Translators: This label appears in the main window's list of models
-#: basilisk/views/base_conversation.py:207
+#: basilisk/views/base_conversation.py:211
 msgid "Max tokens"
 msgstr "Максимальное число токенов"
 
+#. Translators: Placeholder row in the model list while models load
+#: basilisk/views/base_conversation.py:231
+msgid "Loading..."
+msgstr ""
+
+#. Translators: Short status bar message when model list failed to load
+#: basilisk/views/base_conversation.py:381
+msgid "Model loading failed"
+msgstr ""
+
+#. Translators: Placeholder row when the model catalog failed to load
+#: basilisk/views/base_conversation.py:384
+msgid "Error loading models"
+msgstr ""
+
+#. Translators: Body of error dialog after model loading failure
+#: basilisk/views/base_conversation.py:388
+#, python-format
+msgid "An error occurred while loading models:\n"
+"%s"
+msgstr ""
+
+#. Translators: Title of error dialog for model loading failure
+#: basilisk/views/base_conversation.py:391
+msgid "Model loading error"
+msgstr ""
+
 #. Translators: This is a label for a context menu item
 #. Translators: This is a label for show details in the context menu
-#: basilisk/views/base_conversation.py:335
+#: basilisk/views/base_conversation.py:439
 #: basilisk/views/prompt_attachments_panel.py:481
 msgid "Show details"
 msgstr "Показать подробности"
 
+#. Translators: This is a label for refreshing model list
+#: basilisk/views/base_conversation.py:447
+msgid "Refresh"
+msgstr ""
+
 #. Translators: This is a label for a title dialog
-#: basilisk/views/base_conversation.py:356
+#: basilisk/views/base_conversation.py:475
 msgid "Model details"
 msgstr "Сведения о модели"
 
 #. Translators: This is a label for web search mode in the main window
-#: basilisk/views/base_conversation.py:367
+#: basilisk/views/base_conversation.py:486
 msgid "&Web search mode"
 msgstr "Режим &веб-поиска"
 
 #. Translators: This is a label for max tokens in the main window
-#: basilisk/views/base_conversation.py:380
+#: basilisk/views/base_conversation.py:499
 msgid "Max to&kens:"
 msgstr "Максимальное число &токенов:"
 
 #. Translators: This is a label for temperature in the main window
-#: basilisk/views/base_conversation.py:395
+#: basilisk/views/base_conversation.py:514
 msgid "&Temperature:"
 msgstr "&Температура:"
 
 #. Translators: This is a label for top P in the main window
-#: basilisk/views/base_conversation.py:421
+#: basilisk/views/base_conversation.py:540
 msgid "Probabilit&y Mass (top P):"
 msgstr "Масса вероятн&ости (верхнее P):"
 
 #. Translators: This is a label for stream mode in the main window
-#: basilisk/views/base_conversation.py:443
+#: basilisk/views/base_conversation.py:562
 msgid "&Stream mode"
 msgstr "&Потоковый режим"
 
@@ -1267,16 +1045,16 @@ msgid "Apply profile"
 msgstr "Применить профиль"
 
 #. Translators: Error shown when a conversation cannot be made private
-#: basilisk/views/conversation_tab.py:629
+#: basilisk/views/conversation_tab.py:634
 msgid "Failed to switch the conversation to private mode: the existing database record could not be deleted."
 msgstr "Не удалось переключить разговор в приватный режим: не удалось удалить существующую запись в базе данных."
 
 #. Translators: This is a label for audio file in the main window
-#: basilisk/views/conversation_tab.py:692
+#: basilisk/views/conversation_tab.py:698
 msgid "Select an audio file to transcribe"
 msgstr "Выберите аудиофайл для расшифровки"
 
-#: basilisk/views/conversation_tab.py:694
+#: basilisk/views/conversation_tab.py:700
 msgid "Audio files"
 msgstr "Аудиофайлы"
 
@@ -1612,133 +1390,138 @@ msgid "OCR completed, but no text was extracted."
 msgstr "Распознавание текста завершено, но текст не извлечён."
 
 #. Translators: A label for the log level selection in the preferences dialog
-#: basilisk/views/preferences_dialog.py:47
+#: basilisk/views/preferences_dialog.py:51
 msgid "Log level"
 msgstr "Уровень журнала"
 
 #. Translators: A label for the language selection in the preferences dialog
-#: basilisk/views/preferences_dialog.py:66
+#: basilisk/views/preferences_dialog.py:70
 msgid "Language (Requires restart)"
 msgstr "Язык (требуется перезапуск)"
 
-#: basilisk/views/preferences_dialog.py:79
+#: basilisk/views/preferences_dialog.py:83
 msgid "Quit on &close, don't minimize"
 msgstr "Выходить при &закрытии, не сворачивать"
 
-#: basilisk/views/preferences_dialog.py:84
+#: basilisk/views/preferences_dialog.py:88
 msgid "Update"
 msgstr "Обновление"
 
-#: basilisk/views/preferences_dialog.py:88
+#: basilisk/views/preferences_dialog.py:92
 msgid "Release channel"
 msgstr "Канал выпусков"
 
-#: basilisk/views/preferences_dialog.py:102
+#: basilisk/views/preferences_dialog.py:106
 msgid "Automatic update mode"
 msgstr "Режим автоматического обновления"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:121
+#: basilisk/views/preferences_dialog.py:125
 msgid "Advanced mode"
 msgstr "Расширенный режим"
 
-#: basilisk/views/preferences_dialog.py:127
+#: basilisk/views/preferences_dialog.py:131
 msgid "Conversation"
 msgstr "Разговор"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:135
+#: basilisk/views/preferences_dialog.py:139
 msgid "Custom role label for user:"
 msgstr "Собственная метка роли для пользователя:"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:146
+#: basilisk/views/preferences_dialog.py:150
 msgid "Custom role label for assistant:"
 msgstr "Собственная метка роли для ассистента:"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:158
+#: basilisk/views/preferences_dialog.py:162
 msgid "Message Selection on Previous/Next Navigation"
 msgstr "Выделение сообщения при навигации назад/вперёд"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:166
+#: basilisk/views/preferences_dialog.py:170
 msgid "Send message with Enter, insert newline with Shift+Enter"
 msgstr "Отправить сообщение клавишей Enter, вставить новую строку Shift+Enter"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:175
+#: basilisk/views/preferences_dialog.py:179
 msgid "Enable &Accessible Output to provide spoken and braille feedback for actions and messages"
 msgstr "Включить &доступный вывод, чтобы обеспечить речевую и брайлевскую обратную связь для действий и сообщений"
 
-#: basilisk/views/preferences_dialog.py:184
+#: basilisk/views/preferences_dialog.py:188
 msgid "Focus message history after sending"
 msgstr "Устанавливать фокус на историю сообщений после отправки"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:194
+#: basilisk/views/preferences_dialog.py:198
 msgid "Automatically save conversations to &database"
 msgstr "Автоматически сохранять разговоры в &базу данных"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:205
+#: basilisk/views/preferences_dialog.py:209
 msgid "Auto-save &draft prompt text"
 msgstr "Автоматически сохранять &черновик промпта"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:214
+#: basilisk/views/preferences_dialog.py:218
 msgid "&Reopen last conversation on startup"
 msgstr "&Открывать последний разговор при запуске"
 
-#: basilisk/views/preferences_dialog.py:225
+#: basilisk/views/preferences_dialog.py:229
 msgid "Images"
 msgstr "Изображения"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:231
+#: basilisk/views/preferences_dialog.py:235
 msgid "Resize images before uploading"
 msgstr "Изменять размер изображений перед загрузкой"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:241
+#: basilisk/views/preferences_dialog.py:245
 msgid "Maximum &height (0 to resize proportionally to the width):"
 msgstr "Максимальная &высота (0 для изменения размера пропорционально ширине):"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:254
+#: basilisk/views/preferences_dialog.py:258
 msgid "Maximum &width (0 to resize proportionally to the height):"
 msgstr "Максимальная &ширина (0 для изменения размера пропорционально высоте):"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:267
+#: basilisk/views/preferences_dialog.py:271
 msgid "&Quality for JPEG images (0 [worst] to 95 [best], values above 95 should be avoided):"
 msgstr "&Качество для изображений в формате JPEG (от 0 [худшее] до 95 [лучшее], стоит избегать значений выше 95):"
 
 #. Translators: a group label in the preference dialog
-#: basilisk/views/preferences_dialog.py:281
+#: basilisk/views/preferences_dialog.py:285
 msgid "Network"
 msgstr "Сеть"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:287
+#: basilisk/views/preferences_dialog.py:291
 msgid "Use system certificate store (Requires restart)"
 msgstr "Использовать хранилище системных сертификатов (требуется перезапуск)"
 
-#: basilisk/views/preferences_dialog.py:293
+#. Translators: Label for model catalog HTTP cache duration in preferences
+#: basilisk/views/preferences_dialog.py:299
+msgid "Model list &cache duration (seconds):"
+msgstr ""
+
+#: basilisk/views/preferences_dialog.py:313
 msgid "Server"
 msgstr "Сервер"
 
 #. Translators: A label for a checkbox in the preferences dialog
-#: basilisk/views/preferences_dialog.py:299
+#: basilisk/views/preferences_dialog.py:319
 msgid "Enable server mode (requires restart)"
 msgstr "Включить серверный режим (требуется перезапуск)"
 
 #. Translators: A label in the preferences dialog
-#: basilisk/views/preferences_dialog.py:307
+#: basilisk/views/preferences_dialog.py:327
 msgid "Port:"
 msgstr "Порт:"
 
-#: basilisk/views/preferences_dialog.py:324
+#: basilisk/views/preferences_dialog.py:344
 msgid "Cancel"
 msgstr "Отменить"
 
@@ -1968,3 +1751,4 @@ msgstr "Вы используете последнюю версию basiliskLLM"
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Ошибка проверки обновлений: %s"
+
