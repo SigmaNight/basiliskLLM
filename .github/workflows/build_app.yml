@@ -24,7 +24,7 @@ jobs:
       - name: install OpenSSL via vcpkg (arm64)
         if: matrix.arch == 'arm64'
         id: vcpkg
-        uses: "johnwason/vcpkg-action@caa1c94fbb94d8b023a0cc93edf10cd3791349a7"
+        uses: "johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef"
         with:
           pkgs: openssl
           triplet: arm64-windows
