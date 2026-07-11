@@ -193,7 +193,7 @@ dev = [
     { name = "commitizen", specifier = ">=4.16.3,<4.17" },
     { name = "cx-freeze", specifier = ">=8.6.4" },
     { name = "prek", specifier = ">=0.4.3" },
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-httpx", specifier = ">=0.36.2" },
     { name = "pytest-mock", specifier = ">=3.15" },
@@ -207,7 +207,7 @@ style = [
     { name = "ruff", specifier = ">=0.15.17,<0.16" },
 ]
 test = [
-    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-httpx", specifier = ">=0.36.2" },
     { name = "pytest-mock", specifier = ">=3.15" },
