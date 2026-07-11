@@ -177,7 +177,7 @@ requires-dist = [
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=311,<312" },
     { name = "pyyaml", specifier = ">=6.0.3,<6.1" },
     { name = "sounddevice", specifier = ">=0.5.3,<0.6" },
-    { name = "sqlalchemy", specifier = ">=2.0,<2.1" },
+    { name = "sqlalchemy", specifier = ">=2.0.51,<2.1" },
     { name = "truststore", specifier = ">=0.10.4,<0.11" },
     { name = "universal-pathlib", specifier = ">=0.3.7,<0.4" },
     { name = "wxpython", specifier = ">=4.2.4,<4.3" },
