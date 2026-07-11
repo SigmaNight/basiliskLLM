@@ -14,6 +14,7 @@ dependencies = [
     "alembic>=1.18,<1.19",
     "anthropic>=0.116.0,<0.117",
     "babel>=2.17,<2.19",
+    "cryptography>=46.0.0,<49",
     "fsspec>=2026.6.0,<2026.7",
     "google-genai>=2.11.0,<2.12",
     "httpx>=0.28.1,<0.29.0",
