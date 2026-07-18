@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 21:14+0000\n"
-"PO-Revision-Date: 2026-06-13 15:03\n"
+"POT-Creation-Date: 2026-07-12 12:04+0000\n"
+"PO-Revision-Date: 2026-07-18 14:21\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
 "MIME-Version: 1.0\n"
@@ -1753,3 +1753,4 @@ msgstr "Ви використовуєте останню версію basiliskLL
 #, python-format
 msgid "Error checking for updates: %s"
 msgstr "Помилка перевірки оновлень: %s"
+
