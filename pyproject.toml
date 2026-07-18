@@ -54,7 +54,7 @@ test = [
 
 style = [
     "ruff>=0.15.17,<0.16",
-    "commitizen>=4.16.3,<4.17",
+    "commitizen>=4.16.5,<4.17",
     "prek>=0.4.3",
 ]
 
