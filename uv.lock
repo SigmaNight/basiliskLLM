@@ -170,7 +170,7 @@ requires-dist = [
     { name = "more-itertools", specifier = ">=11.1.0,<11.1.1" },
     { name = "numpy", specifier = ">=2.5.1,<2.6" },
     { name = "ollama", specifier = ">=0.6.2,<0.7" },
-    { name = "openai", specifier = ">=2.38.0,<2.39" },
+    { name = "openai", specifier = ">=2.48.0,<2.49" },
     { name = "ordered-set", specifier = ">=4.1,<4.2" },
     { name = "pillow", specifier = ">=12.3.0,<12.4" },
     { name = "platformdirs", specifier = ">=4.10.0,<4.11" },
@@ -956,7 +956,7 @@ wheels = [
 
 [[package]]
 name = "openai"
-version = "2.38.0"
+version = "2.48.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -968,9 +968,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/12/cfa322c5f5dd8fa21aab9a7a8e979e7a11123800f86ca8d82eb68a83d213/openai-2.38.0.tar.gz", hash = "sha256:798694c6cf74145541fda94325b6f8f72d8e1fd0262cc137c8d728177a6a4ce3", size = 772764, upload-time = "2026-05-21T21:23:42.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/ae/d4d1835488c0350424009dac5095b9a3e173bee12fd2e421ee27e2142c42/openai-2.48.0.tar.gz", hash = "sha256:231b1e7661dda14574986c2f71451e9d584b7fe69e0ee6480e12ed090b48fc16", size = 1093427, upload-time = "2026-07-23T20:15:50.402Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0a/bf/ccff9be562e24207716d04ef9dc931c76aff0c89a7265da43e2104d7fe06/openai-2.38.0-py3-none-any.whl", hash = "sha256:ec6661c57b2dcc47414a767e6e3335c7ed3d19c9696999283a3c82e95c756a3c", size = 1344910, upload-time = "2026-05-21T21:23:39.636Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/2a/dcb891114e303c4379d4a498f10222e33eee540bcef4e1e493bd0af2b242/openai-2.48.0-py3-none-any.whl", hash = "sha256:c98df30aaaf93c51979f64d3e7c5b76464f8be0173368266229eb8fe6bd30f2c", size = 1648520, upload-time = "2026-07-23T20:15:48.052Z" },
 ]
 
 [[package]]
