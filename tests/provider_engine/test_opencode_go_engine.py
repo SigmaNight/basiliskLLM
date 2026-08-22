@@ -228,3 +228,40 @@ def test_protocol_client_base_urls():
 		engine._gemini_engine.client._api_client._http_options.base_url
 		== "https://opencode.ai/zen/v1"
 	)
+
+
+@pytest.mark.parametrize(
+	("engine_cls", "provider_id"),
+	[(OpenCodeGoEngine, "opencodego"), (OpenCodeZenEngine, "opencodezen")],
+)
+@pytest.mark.parametrize(
+	"protocol",
+	[
+		_Protocol.CHAT_COMPLETIONS,
+		_Protocol.RESPONSES,
+		_Protocol.ANTHROPIC_MESSAGES,
+	],
+)
+def test_cancel_closes_go_and_zen_streams(engine_cls, provider_id, protocol):
+	"""Go and Zen close OpenAI-compatible and Anthropic SDK streams."""
+	engine = _make_engine(engine_cls, provider_id)
+	stream = MagicMock()
+
+	engine.cancel_completion(_ProtocolResponse(protocol, stream))
+
+	stream.close.assert_called_once_with()
+
+
+def test_cancel_zen_gemini_stream_closes_and_recreates_client():
+	"""Zen cancels Gemini's generator by closing its active HTTP client."""
+	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
+	stream = MagicMock()
+	stream.close.side_effect = ValueError("generator already executing")
+	client = MagicMock()
+	engine._gemini_engine.__dict__["client"] = client
+
+	engine.cancel_completion(_ProtocolResponse(_Protocol.GEMINI, stream))
+
+	stream.close.assert_called_once_with()
+	client.close.assert_called_once_with()
+	assert "client" not in engine._gemini_engine.__dict__

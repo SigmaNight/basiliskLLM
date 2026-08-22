@@ -77,6 +77,9 @@ class CompletionHandler:
 		self.on_non_stream_finish = on_non_stream_finish
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
+		self._completion_lock = threading.Lock()
+		self._active_engine: Optional[BaseEngine] = None
+		self._active_response: Any = None
 		self.last_time = 0
 		self.stream_buffer: str = ""
 
@@ -100,7 +103,10 @@ class CompletionHandler:
 			stream: Whether to use streaming mode
 			**kwargs: Additional arguments for the completion
 		"""
-		self._stop_completion = False
+		with self._completion_lock:
+			self._stop_completion = False
+			self._active_engine = None
+			self._active_response = None
 
 		completion_args = {
 			"engine": engine,
@@ -127,17 +133,43 @@ class CompletionHandler:
 			skip_callbacks: If True, skip calling completion end callbacks.
 				Useful when cleaning up resources before destroying the tab.
 		"""
-		if self.is_running():
-			self._stop_completion = True
-			logger.debug("Stopping completion task: %s", self.task.ident)
-			self.task.join(timeout=0.05)
-			self.task = None
+		with self._completion_lock:
+			task = self.task
+			is_running = bool(task and task.is_alive())
+			if is_running:
+				self._stop_completion = True
+				engine = self._active_engine
+				response = self._active_response
+
+		if is_running:
+			logger.debug("Stopping completion task: %s", task.ident)
+			if engine is not None and response is not None:
+				self._cancel_response(engine, response)
+			task.join(timeout=0.1)
+			with self._completion_lock:
+				if self.task is task and not task.is_alive():
+					self.task = None
+			stop_sound()
 		if self.on_completion_end and not skip_callbacks:
 			wx.CallAfter(self.on_completion_end, False)
 
 	def is_running(self) -> bool:
 		"""Check if a completion is currently running."""
-		return self.task and self.task.is_alive()
+		with self._completion_lock:
+			return bool(self.task and self.task.is_alive())
+
+	def _cancel_response(self, engine: BaseEngine, response: Any) -> None:
+		"""Close an active provider response without surfacing stop errors."""
+		try:
+			engine.cancel_completion(response)
+		except Exception:
+			logger.debug(
+				"Provider response could not be closed cleanly", exc_info=True
+			)
+
+	def _is_stopping(self) -> bool:
+		with self._completion_lock:
+			return self._stop_completion or global_vars.app_should_exit
 
 	def _handle_completion(self, engine: BaseEngine, **kwargs: dict[str, Any]):
 		"""Handle the completion request in a background thread.
@@ -147,29 +179,58 @@ class CompletionHandler:
 			kwargs: The keyword arguments for the completion request
 		"""
 		try:
-			play_sound("progress", loop=True)
-			response = engine.completion(**kwargs)
-		except Exception as e:
-			logger.error("Error during completion", exc_info=True)
-			wx.CallAfter(self._handle_error, str(e))
-			return
+			try:
+				play_sound("progress", loop=True)
+				response = engine.completion(**kwargs)
+			except Exception as e:
+				if self._is_stopping():
+					logger.debug("Completion request cancelled", exc_info=True)
+					return
+				logger.error("Error during completion", exc_info=True)
+				wx.CallAfter(self._handle_error, str(e))
+				return
 
-		handle_func = (
-			self._handle_streaming_completion
-			if kwargs.get("stream", False)
-			else self._handle_non_streaming_completion
-		)
-		kwargs["engine"] = engine
-		kwargs["response"] = response
-		try:
-			success = handle_func(**kwargs)
-		except Exception as e:
-			logger.error("Error handling completion response", exc_info=True)
-			wx.CallAfter(self._handle_error, str(e))
-			return
+			with self._completion_lock:
+				self._active_engine = engine
+				self._active_response = response
+				should_stop = (
+					self._stop_completion or global_vars.app_should_exit
+				)
 
-		if success:
-			wx.CallAfter(self._completion_finished_success)
+			if should_stop:
+				self._cancel_response(engine, response)
+				return
+
+			handle_func = (
+				self._handle_streaming_completion
+				if kwargs.get("stream", False)
+				else self._handle_non_streaming_completion
+			)
+			kwargs["engine"] = engine
+			kwargs["response"] = response
+			try:
+				success = handle_func(**kwargs)
+			except Exception as e:
+				if self._is_stopping():
+					logger.debug("Completion response cancelled", exc_info=True)
+					return
+				logger.error(
+					"Error handling completion response", exc_info=True
+				)
+				wx.CallAfter(self._handle_error, str(e))
+				return
+
+			if success and not self._is_stopping():
+				wx.CallAfter(self._completion_finished_success)
+		finally:
+			with self._completion_lock:
+				self._active_engine = None
+				self._active_response = None
+				if (
+					self._stop_completion
+					and self.task is threading.current_thread()
+				):
+					self.task = None
 
 	def _handle_stream_chunk(
 		self, chunk: str | tuple[str, Any], message_block: MessageBlock
@@ -224,7 +285,7 @@ class CompletionHandler:
 			wx.CallAfter(self.on_stream_start, new_block, system_message)
 
 		for chunk in engine.completion_response_with_stream(response):
-			if self._stop_completion or global_vars.app_should_exit:
+			if self._is_stopping():
 				logger.debug("Stopping completion")
 				return False
 			self._handle_stream_chunk(chunk, new_block)
