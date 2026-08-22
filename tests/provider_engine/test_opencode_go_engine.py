@@ -132,7 +132,10 @@ def test_provider_registration(provider_id, name, base_url, engine_cls):
 			OpenCodeZenEngine,
 			"opencodezen",
 			"https://opencode.ai/zen/v1/models",
-			{"owned_by": "opencode"},
+			{
+				"owned_by": "opencode",
+				"unsupported_parameters": ["temperature", "top_p"],
+			},
 		),
 	],
 )
@@ -392,14 +395,18 @@ def test_ordinary_go_chat_model_keeps_user_sampling_parameters(
 	assert params["top_p"] == 0.8
 
 
-def test_go_sampling_policy_does_not_apply_to_zen(httpx_mock, mocker):
-	"""Zen Kimi requests retain their selected sampling values."""
+def test_go_fixed_sampling_policy_does_not_apply_to_zen(httpx_mock, mocker):
+	"""Zen Kimi K3 keeps its independent unsupported-parameter policy."""
 	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
 	httpx_mock.add_response(
 		url="https://opencode.ai/zen/v1/models",
 		json={"data": [{"id": "kimi-k3"}]},
 	)
 	model = engine._load_models()[0]
+	assert model.extra_info["unsupported_parameters"] == [
+		"temperature",
+		"top_p",
+	]
 	client = MagicMock()
 	mocker.patch.object(engine, "get_model", return_value=model)
 	mocker.patch.object(engine, "get_messages", return_value=[])
@@ -414,8 +421,8 @@ def test_go_sampling_policy_does_not_apply_to_zen(httpx_mock, mocker):
 	engine.completion(new_block, MagicMock(), None)
 
 	params = client.chat.completions.create.call_args.kwargs
-	assert params["temperature"] == 0.7
-	assert params["top_p"] == 0.8
+	assert "temperature" not in params
+	assert "top_p" not in params
 
 
 def test_protocol_client_base_urls():
