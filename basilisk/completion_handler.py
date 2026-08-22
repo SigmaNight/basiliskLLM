@@ -78,6 +78,7 @@ class CompletionHandler:
 		self.task: Optional[threading.Thread] = None
 		self._stop_completion = False
 		self._completion_lock = threading.Lock()
+		self._active_request: object | None = None
 		self._active_engine: Optional[BaseEngine] = None
 		self._active_response: Any = None
 		self.last_time = 0
@@ -103,8 +104,10 @@ class CompletionHandler:
 			stream: Whether to use streaming mode
 			**kwargs: Additional arguments for the completion
 		"""
+		request = object()
 		with self._completion_lock:
 			self._stop_completion = False
+			self._active_request = request
 			self._active_engine = None
 			self._active_response = None
 
@@ -121,7 +124,8 @@ class CompletionHandler:
 			self.on_completion_start()
 
 		self.task = threading.Thread(
-			target=self._handle_completion, kwargs=completion_args
+			target=self._handle_completion,
+			kwargs={"request": request, **completion_args},
 		)
 		self.task.start()
 		logger.debug("Completion task %s started", self.task.ident)
@@ -167,14 +171,21 @@ class CompletionHandler:
 				"Provider response could not be closed cleanly", exc_info=True
 			)
 
-	def _is_stopping(self) -> bool:
+	def _is_stopping(self, request: object) -> bool:
 		with self._completion_lock:
-			return self._stop_completion or global_vars.app_should_exit
+			return (
+				self._stop_completion
+				or self._active_request is not request
+				or global_vars.app_should_exit
+			)
 
-	def _handle_completion(self, engine: BaseEngine, **kwargs: dict[str, Any]):
+	def _handle_completion(
+		self, request: object, engine: BaseEngine, **kwargs: dict[str, Any]
+	):
 		"""Handle the completion request in a background thread.
 
 		Args:
+			request: Identity of the worker handling this completion.
 			engine: The engine to use for completion
 			kwargs: The keyword arguments for the completion request
 		"""
@@ -183,18 +194,22 @@ class CompletionHandler:
 				play_sound("progress", loop=True)
 				response = engine.completion(**kwargs)
 			except Exception as e:
-				if self._is_stopping():
+				if self._is_stopping(request):
 					logger.debug("Completion request cancelled", exc_info=True)
 					return
 				logger.error("Error during completion", exc_info=True)
-				wx.CallAfter(self._handle_error, str(e))
+				wx.CallAfter(self._handle_error, request, str(e))
 				return
 
 			with self._completion_lock:
-				self._active_engine = engine
-				self._active_response = response
+				is_active_request = self._active_request is request
+				if is_active_request:
+					self._active_engine = engine
+					self._active_response = response
 				should_stop = (
-					self._stop_completion or global_vars.app_should_exit
+					self._stop_completion
+					or global_vars.app_should_exit
+					or not is_active_request
 				)
 
 			if should_stop:
@@ -209,32 +224,41 @@ class CompletionHandler:
 			kwargs["engine"] = engine
 			kwargs["response"] = response
 			try:
-				success = handle_func(**kwargs)
+				success = handle_func(request=request, **kwargs)
 			except Exception as e:
-				if self._is_stopping():
+				if self._is_stopping(request):
 					logger.debug("Completion response cancelled", exc_info=True)
 					return
 				logger.error(
 					"Error handling completion response", exc_info=True
 				)
-				wx.CallAfter(self._handle_error, str(e))
+				wx.CallAfter(self._handle_error, request, str(e))
 				return
 
-			if success and not self._is_stopping():
-				wx.CallAfter(self._completion_finished_success)
+			if success and not self._is_stopping(request):
+				wx.CallAfter(self._completion_finished_success, request)
 		finally:
 			with self._completion_lock:
-				self._active_engine = None
-				self._active_response = None
+				if self._active_request is request:
+					self._active_engine = None
+					self._active_response = None
 				if (
 					self._stop_completion
+					and self._active_request is request
 					and self.task is threading.current_thread()
 				):
 					self.task = None
+					self._active_request = None
 
 	def _handle_stream_chunk(
-		self, chunk: str | tuple[str, Any], message_block: MessageBlock
+		self,
+		request: object,
+		chunk: str | tuple[str, Any],
+		message_block: MessageBlock,
 	):
+		if self._is_stopping(request):
+			return
+
 		if isinstance(chunk, str):
 			self.stream_buffer += chunk
 		elif isinstance(chunk, tuple):
@@ -249,17 +273,25 @@ class CompletionHandler:
 				)
 
 		if RE_STREAM_BUFFER.match(self.stream_buffer):
-			self.flush_stream_buffer(message_block)
+			self.flush_stream_buffer(request, message_block)
 
-	def flush_stream_buffer(self, message_block: MessageBlock) -> None:
+	def flush_stream_buffer(
+		self, request: object, message_block: MessageBlock
+	) -> None:
 		"""Flush the stream buffer to the message block."""
+		if self._is_stopping(request):
+			return
+
 		if self.stream_buffer:
 			message_block.response.content += self.stream_buffer
-			wx.CallAfter(self._handle_stream_buffer, self.stream_buffer)
+			wx.CallAfter(
+				self._handle_stream_buffer, request, self.stream_buffer
+			)
 			self.stream_buffer = ""
 
 	def _handle_streaming_completion(
 		self,
+		request: object,
 		engine: BaseEngine,
 		response: Any,
 		new_block: MessageBlock,
@@ -269,6 +301,7 @@ class CompletionHandler:
 		"""Handle streaming completion response.
 
 		Args:
+			request: Identity of the worker handling this completion.
 			engine: The engine used for completion
 			response: The completion response
 			new_block: The message block being completed
@@ -282,22 +315,25 @@ class CompletionHandler:
 
 		# Notify that streaming has started
 		if self.on_stream_start:
-			wx.CallAfter(self.on_stream_start, new_block, system_message)
+			wx.CallAfter(
+				self._handle_stream_start, request, new_block, system_message
+			)
 
 		for chunk in engine.completion_response_with_stream(response):
-			if self._is_stopping():
+			if self._is_stopping(request):
 				logger.debug("Stopping completion")
 				return False
-			self._handle_stream_chunk(chunk, new_block)
+			self._handle_stream_chunk(request, chunk, new_block)
 
 		# Notify that streaming has finished
-		self.flush_stream_buffer(new_block)
+		self.flush_stream_buffer(request, new_block)
 		if self.on_stream_finish:
-			wx.CallAfter(self.on_stream_finish, new_block)
+			wx.CallAfter(self._handle_stream_finish, request, new_block)
 		return True
 
 	def _handle_non_streaming_completion(
 		self,
+		request: object,
 		engine: BaseEngine,
 		response: Any,
 		new_block: MessageBlock,
@@ -307,6 +343,7 @@ class CompletionHandler:
 		"""Handle non-streaming completion response.
 
 		Args:
+			request: Identity of the worker handling this completion.
 			engine: The engine used for completion
 			response: The completion response
 			new_block: The message block being completed
@@ -323,17 +360,55 @@ class CompletionHandler:
 		# Notify that non-streaming completion has finished
 		if self.on_non_stream_finish:
 			wx.CallAfter(
-				self.on_non_stream_finish, completed_block, system_message
+				self._handle_non_stream_finish,
+				request,
+				completed_block,
+				system_message,
 			)
 
 		return True
 
-	def _handle_stream_buffer(self, buffer: str):
+	def _handle_stream_start(
+		self,
+		request: object,
+		new_block: MessageBlock,
+		system_message: Optional[SystemMessage],
+	):
+		"""Notify the UI that the owning stream has started."""
+		if self._is_stopping(request):
+			return
+		if self.on_stream_start:
+			self.on_stream_start(new_block, system_message)
+
+	def _handle_stream_finish(self, request: object, new_block: MessageBlock):
+		"""Notify the UI that the owning stream has finished."""
+		if self._is_stopping(request):
+			return
+		if self.on_stream_finish:
+			self.on_stream_finish(new_block)
+
+	def _handle_non_stream_finish(
+		self,
+		request: object,
+		completed_block: MessageBlock,
+		system_message: Optional[SystemMessage],
+	):
+		"""Notify the UI that the owning non-streaming request finished."""
+		if self._is_stopping(request):
+			return
+		if self.on_non_stream_finish:
+			self.on_non_stream_finish(completed_block, system_message)
+
+	def _handle_stream_buffer(self, request: object, buffer: str):
 		"""Handle a streaming chunk on the main thread.
 
 		Args:
+			request: Identity of the worker that produced the buffer.
 			buffer: The streaming buffer content
 		"""
+		if self._is_stopping(request):
+			return
+
 		if self.on_stream_chunk:
 			self.on_stream_chunk(buffer)
 
@@ -343,20 +418,35 @@ class CompletionHandler:
 			play_sound("chat_response_pending")
 			self.last_time = new_time
 
-	def _completion_finished_success(self):
+	def _completion_finished_success(self, request: object):
 		"""Handle completion finish in success on the main thread."""
+		with self._completion_lock:
+			if self._active_request is not request:
+				return
+			self.task = None
+			self._active_request = None
+			self._active_engine = None
+			self._active_response = None
 		stop_sound()
 		play_sound("chat_response_received")
 		if self.on_completion_end:
 			self.on_completion_end(True)
-		self.task = None
 
-	def _handle_error(self, error_message: str):
+	def _handle_error(self, request: object, error_message: str):
 		"""Handle completion error on the main thread.
 
 		Args:
+			request: Identity of the worker that raised the error.
 			error_message: The error message
 		"""
+		with self._completion_lock:
+			if self._active_request is not request:
+				return
+			self.task = None
+			self._active_request = None
+			self._active_engine = None
+			self._active_response = None
+
 		stop_sound()
 
 		if self.on_error:
@@ -372,5 +462,3 @@ class CompletionHandler:
 
 		if self.on_completion_end:
 			self.on_completion_end(False)
-
-		self.task = None
