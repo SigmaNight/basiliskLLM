@@ -4,6 +4,7 @@ import builtins
 
 import pytest
 from PIL import Image
+from pydantic_settings import YamlConfigSettingsSource
 from upath import UPath
 
 from basilisk.config.config_helper import BasiliskBaseSettings
@@ -161,7 +162,8 @@ def mock_display_error_msg(mocker):
 def mock_settings_sources(mocker):
 	"""Mock the settings_customise_sources method to prevent loading real config files.
 
-	This overrides the method to only use init_settings, avoiding any file loading.
+	This uses init settings plus an empty YAML source, avoiding real file loading
+	while satisfying Pydantic's YAML configuration validation.
 	"""
 
 	@classmethod
@@ -173,8 +175,10 @@ def mock_settings_sources(mocker):
 		dotenv_settings,
 		file_secret_settings,
 	):
-		# Only use init_settings, skip loading from files
-		return (init_settings,)
+		return (
+			init_settings,
+			YamlConfigSettingsSource(settings_cls, yaml_file=[]),
+		)
 
 	mocker.patch.object(
 		BasiliskBaseSettings,
