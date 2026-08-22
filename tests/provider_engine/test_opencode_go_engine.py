@@ -15,6 +15,69 @@ from basilisk.provider_engine.opencode_go_engine import (
 	_ProtocolResponse,
 )
 
+_LIVE_GO_MODEL_PROTOCOLS = (
+	("minimax-m3", _Protocol.ANTHROPIC_MESSAGES),
+	("minimax-m2.7", _Protocol.ANTHROPIC_MESSAGES),
+	("minimax-m2.5", _Protocol.ANTHROPIC_MESSAGES),
+	("kimi-k3", _Protocol.CHAT_COMPLETIONS),
+	("kimi-k2.7-code", _Protocol.CHAT_COMPLETIONS),
+	("kimi-k2.6", _Protocol.CHAT_COMPLETIONS),
+	("kimi-k2.5", _Protocol.CHAT_COMPLETIONS),
+	("glm-5.2", _Protocol.CHAT_COMPLETIONS),
+	("glm-5.3", _Protocol.CHAT_COMPLETIONS),
+	("ox-alpha-free", _Protocol.CHAT_COMPLETIONS),
+	("glm-5.1", _Protocol.CHAT_COMPLETIONS),
+	("glm-5", _Protocol.CHAT_COMPLETIONS),
+	("deepseek-v4-pro", _Protocol.CHAT_COMPLETIONS),
+	("deepseek-v4-flash", _Protocol.CHAT_COMPLETIONS),
+	("deepseek-v4-flash-vision-exp", _Protocol.CHAT_COMPLETIONS),
+	("qwen3.7-max", _Protocol.ANTHROPIC_MESSAGES),
+	("qwen3.8-max", _Protocol.ANTHROPIC_MESSAGES),
+	("qwen3.7-plus", _Protocol.ANTHROPIC_MESSAGES),
+	("qwen3.6-plus", _Protocol.ANTHROPIC_MESSAGES),
+	("qwen3.5-plus", _Protocol.CHAT_COMPLETIONS),
+	("mimo-v2-pro", _Protocol.CHAT_COMPLETIONS),
+	("mimo-v2-omni", _Protocol.CHAT_COMPLETIONS),
+	("mimo-v2.5-pro", _Protocol.CHAT_COMPLETIONS),
+	("mimo-v2.5", _Protocol.CHAT_COMPLETIONS),
+	("hy3", _Protocol.CHAT_COMPLETIONS),
+	("hy3-preview", _Protocol.CHAT_COMPLETIONS),
+	("gpt-5.6-luna", _Protocol.RESPONSES),
+	("grok-4.5", _Protocol.RESPONSES),
+	("muse-spark-1.2-contributor", _Protocol.RESPONSES),
+)
+_LIVE_GO_MODEL_VISION = (
+	("minimax-m3", False),
+	("minimax-m2.7", False),
+	("minimax-m2.5", False),
+	("kimi-k3", True),
+	("kimi-k2.7-code", True),
+	("kimi-k2.6", True),
+	("kimi-k2.5", True),
+	("glm-5.2", False),
+	("glm-5.3", False),
+	("ox-alpha-free", True),
+	("glm-5.1", False),
+	("glm-5", False),
+	("deepseek-v4-pro", False),
+	("deepseek-v4-flash", False),
+	("deepseek-v4-flash-vision-exp", True),
+	("qwen3.7-max", False),
+	("qwen3.8-max", True),
+	("qwen3.7-plus", True),
+	("qwen3.6-plus", True),
+	("qwen3.5-plus", True),
+	("mimo-v2-pro", True),
+	("mimo-v2-omni", True),
+	("mimo-v2.5-pro", True),
+	("mimo-v2.5", True),
+	("hy3", False),
+	("hy3-preview", False),
+	("gpt-5.6-luna", True),
+	("grok-4.5", True),
+	("muse-spark-1.2-contributor", True),
+)
+
 
 def _make_engine(engine_cls, provider_id):
 	account = MagicMock()
@@ -54,17 +117,28 @@ def test_provider_registration(provider_id, name, base_url, engine_cls):
 
 
 @pytest.mark.parametrize(
-	("engine_cls", "provider_id", "models_url"),
+	("engine_cls", "provider_id", "models_url", "expected_kimi_extra_info"),
 	[
 		(
 			OpenCodeGoEngine,
 			"opencodego",
 			"https://opencode.ai/zen/go/v1/models",
+			{
+				"owned_by": "opencode",
+				"unsupported_parameters": ["temperature", "top_p"],
+			},
 		),
-		(OpenCodeZenEngine, "opencodezen", "https://opencode.ai/zen/v1/models"),
+		(
+			OpenCodeZenEngine,
+			"opencodezen",
+			"https://opencode.ai/zen/v1/models",
+			{"owned_by": "opencode"},
+		),
 	],
 )
-def test_model_discovery(httpx_mock, engine_cls, provider_id, models_url):
+def test_model_discovery(
+	httpx_mock, engine_cls, provider_id, models_url, expected_kimi_extra_info
+):
 	"""Each product discovers models from its own endpoint."""
 	httpx_mock.add_response(
 		url=models_url,
@@ -90,10 +164,7 @@ def test_model_discovery(httpx_mock, engine_cls, provider_id, models_url):
 	assert models[0].vision is True
 	assert models[0].created == 123
 	assert models[0].extra_info == {"owned_by": "opencode"}
-	assert models[1].extra_info == {
-		"owned_by": "opencode",
-		"unsupported_parameters": ["temperature", "top_p"],
-	}
+	assert models[1].extra_info == expected_kimi_extra_info
 	assert models[2].created == 0
 	request = httpx_mock.get_requests()[0]
 	assert request.headers["Authorization"] == "Bearer sk-test"
@@ -123,48 +194,45 @@ def test_model_discovery_http_error(httpx_mock):
 		engine._load_models()
 
 
-@pytest.mark.parametrize(
-	("engine_cls", "provider_id", "model_id", "protocol"),
-	[
-		(OpenCodeGoEngine, "opencodego", "gpt-5.6-luna", _Protocol.RESPONSES),
-		(
-			OpenCodeGoEngine,
-			"opencodego",
-			"minimax-m3",
-			_Protocol.ANTHROPIC_MESSAGES,
-		),
-		(
-			OpenCodeGoEngine,
-			"opencodego",
-			"kimi-k3",
-			_Protocol.CHAT_COMPLETIONS,
-		),
-		(
-			OpenCodeZenEngine,
-			"opencodezen",
-			"gemini-3.7-flash",
-			_Protocol.GEMINI,
-		),
-		(
-			OpenCodeZenEngine,
-			"opencodezen",
-			"claude-sonnet-5",
-			_Protocol.ANTHROPIC_MESSAGES,
-		),
-		(OpenCodeZenEngine, "opencodezen", "gpt-5.6-sol", _Protocol.RESPONSES),
-		(
-			OpenCodeZenEngine,
-			"opencodezen",
-			"deepseek-v4-pro",
-			_Protocol.CHAT_COMPLETIONS,
-		),
-	],
-)
-def test_protocol_selection(engine_cls, provider_id, model_id, protocol):
-	"""Models route through the protocol documented for each product."""
-	engine = _make_engine(engine_cls, provider_id)
+@pytest.mark.parametrize(("model_id", "protocol"), _LIVE_GO_MODEL_PROTOCOLS)
+def test_live_go_models_use_audited_protocol(model_id, protocol):
+	"""Every live Go model uses its audited transport."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
 
 	assert engine._protocol_for_model(model_id) == protocol
+
+
+def test_unknown_go_model_uses_chat_completions():
+	"""Future Go models retain the documented conservative fallback."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
+
+	assert (
+		engine._protocol_for_model("future-model") == _Protocol.CHAT_COMPLETIONS
+	)
+
+
+@pytest.mark.parametrize(
+	("model_id", "protocol"),
+	[
+		("gemini-3.7-flash", _Protocol.GEMINI),
+		("claude-sonnet-5", _Protocol.ANTHROPIC_MESSAGES),
+		("gpt-5.6-sol", _Protocol.RESPONSES),
+		("deepseek-v4-pro", _Protocol.CHAT_COMPLETIONS),
+	],
+)
+def test_zen_protocol_selection_is_unchanged(model_id, protocol):
+	"""The Go audit does not alter Zen routing."""
+	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
+
+	assert engine._protocol_for_model(model_id) == protocol
+
+
+@pytest.mark.parametrize(("model_id", "vision"), _LIVE_GO_MODEL_VISION)
+def test_live_go_models_use_audited_vision_metadata(model_id, vision):
+	"""Every audited live Go model has its catalogued attachment support."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
+
+	assert (model_id in engine.VISION_MODELS) is vision
 
 
 @pytest.mark.parametrize(
@@ -229,19 +297,22 @@ def test_response_processing_routes_to_adapter(protocol, adapter_name):
 
 
 @pytest.mark.parametrize(
-	("model_id", "has_sampling_parameters"),
-	[("kimi-k3", False), ("text-model", True)],
+	"model_id", ["kimi-k2.5", "kimi-k2.6", "kimi-k2.7-code", "kimi-k3"]
 )
-def test_catalog_sampling_parameters_reach_opencode_chat_request(
-	httpx_mock, mocker, model_id, has_sampling_parameters
+def test_go_kimi_models_use_fixed_sampling_parameters(
+	httpx_mock, mocker, model_id
 ):
-	"""OpenCode chat requests honor discovered sampling metadata."""
+	"""Go Kimi chat requests override stored sampling values."""
 	engine = _make_engine(OpenCodeGoEngine, "opencodego")
 	httpx_mock.add_response(
 		url="https://opencode.ai/zen/go/v1/models",
 		json={"data": [{"id": model_id}]},
 	)
 	model = engine._load_models()[0]
+	assert model.extra_info["unsupported_parameters"] == [
+		"temperature",
+		"top_p",
+	]
 	client = MagicMock()
 	mocker.patch.object(engine, "get_model", return_value=model)
 	mocker.patch.object(engine, "get_messages", return_value=[])
@@ -256,12 +327,95 @@ def test_catalog_sampling_parameters_reach_opencode_chat_request(
 	engine.completion(new_block, MagicMock(), None)
 
 	params = client.chat.completions.create.call_args.kwargs
-	if has_sampling_parameters:
-		assert params["temperature"] == 0.7
-		assert params["top_p"] == 0.8
-	else:
-		assert "temperature" not in params
-		assert "top_p" not in params
+	assert params["temperature"] == 1.0
+	assert params["top_p"] == 0.95
+
+
+def test_go_luna_responses_request_omits_sampling_parameters(
+	httpx_mock, mocker
+):
+	"""GPT-5.6 Luna omits unsupported Responses sampling parameters."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
+	httpx_mock.add_response(
+		url="https://opencode.ai/zen/go/v1/models",
+		json={"data": [{"id": "gpt-5.6-luna"}]},
+	)
+	model = engine._load_models()[0]
+	assert model.extra_info["unsupported_parameters"] == [
+		"temperature",
+		"top_p",
+	]
+	adapter = engine._responses_engine
+	client = MagicMock()
+	mocker.patch.object(adapter, "get_model", return_value=model)
+	mocker.patch.object(adapter, "get_messages", return_value=[])
+	mocker.patch.object(adapter, "client", client)
+	new_block = MagicMock()
+	new_block.model.model_id = model.id
+	new_block.stream = False
+	new_block.temperature = 0.7
+	new_block.top_p = 0.8
+	new_block.max_tokens = 100
+
+	engine.completion(new_block, MagicMock(), None)
+
+	params = client.responses.create.call_args.kwargs
+	assert "temperature" not in params
+	assert "top_p" not in params
+
+
+def test_ordinary_go_chat_model_keeps_user_sampling_parameters(
+	httpx_mock, mocker
+):
+	"""Go models without a policy retain the user's selected sampling values."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
+	httpx_mock.add_response(
+		url="https://opencode.ai/zen/go/v1/models",
+		json={"data": [{"id": "text-model"}]},
+	)
+	model = engine._load_models()[0]
+	client = MagicMock()
+	mocker.patch.object(engine, "get_model", return_value=model)
+	mocker.patch.object(engine, "get_messages", return_value=[])
+	mocker.patch.object(engine, "client", client)
+	new_block = MagicMock()
+	new_block.model.model_id = model.id
+	new_block.stream = False
+	new_block.temperature = 0.7
+	new_block.top_p = 0.8
+	new_block.max_tokens = 100
+
+	engine.completion(new_block, MagicMock(), None)
+
+	params = client.chat.completions.create.call_args.kwargs
+	assert params["temperature"] == 0.7
+	assert params["top_p"] == 0.8
+
+
+def test_go_sampling_policy_does_not_apply_to_zen(httpx_mock, mocker):
+	"""Zen Kimi requests retain their selected sampling values."""
+	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
+	httpx_mock.add_response(
+		url="https://opencode.ai/zen/v1/models",
+		json={"data": [{"id": "kimi-k3"}]},
+	)
+	model = engine._load_models()[0]
+	client = MagicMock()
+	mocker.patch.object(engine, "get_model", return_value=model)
+	mocker.patch.object(engine, "get_messages", return_value=[])
+	mocker.patch.object(engine, "client", client)
+	new_block = MagicMock()
+	new_block.model.model_id = model.id
+	new_block.stream = False
+	new_block.temperature = 0.7
+	new_block.top_p = 0.8
+	new_block.max_tokens = 100
+
+	engine.completion(new_block, MagicMock(), None)
+
+	params = client.chat.completions.create.call_args.kwargs
+	assert params["temperature"] == 0.7
+	assert params["top_p"] == 0.8
 
 
 def test_protocol_client_base_urls():

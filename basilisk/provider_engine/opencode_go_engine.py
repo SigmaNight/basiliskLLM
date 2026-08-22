@@ -6,7 +6,7 @@ import enum
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any, ClassVar, Iterator, Mapping
 
 import httpx
 from anthropic import Anthropic
@@ -58,15 +58,37 @@ _ANTHROPIC_MODELS = frozenset(
 		"qwen3.6-plus",
 	}
 )
-_VISION_MODELS = frozenset(
+_GO_VISION_MODELS = frozenset(
 	{
 		"deepseek-v4-flash-vision-exp",
+		"gpt-5.6-luna",
+		"grok-4.5",
+		"kimi-k2.5",
+		"kimi-k2.6",
+		"kimi-k3",
 		"kimi-k2.7-code",
+		"mimo-v2-omni",
+		"mimo-v2-pro",
 		"mimo-v2.5",
+		"mimo-v2.5-pro",
+		"muse-spark-1.2-contributor",
+		"ox-alpha-free",
+		"qwen3.5-plus",
+		"qwen3.6-plus",
 		"qwen3.7-plus",
+		"qwen3.8-max",
 	}
 )
-_KIMI_K3_UNSUPPORTED_PARAMETERS = ("temperature", "top_p")
+_GO_FIXED_KIMI_SAMPLING_PARAMETERS = {
+	"kimi-k2.5": {"temperature": 1.0, "top_p": 0.95},
+	"kimi-k2.6": {"temperature": 1.0, "top_p": 0.95},
+	"kimi-k2.7-code": {"temperature": 1.0, "top_p": 0.95},
+	"kimi-k3": {"temperature": 1.0, "top_p": 0.95},
+}
+_GO_MODEL_UNSUPPORTED_PARAMETERS = {
+	model_id: ("temperature", "top_p")
+	for model_id in (*_GO_FIXED_KIMI_SAMPLING_PARAMETERS, "gpt-5.6-luna")
+}
 
 
 class _SharedModelsMixin:
@@ -124,7 +146,9 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 		"image/png",
 		"image/webp",
 	}
-	VISION_MODELS = _VISION_MODELS
+	VISION_MODELS: ClassVar[frozenset[str]] = frozenset()
+	FIXED_SAMPLING_PARAMETERS: ClassVar[Mapping[str, Mapping[str, float]]] = {}
+	MODEL_UNSUPPORTED_PARAMETERS: ClassVar[Mapping[str, tuple[str, ...]]] = {}
 
 	@cached_property
 	def _responses_engine(self) -> _OpenCodeResponsesEngine:
@@ -176,9 +200,11 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 			if not isinstance(created, int):
 				created = 0
 			extra_info = {"owned_by": row.get("owned_by")}
-			if model_id == "kimi-k3":
+			if unsupported_parameters := self.MODEL_UNSUPPORTED_PARAMETERS.get(
+				model_id
+			):
 				extra_info["unsupported_parameters"] = list(
-					_KIMI_K3_UNSUPPORTED_PARAMETERS
+					unsupported_parameters
 				)
 			models.append(
 				ProviderAIModel(
@@ -203,6 +229,14 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 		if model_id in _ANTHROPIC_MODELS:
 			return _Protocol.ANTHROPIC_MESSAGES
 		return _Protocol.CHAT_COMPLETIONS
+
+	def _strip_catalog_sampling_params(
+		self, model: ProviderAIModel | None, params: dict[str, Any]
+	) -> None:
+		"""Apply the Go-only fixed Kimi sampling policy after catalog stripping."""
+		super()._strip_catalog_sampling_params(model, params)
+		if model is not None:
+			params.update(self.FIXED_SAMPLING_PARAMETERS.get(model.id, {}))
 
 	def completion(
 		self,
@@ -333,6 +367,10 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 
 class OpenCodeGoEngine(_OpenCodeEngine):
 	"""OpenCode Go subscription engine."""
+
+	VISION_MODELS = _GO_VISION_MODELS
+	FIXED_SAMPLING_PARAMETERS = _GO_FIXED_KIMI_SAMPLING_PARAMETERS
+	MODEL_UNSUPPORTED_PARAMETERS = _GO_MODEL_UNSUPPORTED_PARAMETERS
 
 
 class OpenCodeZenEngine(_OpenCodeEngine):
