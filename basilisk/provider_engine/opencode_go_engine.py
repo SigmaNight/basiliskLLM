@@ -6,12 +6,12 @@ import enum
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterator
 
 import httpx
 from anthropic import Anthropic
 from google import genai
-from google.genai.types import HttpOptions
+from google.genai.types import HttpOptions, ResourceScope
 
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.provider_ai_model import ProviderAIModel
@@ -66,6 +66,7 @@ _VISION_MODELS = frozenset(
 		"qwen3.7-plus",
 	}
 )
+_KIMI_K3_UNSUPPORTED_PARAMETERS = ("temperature", "top_p")
 
 
 class _SharedModelsMixin:
@@ -104,7 +105,8 @@ class _OpenCodeGeminiEngine(_SharedModelsMixin, GeminiEngine):
 		return genai.Client(
 			api_key=self.account.api_key.get_secret_value(),
 			http_options=HttpOptions(
-				base_url=str(self.account.provider.base_url).rstrip("/")
+				base_url=str(self.account.provider.base_url).rstrip("/"),
+				base_url_resource_scope=ResourceScope.COLLECTION,
 			),
 		)
 
@@ -173,16 +175,23 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 			created = row.get("created", 0)
 			if not isinstance(created, int):
 				created = 0
+			extra_info = {"owned_by": row.get("owned_by")}
+			if model_id == "kimi-k3":
+				extra_info["unsupported_parameters"] = list(
+					_KIMI_K3_UNSUPPORTED_PARAMETERS
+				)
 			models.append(
 				ProviderAIModel(
 					id=model_id,
+					# Translators: Description for a model dynamically discovered
+					# from an OpenCode provider.
 					description=_(
 						"Model available from this OpenCode provider."
 					),
 					max_output_tokens=8192,
 					vision=model_id in self.VISION_MODELS,
 					created=created,
-					extra_info={"owned_by": row.get("owned_by")},
+					extra_info=extra_info,
 				)
 			)
 		return models
@@ -203,7 +212,18 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 		stop_block_index: int | None = None,
 		**kwargs,
 	) -> _ProtocolResponse:
-		"""Create a completion with the model's required protocol."""
+		"""Create a completion through the model's documented API protocol.
+
+		Args:
+			new_block: Block containing the request and generation settings.
+			conversation: Conversation history used to build the request.
+			system_message: Optional system instruction for the completion.
+			stop_block_index: Optional exclusive conversation-history boundary.
+			**kwargs: Additional protocol-specific completion options.
+
+		Returns:
+			The selected protocol together with its raw completion response.
+		"""
 		protocol = self._protocol_for_model(new_block.model.model_id)
 		if protocol == _Protocol.RESPONSES:
 			value = self._responses_engine.completion(
@@ -239,8 +259,17 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 			)
 		return _ProtocolResponse(protocol=protocol, value=value)
 
-	def completion_response_with_stream(self, stream: _ProtocolResponse):
-		"""Yield response text using the selected protocol adapter."""
+	def completion_response_with_stream(
+		self, stream: _ProtocolResponse
+	) -> Iterator[str | tuple[str, Any]]:
+		"""Yield streaming response chunks through the selected protocol adapter.
+
+		Args:
+			stream: Raw completion response paired with its selected protocol.
+
+		Yields:
+			Text chunks or typed chunks such as citation tuples.
+		"""
 		if stream.protocol == _Protocol.RESPONSES:
 			return self._responses_engine.completion_response_with_stream(
 				stream.value
@@ -275,7 +304,16 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 	def completion_response_without_stream(
 		self, response: _ProtocolResponse, new_block: MessageBlock, **kwargs
 	) -> MessageBlock:
-		"""Process a complete response with the selected adapter."""
+		"""Process a complete response through the selected protocol adapter.
+
+		Args:
+			response: Raw completion response paired with its selected protocol.
+			new_block: Block to populate with the provider response.
+			**kwargs: Additional protocol-specific response-processing options.
+
+		Returns:
+			The supplied block populated with the completed response.
+		"""
 		if response.protocol == _Protocol.RESPONSES:
 			return self._responses_engine.completion_response_without_stream(
 				response.value, new_block, **kwargs

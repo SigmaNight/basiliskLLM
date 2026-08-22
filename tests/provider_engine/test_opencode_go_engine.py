@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
+from google.genai.types import ResourceScope
 from pydantic import SecretStr
 
 from basilisk.provider import ProviderAPIType, get_provider
@@ -29,7 +30,7 @@ def _make_engine(engine_cls, provider_id):
 	[
 		(
 			"opencodego",
-			"OpenCode",
+			"OpenCode Go",
 			"https://opencode.ai/zen/go/v1",
 			OpenCodeGoEngine,
 		),
@@ -70,6 +71,7 @@ def test_model_discovery(httpx_mock, engine_cls, provider_id, models_url):
 		json={
 			"data": [
 				{"id": "qwen3.7-plus", "created": 123, "owned_by": "opencode"},
+				{"id": "kimi-k3", "created": 124, "owned_by": "opencode"},
 				{"id": "text-model", "created": "invalid"},
 				{"created": 456},
 				"invalid",
@@ -80,11 +82,19 @@ def test_model_discovery(httpx_mock, engine_cls, provider_id, models_url):
 
 	models = engine._load_models()
 
-	assert [model.id for model in models] == ["qwen3.7-plus", "text-model"]
+	assert [model.id for model in models] == [
+		"qwen3.7-plus",
+		"kimi-k3",
+		"text-model",
+	]
 	assert models[0].vision is True
 	assert models[0].created == 123
 	assert models[0].extra_info == {"owned_by": "opencode"}
-	assert models[1].created == 0
+	assert models[1].extra_info == {
+		"owned_by": "opencode",
+		"unsupported_parameters": ["temperature", "top_p"],
+	}
+	assert models[2].created == 0
 	request = httpx_mock.get_requests()[0]
 	assert request.headers["Authorization"] == "Bearer sk-test"
 
@@ -123,7 +133,12 @@ def test_model_discovery_http_error(httpx_mock):
 			"minimax-m3",
 			_Protocol.ANTHROPIC_MESSAGES,
 		),
-		(OpenCodeGoEngine, "opencodego", "kimi-k3", _Protocol.CHAT_COMPLETIONS),
+		(
+			OpenCodeGoEngine,
+			"opencodego",
+			"kimi-k3",
+			_Protocol.CHAT_COMPLETIONS,
+		),
 		(
 			OpenCodeZenEngine,
 			"opencodezen",
@@ -160,13 +175,13 @@ def test_protocol_selection(engine_cls, provider_id, model_id, protocol):
 		(_Protocol.GEMINI, "_gemini_engine"),
 	],
 )
-def test_completion_routes_to_adapter(protocol, adapter_name):
+def test_completion_routes_to_adapter(mocker, protocol, adapter_name):
 	"""Completion creation delegates to the selected protocol adapter."""
 	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
 	adapter = MagicMock()
 	adapter.completion.return_value = "raw-response"
 	engine.__dict__[adapter_name] = adapter
-	engine._protocol_for_model = MagicMock(return_value=protocol)
+	mocker.patch.object(engine, "_protocol_for_model", return_value=protocol)
 	new_block = MagicMock()
 	new_block.model.model_id = "model-test"
 	conversation = MagicMock()
@@ -213,6 +228,42 @@ def test_response_processing_routes_to_adapter(protocol, adapter_name):
 	)
 
 
+@pytest.mark.parametrize(
+	("model_id", "has_sampling_parameters"),
+	[("kimi-k3", False), ("text-model", True)],
+)
+def test_catalog_sampling_parameters_reach_opencode_chat_request(
+	httpx_mock, mocker, model_id, has_sampling_parameters
+):
+	"""OpenCode chat requests honor discovered sampling metadata."""
+	engine = _make_engine(OpenCodeGoEngine, "opencodego")
+	httpx_mock.add_response(
+		url="https://opencode.ai/zen/go/v1/models",
+		json={"data": [{"id": model_id}]},
+	)
+	model = engine._load_models()[0]
+	client = MagicMock()
+	mocker.patch.object(engine, "get_model", return_value=model)
+	mocker.patch.object(engine, "get_messages", return_value=[])
+	mocker.patch.object(engine, "client", client)
+	new_block = MagicMock()
+	new_block.model.model_id = model_id
+	new_block.stream = False
+	new_block.temperature = 0.7
+	new_block.top_p = 0.8
+	new_block.max_tokens = 100
+
+	engine.completion(new_block, MagicMock(), None)
+
+	params = client.chat.completions.create.call_args.kwargs
+	if has_sampling_parameters:
+		assert params["temperature"] == 0.7
+		assert params["top_p"] == 0.8
+	else:
+		assert "temperature" not in params
+		assert "top_p" not in params
+
+
 def test_protocol_client_base_urls():
 	"""All protocol clients target the OpenCode Zen gateway."""
 	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
@@ -227,6 +278,10 @@ def test_protocol_client_base_urls():
 	assert (
 		engine._gemini_engine.client._api_client._http_options.base_url
 		== "https://opencode.ai/zen/v1"
+	)
+	assert (
+		engine._gemini_engine.client._api_client._http_options.base_url_resource_scope
+		== ResourceScope.COLLECTION
 	)
 
 
