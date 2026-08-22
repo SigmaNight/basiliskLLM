@@ -419,6 +419,17 @@ class BaseEngine(ABC):
 		"""
 		pass
 
+	def cancel_completion(self, response: Any) -> None:
+		"""Cancel an active completion response when the SDK supports it.
+
+		Most synchronous provider SDKs expose streaming responses with a
+		``close`` method.  Engines with a different cancellation mechanism can
+		override this hook.
+		"""
+		close = getattr(response, "close", None)
+		if callable(close):
+			close()
+
 	@abstractmethod
 	def completion_response_without_stream(
 		self, response: Any, new_block: MessageBlock, **kwargs
