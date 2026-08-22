@@ -85,9 +85,13 @@ _GO_FIXED_KIMI_SAMPLING_PARAMETERS = {
 	"kimi-k2.7-code": {"temperature": 1.0, "top_p": 0.95},
 	"kimi-k3": {"temperature": 1.0, "top_p": 0.95},
 }
+_UNSUPPORTED_SAMPLING_PARAMETERS = ("temperature", "top_p")
 _GO_MODEL_UNSUPPORTED_PARAMETERS = {
-	model_id: ("temperature", "top_p")
+	model_id: _UNSUPPORTED_SAMPLING_PARAMETERS
 	for model_id in (*_GO_FIXED_KIMI_SAMPLING_PARAMETERS, "gpt-5.6-luna")
+}
+_ZEN_MODEL_UNSUPPORTED_PARAMETERS = {
+	"kimi-k3": _UNSUPPORTED_SAMPLING_PARAMETERS
 }
 
 
@@ -376,6 +380,7 @@ class OpenCodeGoEngine(_OpenCodeEngine):
 class OpenCodeZenEngine(_OpenCodeEngine):
 	"""OpenCode Zen pay-as-you-go engine."""
 
+	MODEL_UNSUPPORTED_PARAMETERS = _ZEN_MODEL_UNSUPPORTED_PARAMETERS
 	VISION_MODELS = frozenset(
 		{
 			"gemini-3.7-flash",
