@@ -141,7 +141,7 @@ providers = [
 	),
 	Provider(
 		id="opencodego",
-		name="OpenCode",
+		name="OpenCode Go",
 		base_url="https://opencode.ai/zen/go/v1",
 		api_type=ProviderAPIType.OPENAI,
 		organization_mode_available=False,
