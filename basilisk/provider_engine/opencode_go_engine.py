@@ -323,7 +323,11 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 		return super().completion_response_with_stream(stream.value)
 
 	def cancel_completion(self, response: _ProtocolResponse) -> None:
-		"""Cancel the active stream for every OpenCode protocol."""
+		"""Cancel the active stream for every OpenCode protocol.
+
+		Args:
+			response: Protocol-wrapped response to cancel.
+		"""
 		if response.protocol == _Protocol.GEMINI:
 			# A running Google Gen AI generator raises ``ValueError`` when its
 			# ``close`` method is called from another thread. Closing the client
