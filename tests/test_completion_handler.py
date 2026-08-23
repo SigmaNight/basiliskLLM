@@ -162,6 +162,86 @@ def test_completion_start_callback_stops_published_blocking_worker(
 	on_stream_finish.assert_not_called()
 
 
+def test_completion_start_scheduled_stop_closes_published_blocking_response(
+	mocker, empty_conversation, message_block
+):
+	"""A start-lifecycle stop closes a response published after the start gate."""
+	queued_callbacks = []
+	stream = _BlockingStream()
+	engine = MagicMock()
+	engine.completion.return_value = stream
+	engine.completion_response_with_stream.return_value = stream
+	engine.cancel_completion.side_effect = lambda response: response.close()
+	completion_end = MagicMock()
+	on_error = MagicMock()
+	on_stream_start = MagicMock()
+	on_stream_chunk = MagicMock()
+	on_stream_finish = MagicMock()
+	published_tasks = []
+	helper_tasks = []
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: queued_callbacks.append(
+			(callback, args)
+		),
+	)
+	mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	def stop_after_stream_starts():
+		assert stream.read_started.wait(timeout=1)
+		handler.stop_completion()
+
+	def schedule_stop_on_completion_start():
+		published_tasks.append(handler.task)
+		helper = threading.Thread(target=stop_after_stream_starts)
+		helper_tasks.append(helper)
+		helper.start()
+
+	handler = CompletionHandler(
+		on_completion_start=schedule_stop_on_completion_start,
+		on_completion_end=completion_end,
+		on_error=on_error,
+		on_stream_start=on_stream_start,
+		on_stream_chunk=on_stream_chunk,
+		on_stream_finish=on_stream_finish,
+	)
+
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+		stream=True,
+	)
+
+	assert len(published_tasks) == 1
+	assert len(helper_tasks) == 1
+	published_task = published_tasks[0]
+	helper_task = helper_tasks[0]
+	assert published_task is not None
+	helper_task.join(timeout=1)
+	published_task.join(timeout=1)
+	assert not helper_task.is_alive()
+	assert not published_task.is_alive()
+	assert stream.closed.is_set()
+	engine.cancel_completion.assert_called_once_with(stream)
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert not handler._stream_buffers
+
+	for callback, args in queued_callbacks:
+		callback(*args)
+
+	completion_end.assert_called_once_with(False)
+	on_error.assert_not_called()
+	on_stream_start.assert_not_called()
+	on_stream_chunk.assert_not_called()
+	on_stream_finish.assert_not_called()
+
+
 def test_fast_completion_notifies_start_before_end(
 	mocker, empty_conversation, message_block
 ):
