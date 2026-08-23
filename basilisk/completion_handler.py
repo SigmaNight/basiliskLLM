@@ -82,6 +82,7 @@ class CompletionHandler:
 		self._latest_request: object | None = None
 		self._active_engine: Optional[BaseEngine] = None
 		self._active_response: Any = None
+		self._start_notified: threading.Event | None = None
 		self.last_time = 0
 		self._stream_buffers: dict[object, str] = {}
 
@@ -121,6 +122,7 @@ class CompletionHandler:
 			self._latest_request = request
 			self._active_engine = None
 			self._active_response = None
+			self._start_notified = start_notified
 			self._stream_buffers[request] = ""
 			task = threading.Thread(
 				target=self._handle_completion,
@@ -136,7 +138,27 @@ class CompletionHandler:
 		try:
 			if self.on_completion_start:
 				self.on_completion_start()
-		finally:
+		except Exception:
+			with self._completion_lock:
+				if self._active_request is request:
+					self._stop_completion = True
+					task_to_join = self.task
+					engine_to_cancel = self._active_engine
+					response_to_cancel = self._active_response
+				else:
+					task_to_join = None
+					engine_to_cancel = None
+					response_to_cancel = None
+			start_notified.set()
+			if engine_to_cancel is not None and response_to_cancel is not None:
+				self._cancel_response(engine_to_cancel, response_to_cancel)
+			if task_to_join is not None:
+				task_to_join.join()
+			with self._completion_lock:
+				if self._latest_request is request:
+					self._latest_request = None
+			raise
+		else:
 			start_notified.set()
 		logger.debug("Completion task %s started", task.ident)
 
@@ -151,13 +173,33 @@ class CompletionHandler:
 			task = self.task
 			request = self._latest_request
 			is_running = bool(task and task.is_alive())
-			if is_running:
+			is_active_request = (
+				request is not None and self._active_request is request
+			)
+			if is_running or is_active_request:
 				self._stop_completion = True
 				engine = self._active_engine
 				response = self._active_response
+				start_notified = self._start_notified
+			else:
+				engine = None
+				response = None
+				start_notified = None
+			if skip_callbacks and self._latest_request is request:
+				self._latest_request = None
+			if not is_running and is_active_request:
+				self.task = None
+				self._active_request = None
+				self._active_engine = None
+				self._active_response = None
+				self._start_notified = None
+				if request is not None:
+					self._stream_buffers.pop(request, None)
 
 		if is_running:
 			logger.debug("Stopping completion task: %s", task.ident)
+			if start_notified is not None:
+				start_notified.set()
 			if engine is not None and response is not None:
 				self._cancel_response(engine, response)
 			task.join(timeout=0.1)
@@ -193,6 +235,36 @@ class CompletionHandler:
 				or global_vars.app_should_exit
 			)
 
+	def _wait_for_start_notification(
+		self, request: object, start_notified: threading.Event | None
+	) -> bool:
+		"""Wait for the start callback and confirm this request still owns work."""
+		if start_notified is not None:
+			start_notified.wait()
+		return not self._is_stopping(request)
+
+	def _queue_error_if_active(
+		self, request: object, error_message: str
+	) -> None:
+		"""Queue an error only while its request still owns the lifecycle."""
+		if not self._is_stopping(request):
+			wx.CallAfter(self._handle_error, request, error_message)
+
+	def _publish_response(
+		self, request: object, engine: BaseEngine, response: Any
+	) -> bool:
+		"""Publish a response and report whether its request was stopped."""
+		with self._completion_lock:
+			is_active_request = self._active_request is request
+			if is_active_request:
+				self._active_engine = engine
+				self._active_response = response
+			return (
+				self._stop_completion
+				or global_vars.app_should_exit
+				or not is_active_request
+			)
+
 	def _handle_completion(
 		self,
 		request: object,
@@ -209,6 +281,8 @@ class CompletionHandler:
 			kwargs: The keyword arguments for the completion request
 		"""
 		try:
+			if not self._wait_for_start_notification(request, start_notified):
+				return
 			try:
 				play_sound("progress", loop=True)
 				response = engine.completion(**kwargs)
@@ -217,27 +291,12 @@ class CompletionHandler:
 					logger.debug("Completion request cancelled", exc_info=True)
 					return
 				logger.error("Error during completion", exc_info=True)
-				wx.CallAfter(self._handle_error, request, str(e))
+				self._queue_error_if_active(request, str(e))
 				return
 
-			with self._completion_lock:
-				is_active_request = self._active_request is request
-				if is_active_request:
-					self._active_engine = engine
-					self._active_response = response
-				should_stop = (
-					self._stop_completion
-					or global_vars.app_should_exit
-					or not is_active_request
-				)
-
-			if should_stop:
+			if self._publish_response(request, engine, response):
 				self._cancel_response(engine, response)
 				return
-			if start_notified is not None:
-				start_notified.wait()
-				if self._is_stopping(request):
-					return
 
 			handle_func = (
 				self._handle_streaming_completion
@@ -255,7 +314,7 @@ class CompletionHandler:
 				logger.error(
 					"Error handling completion response", exc_info=True
 				)
-				wx.CallAfter(self._handle_error, request, str(e))
+				self._queue_error_if_active(request, str(e))
 				return
 
 			if success and not self._is_stopping(request):
@@ -268,11 +327,13 @@ class CompletionHandler:
 					self._active_response = None
 				if (
 					self._stop_completion
-					and self._active_request is request
 					and self.task is threading.current_thread()
 				):
 					self.task = None
-					self._active_request = None
+					if self._active_request is request:
+						self._active_request = None
+					if self._start_notified is start_notified:
+						self._start_notified = None
 
 	def _handle_stream_chunk(
 		self,
@@ -458,12 +519,13 @@ class CompletionHandler:
 	def _completion_finished_success(self, request: object):
 		"""Handle completion finish in success on the main thread."""
 		with self._completion_lock:
-			if self._active_request is not request:
+			if self._stop_completion or self._active_request is not request:
 				return
 			self.task = None
 			self._active_request = None
 			self._active_engine = None
 			self._active_response = None
+			self._start_notified = None
 			self._stream_buffers.pop(request, None)
 		stop_sound()
 		play_sound("chat_response_received")
@@ -478,12 +540,13 @@ class CompletionHandler:
 			error_message: The error message
 		"""
 		with self._completion_lock:
-			if self._active_request is not request:
+			if self._stop_completion or self._active_request is not request:
 				return
 			self.task = None
 			self._active_request = None
 			self._active_engine = None
 			self._active_response = None
+			self._start_notified = None
 			self._stream_buffers.pop(request, None)
 
 		stop_sound()

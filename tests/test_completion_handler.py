@@ -5,6 +5,8 @@ from __future__ import annotations
 import threading
 from unittest.mock import MagicMock
 
+import pytest
+
 from basilisk.completion_handler import CompletionHandler
 
 
@@ -98,7 +100,7 @@ def test_stop_closes_blocked_provider_stream(
 def test_completion_start_callback_stops_published_blocking_worker(
 	mocker, empty_conversation, message_block
 ):
-	"""An immediate start callback can stop and clean up its worker."""
+	"""An immediate start callback cancels its published worker cleanly."""
 	stream = _BlockingStream()
 	engine = MagicMock()
 	engine.completion.return_value = stream
@@ -106,16 +108,28 @@ def test_completion_start_callback_stops_published_blocking_worker(
 	engine.cancel_completion.side_effect = lambda response: response.close()
 	completion_end = MagicMock()
 	on_error = MagicMock()
+	on_stream_start = MagicMock()
+	on_stream_chunk = MagicMock()
+	on_stream_finish = MagicMock()
+	published_tasks = []
 	mocker.patch(
 		"basilisk.completion_handler.wx.CallAfter",
 		side_effect=lambda callback, *args: callback(*args),
 	)
 	mocker.patch("basilisk.completion_handler.play_sound")
 	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	def stop_on_completion_start():
+		published_tasks.append(handler.task)
+		handler.stop_completion()
+
 	handler = CompletionHandler(
-		on_completion_start=lambda: handler.stop_completion(),
+		on_completion_start=stop_on_completion_start,
 		on_completion_end=completion_end,
 		on_error=on_error,
+		on_stream_start=on_stream_start,
+		on_stream_chunk=on_stream_chunk,
+		on_stream_finish=on_stream_finish,
 	)
 
 	handler.start_completion(
@@ -126,16 +140,26 @@ def test_completion_start_callback_stops_published_blocking_worker(
 		stream=True,
 	)
 
-	assert stream.closed.wait(timeout=1)
+	assert len(published_tasks) == 1
+	published_task = published_tasks[0]
+	assert published_task is not None
+	published_task.join(timeout=1)
+	assert not published_task.is_alive()
 	assert not handler.is_running()
 	assert handler.task is None
 	assert handler._active_request is None
 	assert handler._active_engine is None
 	assert handler._active_response is None
 	assert not handler._stream_buffers
-	engine.cancel_completion.assert_called_once_with(stream)
+	engine.completion.assert_not_called()
+	engine.cancel_completion.assert_not_called()
+	assert not stream.read_started.is_set()
+	assert not stream.closed.is_set()
 	completion_end.assert_called_once_with(False)
 	on_error.assert_not_called()
+	on_stream_start.assert_not_called()
+	on_stream_chunk.assert_not_called()
+	on_stream_finish.assert_not_called()
 
 
 def test_fast_completion_notifies_start_before_end(
@@ -174,6 +198,171 @@ def test_fast_completion_notifies_start_before_end(
 
 	assert completion_finished.wait(timeout=1)
 	assert callback_order == ["start", ("end", True)]
+
+
+@pytest.mark.parametrize(
+	("failure_site", "failure_message"),
+	[("provider", "provider failed"), ("sound", "sound failed")],
+)
+def test_start_callback_precedes_fast_start_failure_callbacks(
+	mocker, empty_conversation, message_block, failure_site, failure_message
+):
+	"""Provider-start errors cannot escape while start notification is running."""
+	callback_order = []
+	start_entered = threading.Event()
+	release_start = threading.Event()
+	completion_finished = threading.Event()
+	engine = MagicMock()
+	play_sound = mocker.patch("basilisk.completion_handler.play_sound")
+	if failure_site == "provider":
+		engine.completion.side_effect = RuntimeError(failure_message)
+	else:
+		play_sound.side_effect = RuntimeError(failure_message)
+
+	def on_completion_start():
+		callback_order.append("start")
+		start_entered.set()
+		assert release_start.wait(timeout=1)
+		callback_order.append("start returned")
+
+	def on_completion_end(success):
+		callback_order.append(("end", success))
+		completion_finished.set()
+
+	handler = CompletionHandler(
+		on_completion_start=on_completion_start,
+		on_completion_end=on_completion_end,
+		on_error=lambda error: callback_order.append(("error", error)),
+	)
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	start_thread = threading.Thread(
+		target=handler.start_completion,
+		kwargs={
+			"engine": engine,
+			"system_message": None,
+			"conversation": empty_conversation,
+			"new_block": message_block,
+		},
+	)
+	start_thread.start()
+	assert start_entered.wait(timeout=1)
+	assert callback_order == ["start"]
+
+	release_start.set()
+	start_thread.join(timeout=1)
+	assert not start_thread.is_alive()
+	assert completion_finished.wait(timeout=1)
+	assert callback_order == [
+		"start",
+		"start returned",
+		("error", failure_message),
+		("end", False),
+	]
+
+
+def test_stop_skip_callbacks_suppresses_queued_start_error(
+	mocker, empty_conversation, message_block
+):
+	"""Destroy-time stop suppresses an error queued by an already-dead worker."""
+	queued_callbacks = []
+	engine = MagicMock()
+	engine.completion.side_effect = RuntimeError("provider failed")
+	completion_end = MagicMock()
+	on_error = MagicMock()
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: queued_callbacks.append(
+			(callback, args)
+		),
+	)
+	mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+	handler = CompletionHandler(
+		on_completion_end=completion_end, on_error=on_error
+	)
+
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+	)
+	task = handler.task
+	assert task is not None
+	task.join(timeout=1)
+	assert not task.is_alive()
+	assert len(queued_callbacks) == 1
+
+	handler.stop_completion(skip_callbacks=True)
+	callback, args = queued_callbacks.pop()
+	callback(*args)
+
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert handler._latest_request is None
+	assert not handler._stream_buffers
+	on_error.assert_not_called()
+	completion_end.assert_not_called()
+
+
+def test_completion_start_failure_cancels_and_cleans_published_worker(
+	mocker, empty_conversation, message_block
+):
+	"""A failing start callback suppresses the worker and re-raises its error."""
+	engine = MagicMock()
+	completion_end = MagicMock()
+	on_error = MagicMock()
+	on_stream_start = MagicMock()
+	on_stream_chunk = MagicMock()
+	on_stream_finish = MagicMock()
+	callback_error = RuntimeError("start callback failed")
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	play_sound = mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	def fail_completion_start():
+		raise callback_error
+
+	handler = CompletionHandler(
+		on_completion_start=fail_completion_start,
+		on_completion_end=completion_end,
+		on_error=on_error,
+		on_stream_start=on_stream_start,
+		on_stream_chunk=on_stream_chunk,
+		on_stream_finish=on_stream_finish,
+	)
+
+	with pytest.raises(RuntimeError, match="start callback failed"):
+		handler.start_completion(
+			engine=engine,
+			system_message=None,
+			conversation=empty_conversation,
+			new_block=message_block,
+		)
+
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert handler._latest_request is None
+	assert not handler._stream_buffers
+	engine.completion.assert_not_called()
+	play_sound.assert_not_called()
+	completion_end.assert_not_called()
+	on_error.assert_not_called()
+	on_stream_start.assert_not_called()
+	on_stream_chunk.assert_not_called()
+	on_stream_finish.assert_not_called()
 
 
 def test_stale_worker_cleanup_preserves_newer_active_response(
