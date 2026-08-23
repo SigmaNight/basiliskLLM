@@ -178,6 +178,23 @@ class TestCleanup:
 		presenter.cleanup()
 		mock_stop.assert_called_once_with(skip_callbacks=True)
 
+	def test_stops_dead_completion_with_logical_ownership(
+		self, presenter, mocker
+	):
+		"""cleanup() clears queued callbacks even after a worker has died."""
+		mocker.patch.object(
+			presenter.completion_handler, "is_running", return_value=False
+		)
+		mock_stop = mocker.patch.object(
+			presenter.completion_handler, "stop_completion"
+		)
+		mocker.patch("basilisk.presenters.conversation_presenter.stop_sound")
+		mocker.patch.object(presenter, "flush_draft")
+
+		presenter.cleanup()
+
+		mock_stop.assert_called_once_with(skip_callbacks=True)
+
 	def test_aborts_live_recording_thread(self, presenter, mocker):
 		"""cleanup() aborts a live recording thread."""
 		mock_thread = MagicMock()

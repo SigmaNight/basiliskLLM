@@ -83,6 +83,7 @@ class CompletionHandler:
 		self._active_engine: Optional[BaseEngine] = None
 		self._active_response: Any = None
 		self._start_notified: threading.Event | None = None
+		self._startup_request: object | None = None
 		self.last_time = 0
 		self._stream_buffers: dict[object, str] = {}
 
@@ -123,6 +124,7 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = start_notified
+			self._startup_request = None
 			self._stream_buffers[request] = ""
 			task = threading.Thread(
 				target=self._handle_completion,
@@ -133,7 +135,18 @@ class CompletionHandler:
 				},
 			)
 			self.task = task
-			task.start()
+			try:
+				task.start()
+			except Exception:
+				self.task = None
+				self._active_request = None
+				self._latest_request = None
+				self._active_engine = None
+				self._active_response = None
+				self._start_notified = None
+				self._startup_request = None
+				self._stream_buffers.pop(request, None)
+				raise
 
 		try:
 			if self.on_completion_start:
@@ -193,6 +206,7 @@ class CompletionHandler:
 				self._active_engine = None
 				self._active_response = None
 				self._start_notified = None
+				self._startup_request = None
 				if request is not None:
 					self._stream_buffers.pop(request, None)
 
@@ -206,6 +220,7 @@ class CompletionHandler:
 			with self._completion_lock:
 				if self.task is task and not task.is_alive():
 					self.task = None
+		if is_running or is_active_request:
 			stop_sound()
 		if self.on_completion_end and not skip_callbacks:
 			if request is None:
@@ -250,6 +265,38 @@ class CompletionHandler:
 		if not self._is_stopping(request):
 			wx.CallAfter(self._handle_error, request, error_message)
 
+	def _commit_startup(self, request: object) -> bool:
+		"""Start progress sound while atomically committing request startup."""
+		with self._completion_lock:
+			if (
+				self._stop_completion
+				or self._active_request is not request
+				or global_vars.app_should_exit
+			):
+				return False
+			play_sound("progress", loop=True)
+			self._startup_request = request
+			return True
+
+	def _start_provider_completion(
+		self,
+		request: object,
+		engine: BaseEngine,
+		completion_args: dict[str, Any],
+	) -> tuple[bool, Any]:
+		"""Commit startup and obtain a provider response for an active request."""
+		try:
+			if not self._commit_startup(request):
+				return False, None
+			return True, engine.completion(**completion_args)
+		except Exception as e:
+			if self._is_stopping(request):
+				logger.debug("Completion request cancelled", exc_info=True)
+			else:
+				logger.error("Error during completion", exc_info=True)
+				self._queue_error_if_active(request, str(e))
+			return False, None
+
 	def _publish_response(
 		self, request: object, engine: BaseEngine, response: Any
 	) -> bool:
@@ -283,15 +330,10 @@ class CompletionHandler:
 		try:
 			if not self._wait_for_start_notification(request, start_notified):
 				return
-			try:
-				play_sound("progress", loop=True)
-				response = engine.completion(**kwargs)
-			except Exception as e:
-				if self._is_stopping(request):
-					logger.debug("Completion request cancelled", exc_info=True)
-					return
-				logger.error("Error during completion", exc_info=True)
-				self._queue_error_if_active(request, str(e))
+			started, response = self._start_provider_completion(
+				request, engine, kwargs
+			)
+			if not started:
 				return
 
 			if self._publish_response(request, engine, response):
@@ -334,6 +376,8 @@ class CompletionHandler:
 						self._active_request = None
 					if self._start_notified is start_notified:
 						self._start_notified = None
+					if self._startup_request is request:
+						self._startup_request = None
 
 	def _handle_stream_chunk(
 		self,
@@ -526,6 +570,7 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = None
+			self._startup_request = None
 			self._stream_buffers.pop(request, None)
 		stop_sound()
 		play_sound("chat_response_received")
@@ -547,6 +592,7 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = None
+			self._startup_request = None
 			self._stream_buffers.pop(request, None)
 
 		stop_sound()
