@@ -95,6 +95,87 @@ def test_stop_closes_blocked_provider_stream(
 	on_error.assert_not_called()
 
 
+def test_completion_start_callback_stops_published_blocking_worker(
+	mocker, empty_conversation, message_block
+):
+	"""An immediate start callback can stop and clean up its worker."""
+	stream = _BlockingStream()
+	engine = MagicMock()
+	engine.completion.return_value = stream
+	engine.completion_response_with_stream.return_value = stream
+	engine.cancel_completion.side_effect = lambda response: response.close()
+	completion_end = MagicMock()
+	on_error = MagicMock()
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+	handler = CompletionHandler(
+		on_completion_start=lambda: handler.stop_completion(),
+		on_completion_end=completion_end,
+		on_error=on_error,
+	)
+
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+		stream=True,
+	)
+
+	assert stream.closed.wait(timeout=1)
+	assert not handler.is_running()
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert not handler._stream_buffers
+	engine.cancel_completion.assert_called_once_with(stream)
+	completion_end.assert_called_once_with(False)
+	on_error.assert_not_called()
+
+
+def test_fast_completion_notifies_start_before_end(
+	mocker, empty_conversation, message_block
+):
+	"""A fast worker cannot finish before the start callback runs."""
+	callback_order = []
+	completion_finished = threading.Event()
+	engine = MagicMock()
+	engine.completion.return_value = object()
+	engine.completion_response_without_stream.side_effect = lambda **kwargs: (
+		kwargs["new_block"]
+	)
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	def on_completion_end(success):
+		callback_order.append(("end", success))
+		completion_finished.set()
+
+	handler = CompletionHandler(
+		on_completion_start=lambda: callback_order.append("start"),
+		on_completion_end=on_completion_end,
+	)
+
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+	)
+
+	assert completion_finished.wait(timeout=1)
+	assert callback_order == ["start", ("end", True)]
+
+
 def test_stale_worker_cleanup_preserves_newer_active_response(
 	mocker, empty_conversation, message_block
 ):

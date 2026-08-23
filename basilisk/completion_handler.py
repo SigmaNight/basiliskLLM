@@ -106,14 +106,6 @@ class CompletionHandler:
 			**kwargs: Additional arguments for the completion
 		"""
 		request = object()
-		with self._completion_lock:
-			self._stop_completion = False
-			self._active_request = request
-			self._latest_request = request
-			self._active_engine = None
-			self._active_response = None
-			self._stream_buffers[request] = ""
-
 		completion_args = {
 			"engine": engine,
 			"system_message": system_message,
@@ -122,16 +114,30 @@ class CompletionHandler:
 			"stream": stream,
 			**kwargs,
 		}
+		start_notified = threading.Event()
+		with self._completion_lock:
+			self._stop_completion = False
+			self._active_request = request
+			self._latest_request = request
+			self._active_engine = None
+			self._active_response = None
+			self._stream_buffers[request] = ""
+			task = threading.Thread(
+				target=self._handle_completion,
+				kwargs={
+					"request": request,
+					"start_notified": start_notified,
+					**completion_args,
+				},
+			)
+			self.task = task
+			task.start()
 
-		if self.on_completion_start:
-			self.on_completion_start()
-
-		task = threading.Thread(
-			target=self._handle_completion,
-			kwargs={"request": request, **completion_args},
-		)
-		self.task = task
-		task.start()
+		try:
+			if self.on_completion_start:
+				self.on_completion_start()
+		finally:
+			start_notified.set()
 		logger.debug("Completion task %s started", task.ident)
 
 	def stop_completion(self, skip_callbacks: bool = False):
@@ -188,13 +194,18 @@ class CompletionHandler:
 			)
 
 	def _handle_completion(
-		self, request: object, engine: BaseEngine, **kwargs: dict[str, Any]
+		self,
+		request: object,
+		engine: BaseEngine,
+		start_notified: threading.Event | None = None,
+		**kwargs: dict[str, Any],
 	):
 		"""Handle the completion request in a background thread.
 
 		Args:
 			request: Identity of the worker handling this completion.
 			engine: The engine to use for completion
+			start_notified: Set after the completion-start callback returns.
 			kwargs: The keyword arguments for the completion request
 		"""
 		try:
@@ -223,6 +234,10 @@ class CompletionHandler:
 			if should_stop:
 				self._cancel_response(engine, response)
 				return
+			if start_notified is not None:
+				start_notified.wait()
+				if self._is_stopping(request):
+					return
 
 			handle_func = (
 				self._handle_streaming_completion
