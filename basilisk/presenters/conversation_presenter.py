@@ -197,9 +197,8 @@ class ConversationPresenter(DestroyGuardMixin):
 
 	def cleanup(self):
 		"""Stop all active resources before destroying the tab."""
-		if self.completion_handler.is_running():
-			log.debug("Stopping completion handler before closing tab")
-			self.completion_handler.stop_completion(skip_callbacks=True)
+		log.debug("Stopping completion handler before closing tab")
+		self.completion_handler.stop_completion(skip_callbacks=True)
 		if self.recording_thread and self.recording_thread.is_alive():
 			log.debug("Aborting recording thread before closing tab")
 			try:

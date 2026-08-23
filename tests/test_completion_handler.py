@@ -242,6 +242,61 @@ def test_completion_start_scheduled_stop_closes_published_blocking_response(
 	on_stream_finish.assert_not_called()
 
 
+def test_stop_between_start_gate_and_startup_commit_aborts_provider_start(
+	mocker, empty_conversation, message_block
+):
+	"""Stop wins deterministically after the gate but before startup commits."""
+	startup_waiting = threading.Event()
+	release_startup = threading.Event()
+	published_tasks = []
+	engine = MagicMock()
+	completion_end = MagicMock()
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	play_sound = mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+	handler = CompletionHandler(
+		on_completion_start=lambda: published_tasks.append(handler.task),
+		on_completion_end=completion_end,
+	)
+	original_commit_startup = handler._commit_startup
+
+	def wait_before_startup_commit(request):
+		startup_waiting.set()
+		assert release_startup.wait(timeout=1)
+		return original_commit_startup(request)
+
+	mocker.patch.object(
+		handler, "_commit_startup", side_effect=wait_before_startup_commit
+	)
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+	)
+	assert startup_waiting.wait(timeout=1)
+
+	handler.stop_completion()
+	release_startup.set()
+
+	assert len(published_tasks) == 1
+	published_task = published_tasks[0]
+	assert published_task is not None
+	published_task.join(timeout=1)
+	assert not published_task.is_alive()
+	play_sound.assert_not_called()
+	engine.completion.assert_not_called()
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert not handler._stream_buffers
+	completion_end.assert_called_once_with(False)
+
+
 def test_fast_completion_notifies_start_before_end(
 	mocker, empty_conversation, message_block
 ):
@@ -361,7 +416,7 @@ def test_stop_skip_callbacks_suppresses_queued_start_error(
 		),
 	)
 	mocker.patch("basilisk.completion_handler.play_sound")
-	mocker.patch("basilisk.completion_handler.stop_sound")
+	stop_sound = mocker.patch("basilisk.completion_handler.stop_sound")
 	handler = CompletionHandler(
 		on_completion_end=completion_end, on_error=on_error
 	)
@@ -390,6 +445,86 @@ def test_stop_skip_callbacks_suppresses_queued_start_error(
 	assert not handler._stream_buffers
 	on_error.assert_not_called()
 	completion_end.assert_not_called()
+	stop_sound.assert_called_once_with()
+
+
+def test_thread_start_failure_clears_completion_state_for_retry(
+	mocker, empty_conversation, message_block
+):
+	"""A thread start failure rolls back publication before a later retry."""
+	start_calls = 0
+	completion_finished = threading.Event()
+	completion_start = MagicMock()
+	completion_end = MagicMock()
+	on_error = MagicMock()
+	engine = MagicMock()
+	engine.completion.return_value = object()
+	engine.completion_response_without_stream.side_effect = lambda **kwargs: (
+		kwargs["new_block"]
+	)
+	original_thread_start = threading.Thread.start
+
+	def fail_first_thread_start(task):
+		nonlocal start_calls
+		start_calls += 1
+		if start_calls == 1:
+			raise RuntimeError("thread failed to start")
+		return original_thread_start(task)
+
+	mocker.patch.object(
+		threading.Thread,
+		"start",
+		autospec=True,
+		side_effect=fail_first_thread_start,
+	)
+	mocker.patch(
+		"basilisk.completion_handler.wx.CallAfter",
+		side_effect=lambda callback, *args: callback(*args),
+	)
+	mocker.patch("basilisk.completion_handler.play_sound")
+	mocker.patch("basilisk.completion_handler.stop_sound")
+
+	def on_completion_end(success):
+		completion_end(success)
+		completion_finished.set()
+
+	handler = CompletionHandler(
+		on_completion_start=completion_start,
+		on_completion_end=on_completion_end,
+		on_error=on_error,
+	)
+
+	with pytest.raises(RuntimeError, match="thread failed to start"):
+		handler.start_completion(
+			engine=engine,
+			system_message=None,
+			conversation=empty_conversation,
+			new_block=message_block,
+		)
+
+	assert handler.task is None
+	assert handler._active_request is None
+	assert handler._latest_request is None
+	assert handler._active_engine is None
+	assert handler._active_response is None
+	assert handler._start_notified is None
+	assert handler._startup_request is None
+	assert not handler._stream_buffers
+	completion_start.assert_not_called()
+	completion_end.assert_not_called()
+	on_error.assert_not_called()
+
+	handler.start_completion(
+		engine=engine,
+		system_message=None,
+		conversation=empty_conversation,
+		new_block=message_block,
+	)
+	assert completion_finished.wait(timeout=1)
+	assert start_calls == 2
+	completion_start.assert_called_once_with()
+	completion_end.assert_called_once_with(True)
+	on_error.assert_not_called()
 
 
 def test_completion_start_failure_cancels_and_cleans_published_worker(
