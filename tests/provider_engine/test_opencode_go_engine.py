@@ -251,7 +251,7 @@ def test_completion_routes_to_adapter(mocker, protocol, adapter_name):
 	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
 	adapter = MagicMock()
 	adapter.completion.return_value = "raw-response"
-	engine.__dict__[adapter_name] = adapter
+	mocker.patch.object(engine, adapter_name, adapter)
 	mocker.patch.object(engine, "_protocol_for_model", return_value=protocol)
 	new_block = MagicMock()
 	new_block.model.model_id = "model-test"
@@ -275,14 +275,14 @@ def test_completion_routes_to_adapter(mocker, protocol, adapter_name):
 		(_Protocol.GEMINI, "_gemini_engine"),
 	],
 )
-def test_response_processing_routes_to_adapter(protocol, adapter_name):
+def test_response_processing_routes_to_adapter(mocker, protocol, adapter_name):
 	"""Streaming and complete responses use the selected adapter."""
 	engine = _make_engine(OpenCodeZenEngine, "opencodezen")
 	adapter = MagicMock()
 	adapter.completion_response_with_stream.return_value = iter(["chunk"])
 	completed_block = MagicMock()
 	adapter.completion_response_without_stream.return_value = completed_block
-	engine.__dict__[adapter_name] = adapter
+	mocker.patch.object(engine, adapter_name, adapter)
 	response = _ProtocolResponse(protocol, "raw-response")
 	new_block = MagicMock()
 

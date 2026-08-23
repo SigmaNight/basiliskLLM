@@ -79,10 +79,11 @@ class CompletionHandler:
 		self._stop_completion = False
 		self._completion_lock = threading.Lock()
 		self._active_request: object | None = None
+		self._latest_request: object | None = None
 		self._active_engine: Optional[BaseEngine] = None
 		self._active_response: Any = None
 		self.last_time = 0
-		self.stream_buffer: str = ""
+		self._stream_buffers: dict[object, str] = {}
 
 	@ensure_no_task_running
 	def start_completion(
@@ -108,8 +109,10 @@ class CompletionHandler:
 		with self._completion_lock:
 			self._stop_completion = False
 			self._active_request = request
+			self._latest_request = request
 			self._active_engine = None
 			self._active_response = None
+			self._stream_buffers[request] = ""
 
 		completion_args = {
 			"engine": engine,
@@ -123,12 +126,13 @@ class CompletionHandler:
 		if self.on_completion_start:
 			self.on_completion_start()
 
-		self.task = threading.Thread(
+		task = threading.Thread(
 			target=self._handle_completion,
 			kwargs={"request": request, **completion_args},
 		)
-		self.task.start()
-		logger.debug("Completion task %s started", self.task.ident)
+		self.task = task
+		task.start()
+		logger.debug("Completion task %s started", task.ident)
 
 	def stop_completion(self, skip_callbacks: bool = False):
 		"""Stop the current completion if running.
@@ -139,6 +143,7 @@ class CompletionHandler:
 		"""
 		with self._completion_lock:
 			task = self.task
+			request = self._latest_request
 			is_running = bool(task and task.is_alive())
 			if is_running:
 				self._stop_completion = True
@@ -155,7 +160,10 @@ class CompletionHandler:
 					self.task = None
 			stop_sound()
 		if self.on_completion_end and not skip_callbacks:
-			wx.CallAfter(self.on_completion_end, False)
+			if request is None:
+				wx.CallAfter(self.on_completion_end, False)
+			else:
+				wx.CallAfter(self._completion_stopped, request)
 
 	def is_running(self) -> bool:
 		"""Check if a completion is currently running."""
@@ -239,6 +247,7 @@ class CompletionHandler:
 				wx.CallAfter(self._completion_finished_success, request)
 		finally:
 			with self._completion_lock:
+				self._stream_buffers.pop(request, None)
 				if self._active_request is request:
 					self._active_engine = None
 					self._active_response = None
@@ -256,38 +265,51 @@ class CompletionHandler:
 		chunk: str | tuple[str, Any],
 		message_block: MessageBlock,
 	):
-		if self._is_stopping(request):
-			return
-
-		if isinstance(chunk, str):
-			self.stream_buffer += chunk
-		elif isinstance(chunk, tuple):
-			chunk_type, chunk_data = chunk
-			if chunk_type == "citation":
-				if not message_block.response.citations:
-					message_block.response.citations = []
-				message_block.response.citations.append(chunk_data)
+		with self._completion_lock:
+			if (
+				self._stop_completion
+				or self._active_request is not request
+				or global_vars.app_should_exit
+			):
+				return
+			if isinstance(chunk, str):
+				buffer = self._stream_buffers.get(request, "") + chunk
+				self._stream_buffers[request] = buffer
+			elif isinstance(chunk, tuple):
+				chunk_type, chunk_data = chunk
+				if chunk_type == "citation":
+					if not message_block.response.citations:
+						message_block.response.citations = []
+					message_block.response.citations.append(chunk_data)
+				else:
+					logger.warning(
+						"Unknown chunk type in streaming response: %s",
+						chunk_type,
+					)
+				buffer = self._stream_buffers.get(request, "")
 			else:
-				logger.warning(
-					"Unknown chunk type in streaming response: %s", chunk_type
-				)
+				buffer = self._stream_buffers.get(request, "")
 
-		if RE_STREAM_BUFFER.match(self.stream_buffer):
+		if RE_STREAM_BUFFER.match(buffer):
 			self.flush_stream_buffer(request, message_block)
 
 	def flush_stream_buffer(
 		self, request: object, message_block: MessageBlock
 	) -> None:
 		"""Flush the stream buffer to the message block."""
-		if self._is_stopping(request):
-			return
+		with self._completion_lock:
+			if (
+				self._stop_completion
+				or self._active_request is not request
+				or global_vars.app_should_exit
+			):
+				return
+			buffer = self._stream_buffers.get(request, "")
+			self._stream_buffers[request] = ""
 
-		if self.stream_buffer:
-			message_block.response.content += self.stream_buffer
-			wx.CallAfter(
-				self._handle_stream_buffer, request, self.stream_buffer
-			)
-			self.stream_buffer = ""
+		if buffer:
+			message_block.response.content += buffer
+			wx.CallAfter(self._handle_stream_buffer, request, buffer)
 
 	def _handle_streaming_completion(
 		self,
@@ -427,6 +449,7 @@ class CompletionHandler:
 			self._active_request = None
 			self._active_engine = None
 			self._active_response = None
+			self._stream_buffers.pop(request, None)
 		stop_sound()
 		play_sound("chat_response_received")
 		if self.on_completion_end:
@@ -446,6 +469,7 @@ class CompletionHandler:
 			self._active_request = None
 			self._active_engine = None
 			self._active_response = None
+			self._stream_buffers.pop(request, None)
 
 		stop_sound()
 
@@ -460,5 +484,13 @@ class CompletionHandler:
 				is_completion_error=True,
 			)
 
+		if self.on_completion_end:
+			self.on_completion_end(False)
+
+	def _completion_stopped(self, request: object):
+		"""Notify the UI that the latest completion was stopped."""
+		with self._completion_lock:
+			if self._latest_request is not request:
+				return
 		if self.on_completion_end:
 			self.on_completion_end(False)
