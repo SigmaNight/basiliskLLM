@@ -17,22 +17,24 @@ jobs:
             runner: windows-2025
           - arch: x86
             runner: windows-2025
+            triplet: x86-windows
           - arch: arm64
             runner: windows-11-arm
+            triplet: arm64-windows
 
     steps:
-      - name: install OpenSSL via vcpkg (arm64)
-        if: matrix.arch == 'arm64'
+      - name: install OpenSSL via vcpkg (${{ matrix.arch }})
+        if: matrix.arch == 'arm64' || matrix.arch == 'x86'
         id: vcpkg
         uses: "johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef"
         with:
           pkgs: openssl
-          triplet: arm64-windows
+          triplet: ${{ matrix.triplet }}
           token: ${{ github.token }}
-      - name: set OpenSSL env (arm64)
-        if: matrix.arch == 'arm64'
+      - name: set OpenSSL env (${{ matrix.arch }})
+        if: matrix.arch == 'arm64' || matrix.arch == 'x86'
         run: |
-          $installed = "${{ github.workspace }}\vcpkg\installed\arm64-windows"
+          $installed = "${{ github.workspace }}\vcpkg\installed\${{ matrix.triplet }}"
           echo "OPENSSL_DIR=$installed" >> $env:GITHUB_ENV
       - name: checkout repository
         uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
