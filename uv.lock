@@ -1307,16 +1307,16 @@ wheels = [
 
 [[package]]
 name = "python-msilib"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/03/58/c960776020f5dd26f92d8d6b22e6119bb3308596ea46cafbc2349fb85673/python_msilib-0.6.0.tar.gz", hash = "sha256:47a6c16aa8528b797bd81e71cc544505b5444543319dbaf12011123b750c9d3c", size = 60311, upload-time = "2026-04-21T07:23:25.206Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/e2/88f99a66b4e022439ef3cb89dcba36a494c3e49763e5f15ea7ca62778ae8/python_msilib-0.7.0.tar.gz", hash = "sha256:1f9369ffd470be26d8ea89537b8789aa4a3fcbe348e960f39201e47658f1bcef", size = 62064, upload-time = "2026-08-05T17:55:25.237Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/83/0dd355efdc8dc96ddad1f17d226200fc18a47b61d7630afb0b89f7e7c186/python_msilib-0.6.0-cp314-cp314-win32.whl", hash = "sha256:8144e6249d12768e08844672175404b21a1f7ce4b7b6d539858a4f9ad6d6ca6c", size = 69170, upload-time = "2026-04-21T07:23:17.908Z" },
-    { url = "https://files.pythonhosted.org/packages/62/cd/1216b58c6d16f6d9b48d498b0a872d47826f9e13aa6e5fe633a0d2007319/python_msilib-0.6.0-cp314-cp314-win_amd64.whl", hash = "sha256:281421203401afef589321f16d92d7aea8e5cf35f0345e47174346a3dde24808", size = 70460, upload-time = "2026-04-21T07:23:19.334Z" },
-    { url = "https://files.pythonhosted.org/packages/fc/5a/fdf1802014832403302a500f4ba996db3bd1ad3a7b477d60c6591e5edca1/python_msilib-0.6.0-cp314-cp314-win_arm64.whl", hash = "sha256:c2fbc0d9388c937222f2ef717385aade5a3696bdc3b81150a0098c0cb79b58b9", size = 68845, upload-time = "2026-04-21T07:23:20.408Z" },
-    { url = "https://files.pythonhosted.org/packages/aa/20/8ad88d88c8b454d304457e75106475a3cbde5b37e5ee643902289aeda76f/python_msilib-0.6.0-cp314-cp314t-win32.whl", hash = "sha256:e511a1b4e247901416a39167090a5e58d1b65d1a5b401d0250dce983f4ab0980", size = 69364, upload-time = "2026-04-21T07:23:21.865Z" },
-    { url = "https://files.pythonhosted.org/packages/81/8a/04c95442ca969827b0982c7ed07d5682c2540780ef428127c5c9e138fdd5/python_msilib-0.6.0-cp314-cp314t-win_amd64.whl", hash = "sha256:848e7dd1fc61407d207fa4a2b7ac12b3a2de376d394a1d3f70ac4034bc9cd1a9", size = 70683, upload-time = "2026-04-21T07:23:22.992Z" },
-    { url = "https://files.pythonhosted.org/packages/dd/98/e29aadcb9e7ae04d4efd41ef1b0959fbc2273bdfed3b66d160fec75854dc/python_msilib-0.6.0-cp314-cp314t-win_arm64.whl", hash = "sha256:a645358b02e17b0de61ea3f1dcd9f5d6b738148b1f317e2e864a08e04eeb80f3", size = 69044, upload-time = "2026-04-21T07:23:24.12Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/66/925160f15fa9e2b61dbf74d31ec82e41a6a599b6a4a019bbadd31eaa1166/python_msilib-0.7.0-cp314-cp314-win32.whl", hash = "sha256:d977fc797733a4759df3d1e2cb12555b952440c65f12fad7938fb668876596d1", size = 70598, upload-time = "2026-08-05T17:55:11.394Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/2f/276b40bb284b3b1af87c6f1bd39e5f08211dd7e524536bea053c755bce80/python_msilib-0.7.0-cp314-cp314-win_amd64.whl", hash = "sha256:2c86eb89e337d4a749b7a1c05b886b0b14a2117822402783653a7926dc7c5eaa", size = 72078, upload-time = "2026-08-05T17:55:12.426Z" },
+    { url = "https://files.pythonhosted.org/packages/06/ef/abe42b3d8cd04526221ee5188e9156ea7c1564f93ba41608b61471fbdd3a/python_msilib-0.7.0-cp314-cp314-win_arm64.whl", hash = "sha256:265ddea04b4917366e9a9601f105fc786b902b8a94b204a92a732c2367e176f0", size = 70856, upload-time = "2026-08-05T17:55:13.496Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/c7/a6187a412541d5cf5ee49e8ebc46f4fa8a8d2469f5d38cf2836722d63a8b/python_msilib-0.7.0-cp314-cp314t-win32.whl", hash = "sha256:970b31cbf7cd2cf0736cbbe41923392af23288dce77f5d41edf207ebbc680b11", size = 70732, upload-time = "2026-08-05T17:55:14.932Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/25/f446e542efad01995bc3a7e4e2ec8128e8bd3c73480e5708f5c035b03950/python_msilib-0.7.0-cp314-cp314t-win_amd64.whl", hash = "sha256:3d80888442d3efcba94a3bb5d2fe4ad287116cbcc05fc38ad8928c1a20004911", size = 72221, upload-time = "2026-08-05T17:55:16.518Z" },
+    { url = "https://files.pythonhosted.org/packages/57/b2/1a6c70f27e1f9c2c7249470d1af28f4e01923a7011e93fe688a34f228320/python_msilib-0.7.0-cp314-cp314t-win_arm64.whl", hash = "sha256:0686046e665e59633efb337bf621aec90da2214630929f87cada4903803848f6", size = 71055, upload-time = "2026-08-05T17:55:17.589Z" },
 ]
 
 [[package]]
