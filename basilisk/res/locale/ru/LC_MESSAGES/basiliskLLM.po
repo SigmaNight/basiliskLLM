@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: basiliskllm\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-11 21:14+0000\n"
-"PO-Revision-Date: 2026-06-13 15:03\n"
+"POT-Creation-Date: 2026-08-23 20:47+0000\n"
+"PO-Revision-Date: 2026-08-29 17:02\n"
 "Last-Translator: \n"
 "Language-Team: Russian\n"
 "MIME-Version: 1.0\n"
@@ -338,7 +338,7 @@ msgstr "Выбранная модель не поддерживает изобр
 
 #: basilisk/presenters/base_conversation_presenter.py:151
 msgid "Failed to load models. Please check your network and account settings."
-msgstr ""
+msgstr "Не удалось загрузить модели. Проверьте подключение к сети и настройки аккаунта."
 
 #: basilisk/presenters/conversation_presenter.py:319
 #: basilisk/presenters/conversation_presenter.py:374
@@ -811,29 +811,30 @@ msgstr "Максимальное число токенов"
 #. Translators: Placeholder row in the model list while models load
 #: basilisk/views/base_conversation.py:231
 msgid "Loading..."
-msgstr ""
+msgstr "Загрузка..."
 
 #. Translators: Short status bar message when model list failed to load
 #: basilisk/views/base_conversation.py:381
 msgid "Model loading failed"
-msgstr ""
+msgstr "Не удалось загрузить модели"
 
 #. Translators: Placeholder row when the model catalog failed to load
 #: basilisk/views/base_conversation.py:384
 msgid "Error loading models"
-msgstr ""
+msgstr "Ошибка загрузки моделей"
 
 #. Translators: Body of error dialog after model loading failure
 #: basilisk/views/base_conversation.py:388
 #, python-format
 msgid "An error occurred while loading models:\n"
 "%s"
-msgstr ""
+msgstr "Произошла ошибка при загрузке моделей:\n"
+"%s"
 
 #. Translators: Title of error dialog for model loading failure
 #: basilisk/views/base_conversation.py:391
 msgid "Model loading error"
-msgstr ""
+msgstr "Ошибка загрузки моделей"
 
 #. Translators: This is a label for a context menu item
 #. Translators: This is a label for show details in the context menu
@@ -845,7 +846,7 @@ msgstr "Показать подробности"
 #. Translators: This is a label for refreshing model list
 #: basilisk/views/base_conversation.py:447
 msgid "Refresh"
-msgstr ""
+msgstr "Обновить"
 
 #. Translators: This is a label for a title dialog
 #: basilisk/views/base_conversation.py:475
@@ -1037,7 +1038,7 @@ msgstr "Отправить"
 #: basilisk/views/conversation_tab.py:308
 #: basilisk/views/edit_block_dialog.py:226
 msgid "Stop completio&n"
-msgstr "Остановить заверше&ние"
+msgstr "Остановить &генерацию"
 
 #. Translators: This is a label for apply profile button in the main window
 #: basilisk/views/conversation_tab.py:327
@@ -1505,7 +1506,7 @@ msgstr "Использовать хранилище системных серт�
 #. Translators: Label for model catalog HTTP cache duration in preferences
 #: basilisk/views/preferences_dialog.py:299
 msgid "Model list &cache duration (seconds):"
-msgstr ""
+msgstr "&Время кэширования списка моделей (в секундах):"
 
 #: basilisk/views/preferences_dialog.py:313
 msgid "Server"
