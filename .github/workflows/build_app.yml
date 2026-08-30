@@ -26,6 +26,7 @@ jobs:
         uses: "johnwason/vcpkg-action@04c68c847bf5196ecaa72331ecf51208583916ef"
         with:
           pkgs: openssl
+          triplet: ${{ matrix.triplet }}
           token: ${{ github.token }}
       - name: set OpenSSL env (${{ matrix.arch }})
         if: matrix.arch == 'arm64'
