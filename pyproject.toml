@@ -29,7 +29,7 @@ dependencies = [
     "pillow>=12.3.0,<12.4",
     "platformdirs>=4.11.0,<4.12",
     "pydantic>=2.13.4,<2.14",
-    "pydantic-settings>=2.14.2,<2.15",
+    "pydantic-settings>=2.14.2,<2.16",
     "pywin32>=312,<313 ; sys_platform == 'win32'",
     "pyyaml>=6.0.3,<6.1",
     "sounddevice>=0.5.3,<0.6",
