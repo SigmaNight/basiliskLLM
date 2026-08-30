@@ -25,6 +25,7 @@ Thumbs.db
 *.sqlite3
 .coverage
 .htmlcov/
+.firecrawl/
 *.tmp
 *.temp
 basilisk_config.yml

@@ -119,6 +119,9 @@ convention = "google"
 
 
 [tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:'_UnionGenericAlias' is deprecated and slated for removal in Python 3.17:DeprecationWarning:google.genai.types",
+]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
