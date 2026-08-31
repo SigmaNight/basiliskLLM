@@ -73,10 +73,7 @@ Each LLM provider inherits from `BaseEngine` in `basilisk/provider_engine/base_e
 
 ```python
 class AnthropicEngine(BaseEngine):
-	capabilities = {
-		ProviderCapability.TEXT,
-		ProviderCapability.IMAGE
-	}
+	capabilities = {ProviderCapability.TEXT, ProviderCapability.IMAGE}
 
 	@cached_property
 	def client(self) -> Anthropic: ...
