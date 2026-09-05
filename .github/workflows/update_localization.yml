@@ -36,7 +36,7 @@ jobs:
           run-id: ${{ steps.find_run.outputs.pot_run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: download translations
-        uses: "crowdin/github-action@e4a6c1338b4063c77d46a81875265f9e8bd76f95"
+        uses: "crowdin/github-action@71fdb8814261dd703be4ca7c6450d21b1868da4b"
         with:
           upload_sources: false
           upload_translations: false
