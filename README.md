@@ -71,6 +71,8 @@ You can obtain an API key from your chosen AI provider. The app supports the fol
 - [Mistral AI](https://mistral.ai/)
 - [Ollama](https://ollama.com/)
 - [OpenAI](https://platform.openai.com/)
+- [OpenCode Go](https://opencode.ai/docs/go/)
+- [OpenCode Zen](https://opencode.ai/docs/zen/)
 - [OpenRouter](https://openrouter.ai/)
 - [xAI](https://x.ai/)
 

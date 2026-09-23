@@ -140,6 +140,30 @@ providers = [
 		allow_custom_base_url=True,
 	),
 	Provider(
+		id="opencodego",
+		name="OpenCode Go",
+		base_url="https://opencode.ai/zen/go/v1",
+		api_type=ProviderAPIType.OPENAI,
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="OPENCODE_API_KEY",
+		engine_cls_path=(
+			"basilisk.provider_engine.opencode_go_engine.OpenCodeGoEngine"
+		),
+	),
+	Provider(
+		id="opencodezen",
+		name="OpenCode Zen",
+		base_url="https://opencode.ai/zen/v1",
+		api_type=ProviderAPIType.OPENAI,
+		organization_mode_available=False,
+		require_api_key=True,
+		env_var_name_api_key="OPENCODE_API_KEY",
+		engine_cls_path=(
+			"basilisk.provider_engine.opencode_go_engine.OpenCodeZenEngine"
+		),
+	),
+	Provider(
 		id="openrouter",
 		name="OpenRouter",
 		base_url="https://openrouter.ai/api/v1",
