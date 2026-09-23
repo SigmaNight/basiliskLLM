@@ -508,7 +508,6 @@ def test_thread_start_failure_clears_completion_state_for_retry(
 	assert handler._active_engine is None
 	assert handler._active_response is None
 	assert handler._start_notified is None
-	assert handler._startup_request is None
 	assert not handler._stream_buffers
 	completion_start.assert_not_called()
 	completion_end.assert_not_called()

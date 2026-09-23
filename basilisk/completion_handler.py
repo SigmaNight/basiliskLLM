@@ -32,6 +32,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Upper bound for joining a worker on the UI thread after a failed start.
+_START_FAILURE_JOIN_TIMEOUT = 1.0
+
 COMMON_PATTERN = r"[\n;:.?!)»\"\]}]"
 RE_STREAM_BUFFER = re.compile(rf".*{COMMON_PATTERN}.*")
 
@@ -83,7 +86,6 @@ class CompletionHandler:
 		self._active_engine: Optional[BaseEngine] = None
 		self._active_response: Any = None
 		self._start_notified: threading.Event | None = None
-		self._startup_request: object | None = None
 		self.last_time = 0
 		self._stream_buffers: dict[object, str] = {}
 
@@ -124,7 +126,6 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = start_notified
-			self._startup_request = None
 			self._stream_buffers[request] = ""
 			task = threading.Thread(
 				target=self._handle_completion,
@@ -144,7 +145,6 @@ class CompletionHandler:
 				self._active_engine = None
 				self._active_response = None
 				self._start_notified = None
-				self._startup_request = None
 				self._stream_buffers.pop(request, None)
 				raise
 
@@ -152,21 +152,22 @@ class CompletionHandler:
 			if self.on_completion_start:
 				self.on_completion_start()
 		except Exception:
+			task_to_join = None
+			to_cancel = None
 			with self._completion_lock:
 				if self._active_request is request:
 					self._stop_completion = True
 					task_to_join = self.task
-					engine_to_cancel = self._active_engine
-					response_to_cancel = self._active_response
-				else:
-					task_to_join = None
-					engine_to_cancel = None
-					response_to_cancel = None
+					to_cancel = self._cancellable_response()
 			start_notified.set()
-			if engine_to_cancel is not None and response_to_cancel is not None:
-				self._cancel_response(engine_to_cancel, response_to_cancel)
+			if to_cancel is not None:
+				self._cancel_response(*to_cancel)
 			if task_to_join is not None:
-				task_to_join.join()
+				# This runs on the UI thread. The worker is at most waiting for
+				# start_notified and sees the stop flag at once, so the join is
+				# normally immediate; the bound keeps a wedged provider from
+				# freezing the UI, and the worker clears self.task itself.
+				task_to_join.join(timeout=_START_FAILURE_JOIN_TIMEOUT)
 			with self._completion_lock:
 				if self._latest_request is request:
 					self._latest_request = None
@@ -182,6 +183,8 @@ class CompletionHandler:
 			skip_callbacks: If True, skip calling completion end callbacks.
 				Useful when cleaning up resources before destroying the tab.
 		"""
+		start_notified = None
+		to_cancel = None
 		with self._completion_lock:
 			task = self.task
 			request = self._latest_request
@@ -191,13 +194,8 @@ class CompletionHandler:
 			)
 			if is_running or is_active_request:
 				self._stop_completion = True
-				engine = self._active_engine
-				response = self._active_response
+				to_cancel = self._cancellable_response()
 				start_notified = self._start_notified
-			else:
-				engine = None
-				response = None
-				start_notified = None
 			if skip_callbacks and self._latest_request is request:
 				self._latest_request = None
 			if not is_running and is_active_request:
@@ -206,16 +204,16 @@ class CompletionHandler:
 				self._active_engine = None
 				self._active_response = None
 				self._start_notified = None
-				self._startup_request = None
 				if request is not None:
 					self._stream_buffers.pop(request, None)
 
+		# Both are None unless this call is stopping a request.
+		if start_notified is not None:
+			start_notified.set()
+		if to_cancel is not None:
+			self._cancel_response(*to_cancel)
 		if is_running:
 			logger.debug("Stopping completion task: %s", task.ident)
-			if start_notified is not None:
-				start_notified.set()
-			if engine is not None and response is not None:
-				self._cancel_response(engine, response)
 			task.join(timeout=0.1)
 			with self._completion_lock:
 				if self.task is task and not task.is_alive():
@@ -232,6 +230,12 @@ class CompletionHandler:
 		"""Check if a completion is currently running."""
 		with self._completion_lock:
 			return bool(self.task and self.task.is_alive())
+
+	def _cancellable_response(self) -> tuple[BaseEngine, Any] | None:
+		"""Return the active engine and response to cancel; hold the lock."""
+		if self._active_engine is None or self._active_response is None:
+			return None
+		return self._active_engine, self._active_response
 
 	def _cancel_response(self, engine: BaseEngine, response: Any) -> None:
 		"""Close an active provider response without surfacing stop errors."""
@@ -275,7 +279,6 @@ class CompletionHandler:
 			):
 				return False
 			play_sound("progress", loop=True)
-			self._startup_request = request
 			return True
 
 	def _start_provider_completion(
@@ -376,8 +379,6 @@ class CompletionHandler:
 						self._active_request = None
 					if self._start_notified is start_notified:
 						self._start_notified = None
-					if self._startup_request is request:
-						self._startup_request = None
 
 	def _handle_stream_chunk(
 		self,
@@ -570,7 +571,6 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = None
-			self._startup_request = None
 			self._stream_buffers.pop(request, None)
 		stop_sound()
 		play_sound("chat_response_received")
@@ -592,7 +592,6 @@ class CompletionHandler:
 			self._active_engine = None
 			self._active_response = None
 			self._start_notified = None
-			self._startup_request = None
 			self._stream_buffers.pop(request, None)
 
 		stop_sound()

@@ -336,7 +336,9 @@ class _OpenCodeEngine(LegacyOpenAIEngine):
 			try:
 				super().cancel_completion(response.value)
 			except ValueError:
-				pass
+				# Expected when the generator runs on another thread; closing the
+				# client below is what actually stops the stream.
+				log.debug("Gemini stream close deferred to client shutdown")
 			client = self._gemini_engine.__dict__.pop("client", None)
 			if client is not None:
 				client.close()
