@@ -128,7 +128,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 				if pid_str:
 					return int(pid_str)
 		except OSError, ValueError:
-			pass
+			log.debug("Cannot read the lock holder PID", exc_info=True)
 		return None
 
 	def _is_process_alive(self, pid: int) -> bool:

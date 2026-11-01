@@ -442,6 +442,7 @@ class AccountManager(BasiliskBaseSettings):
 			if index is None:
 				return self.accounts[0]
 			return self.accounts[index]
+		return None
 
 	def set_default_account(self, value: Account | None):
 		"""Set the default account for the configuration.
