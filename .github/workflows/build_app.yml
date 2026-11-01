@@ -65,7 +65,7 @@ jobs:
           $name = if ("${{ matrix.arch }}" -eq "arm64") { "vc_redist.arm64.exe" } else { "vc_redist.x64.exe" }
           $dir = Join-Path $env:APPDATA "cxfreeze/vc_redist/17"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          curl.exe --fail --location --retry 5 --retry-all-errors --output (Join-Path $dir $name) "https://aka.ms/vs/17/release/$name"
+          curl.exe --fail --location --connect-timeout 30 --max-time 300 --retry 5 --retry-all-errors --output (Join-Path $dir $name) "https://aka.ms/vs/17/release/$name"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build executable
         working-directory: ${{ github.workspace }}/repo
