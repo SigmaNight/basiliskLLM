@@ -5,36 +5,46 @@ on:
   workflow_dispatch:
 
 permissions:
-  pull-requests: write
-  contents: write
-  actions: read
+  contents: read
 
 jobs:
-  run:
-    runs-on: ubuntu-latest
+  # Generate the POT file in this run: artifacts from previous CI runs expire
+  # after 30 days, which breaks the update when master has been idle.
+  generate_pot:
+    runs-on: windows-latest
+    env:
+      UV_NO_DEV: true
     steps:
       - name: checkout repository
         uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
-      - name: find successful CI run
-        id: find_run
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          run_id=$(gh run list -b ${{ github.ref_name }} -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
-          if [ -z "$run_id" ]; then
-            echo "No successful CI workflow run found for branch ${{ github.ref_name }}"
-            echo "Use the run_id from master branch"
-            run_id=$(gh run list -b master -w "ci.yml" -s success --json databaseId --jq '.[0].databaseId')
-          fi
-          echo "found run_id: $run_id"
-          echo "pot_run_id=$run_id" >> $GITHUB_OUTPUT
-      - name: download artifact from the run
+      - name: setup uv
+        uses: "astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d"
+      - name: Install dependencies
+        run: uv sync --frozen --group build
+      - name: build POT file
+        run: uv run setup.py extract_messages
+      - name: upload POT file
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+        with:
+          name: basiliskLLM.pot
+          path: basiliskLLM.pot
+          if-no-files-found: error
+          retention-days: 1
+          archive: false
+
+  run:
+    runs-on: ubuntu-latest
+    needs: [generate_pot]
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: checkout repository
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      - name: download POT file
         uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
         with:
           name: basiliskLLM.pot
-          run-id: ${{ steps.find_run.outputs.pot_run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: download translations
         uses: "crowdin/github-action@e4a6c1338b4063c77d46a81875265f9e8bd76f95"
         with:
