@@ -185,7 +185,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			self.block.response.content = self.view.response_txt.GetValue()
 
 		# Naive local time, consistent with MessageBlock timestamps
-		self.block.updated_at = datetime.now()  # noqa: DTZ005
+		self.block.updated_at = datetime.now()
 		if self.service is not None:
 			self.service.auto_save_to_db(self.conversation, self.block)
 
