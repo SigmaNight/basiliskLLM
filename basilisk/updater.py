@@ -126,7 +126,7 @@ class BaseUpdater(ABC):
 
 		"""
 		if getattr(sys, "frozen", False):
-			from BUILD_CONSTANTS import BUILD_RELEASE_STRING  # noqa # type: ignore
+			from BUILD_CONSTANTS import BUILD_RELEASE_STRING  # type: ignore
 
 			return BUILD_RELEASE_STRING
 		else:
