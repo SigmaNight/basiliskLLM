@@ -47,6 +47,7 @@ repos:
     rev: "1.0.0"
     hooks:
       - id: mdformat
+        exclude: '^\.github\/(agents|prompts)\/'
         additional_dependencies:
           - "mdformat-gfm"
 -   repo: https://github.com/astral-sh/ruff-pre-commit
