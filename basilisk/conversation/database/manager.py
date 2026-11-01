@@ -82,7 +82,7 @@ class ConversationDatabase:
 		log.info("Database initialized at %s", db_path)
 
 	@classmethod
-	def from_engine(cls, engine: Engine) -> "ConversationDatabase":
+	def from_engine(cls, engine: Engine) -> ConversationDatabase:
 		"""Create a ConversationDatabase from an existing engine (no migrations).
 
 		This factory is intended for testing where the schema is created
@@ -129,24 +129,21 @@ class ConversationDatabase:
 		Returns:
 			The database ID of the saved conversation.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				db_conv = DBConversation(title=conversation.title)
-				session.add(db_conv)
-				session.flush()
+		with self._get_session() as session, session.begin():
+			db_conv = DBConversation(title=conversation.title)
+			session.add(db_conv)
+			session.flush()
 
-				# Save system prompts
-				csp_map = self._save_system_prompts(
-					session, db_conv, conversation.systems
-				)
+			# Save system prompts
+			csp_map = self._save_system_prompts(
+				session, db_conv, conversation.systems
+			)
 
-				# Save message blocks
-				for position, block in enumerate(conversation.messages):
-					self._save_block(
-						session, db_conv.id, position, block, csp_map
-					)
+			# Save message blocks
+			for position, block in enumerate(conversation.messages):
+				self._save_block(session, db_conv.id, position, block, csp_map)
 
-				conv_id = db_conv.id
+			conv_id = db_conv.id
 		log.debug("Saved conversation %d", conv_id)
 		return conv_id
 
@@ -209,7 +206,7 @@ class ConversationDatabase:
 		conv_id: int,
 		position: int,
 		block: MessageBlock,
-		csp_map: dict[int, "DBConversationSystemPrompt"],
+		csp_map: dict[int, DBConversationSystemPrompt],
 	):
 		"""Save a single message block."""
 		csp_id = None
@@ -415,28 +412,27 @@ class ConversationDatabase:
 			block: The Pydantic message block to save.
 			system_message: Optional system message associated with the block.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				self._delete_block_at(session, conv_id, block_index)
-				csp_id = self._resolve_csp_id(
-					session, conv_id, block, system_message
-				)
-				db_block = self._create_db_block(
-					session, conv_id, block_index, block, csp_id
+		with self._get_session() as session, session.begin():
+			self._delete_block_at(session, conv_id, block_index)
+			csp_id = self._resolve_csp_id(
+				session, conv_id, block, system_message
+			)
+			db_block = self._create_db_block(
+				session, conv_id, block_index, block, csp_id
+			)
+
+			self._save_message(session, db_block.id, "user", block.request)
+			if block.response:
+				self._save_message(
+					session, db_block.id, "assistant", block.response
 				)
 
-				self._save_message(session, db_block.id, "user", block.request)
-				if block.response:
-					self._save_message(
-						session, db_block.id, "assistant", block.response
-					)
-
-				# Update conversation timestamp
-				session.execute(
-					DBConversation.__table__.update()
-					.where(DBConversation.id == conv_id)
-					.values(updated_at=block.updated_at)
-				)
+			# Update conversation timestamp
+			session.execute(
+				DBConversation.__table__.update()
+				.where(DBConversation.id == conv_id)
+				.values(updated_at=block.updated_at)
+			)
 
 		log.debug("Saved block %d for conversation %d", block_index, conv_id)
 
@@ -458,16 +454,15 @@ class ConversationDatabase:
 			block: The draft MessageBlock (response should be None).
 			system_message: Optional system message associated with the block.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				self._delete_block_at(session, conv_id, block_index)
-				csp_id = self._resolve_csp_id(
-					session, conv_id, block, system_message
-				)
-				db_block = self._create_db_block(
-					session, conv_id, block_index, block, csp_id
-				)
-				self._save_message(session, db_block.id, "user", block.request)
+		with self._get_session() as session, session.begin():
+			self._delete_block_at(session, conv_id, block_index)
+			csp_id = self._resolve_csp_id(
+				session, conv_id, block, system_message
+			)
+			db_block = self._create_db_block(
+				session, conv_id, block_index, block, csp_id
+			)
+			self._save_message(session, db_block.id, "user", block.request)
 
 		log.debug(
 			"Saved draft block %d for conversation %d", block_index, conv_id
@@ -482,23 +477,22 @@ class ConversationDatabase:
 			conv_id: The database conversation ID.
 			block_index: The position index of the draft block.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				db_block = session.execute(
-					select(DBMessageBlock).where(
-						DBMessageBlock.conversation_id == conv_id,
-						DBMessageBlock.position == block_index,
-					)
-				).scalar_one_or_none()
-				if db_block is None:
-					return
-				# Check if it has an assistant message
-				has_response = any(
-					msg.role == "assistant" for msg in db_block.messages
+		with self._get_session() as session, session.begin():
+			db_block = session.execute(
+				select(DBMessageBlock).where(
+					DBMessageBlock.conversation_id == conv_id,
+					DBMessageBlock.position == block_index,
 				)
-				if has_response:
-					return
-				session.delete(db_block)
+			).scalar_one_or_none()
+			if db_block is None:
+				return
+			# Check if it has an assistant message
+			has_response = any(
+				msg.role == "assistant" for msg in db_block.messages
+			)
+			if has_response:
+				return
+			session.delete(db_block)
 
 		log.debug(
 			"Deleted draft block %d for conversation %d", block_index, conv_id
@@ -511,11 +505,10 @@ class ConversationDatabase:
 			conv_id: The database conversation ID.
 			title: The new title, or None to clear it.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				db_conv = session.get(DBConversation, conv_id)
-				if db_conv:
-					db_conv.title = title
+		with self._get_session() as session, session.begin():
+			db_conv = session.get(DBConversation, conv_id)
+			if db_conv:
+				db_conv.title = title
 
 	def delete_conversation(self, conv_id: int):
 		"""Delete a conversation and all related data.
@@ -526,11 +519,10 @@ class ConversationDatabase:
 		Args:
 			conv_id: The database conversation ID.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				db_conv = session.get(DBConversation, conv_id)
-				if db_conv:
-					session.delete(db_conv)
+		with self._get_session() as session, session.begin():
+			db_conv = session.get(DBConversation, conv_id)
+			if db_conv:
+				session.delete(db_conv)
 		log.debug("Deleted conversation %d", conv_id)
 		self.cleanup_orphan_attachments()
 
@@ -548,26 +540,24 @@ class ConversationDatabase:
 		Returns:
 			Number of orphaned attachment rows deleted.
 		"""
-		with self._get_session() as session:
-			with session.begin():
-				orphan_ids = (
-					session.execute(
-						select(DBAttachment.id)
-						.outerjoin(
-							DBMessageAttachment,
-							DBAttachment.id
-							== DBMessageAttachment.attachment_id,
-						)
-						.where(DBMessageAttachment.id.is_(None))
-					)
-					.scalars()
-					.all()
-				)
-				if not orphan_ids:
-					return 0
+		with self._get_session() as session, session.begin():
+			orphan_ids = (
 				session.execute(
-					delete(DBAttachment).where(DBAttachment.id.in_(orphan_ids))
+					select(DBAttachment.id)
+					.outerjoin(
+						DBMessageAttachment,
+						DBAttachment.id == DBMessageAttachment.attachment_id,
+					)
+					.where(DBMessageAttachment.id.is_(None))
 				)
+				.scalars()
+				.all()
+			)
+			if not orphan_ids:
+				return 0
+			session.execute(
+				delete(DBAttachment).where(DBAttachment.id.in_(orphan_ids))
+			)
 		log.debug("Cleaned up %d orphaned attachment(s)", len(orphan_ids))
 		return len(orphan_ids)
 

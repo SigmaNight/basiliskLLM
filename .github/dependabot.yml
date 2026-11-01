@@ -22,3 +22,7 @@ updates:
       day: "saturday"
       time: "12:42"
       timezone: "Europe/Paris"
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"

@@ -90,7 +90,9 @@ def _ocr_result(ocr_response: OCRResponse, file_path: str) -> bool:
 	return True
 
 
-def _update_ocr_progress(message: str, progress: int = None, result_queue=None):
+def _update_ocr_progress(
+	message: str, progress: int | None = None, result_queue=None
+):
 	"""Updates OCR processing progress.
 
 	Args:
@@ -105,8 +107,8 @@ def _update_ocr_progress(message: str, progress: int = None, result_queue=None):
 				result_queue.put(("message", message))
 			if progress is not None:
 				result_queue.put(("progress", progress))
-		except Exception as e:
-			log.error("Error updating OCR progress: %s", e)
+		except Exception:
+			log.exception("Error updating OCR progress")
 	else:
 		log.info(message)
 
@@ -124,7 +126,10 @@ def _process_url_attachment(client, attachment, result_queue=None) -> str:
 	"""
 	path = Path(user_documents_dir()) / "basilisk_ocr"
 	path.mkdir(exist_ok=True, parents=True)
-	output_file = path / f"{datetime.now().isoformat().replace(':', '-')}.md"
+	output_file = (
+		path
+		/ f"{datetime.now().astimezone().strftime('%Y-%m-%dT%H-%M-%S.%f')}.md"
+	)
 
 	_update_ocr_progress(
 		f"Processing OCR for URL: {attachment.location}",
@@ -233,15 +238,10 @@ def _process_single_attachment(
 
 	except Exception as e:
 		_update_ocr_progress(
-			f"Error processing attachment {attachment.name}: {str(e)}",
+			f"Error processing attachment {attachment.name}: {e!s}",
 			result_queue=result_queue,
 		)
-		log.error(
-			"Error processing attachment %s:%s",
-			attachment.name,
-			e,
-			exc_info=True,
-		)
+		log.exception("Error processing attachment %s", attachment.name)
 		return ""
 
 
@@ -250,7 +250,7 @@ def handle_ocr(
 	base_url: str,
 	attachments: list[AttachmentFile],
 	cancel_flag=None,
-	result_queue: Queue = None,
+	result_queue: Queue | None = None,
 	log_level=logging.INFO,
 ) -> tuple[str, Any]:
 	"""Extracts text from images using OCR.
@@ -300,5 +300,5 @@ def handle_ocr(
 		return output_files
 
 	except Exception as e:
-		log.error("OCR process error: %s", e, exc_info=True)
-		return "error", f"OCR process error: {str(e)}"
+		log.exception("OCR process error")
+		return "error", f"OCR process error: {e!s}"

@@ -4,7 +4,6 @@ import gettext
 import locale
 import logging
 from pathlib import Path
-from typing import Optional
 
 import wx
 from babel import Locale
@@ -43,7 +42,7 @@ def get_supported_locales(domain: str = APP_NAME) -> list[Locale]:
 	return supported_locales
 
 
-def get_app_locale(language: Optional[str]) -> Locale:
+def get_app_locale(language: str | None) -> Locale:
 	"""Get the current application locale based on the system locale or the provided language.
 
 	Args:
@@ -96,7 +95,7 @@ def setup_translation(locale: Locale) -> None:
 	log.debug("gettext Translation setup for: %s", locale.english_name)
 
 
-def init_translation(language: Optional[str]) -> wx.Locale:
+def init_translation(language: str | None) -> wx.Locale:
 	"""Initialize the translation for the application based on the provided language.
 
 	Args:

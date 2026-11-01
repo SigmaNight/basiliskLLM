@@ -57,7 +57,7 @@ class RecordingThread(threading.Thread):
 		Raises:
 			ValueError: If provider_engine or recordings_settings are not provided.
 		"""
-		super(RecordingThread, self).__init__()
+		super().__init__()
 		if not provider_engine:
 			raise ValueError("No provider engine provided.")
 		if not recordings_settings:
@@ -135,12 +135,11 @@ class RecordingThread(threading.Thread):
 		"""
 		if self._want_abort:
 			return
-		wavefile = wave.open(filename, "wb")
-		wavefile.setnchannels(self.recordings_settings.channels)
-		wavefile.setsampwidth(2)  # 16 bits
-		wavefile.setframerate(sample_rate)
-		wavefile.writeframes(data.tobytes())
-		wavefile.close()
+		with wave.open(filename, "wb") as wavefile:
+			wavefile.setnchannels(self.recordings_settings.channels)
+			wavefile.setsampwidth(2)  # 16 bits
+			wavefile.setframerate(sample_rate)
+			wavefile.writeframes(data.tobytes())
 
 	def stop(self):
 		"""Stop the current recording process."""
@@ -175,7 +174,7 @@ class RecordingThread(threading.Thread):
 				self.callbacks.on_transcription_received, transcription
 			)
 		except BaseException as err:
-			log.error("Error getting transcription: %s", err)
+			log.exception("Error getting transcription")
 			wx.CallAfter(self.callbacks.on_transcription_error, str(err))
 
 	def abort(self):

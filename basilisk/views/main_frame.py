@@ -8,16 +8,15 @@ import logging
 import os
 import signal
 import sys
+from collections.abc import Callable
 from types import FrameType
-from typing import Callable, Optional
 
 import wx
 from more_itertools import locate
 
 if sys.platform == "win32":
 	import win32con
-import basilisk.config as config
-from basilisk import global_vars
+from basilisk import config, global_vars
 from basilisk.consts import APP_NAME, APP_SOURCE_URL, HotkeyAction
 from basilisk.conversation import ImageFile
 from basilisk.logger import get_log_file_path
@@ -59,7 +58,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		"""
 		self.conf: config.BasiliskConfig = kwargs.pop("conf", config.conf())
 		open_file = kwargs.pop("open_file", None)
-		super(MainFrame, self).__init__(*args, **kwargs)
+		super().__init__(*args, **kwargs)
 		log.debug("Initializing main frame")
 
 		self.presenter = MainFramePresenter(self)
@@ -485,7 +484,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		"""
 		self.presenter.save_current_conversation()
 
-	def on_save_as_conversation(self, event: wx.Event | None) -> Optional[str]:
+	def on_save_as_conversation(self, event: wx.Event | None) -> str | None:
 		"""Save the current conversation to a user-specified path.
 
 		Args:
@@ -592,7 +591,7 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 	def screen_capture(
 		self,
 		capture_mode: CaptureMode,
-		screen_coordinates: Optional[tuple[int, int, int, int]] = None,
+		screen_coordinates: tuple[int, int, int, int] | None = None,
 		name: str = "",
 	):
 		"""Capture a screenshot. Delegates to presenter.
@@ -885,8 +884,8 @@ class MainFrame(wx.Frame, ErrorDisplayMixin):
 		"""
 		try:
 			os.startfile(get_log_file_path())
-		except Exception as e:
-			log.error("Failed to open log file: %s", e)
+		except Exception:
+			log.exception("Failed to open log file")
 			wx.MessageBox(
 				_("Failed to open log file"), _("Error"), wx.OK | wx.ICON_ERROR
 			)

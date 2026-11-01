@@ -5,6 +5,7 @@ implementing capabilities for both text and image generation.
 """
 
 import logging
+from typing import ClassVar
 
 from basilisk.provider_capability import ProviderCapability
 
@@ -24,7 +25,7 @@ class XAIEngine(LegacyOpenAIEngine):
 		capabilities: Set of supported capabilities including text and image generation.
 	"""
 
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
 	}

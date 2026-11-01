@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import wx
 from more_itertools import locate
 from wx.lib.agw.floatspin import FloatSpin
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.model_catalog.sampling import MAIN_UI_SAMPLING_PARAM_KEYS
 from basilisk.presenters.base_conversation_presenter import (
 	BaseConversationPresenter,
@@ -83,7 +83,7 @@ class BaseConversation:
 		return self.base_conv_presenter.account_model_service
 
 	@property
-	def current_engine(self) -> Optional[BaseEngine]:
+	def current_engine(self) -> BaseEngine | None:
 		"""Get the engine instance based on the selected account.
 
 		Returns:
@@ -112,7 +112,7 @@ class BaseConversation:
 		return label
 
 	@property
-	def current_account(self) -> Optional[config.Account]:
+	def current_account(self) -> config.Account | None:
 		"""Get the currently selected account.
 
 		Returns:
@@ -162,7 +162,7 @@ class BaseConversation:
 
 	def on_account_change(
 		self, event: wx.Event | None
-	) -> Optional[config.Account]:
+	) -> config.Account | None:
 		"""Handle account selection change events.
 
 		Args:
@@ -243,7 +243,7 @@ class BaseConversation:
 		"""
 		return self.base_conv_presenter.get_display_models(self.current_engine)
 
-	def set_model_list(self, model: Optional[ProviderAIModel]):
+	def set_model_list(self, model: ProviderAIModel | None):
 		"""Set the selected model in the model list.
 
 		Args:
@@ -273,7 +273,7 @@ class BaseConversation:
 			self.on_model_change(None)
 
 	@property
-	def current_model(self) -> Optional[ProviderAIModel]:
+	def current_model(self) -> ProviderAIModel | None:
 		"""Get the currently selected model.
 
 		Returns:
@@ -302,7 +302,7 @@ class BaseConversation:
 
 	def refresh_sampling_controls_visibility(
 		self,
-		model: Optional[ProviderAIModel] = None,
+		model: ProviderAIModel | None = None,
 		*,
 		gate_on_advanced_mode: bool = True,
 	) -> None:
@@ -565,7 +565,7 @@ class BaseConversation:
 
 	def apply_profile(
 		self,
-		profile: Optional[config.ConversationProfile],
+		profile: config.ConversationProfile | None,
 		fall_back_default_account: bool = False,
 	):
 		"""Apply all settings from a conversation profile.

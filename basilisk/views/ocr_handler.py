@@ -7,12 +7,11 @@ All orchestration logic lives in basilisk/presenters/ocr_presenter.py.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import wx
 
-import basilisk.config as config
-import basilisk.global_vars as global_vars
+from basilisk import config, global_vars
 from basilisk.presenters.ocr_presenter import OCRPresenter
 
 from .enhanced_error_dialog import show_enhanced_error_dialog
@@ -40,7 +39,7 @@ class OCRHandler(ErrorDisplayMixin):
 		"""
 		self.conf = config.conf()
 		self.parent = parent
-		self.ocr_button: Optional[wx.Button] = None
+		self.ocr_button: wx.Button | None = None
 
 		self._presenter = OCRPresenter(
 			view=self,
@@ -114,8 +113,8 @@ class OCRHandler(ErrorDisplayMixin):
 		try:
 			if dialog and dialog.IsShown():
 				dialog.Destroy()
-		except Exception as e:
-			log.error("Error destroying dialog: %s", e, exc_info=True)
+		except Exception:
+			log.exception("Error destroying dialog")
 
 	def show_result(self, data: Any) -> None:
 		"""Display the OCR result to the user.
@@ -156,7 +155,10 @@ class OCRHandler(ErrorDisplayMixin):
 		self._presenter.cleanup()
 
 	def show_enhanced_error(
-		self, message: str, title: str = None, is_completion_error: bool = False
+		self,
+		message: str,
+		title: str | None = None,
+		is_completion_error: bool = False,
 	) -> None:
 		"""Display the enhanced error dialog using the parent tab as window.
 
@@ -173,7 +175,7 @@ class OCRHandler(ErrorDisplayMixin):
 			self.parent, message, title, is_completion_error
 		)
 
-	def show_error(self, message: str, title: str = None) -> None:
+	def show_error(self, message: str, title: str | None = None) -> None:
 		"""Display an enhanced error dialog for OCR errors.
 
 		Overrides ``ErrorDisplayMixin.show_error`` to route all simple

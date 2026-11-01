@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import re
 from functools import cached_property
-from typing import TYPE_CHECKING
 
 try:
 	import accessible_output3.outputs.auto
@@ -14,10 +13,7 @@ try:
 except ImportError:
 	_AO3_AVAILABLE = False
 
-if TYPE_CHECKING:
-	import accessible_output3.outputs.auto
-
-import basilisk.config as config
+from basilisk import config
 from basilisk.completion_handler import COMMON_PATTERN
 from basilisk.decorators import measure_time
 

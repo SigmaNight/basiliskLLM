@@ -5,6 +5,7 @@ that only one instance of the application runs at a time using platform-specific
 locking mechanisms (Windows mutex or POSIX file locking).
 """
 
+import contextlib
 import os
 import sys
 import tempfile
@@ -20,9 +21,11 @@ TEST_LOCK_PATH = os.path.join(
 )
 
 # Apply the patches before importing the module
-with patch("basilisk.consts.APP_NAME", TEST_APP_NAME):
-	with patch("basilisk.consts.FILE_LOCK_PATH", TEST_LOCK_PATH):
-		from basilisk.singleton_instance import SingletonInstance
+with (
+	patch("basilisk.consts.APP_NAME", TEST_APP_NAME),
+	patch("basilisk.consts.FILE_LOCK_PATH", TEST_LOCK_PATH),
+):
+	from basilisk.singleton_instance import SingletonInstance
 
 
 @pytest.fixture
@@ -37,17 +40,13 @@ def cleanup_lock_file():
 	yield
 	# Clean up any remaining lock files
 	if os.path.exists(TEST_LOCK_PATH):
-		try:
+		with contextlib.suppress(OSError):
 			os.remove(TEST_LOCK_PATH)
-		except Exception:
-			pass
 	# Clean up the test directory
 	test_dir = os.path.dirname(TEST_LOCK_PATH)
 	if os.path.exists(test_dir):
-		try:
+		with contextlib.suppress(OSError):
 			os.rmdir(test_dir)
-		except Exception:
-			pass
 
 
 class TestSingletonInstanceCore:

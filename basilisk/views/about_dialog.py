@@ -16,9 +16,9 @@ from basilisk.consts import (
 )
 
 if getattr(sys, "frozen", False):
-	from BUILD_CONSTANTS import *  # noqa # type: ignore
+	from BUILD_CONSTANTS import BUILD_RELEASE_STRING  # type: ignore
 
-	app_version = BUILD_RELEASE_STRING  # noqa # type: ignore
+	app_version = BUILD_RELEASE_STRING
 else:
 	from setuptools_scm import get_version
 

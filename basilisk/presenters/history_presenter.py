@@ -8,7 +8,7 @@ business logic.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from basilisk.accessible_output import AccessibleOutputHandler
 from basilisk.conversation.conversation_model import MessageBlock
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 	from basilisk.views.history_msg_text_ctrl import HistoryMsgTextCtrl
 	from basilisk.views.search_dialog import SearchDialog
 
-import basilisk.config as config
+from basilisk import config
 
 log = logging.getLogger(__name__)
 
@@ -56,8 +56,8 @@ class HistoryPresenter:
 		self.segment_manager = MessageSegmentManager()
 		self.speak_response: bool = True
 		self.a_output = AccessibleOutputHandler()
-		self._search_dialog: Optional[SearchDialog] = None
-		self._search_presenter: Optional[SearchPresenter] = None
+		self._search_dialog: SearchDialog | None = None
+		self._search_presenter: SearchPresenter | None = None
 
 	# ------------------------------------------------------------------
 	# Segment management
@@ -106,7 +106,7 @@ class HistoryPresenter:
 		return (self.segment_manager.start, self.segment_manager.end)
 
 	@property
-	def current_msg_block(self) -> Optional[MessageBlock]:
+	def current_msg_block(self) -> MessageBlock | None:
 		"""Get the message block at the current cursor position.
 
 		Returns:

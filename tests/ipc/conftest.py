@@ -3,7 +3,7 @@
 import os
 import sys
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -37,7 +37,7 @@ def signal_factory():
 
 	class SignalFactory:
 		def create_focus_signal(self):
-			return FocusSignal(timestamp=datetime.now())
+			return FocusSignal(timestamp=datetime.now(UTC))
 
 		def create_open_bskc_signal(self, file_path):
 			return OpenBskcSignal(file_path=file_path)

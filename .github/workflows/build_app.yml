@@ -6,6 +6,7 @@ permissions:
 
 jobs:
   build_windows:
+    name: build_windows (${{ matrix.arch }}, ${{ matrix.runner }})
     runs-on: ${{ matrix.runner }}
     env:
       UV_NO_DEV: true

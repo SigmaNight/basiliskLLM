@@ -7,8 +7,9 @@ implementing capabilities for text and image generation/processing.
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Generator
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mistralai.client import Mistral
 from mistralai.client.models import ChatCompletionResponse, CompletionEvent
@@ -45,13 +46,13 @@ class MistralAIEngine(BaseEngine):
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
 		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 	)
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.OCR,
 	}
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"image/gif",
 		"image/jpeg",
 		"image/png",
@@ -76,7 +77,6 @@ class MistralAIEngine(BaseEngine):
 		Returns:
 			Configured MistralAI client instance.
 		"""
-		super().client
 		return Mistral(
 			api_key=self.account.api_key.get_secret_value(),
 			server_url=self.account.custom_base_url
@@ -167,7 +167,7 @@ class MistralAIEngine(BaseEngine):
 		return self.client.chat.complete(**params)
 
 	def completion_response_with_stream(
-		self, stream: Generator[CompletionEvent, None, None]
+		self, stream: Generator[CompletionEvent]
 	):
 		"""Processes a streaming completion response.
 

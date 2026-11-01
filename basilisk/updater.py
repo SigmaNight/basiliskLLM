@@ -8,10 +8,11 @@ import tempfile
 import time
 import zipfile
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import datetime
 from functools import cached_property
 from logging import getLogger
-from typing import Any, Callable, Optional
+from typing import Any
 from xml.etree import ElementTree as ET
 
 import httpx
@@ -22,6 +23,12 @@ from .consts import APP_REPO, UNINSTALL_FILE_NAME, WORKFLOW_NAME
 from .global_vars import base_path
 
 log = getLogger(__name__)
+
+
+class UpdateError(Exception):
+	"""Error raised when an update cannot be checked, downloaded or applied."""
+
+
 # This script is used to update the portable version of the application.
 update_portable_script = r"""@echo off
 REM Check if the portable ZIP file path is provided
@@ -88,10 +95,9 @@ class BaseUpdater(ABC):
 		Returns:
 			The latest version of the application as a string.
 		"""
-		pass
 
 	@property
-	def release_notes(self) -> Optional[str]:
+	def release_notes(self) -> str | None:
 		"""Get the release notes for the latest version of the application. This method should be implemented by the derived class.
 
 		Returns:
@@ -156,7 +162,7 @@ class BaseUpdater(ABC):
 		elif arch == "32bit":
 			return "x86"
 		else:
-			raise Exception("Unknown architecture")
+			raise UpdateError("Unknown architecture")
 
 	@cached_property
 	def is_app_installed(self) -> bool:
@@ -176,7 +182,7 @@ class BaseUpdater(ABC):
 		self,
 		link: str,
 		file_tmp: tempfile.NamedTemporaryFile,
-		grafical_callback: Callable[[int, int], None] = None,
+		grafical_callback: Callable[[int, int], None] | None = None,
 		stop_download: bool = False,
 	) -> bool:
 		"""Download a file from a URL and save it to a temporary file.
@@ -211,7 +217,7 @@ class BaseUpdater(ABC):
 		self,
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
-	) -> Optional[str]:
+	) -> str | None:
 		"""Download the installer for the application. This method should be implemented by the derived class.
 
 		Args:
@@ -221,14 +227,13 @@ class BaseUpdater(ABC):
 		Returns:
 			The path to the downloaded installer file as a string, or None if the download failed.
 		"""
-		pass
 
 	@abstractmethod
 	def download_portable(
 		self,
 		grafical_callback: Callable[[int, int], None],
 		stop_download: bool = False,
-	) -> Optional[str]:
+	) -> str | None:
 		"""Download the portable version of the application. This method should be implemented by the derived class.
 
 		Args:
@@ -238,11 +243,10 @@ class BaseUpdater(ABC):
 		Returns:
 			The path to the downloaded portable file as a string, or None if the download failed.
 		"""
-		pass
 
 	def download(
 		self,
-		grafical_callback: Callable[[int, int], None] = None,
+		grafical_callback: Callable[[int, int], None] | None = None,
 		stop_download: bool = False,
 	) -> bool:
 		"""Download the update for the application.
@@ -313,7 +317,7 @@ class BaseUpdater(ABC):
 		"""
 		if self.is_update_enable:
 			if not getattr(self, "downloaded_file", None):
-				raise Exception("Download the update first")
+				raise UpdateError("Download the update first")
 			if self.is_app_installed:
 				self.update_with_installer()
 			else:
@@ -367,7 +371,7 @@ class NigthlyUpdater(BaseUpdater):
 				unique_version.add(parts[2])
 		log.debug("Versions found: %s", unique_version)
 		if len(unique_version) != 1:
-			raise Exception("No version found or multiple versions found")
+			raise UpdateError("No version found or multiple versions found")
 		return unique_version.pop()
 
 	def get_download_link(self, installer: bool) -> str:
@@ -390,9 +394,9 @@ class NigthlyUpdater(BaseUpdater):
 
 	def download_installer(
 		self,
-		grafical_callback: Callable[[int, int], None] = None,
+		grafical_callback: Callable[[int, int], None] | None = None,
 		stop_download=False,
-	) -> Optional[str]:
+	) -> str | None:
 		"""Download the installer for the application.
 
 		The installer is downloaded from the nightly build link and extracted from the ZIP file.
@@ -469,11 +473,11 @@ class NigthlyUpdater(BaseUpdater):
 			"Extracting installer from artifact zip file: %s", zip_tmp_file.name
 		)
 		with zipfile.ZipFile(zip_tmp_file) as zip_file:
-			setup_file_name = [
+			setup_file_name = next(
 				name
 				for name in zip_file.namelist()
 				if "setup_basiliskLLM" in name
-			][0]
+			)
 			with tempfile.NamedTemporaryFile(
 				prefix="setup_basiliskllm_",
 				suffix=".exe",
@@ -523,7 +527,7 @@ class GithubUpdater(BaseUpdater):
 		return data
 
 	@property
-	def release_notes(self) -> Optional[str]:
+	def release_notes(self) -> str | None:
 		"""Get the release notes for the latest version of the application.
 
 		Extract the release notes from the release data.
@@ -568,9 +572,9 @@ class GithubUpdater(BaseUpdater):
 
 	def download_installer(
 		self,
-		grafical_callback: Callable[[int, int], None] = None,
+		grafical_callback: Callable[[int, int], None] | None = None,
 		stop_download=False,
-	) -> Optional[str]:
+	) -> str | None:
 		"""Download the installer for the application.
 
 		The installer is downloaded from the GitHub release link.
@@ -652,10 +656,10 @@ def get_updater_from_channel(conf: BasiliskConfig) -> BaseUpdater:
 
 def automatic_update_check(
 	conf: BasiliskConfig,
-	notify_update_callback: Callable[[BaseUpdater], None] = None,
+	notify_update_callback: Callable[[BaseUpdater], None] | None = None,
 	stop: bool = False,
 	retries: int = 20,
-) -> Optional[BaseUpdater]:
+) -> BaseUpdater | None:
 	"""Check for updates automatically based on the configuration settings.
 
 	Args:
@@ -673,7 +677,8 @@ def automatic_update_check(
 		return None
 	if (
 		conf.general.last_update_check is not None
-		and conf.general.last_update_check.date() == datetime.now().date()
+		and conf.general.last_update_check.date()
+		== datetime.now().astimezone().date()
 	):
 		log.info("Last update check was today")
 		return None
@@ -681,7 +686,7 @@ def automatic_update_check(
 		log.info("Last update check was not today")
 	try:
 		update_available = updater.is_update_available()
-		conf.general.last_update_check = datetime.now()
+		conf.general.last_update_check = datetime.now().astimezone()
 		conf.save()
 		if notify_update_callback and update_available:
 			log.info("Update available")
@@ -693,8 +698,8 @@ def automatic_update_check(
 	except httpx.HTTPStatusError as e:
 		log.error("Error checking for updates: %s", e)
 		return None
-	except Exception as e:
-		log.error("Error checking for updates: %s", e)
+	except Exception:
+		log.exception("Error checking for updates")
 		if retries > 0 and not stop:
 			retries -= 1
 			log.info("Retrying update check: %s retries left", retries)
@@ -709,10 +714,10 @@ def automatic_update_check(
 
 def automatic_update_download(
 	conf: BasiliskConfig,
-	notify_update_callback: Callable[[BaseUpdater], None] = None,
+	notify_update_callback: Callable[[BaseUpdater], None] | None = None,
 	stop: bool = False,
 	retries: int = 20,
-) -> Optional[BaseUpdater]:
+) -> BaseUpdater | None:
 	"""Download the update automatically based on the configuration settings.
 
 	Args:
@@ -736,8 +741,8 @@ def automatic_update_download(
 			log.info("Update downloaded")
 			notify_update_callback(updater)
 			return updater
-	except Exception as e:
-		log.error("Error downloading update: %s", e, exc_info=True)
+	except Exception:
+		log.exception("Error downloading update")
 		if retries > 0 and not stop:
 			retries -= 1
 			log.info("Retrying update download: %s retries left", retries)

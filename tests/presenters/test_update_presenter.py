@@ -27,7 +27,7 @@ def _make_updater(
 	updater.release_notes = release_notes
 	if downloaded_file is None:
 		del updater.downloaded_file
-		updater.configure_mock(**{"downloaded_file": None})
+		updater.configure_mock(downloaded_file=None)
 	else:
 		updater.downloaded_file = downloaded_file
 	return updater
@@ -290,7 +290,7 @@ class TestDownloadPresenterDoDownload:
 		"""On download exception, wx.CallAfter enqueues show_error."""
 		view = MagicMock()
 		updater = MagicMock()
-		updater.download.side_effect = IOError("connection reset")
+		updater.download.side_effect = OSError("connection reset")
 		presenter = DownloadPresenter(view=view, updater=updater)
 		mock_call_after = mocker.patch("wx.CallAfter")
 

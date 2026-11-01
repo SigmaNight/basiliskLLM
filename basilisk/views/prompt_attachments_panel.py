@@ -8,12 +8,13 @@ where these features are needed, such as conversation tabs and edit dialogs.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import wx
 from upath import UPath
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation import AttachmentFile, ImageFile
 from basilisk.presenters.attachment_panel_presenter import (
 	PromptAttachmentPresenter,
@@ -44,7 +45,7 @@ class PromptAttachmentsPanel(wx.Panel, ErrorDisplayMixin):
 		self,
 		parent: wx.Window,
 		conv_storage_path: UPath,
-		on_submit_callback: Optional[Callable[[wx.CommandEvent], None]] = None,
+		on_submit_callback: Callable[[wx.CommandEvent], None] | None = None,
 	):
 		"""Initialize the prompt and attachments panel.
 
@@ -394,7 +395,7 @@ class PromptAttachmentsPanel(wx.Panel, ErrorDisplayMixin):
 	# ------------------------------------------------------------------
 
 	@property
-	def selected_attachment_file(self) -> Optional[AttachmentFile | ImageFile]:
+	def selected_attachment_file(self) -> AttachmentFile | ImageFile | None:
 		"""Get the currently selected attachment file.
 
 		Returns:

@@ -73,11 +73,8 @@ class TestIpcMigration:
 		# Don't start IPC receiver to force fallback
 
 		# These should not raise exceptions and should fall back to file method
-		try:
-			send_focus_signal()
-			send_open_bskc_file_signal("/test/path/file.bskc")
-		except Exception as e:
-			pytest.fail(f"Fallback method failed: {e}")
+		send_focus_signal()
+		send_open_bskc_file_signal("/test/path/file.bskc")
 
 
 if __name__ == "__main__":

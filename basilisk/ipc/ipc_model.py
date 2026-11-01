@@ -5,7 +5,7 @@ between application instances via IPC mechanisms.
 """
 
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal
 
 from pydantic import BaseModel, Field, FilePath, TypeAdapter
 
@@ -30,4 +30,4 @@ class ShutdownSignal(BaseModel):
 	signal_type: Literal["shutdown"] = "shutdown"
 
 
-IPCModels = TypeAdapter(Union[FocusSignal, OpenBskcSignal, ShutdownSignal])
+IPCModels = TypeAdapter(FocusSignal | OpenBskcSignal | ShutdownSignal)

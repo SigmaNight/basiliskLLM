@@ -5,9 +5,12 @@ The dialog supports both manual name entry and automatic name generation based o
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+import logging
+from collections.abc import Callable
 
 import wx
+
+log = logging.getLogger(__name__)
 
 
 class NameConversationDialog(wx.Dialog):
@@ -23,7 +26,7 @@ class NameConversationDialog(wx.Dialog):
 		self,
 		parent,
 		title: str = "",
-		generate_fn: Optional[Callable[[], Optional[str]]] = None,
+		generate_fn: Callable[[], str | None] | None = None,
 	):
 		"""Create the dialog.
 
@@ -32,9 +35,7 @@ class NameConversationDialog(wx.Dialog):
 			title: The initial title.
 			generate_fn: Optional callable that returns a generated title string.
 		"""
-		super(NameConversationDialog, self).__init__(
-			parent, title=_("Name conversation"), size=(300, 200)
-		)
+		super().__init__(parent, title=_("Name conversation"), size=(300, 200))
 
 		self.generate_fn = generate_fn
 		self.title = title
@@ -96,6 +97,7 @@ class NameConversationDialog(wx.Dialog):
 			if title:
 				self.text_ctrl.SetValue(title.strip().replace("\n", " "))
 		except Exception as e:
+			log.exception("Failed to generate the conversation name")
 			wx.MessageBox(
 				# Translators: An error message when generating a conversation name fails.
 				_("An error occurred while generating the name: %s") % e,

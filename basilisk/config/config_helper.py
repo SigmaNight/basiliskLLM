@@ -12,7 +12,7 @@ from pydantic_settings import (
 	YamlConfigSettingsSource,
 )
 
-import basilisk.global_vars as global_vars
+from basilisk import global_vars
 from basilisk.consts import APP_AUTHOR, APP_NAME
 
 log = logging.getLogger(__name__)

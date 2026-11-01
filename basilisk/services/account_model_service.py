@@ -10,7 +10,7 @@ import logging
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-import basilisk.config as config
+from basilisk import config
 
 if TYPE_CHECKING:
 	from basilisk.provider_engine.base_engine import BaseEngine

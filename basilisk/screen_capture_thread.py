@@ -85,7 +85,9 @@ class ScreenCaptureThread(threading.Thread):
 		Captures the screen according to the specified mode and saves the image
 		to the designated path. Notifies the parent window when complete.
 		"""
-		image_name = self.name or datetime.datetime.now().strftime("%H:%M:%S")
+		image_name = self.name or datetime.datetime.now().astimezone().strftime(
+			"%H:%M:%S"
+		)
 		with self.path.open("wb") as f:
 			image_file = self.capture_method(f, image_name)
 		wx.CallAfter(self.parent.post_screen_capture, image_file)

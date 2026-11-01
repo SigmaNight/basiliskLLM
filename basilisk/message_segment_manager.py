@@ -15,7 +15,6 @@ import logging
 import weakref
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
 
 from basilisk.conversation import MessageBlock
 
@@ -66,13 +65,13 @@ class MessageSegmentManager:
 		manager.next(MessageSegmentType.CONTENT)  # Move to next content section
 	"""
 
-	def __init__(self, positions: Optional[List[MessageSegment]] = None):
+	def __init__(self, positions: list[MessageSegment] | None = None):
 		"""Initialize the message segment manager.
 
 		Args:
 			positions: Optional list of MessageSegment objects to initialize with. Defaults to empty list if not provided.
 		"""
-		self.segments: List[MessageSegment] = (
+		self.segments: list[MessageSegment] = (
 			positions if positions is not None else []
 		)
 		self._current_index: int = -1
@@ -82,7 +81,7 @@ class MessageSegmentManager:
 			self._absolute_position = 0
 
 	def previous(
-		self, message_position_type: Optional[MessageSegmentType] = None
+		self, message_position_type: MessageSegmentType | None = None
 	) -> int:
 		"""Move to the previous segment position.
 
@@ -112,7 +111,7 @@ class MessageSegmentManager:
 		return self.absolute_position
 
 	def next(
-		self, message_position_type: Optional[MessageSegmentType] = None
+		self, message_position_type: MessageSegmentType | None = None
 	) -> int:
 		"""Move to the next segment position.
 

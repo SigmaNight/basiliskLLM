@@ -53,7 +53,7 @@ test = [
 ]
 
 style = [
-    "ruff>=0.15.17,<0.16",
+    "ruff>=0.16.5,<0.17",
     "commitizen>=4.16.3,<4.19",
     "prek>=0.4.11",
 ]
@@ -107,6 +107,7 @@ skip-magic-trailing-comma = true
 [tool.ruff.lint]
 extend-select = ["INT","I","C90","D","T201","T203","G001","G003","G004","Q","PT"]
 extend-ignore = ["D206"]
+logger-objects = ["logHandler.log"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12

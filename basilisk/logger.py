@@ -9,11 +9,10 @@ import logging
 import sys
 from pathlib import Path
 from types import TracebackType
-from typing import Type
 
 from platformdirs import user_log_path
 
-import basilisk.global_vars as global_vars
+from basilisk import global_vars
 from basilisk.consts import APP_AUTHOR, APP_NAME
 
 
@@ -80,7 +79,7 @@ def set_log_level(level: str) -> None:
 
 
 def logging_uncaught_exceptions(
-	exc_type: Type[Exception],
+	exc_type: type[Exception],
 	exc_value: Exception,
 	exc_traceback: TracebackType,
 ) -> None:
@@ -96,7 +95,7 @@ def logging_uncaught_exceptions(
 		exc_traceback: exception traceback is a traceback object
 	"""
 	if isinstance(exc_type, KeyboardInterrupt):
-		logging.info("Keyboard interrupt")
+		logging.getLogger(__name__).info("Keyboard interrupt")
 		return
 	logging.getLogger(exc_type.__module__).error(
 		"Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback)

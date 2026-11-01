@@ -210,7 +210,7 @@ class Conversation(BaseModel):
 			ValueError: If the version is invalid
 		"""
 		if not isinstance(value, dict):
-			raise ValueError("Invalid conversation format")
+			raise ValueError("Invalid conversation format")  # noqa: TRY004 - pydantic validator
 		version = value.get("version", 0)
 		if version < 0 or version > BSKC_VERSION:
 			raise ValueError("Invalid conversation version")

@@ -13,8 +13,7 @@ import threading
 import truststore
 import wx
 
-import basilisk.config as config
-import basilisk.global_vars as global_vars
+from basilisk import config, global_vars
 
 # don't use relative import here, CxFreeze will fail to find the module
 from basilisk.consts import APP_NAME
@@ -181,12 +180,8 @@ class MainApp(wx.App):
 			log.debug("Activating system certificate store")
 			truststore.inject_into_ssl()
 			log.info("System certificate store activated")
-		except Exception as e:
-			log.error(
-				"Failed to activate system certificate store: %s",
-				e,
-				exc_info=True,
-			)
+		except Exception:
+			log.exception("Failed to activate system certificate store")
 			wx.MessageBox(
 				# Translators: Error message
 				_("Failed to activate system certificate store"),
@@ -203,9 +198,7 @@ class MainApp(wx.App):
 			db_path = ConversationDatabase.get_db_path()
 			self.conv_db = ConversationDatabase(db_path)
 		except Exception:
-			log.error(
-				"Failed to initialize conversation database", exc_info=True
-			)
+			log.exception("Failed to initialize conversation database")
 			self.conv_db = None
 
 	def close_conversation_db(self):

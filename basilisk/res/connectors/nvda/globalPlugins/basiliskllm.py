@@ -12,6 +12,7 @@ import controlTypes  # type: ignore
 import globalPluginHandler  # type: ignore
 import gui  # type: ignore
 import ui  # type: ignore
+from logHandler import log  # type: ignore
 from scriptHandler import script  # type: ignore
 
 addonHandler.initTranslation()
@@ -40,7 +41,7 @@ def send_message(message: str) -> bool:
 		if response == "ACK":
 			success = True
 	except Exception:
-		pass
+		log.debug("Failed to send data to BasiliskLLM", exc_info=True)
 	finally:
 		sock.close()
 	return success
@@ -163,8 +164,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 		name = nav.name
 		try:
 			nav.scrollIntoView()
-		except BaseException:
-			pass
+		except Exception:
+			log.debug("Failed to scroll object into view", exc_info=True)
 		left, top, width, height = nav.location
 		right = left + width
 		bottom = top + height
@@ -193,7 +194,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 					ui.message(_("Unable to retrieve base URL"))
 					return
 				src = base_url + src
-			data = "url:%s" % src
+			data = f"url:{src}"
 			if name:
 				data += f"\n{name}"
 			self.send_message(data, _("URL image sent to BasiliskLLM"))

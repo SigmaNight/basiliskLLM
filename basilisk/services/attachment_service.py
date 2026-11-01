@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import wx
 from httpx import HTTPError
@@ -99,7 +100,7 @@ class AttachmentService:
 		except Exception as err:
 			if isinstance(err, (KeyboardInterrupt, SystemExit)):
 				raise
-			log.error(err, exc_info=True)
+			log.exception("Error adding attachment from URL")
 			wx.CallAfter(
 				self._on_download_error,
 				# Translators: Error message shown when an unknown error occurs while downloading an attachment
@@ -229,10 +230,7 @@ class AttachmentService:
 				attachment.resize(
 					conv_storage_path, max_width, max_height, quality
 				)
-			except Exception as e:
-				log.error(
-					"Error resizing image attachment %s: %s",
-					attachment.location,
-					e,
-					exc_info=True,
+			except Exception:
+				log.exception(
+					"Error resizing image attachment %s", attachment.location
 				)

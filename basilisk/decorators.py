@@ -7,8 +7,8 @@ This module provides decorators for:
 
 import logging
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 import wx
 

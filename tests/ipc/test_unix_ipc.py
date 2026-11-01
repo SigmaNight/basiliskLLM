@@ -8,7 +8,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -83,7 +83,7 @@ def test_focus_signal_integration(test_pipe_name, received_signals):
 		time.sleep(0.5)  # Give receiver time to start
 
 		# Send focus signal
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		success = ipc.send_signal(focus_signal.model_dump_json())
 		time.sleep(0.3)  # Give time for signal processing
 
@@ -158,7 +158,7 @@ def test_multiple_signals(test_pipe_name, received_signals):
 		time.sleep(0.5)  # Give receiver time to start
 
 		# Send focus signal
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		success1 = ipc.send_signal(focus_signal.model_dump_json())
 		time.sleep(0.3)
 
@@ -223,7 +223,7 @@ def test_unix_socket_error_handling(test_pipe_name):
 	ipc = BasiliskIpc(test_pipe_name)
 
 	# Test sending signal without receiver
-	focus_signal = FocusSignal(timestamp=datetime.now())
+	focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 	result = ipc.send_signal(focus_signal.model_dump_json())
 	# Should return False when no receiver is running
 	assert result is False
@@ -281,7 +281,7 @@ def test_concurrent_senders(test_pipe_name, received_signals):
 		time.sleep(0.5)
 
 		# Send multiple signals quickly
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		signal_data = focus_signal.model_dump_json()
 
 		results = []

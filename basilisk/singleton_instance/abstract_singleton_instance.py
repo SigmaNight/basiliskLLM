@@ -21,12 +21,10 @@ class AbstractSingletonInstance(ABC):
 		Returns:
 			True if the lock was acquired, False otherwise.
 		"""
-		pass
 
 	@abstractmethod
 	def release(self):
 		"""Release the lock."""
-		pass
 
 	def register_release_on_exit(self):
 		"""Register the release method to be called on program exit."""
@@ -39,7 +37,6 @@ class AbstractSingletonInstance(ABC):
 		Returns:
 			The PID of the existing instance, or None if no instance is running.
 		"""
-		pass
 
 	def is_running(self) -> bool:
 		"""Check if another instance of the application is running.

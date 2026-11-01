@@ -7,9 +7,10 @@ without any wx dependency.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation import (
 	PROMPT_TITLE,
 	Conversation,
@@ -47,7 +48,7 @@ class ConversationService:
 				singleton (deferred to avoid import-time wx dependency).
 		"""
 		self._get_conv_db = conv_db_getter
-		self.db_conv_id: Optional[int] = None
+		self.db_conv_id: int | None = None
 		self.private: bool = False
 
 	def auto_save_to_db(
@@ -77,11 +78,9 @@ class ConversationService:
 					self.db_conv_id, block_index, new_block, system_msg
 				)
 		except Exception:
-			log.error(
-				"Failed to auto-save conversation to database", exc_info=True
-			)
+			log.exception("Failed to auto-save conversation to database")
 
-	def update_db_title(self, title: Optional[str]) -> None:
+	def update_db_title(self, title: str | None) -> None:
 		"""Update the conversation title in the database.
 
 		Args:
@@ -94,9 +93,7 @@ class ConversationService:
 				self.db_conv_id, title
 			)
 		except Exception:
-			log.error(
-				"Failed to update conversation title in database", exc_info=True
-			)
+			log.exception("Failed to update conversation title in database")
 
 	def should_auto_save_draft(self) -> bool:
 		"""Return True if auto-save draft is active for this conversation."""
@@ -128,9 +125,7 @@ class ConversationService:
 				self.db_conv_id = None
 				should_stop_timer = True
 			except Exception:
-				log.error(
-					"Failed to delete conversation from DB", exc_info=True
-				)
+				log.exception("Failed to delete conversation from DB")
 				return False, False
 		self.private = private
 		return True, should_stop_timer
@@ -139,8 +134,8 @@ class ConversationService:
 		self,
 		conversation: Conversation,
 		file_path: str,
-		draft_block: Optional[MessageBlock] = None,
-	) -> tuple[bool, Optional[Exception]]:
+		draft_block: MessageBlock | None = None,
+	) -> tuple[bool, Exception | None]:
 		"""Save the conversation to a file.
 
 		If a draft block is provided, it is temporarily appended before
@@ -160,7 +155,7 @@ class ConversationService:
 		try:
 			conversation.save(file_path)
 			return True, None
-		except Exception as e:
+		except Exception as e:  # noqa: BLE001 - returned to the caller
 			return False, e
 		finally:
 			if draft_block is not None:
@@ -169,8 +164,8 @@ class ConversationService:
 	def save_draft_to_db(
 		self,
 		conversation: Conversation,
-		draft_block: Optional[MessageBlock],
-		system_msg: Optional[SystemMessage],
+		draft_block: MessageBlock | None,
+		system_msg: SystemMessage | None,
 	) -> None:
 		"""Save (or delete) the current draft in the database.
 
@@ -187,7 +182,7 @@ class ConversationService:
 					self.db_conv_id, len(conversation.messages)
 				)
 			except Exception:
-				log.error("Failed to delete draft", exc_info=True)
+				log.exception("Failed to delete draft")
 			return
 		try:
 			self._get_conv_db().save_draft_block(
@@ -197,7 +192,7 @@ class ConversationService:
 				system_msg,
 			)
 		except Exception:
-			log.error("Failed to save draft", exc_info=True)
+			log.exception("Failed to save draft")
 
 	def generate_title(
 		self,
@@ -209,7 +204,7 @@ class ConversationService:
 		top_p: float,
 		max_tokens: int,
 		stream: bool = True,
-	) -> tuple[Optional[str], Optional[Exception]]:
+	) -> tuple[str | None, Exception | None]:
 		"""Generate a conversation title using the AI model.
 
 		Streaming is used by default; some providers (e.g. Anthropic) require
@@ -261,7 +256,7 @@ class ConversationService:
 			)
 			return new_block.response.content, None
 		except Exception as e:
-			log.error("Title generation failed", exc_info=True)
+			log.exception("Title generation failed")
 			return None, e
 		finally:
 			stop_sound()

@@ -7,8 +7,9 @@ implementing capabilities for text and image handling using Google's generative 
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from functools import cached_property
-from typing import Any, Iterator
+from typing import Any, ClassVar
 
 from google import genai
 from google.genai.types import (
@@ -45,7 +46,7 @@ class GeminiEngine(BaseEngine):
 		capabilities: Set of supported capabilities including text and image processing.
 	"""
 
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.AUDIO,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.TEXT,
@@ -54,7 +55,7 @@ class GeminiEngine(BaseEngine):
 		ProviderCapability.VIDEO,
 	}
 
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"application/pdf",
 		"application/javascript",
 		"audio/wav",

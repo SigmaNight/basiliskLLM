@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import multiprocessing
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
 	from multiprocessing import Queue
@@ -56,11 +57,11 @@ def run_task_worker(
 		# Return result if not cancelled
 		if not cancel_flag.value:
 			result_queue.put(("result", result))
-	except Exception as e:
+	except Exception as e:  # noqa: BLE001 - forwarded to the parent process
 		import traceback
 
 		error_trace = traceback.format_exc()
-		result_queue.put(("error", f"{str(e)}\n{error_trace}"))
+		result_queue.put(("error", f"{e!s}\n{error_trace}"))
 
 
 def start_worker_process(

@@ -8,7 +8,7 @@ Provides:
 from __future__ import annotations
 
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 import wx
 
@@ -38,7 +38,7 @@ class ErrorDisplayMixin:
 	the enhanced dialog (e.g. ``OCRHandler`` does this).
 	"""
 
-	def show_error(self, message: str, title: str = None) -> None:
+	def show_error(self, message: str, title: str | None = None) -> None:
 		"""Display a simple error dialog (wx.MessageBox).
 
 		Args:
@@ -51,7 +51,10 @@ class ErrorDisplayMixin:
 		wx.MessageBox(message, title, wx.OK | wx.ICON_ERROR)
 
 	def show_enhanced_error(
-		self, message: str, title: str = None, is_completion_error: bool = False
+		self,
+		message: str,
+		title: str | None = None,
+		is_completion_error: bool = False,
 	) -> None:
 		"""Display the enhanced error dialog (with URL detection).
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.config import (
 	AutomaticUpdateModeEnum,
 	LogLevelEnum,

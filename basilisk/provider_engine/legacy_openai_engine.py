@@ -7,8 +7,9 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar, Generator, Union
+from typing import TYPE_CHECKING, ClassVar
 
 from openai import OpenAI
 from openai.types.chat import (
@@ -53,13 +54,13 @@ class LegacyOpenAIEngine(BaseEngine):
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
 		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 	)
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
 		ProviderCapability.STT,
 		ProviderCapability.TTS,
 	}
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"image/gif",
 		"image/jpeg",
 		"image/png",
@@ -81,7 +82,6 @@ class LegacyOpenAIEngine(BaseEngine):
 		Returns:
 			Configured OpenAI client instance.
 		"""
-		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
 			if self.account.active_organization_key
@@ -151,7 +151,7 @@ class LegacyOpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+	) -> ChatCompletion | Generator[ChatCompletionChunk]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:
@@ -190,7 +190,7 @@ class LegacyOpenAIEngine(BaseEngine):
 		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self, stream: Generator[ChatCompletionChunk]
 	):
 		"""Processes a streaming completion response.
 

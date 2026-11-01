@@ -89,7 +89,7 @@ class TestCopyToClipboard:
 
 		mock_view.bell.assert_called_once()
 		mock_view.set_copy_state.assert_called_once()
-		label, enabled = mock_view.set_copy_state.call_args[0]
+		_label, enabled = mock_view.set_copy_state.call_args[0]
 		assert enabled is False
 
 	def test_setdata_failure_raises_and_updates_view(
@@ -112,7 +112,7 @@ class TestCopyToClipboard:
 
 		mock_view.bell.assert_called_once()
 		mock_view.set_copy_state.assert_called_once()
-		label, enabled = mock_view.set_copy_state.call_args[0]
+		_label, enabled = mock_view.set_copy_state.call_args[0]
 		assert enabled is False
 
 	def test_clipboard_closes_on_success(self, presenter, mock_view, mocker):

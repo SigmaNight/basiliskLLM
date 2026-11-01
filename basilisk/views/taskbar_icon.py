@@ -19,7 +19,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 		Args:
 			frame: The main frame of the application.
 		"""
-		super(TaskBarIcon, self).__init__()
+		super().__init__()
 		log.debug("Initializing taskbar icon")
 		self.frame = frame
 		# TODO: Set a proper icon

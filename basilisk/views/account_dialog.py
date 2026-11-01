@@ -137,14 +137,13 @@ class EditAccountOrganizationDialog(wx.Dialog):
 
 	def update_data(self):
 		"""Update the data in the dialog."""
-		pass
 
 	def on_ok(self, event: wx.Event | None):
 		"""Handle the OK button click event.
 
 		Validate the organization name, key storage method, and key. If the organization is valid, set the organization data and close the dialog.
 		"""
-		result, error = self.presenter.validate_and_build()
+		_result, error = self.presenter.validate_and_build()
 		if error:
 			msg, field_name = error
 			wx.MessageBox(msg, _("Error"), wx.OK | wx.ICON_ERROR)

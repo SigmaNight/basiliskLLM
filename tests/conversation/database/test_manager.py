@@ -1,6 +1,6 @@
 """Tests for the ConversationDatabase manager CRUD operations."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
@@ -209,19 +209,18 @@ class TestListConversations:
 		"""Test that results are ordered by updated_at DESC."""
 		from basilisk.conversation.database.models import DBConversation
 
-		base_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
+		base_time = datetime(2024, 1, 1, tzinfo=UTC)
 		for i in range(3):
 			conv = Conversation()
 			conv.title = f"Conv {i}"
 			conv_id = db_manager.save_conversation(conv)
 			# Assign deterministic updated_at so ordering is predictable
-			with db_manager._get_session() as session:
-				with session.begin():
-					session.execute(
-						DBConversation.__table__.update()
-						.where(DBConversation.id == conv_id)
-						.values(updated_at=base_time + timedelta(seconds=i))
-					)
+			with db_manager._get_session() as session, session.begin():
+				session.execute(
+					DBConversation.__table__.update()
+					.where(DBConversation.id == conv_id)
+					.values(updated_at=base_time + timedelta(seconds=i))
+				)
 
 		result = db_manager.list_conversations()
 		assert len(result) == 3

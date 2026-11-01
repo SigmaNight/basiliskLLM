@@ -7,7 +7,7 @@ logic lives in UpdatePresenter / DownloadPresenter.
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import wx
 
@@ -64,9 +64,9 @@ class DownloadUpdateDialog(wx.Dialog, ErrorDisplayMixin):
 			**kwargs: Additional keyword arguments for wx.Dialog.
 		"""
 		wx.Dialog.__init__(
-			self, parent, title=title, size=size, *args, **kwargs
+			self, parent, *args, title=title, size=size, **kwargs
 		)
-		self.presenter: Optional[DownloadPresenter] = None
+		self.presenter: DownloadPresenter | None = None
 
 		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -208,9 +208,9 @@ class UpdateDialog(wx.Dialog, ErrorDisplayMixin):
 			**kwargs: Additional keyword arguments for wx.Dialog.
 		"""
 		wx.Dialog.__init__(
-			self, parent, title=title, size=size, *args, **kwargs
+			self, parent, *args, title=title, size=size, **kwargs
 		)
-		self.presenter: Optional[UpdatePresenter] = None
+		self.presenter: UpdatePresenter | None = None
 
 		self.panel = wx.Panel(self)
 		self.sizer = wx.BoxSizer(wx.VERTICAL)

@@ -7,7 +7,8 @@ into a wx-free presenter.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
 	from basilisk.conversation.database import ConversationDatabase
@@ -89,5 +90,5 @@ class ConversationHistoryPresenter:
 			self._get_conv_db().delete_conversation(conv_id)
 			return True
 		except Exception:
-			log.error("Failed to delete conversation", exc_info=True)
+			log.exception("Failed to delete conversation")
 			return False

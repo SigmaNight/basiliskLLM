@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import wx
 from more_itertools import locate
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation.conversation_model import Conversation, SystemMessage
 from basilisk.presenters.edit_block_presenter import EditBlockPresenter
 

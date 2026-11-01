@@ -204,15 +204,14 @@ class EditAccountPresenter:
 		if (
 			provider.allow_custom_base_url
 			and self.view.custom_base_url_text_ctrl.GetValue()
+		) and not re.match(
+			CUSTOM_BASE_URL_PATTERN,
+			self.view.custom_base_url_text_ctrl.GetValue(),
 		):
-			if not re.match(
-				CUSTOM_BASE_URL_PATTERN,
-				self.view.custom_base_url_text_ctrl.GetValue(),
-			):
-				return (
-					_("Please enter a valid custom base URL"),
-					"custom_base_url_text_ctrl",
-				)
+			return (
+				_("Please enter a valid custom base URL"),
+				"custom_base_url_text_ctrl",
+			)
 
 		return None
 
