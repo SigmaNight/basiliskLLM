@@ -11,7 +11,8 @@ import logging
 import re
 import threading
 import time
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import wx
 
@@ -45,17 +46,17 @@ class CompletionHandler:
 
 	def __init__(
 		self,
-		on_completion_start: Optional[Callable[[], None]] = None,
-		on_completion_end: Optional[Callable[[bool], None]] = None,
-		on_stream_chunk: Optional[Callable[[str], None]] = None,
-		on_error: Optional[Callable[[str], None]] = None,
-		on_stream_start: Optional[
-			Callable[[MessageBlock, Optional[SystemMessage]], None]
-		] = None,
-		on_stream_finish: Optional[Callable[[MessageBlock], None]] = None,
-		on_non_stream_finish: Optional[
-			Callable[[MessageBlock, Optional[SystemMessage]], None]
-		] = None,
+		on_completion_start: Callable[[], None] | None = None,
+		on_completion_end: Callable[[bool], None] | None = None,
+		on_stream_chunk: Callable[[str], None] | None = None,
+		on_error: Callable[[str], None] | None = None,
+		on_stream_start: Callable[[MessageBlock, SystemMessage | None], None]
+		| None = None,
+		on_stream_finish: Callable[[MessageBlock], None] | None = None,
+		on_non_stream_finish: Callable[
+			[MessageBlock, SystemMessage | None], None
+		]
+		| None = None,
 	):
 		"""Initialize the completion handler.
 
@@ -75,7 +76,7 @@ class CompletionHandler:
 		self.on_stream_start = on_stream_start
 		self.on_stream_finish = on_stream_finish
 		self.on_non_stream_finish = on_non_stream_finish
-		self.task: Optional[threading.Thread] = None
+		self.task: threading.Thread | None = None
 		self._stop_completion = False
 		self.last_time = 0
 		self.stream_buffer: str = ""
@@ -84,7 +85,7 @@ class CompletionHandler:
 	def start_completion(
 		self,
 		engine: BaseEngine,
-		system_message: Optional[SystemMessage],
+		system_message: SystemMessage | None,
 		conversation: Conversation,
 		new_block: MessageBlock,
 		stream: bool = False,
@@ -150,7 +151,7 @@ class CompletionHandler:
 			play_sound("progress", loop=True)
 			response = engine.completion(**kwargs)
 		except Exception as e:
-			logger.error("Error during completion", exc_info=True)
+			logger.exception("Error during completion")
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
@@ -164,7 +165,7 @@ class CompletionHandler:
 		try:
 			success = handle_func(**kwargs)
 		except Exception as e:
-			logger.error("Error handling completion response", exc_info=True)
+			logger.exception("Error handling completion response")
 			wx.CallAfter(self._handle_error, str(e))
 			return
 
@@ -202,7 +203,7 @@ class CompletionHandler:
 		engine: BaseEngine,
 		response: Any,
 		new_block: MessageBlock,
-		system_message: Optional[SystemMessage],
+		system_message: SystemMessage | None,
 		**kwargs: dict[str, Any],
 	) -> bool:
 		"""Handle streaming completion response.
@@ -240,7 +241,7 @@ class CompletionHandler:
 		engine: BaseEngine,
 		response: Any,
 		new_block: MessageBlock,
-		system_message: Optional[SystemMessage],
+		system_message: SystemMessage | None,
 		**kwargs: dict[str, Any],
 	) -> bool:
 		"""Handle non-streaming completion response.

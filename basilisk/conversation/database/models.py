@@ -1,6 +1,6 @@
 """SQLAlchemy models for conversation persistence."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import ForeignKey, Index, LargeBinary, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -8,8 +8,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
 	"""Base class for all SQLAlchemy models."""
-
-	pass
 
 
 class DBConversation(Base):
@@ -20,21 +18,20 @@ class DBConversation(Base):
 	id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 	title: Mapped[str | None] = mapped_column(default=None)
 	created_at: Mapped[datetime] = mapped_column(
-		default=lambda: datetime.now(timezone.utc)
+		default=lambda: datetime.now(UTC)
 	)
 	updated_at: Mapped[datetime] = mapped_column(
-		default=lambda: datetime.now(timezone.utc),
-		onupdate=lambda: datetime.now(timezone.utc),
+		default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
 	)
 
-	system_prompt_links: Mapped[list["DBConversationSystemPrompt"]] = (
+	system_prompt_links: Mapped[list[DBConversationSystemPrompt]] = (
 		relationship(
 			back_populates="conversation",
 			cascade="all, delete-orphan",
 			order_by="DBConversationSystemPrompt.position",
 		)
 	)
-	blocks: Mapped[list["DBMessageBlock"]] = relationship(
+	blocks: Mapped[list[DBMessageBlock]] = relationship(
 		back_populates="conversation",
 		cascade="all, delete-orphan",
 		order_by="DBMessageBlock.position",
@@ -67,10 +64,10 @@ class DBConversationSystemPrompt(Base):
 	)
 	position: Mapped[int]
 
-	conversation: Mapped["DBConversation"] = relationship(
+	conversation: Mapped[DBConversation] = relationship(
 		back_populates="system_prompt_links"
 	)
-	system_prompt: Mapped["DBSystemPrompt"] = relationship()
+	system_prompt: Mapped[DBSystemPrompt] = relationship()
 
 	__table_args__ = (
 		UniqueConstraint("conversation_id", "position"),
@@ -99,20 +96,17 @@ class DBMessageBlock(Base):
 	top_p: Mapped[float] = mapped_column(default=1.0)
 	stream: Mapped[bool] = mapped_column(default=False)
 	created_at: Mapped[datetime] = mapped_column(
-		default=lambda: datetime.now(timezone.utc)
+		default=lambda: datetime.now(UTC)
 	)
 	updated_at: Mapped[datetime] = mapped_column(
-		default=lambda: datetime.now(timezone.utc),
-		onupdate=lambda: datetime.now(timezone.utc),
+		default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
 	)
 
-	conversation: Mapped["DBConversation"] = relationship(
-		back_populates="blocks"
-	)
-	messages: Mapped[list["DBMessage"]] = relationship(
+	conversation: Mapped[DBConversation] = relationship(back_populates="blocks")
+	messages: Mapped[list[DBMessage]] = relationship(
 		back_populates="message_block", cascade="all, delete-orphan"
 	)
-	system_prompt_link: Mapped["DBConversationSystemPrompt | None"] = (
+	system_prompt_link: Mapped[DBConversationSystemPrompt | None] = (
 		relationship()
 	)
 
@@ -134,15 +128,15 @@ class DBMessage(Base):
 	role: Mapped[str]
 	content: Mapped[str]
 
-	message_block: Mapped["DBMessageBlock"] = relationship(
+	message_block: Mapped[DBMessageBlock] = relationship(
 		back_populates="messages"
 	)
-	attachment_links: Mapped[list["DBMessageAttachment"]] = relationship(
+	attachment_links: Mapped[list[DBMessageAttachment]] = relationship(
 		back_populates="message",
 		cascade="all, delete-orphan",
 		order_by="DBMessageAttachment.position",
 	)
-	citations: Mapped[list["DBCitation"]] = relationship(
+	citations: Mapped[list[DBCitation]] = relationship(
 		back_populates="message",
 		cascade="all, delete-orphan",
 		order_by="DBCitation.position",
@@ -185,10 +179,8 @@ class DBMessageAttachment(Base):
 	position: Mapped[int]
 	description: Mapped[str | None] = mapped_column(default=None)
 
-	message: Mapped["DBMessage"] = relationship(
-		back_populates="attachment_links"
-	)
-	attachment: Mapped["DBAttachment"] = relationship()
+	message: Mapped[DBMessage] = relationship(back_populates="attachment_links")
+	attachment: Mapped[DBAttachment] = relationship()
 
 	__table_args__ = (UniqueConstraint("message_id", "position"),)
 
@@ -209,4 +201,4 @@ class DBCitation(Base):
 	start_index: Mapped[int | None] = mapped_column(default=None)
 	end_index: Mapped[int | None] = mapped_column(default=None)
 
-	message: Mapped["DBMessage"] = relationship(back_populates="citations")
+	message: Mapped[DBMessage] = relationship(back_populates="citations")

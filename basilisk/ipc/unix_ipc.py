@@ -63,16 +63,16 @@ class UnixIpc(AbstractIpc):
 						daemon=True,
 					).start()
 
-				except socket.timeout:
+				except TimeoutError:
 					# Timeout is normal, just continue the loop
 					continue
-				except Exception as e:
+				except Exception:
 					if self.running:
-						logger.error("Error accepting connection: %s", e)
+						logger.exception("Error accepting connection")
 					break
 
-		except Exception as e:
-			logger.error("Error in Unix socket server: %s", e)
+		except Exception:
+			logger.exception("Error in Unix socket server")
 		finally:
 			if self.server_socket:
 				self.server_socket.close()
@@ -90,8 +90,8 @@ class UnixIpc(AbstractIpc):
 				message = data.decode("utf-8")
 				self._process_message(message)
 
-		except Exception as e:
-			logger.error("Error handling client: %s", e)
+		except Exception:
+			logger.exception("Error handling client")
 		finally:
 			client_socket.close()
 
@@ -116,7 +116,7 @@ class UnixIpc(AbstractIpc):
 			logger.debug("Signal sent successfully: %s", data)
 			return True
 
-		except (socket.error, ConnectionRefusedError, FileNotFoundError) as e:
+		except (OSError, ConnectionRefusedError, FileNotFoundError) as e:
 			logger.error("Error sending signal %s: %s", data, e)
 			return False
 
@@ -126,7 +126,7 @@ class UnixIpc(AbstractIpc):
 			try:
 				self.server_socket.close()
 			except Exception:
-				pass
+				logger.debug("Failed to close IPC socket", exc_info=True)
 			self.server_socket = None
 
 		# Clean up socket file
@@ -134,4 +134,4 @@ class UnixIpc(AbstractIpc):
 			try:
 				os.unlink(self.socket_path)
 			except Exception:
-				pass
+				logger.debug("Failed to remove IPC socket file", exc_info=True)

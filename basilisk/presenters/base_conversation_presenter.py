@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.model_catalog.sampling import sampling_visibility_for_main_ui
 from basilisk.provider_ai_model import ProviderAIModel
 from basilisk.services.account_model_service import AccountModelService

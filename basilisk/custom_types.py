@@ -1,6 +1,7 @@
 """Custom pydantic types for basiliskLLM application."""
 
-from typing import Annotated, Any, Sequence, get_args
+from collections.abc import Sequence
+from typing import Annotated, Any, get_args
 
 from ordered_set import OrderedSet
 from pydantic import GetCoreSchemaHandler, PlainValidator

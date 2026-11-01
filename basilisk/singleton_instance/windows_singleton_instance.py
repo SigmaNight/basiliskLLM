@@ -5,6 +5,8 @@ multiple instances of the application from running simultaneously:
 - Windows: Uses pywin32 named mutex
 """
 
+import logging
+
 import win32api
 import win32event
 import winerror
@@ -12,6 +14,8 @@ import winerror
 from basilisk.consts import APP_NAME
 
 from .abstract_singleton_instance import AbstractSingletonInstance
+
+log = logging.getLogger(__name__)
 
 
 class WindowsSingletonInstance(AbstractSingletonInstance):
@@ -54,6 +58,7 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 			self.register_release_on_exit()
 			return True
 		except Exception:
+			log.debug("Failed to acquire the singleton mutex", exc_info=True)
 			if self.mutex_handle:
 				win32api.CloseHandle(self.mutex_handle)
 				self.mutex_handle = None
@@ -66,7 +71,9 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 				win32event.ReleaseMutex(self.mutex_handle)
 				win32api.CloseHandle(self.mutex_handle)
 			except Exception:
-				pass
+				log.debug(
+					"Failed to release the singleton mutex", exc_info=True
+				)
 			finally:
 				self.mutex_handle = None
 
@@ -93,4 +100,5 @@ class WindowsSingletonInstance(AbstractSingletonInstance):
 				win32api.CloseHandle(test_mutex)
 				return None
 		except Exception:
+			log.debug("Failed to check the singleton mutex", exc_info=True)
 			return None

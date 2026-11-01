@@ -5,7 +5,8 @@ implementing capabilities for text and image generation across multiple AI model
 """
 
 import logging
-from typing import Generator, Union
+from collections.abc import Generator
+from typing import ClassVar
 
 import httpx
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
@@ -31,7 +32,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		capabilities: Set of supported capabilities including text and image generation.
 	"""
 
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 		ProviderCapability.WEB_SEARCH,
@@ -69,7 +70,7 @@ class OpenRouterEngine(LegacyOpenAIEngine):
 		conversation: Conversation,
 		system_message: Message | None,
 		**kwargs,
-	) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
+	) -> ChatCompletion | Generator[ChatCompletionChunk]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:

@@ -305,7 +305,7 @@ class TestConversationProfile:
 
 		# Different profiles should not be equal
 		assert profile1 != profile2
-		assert not (profile1 == profile2)
+		assert profile1 != profile2
 
 		# Same ID should be equal even if other fields differ
 		assert profile1 == profile3

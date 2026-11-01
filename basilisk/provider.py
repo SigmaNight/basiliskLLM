@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import enum
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Type
+from typing import TYPE_CHECKING, Any
 
 from .decorators import measure_time
 
@@ -45,16 +46,16 @@ class Provider:
 	name: str
 	api_type: ProviderAPIType
 	engine_cls_path: str
-	base_url: Optional[str] = field(default=None)
+	base_url: str | None = field(default=None)
 	organization_mode_available: bool = field(default=False)
 	require_api_key: bool = field(default=True)
 	allow_custom_base_url: bool = field(default=False)
-	env_var_name_api_key: Optional[str] = field(default=None)
-	env_var_name_organization_key: Optional[str] = field(default=None)
+	env_var_name_api_key: str | None = field(default=None)
+	env_var_name_organization_key: str | None = field(default=None)
 
 	@cached_property
 	@measure_time
-	def engine_cls(self) -> Type[BaseEngine]:
+	def engine_cls(self) -> type[BaseEngine]:
 		"""Get the provider's engine class.
 
 		Returns:
@@ -67,10 +68,10 @@ class Provider:
 			return cls
 		except ImportError as e:
 			log.error("Error importing engine class: %s", e)
-			raise e
+			raise
 		except AttributeError as e:
 			log.error("Error getting engine class: %s", e)
-			raise e
+			raise
 
 
 providers = [

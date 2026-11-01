@@ -6,7 +6,7 @@ This module provides the abstract interface for IPC implementations across diffe
 import abc
 import logging
 import threading
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from pydantic import ValidationError
 
@@ -34,7 +34,7 @@ class AbstractIpc(abc.ABC):
 		self.running = False
 		self.thread = None
 
-	def start_receiver(self, callbacks: Dict[str, Callable]) -> bool:
+	def start_receiver(self, callbacks: dict[str, Callable]) -> bool:
 		"""Start the IPC receiver to listen for incoming signals.
 
 		Args:
@@ -55,8 +55,8 @@ class AbstractIpc(abc.ABC):
 			logger.debug("IPC receiver started")
 			return True
 
-		except Exception as e:
-			logger.error("Failed to start IPC receiver: %s", e)
+		except Exception:
+			logger.exception("Failed to start IPC receiver")
 			return False
 
 	def stop_receiver(self) -> None:
@@ -70,7 +70,7 @@ class AbstractIpc(abc.ABC):
 		try:
 			self.send_signal(ShutdownSignal().model_dump_json())
 		except Exception:
-			pass
+			logger.debug("Failed to send IPC shutdown signal", exc_info=True)
 
 		# Wait for thread to finish
 		if self.thread and self.thread.is_alive():
@@ -90,8 +90,8 @@ class AbstractIpc(abc.ABC):
 		return self.running
 
 	def _map_callbacks(
-		self, callbacks: Dict[str, Callable]
-	) -> Dict[str, Callable]:
+		self, callbacks: dict[str, Callable]
+	) -> dict[str, Callable]:
 		"""Map callback names to expected signal handler names.
 
 		Args:
@@ -133,13 +133,12 @@ class AbstractIpc(abc.ABC):
 				logger.warning("Unknown signal type: %s", ipc_model.signal_type)
 		except ValidationError as ve:
 			logger.error("Invalid JSON message received: %s", ve)
-		except Exception as e:
-			logger.error("Error processing message: %s", e)
+		except Exception:
+			logger.exception("Error processing message")
 
 	@abc.abstractmethod
 	def _run_server(self):
 		"""Run the platform-specific server loop."""
-		pass
 
 	@abc.abstractmethod
 	def send_signal(self, data: str) -> bool:
@@ -151,9 +150,7 @@ class AbstractIpc(abc.ABC):
 		Returns:
 			True if the signal was sent successfully, False otherwise
 		"""
-		pass
 
 	@abc.abstractmethod
 	def _cleanup_resources(self):
 		"""Clean up platform-specific resources."""
-		pass

@@ -49,9 +49,11 @@ def save_attachments(
 		if attachment.type == AttachmentFileTypes.URL:
 			continue
 		new_location = f"{attachment_path}/{attachment.location.name}"
-		with attachment.location.open(mode="rb") as attachment_file:
-			with fs.open(new_location, mode="wb") as new_file:
-				shutil.copyfileobj(attachment_file, new_file)
+		with (
+			attachment.location.open(mode="rb") as attachment_file,
+			fs.open(new_location, mode="wb") as new_file,
+		):
+			shutil.copyfileobj(attachment_file, new_file)
 		attachment_mapping[attachment.location] = UPath(f"zip://{new_location}")
 	return attachment_mapping
 
@@ -96,9 +98,11 @@ def restore_attachments(
 		if attachment.type == AttachmentFileTypes.URL:
 			continue
 		new_path = storage_path / attachment.location.name
-		with attachment.location.open(mode="rb") as attachment_file:
-			with new_path.open(mode="wb") as new_file:
-				shutil.copyfileobj(attachment_file, new_file)
+		with (
+			attachment.location.open(mode="rb") as attachment_file,
+			new_path.open(mode="wb") as new_file,
+		):
+			shutil.copyfileobj(attachment_file, new_file)
 		attachment.location = new_path
 		if not isinstance(attachment, ImageFile):
 			continue

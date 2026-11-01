@@ -243,7 +243,7 @@ class ConversationHistoryDialog(wx.Dialog):
 			)
 			total = self.presenter.get_conversation_count(search)
 		except Exception:
-			log.error("Failed to refresh conversation list", exc_info=True)
+			log.exception("Failed to refresh conversation list")
 			wx.MessageBox(
 				# Translators: Error shown when the conversation history cannot be loaded from the database
 				_("Failed to load conversation history from the database."),

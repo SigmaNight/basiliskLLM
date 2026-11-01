@@ -8,7 +8,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -54,7 +54,7 @@ def test_focus_signal_integration(test_pipe_name, received_signals):
 		time.sleep(0.5)  # Give receiver time to start
 
 		# Send signal using the low-level interface
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		success = ipc.send_signal(focus_signal.model_dump_json())
 		assert success
 		time.sleep(0.5)  # Give signal time to be processed
@@ -139,7 +139,7 @@ def test_multiple_signals(test_pipe_name, received_signals):
 		time.sleep(0.5)  # Give receiver time to start
 
 		# Send focus signal
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		success1 = ipc.send_signal(focus_signal.model_dump_json())
 		time.sleep(0.3)
 

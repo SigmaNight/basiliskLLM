@@ -75,7 +75,7 @@ class SoundManager:
 		try:
 			data, samplerate = self._load_wav(file_path)
 		except Exception as exc:
-			raise IOError(f"Failed to load sound: {file_path}") from exc
+			raise OSError(f"Failed to load sound: {file_path}") from exc
 		self.sound_cache[file_path] = (data, samplerate)
 		return data, samplerate
 
@@ -193,8 +193,8 @@ class SoundManager:
 			with stream:
 				while stream.active and not self._stop_event.is_set():
 					time.sleep(0.05)
-		except Exception as exc:
-			log.error("Failed to play sound: %s", exc)
+		except Exception:
+			log.exception("Failed to play sound")
 		finally:
 			self._current_data = None
 			self._current_rate = None
@@ -216,7 +216,7 @@ class SoundManager:
 
 			try:
 				data, samplerate = self._ensure_sound_loaded(file_path)
-			except IOError as exc:
+			except OSError as exc:
 				log.error("%s", exc)
 				return
 
@@ -236,7 +236,7 @@ class SoundManager:
 		try:
 			sd.stop()
 		except Exception:
-			pass
+			log.debug("Failed to stop sound playback", exc_info=True)
 		if self.loop_thread is not None:
 			self.loop_thread.join(timeout=1)
 			self.loop_thread = None

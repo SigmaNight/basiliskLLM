@@ -285,8 +285,10 @@ def _details_provider_lines(
 	catalog: str | None = None
 	if model.created:
 		try:
-			catalog = datetime.fromtimestamp(model.created).strftime(
-				"%Y-%m-%d %H:%M:%S"
+			catalog = (
+				datetime.fromtimestamp(model.created)
+				.astimezone()
+				.strftime("%Y-%m-%d %H:%M:%S")
 			)
 		except OSError, OverflowError, ValueError:
 			catalog = None

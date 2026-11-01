@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import wx
 from more_itertools import first, locate
 from upath import UPath
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation import Conversation, MessageBlock, SystemMessage
 from basilisk.presenters.conversation_presenter import ConversationPresenter
 from basilisk.provider_capability import ProviderCapability
@@ -72,16 +72,16 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self.presenter.conversation = value
 
 	@property
-	def bskc_path(self) -> Optional[str]:
+	def bskc_path(self) -> str | None:
 		"""Path to the .bskc file, owned by the presenter."""
 		return self.presenter.bskc_path
 
 	@bskc_path.setter
-	def bskc_path(self, value: Optional[str]):
+	def bskc_path(self, value: str | None):
 		self.presenter.bskc_path = value
 
 	@property
-	def recording_thread(self) -> Optional[RecordingThread]:
+	def recording_thread(self) -> RecordingThread | None:
 		"""Active recording thread, owned by the presenter."""
 		return self.presenter.recording_thread
 
@@ -95,12 +95,12 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		return self.presenter.completion_handler
 
 	@property
-	def db_conv_id(self) -> Optional[int]:
+	def db_conv_id(self) -> int | None:
 		"""Database conversation ID, proxied from service."""
 		return self.service.db_conv_id
 
 	@db_conv_id.setter
-	def db_conv_id(self, value: Optional[int]):
+	def db_conv_id(self, value: int | None):
 		self.service.db_conv_id = value
 
 	@property
@@ -122,7 +122,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 			A memory-based URL path with a timestamp identifier.
 		"""
 		return UPath(
-			f"memory://conversation_{datetime.datetime.now().isoformat(timespec='seconds')}"
+			f"memory://conversation_{datetime.datetime.now().astimezone():%Y-%m-%dT%H:%M:%S}"
 		)
 
 	@classmethod
@@ -202,10 +202,10 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		self,
 		parent: wx.Window,
 		title: str = _("Untitled conversation"),
-		profile: Optional[config.ConversationProfile] = None,
-		conversation: Optional[Conversation] = None,
-		conv_storage_path: Optional[UPath] = None,
-		bskc_path: Optional[str] = None,
+		profile: config.ConversationProfile | None = None,
+		conversation: Conversation | None = None,
+		conv_storage_path: UPath | None = None,
+		bskc_path: str | None = None,
 	):
 		"""Initialize a new conversation tab.
 
@@ -238,7 +238,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		)
 
 		self._is_destroying = False
-		self.process: Optional[Any] = None  # multiprocessing.Process
+		self.process: Any | None = None  # multiprocessing.Process
 		self.ocr_handler = OCRHandler(self)
 		self._draft_timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self._on_draft_timer, self._draft_timer)
@@ -335,7 +335,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 
 		self.Bind(wx.EVT_CHAR_HOOK, self.on_char_hook)
 
-	def init_data(self, profile: Optional[config.ConversationProfile]):
+	def init_data(self, profile: config.ConversationProfile | None):
 		"""Initialize the conversation data with an optional profile.
 
 		Args:
@@ -674,7 +674,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		"""Immediately save any pending draft to the database."""
 		self.presenter.flush_draft()
 
-	def transcribe_audio_file(self, audio_file: str = None):
+	def transcribe_audio_file(self, audio_file: str | None = None):
 		"""Transcribe an audio file.
 
 		Args:
@@ -686,7 +686,7 @@ class ConversationTab(wx.Panel, BaseConversation, ErrorDisplayMixin):
 		"""Open file dialog and transcribe selected audio file."""
 		self.presenter.on_transcribe_audio_file()
 
-	def ask_audio_file(self) -> Optional[str]:
+	def ask_audio_file(self) -> str | None:
 		"""Show a file-open dialog filtered to audio files.
 
 		Returns:

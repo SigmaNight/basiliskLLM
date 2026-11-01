@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation.conversation_model import (
 	Conversation,
@@ -51,7 +51,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		view: EditBlockDialog,
 		conversation: Conversation,
 		block_index: int,
-		service: Optional[ConversationService] = None,
+		service: ConversationService | None = None,
 	):
 		"""Initialise the presenter.
 
@@ -102,7 +102,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		if not self.view.prompt_panel.check_attachments_valid():
 			return False
 
-		system_message: Optional[SystemMessage] = None
+		system_message: SystemMessage | None = None
 		system_prompt = self.view.system_prompt_txt.GetValue()
 		if system_prompt:
 			system_message = SystemMessage(content=system_prompt)
@@ -184,7 +184,8 @@ class EditBlockPresenter(DestroyGuardMixin):
 		if self.block.response:
 			self.block.response.content = self.view.response_txt.GetValue()
 
-		self.block.updated_at = datetime.now()
+		# Naive local time, consistent with MessageBlock timestamps
+		self.block.updated_at = datetime.now()  # noqa: DTZ005
 		if self.service is not None:
 			self.service.auto_save_to_db(self.conversation, self.block)
 
@@ -214,7 +215,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 			self.view.response_txt.SetFocus()
 
 	def _on_stream_start(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+		self, new_block: MessageBlock, system_message: SystemMessage | None
 	) -> None:
 		"""No-op: the block is not added to the conversation here.
 
@@ -232,7 +233,7 @@ class EditBlockPresenter(DestroyGuardMixin):
 		self.view.a_output.handle_stream_buffer()
 
 	def _on_non_stream_finish(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+		self, new_block: MessageBlock, system_message: SystemMessage | None
 	) -> None:
 		"""Display the completed response and optionally speak it.
 

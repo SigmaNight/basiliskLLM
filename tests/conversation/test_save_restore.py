@@ -43,11 +43,13 @@ class TestBasicSaveRestore:
 	def test_restore_empty_conversation(self, bskc_path, storage_path):
 		"""Test restoring an empty conversation."""
 		# Create a test conversation file
-		with zipfile.ZipFile(bskc_path, "w") as zip_file:
-			with zip_file.open("conversation.json", "w") as json_file:
-				conv_data = {"messages": [], "systems": [], "title": None}
-				conv_json = json.dumps(conv_data).encode("utf-8")
-				json_file.write(conv_json)
+		with (
+			zipfile.ZipFile(bskc_path, "w") as zip_file,
+			zip_file.open("conversation.json", "w") as json_file,
+		):
+			conv_data = {"messages": [], "systems": [], "title": None}
+			conv_json = json.dumps(conv_data).encode("utf-8")
+			json_file.write(conv_json)
 
 		restored_conversation = Conversation.open(bskc_path, storage_path)
 

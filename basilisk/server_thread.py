@@ -54,8 +54,8 @@ class ServerThread(threading.Thread):
 		while self.running.is_set():
 			sock.settimeout(1.0)
 			try:
-				conn, addr = sock.accept()
-			except socket.timeout:
+				conn, _addr = sock.accept()
+			except TimeoutError:
 				continue
 			with conn:
 				try:
@@ -65,8 +65,8 @@ class ServerThread(threading.Thread):
 						conn.sendall(b"ACK")
 					else:
 						log.error("No data received")
-				except Exception as e:
-					log.error("Error receiving data: %s", e)
+				except Exception:
+					log.exception("Error receiving data")
 				finally:
 					conn.close()
 		sock.close()

@@ -2,8 +2,9 @@
 
 import json
 import logging
+from collections.abc import Iterator
 from functools import cached_property
-from typing import Iterator
+from typing import ClassVar
 
 from ollama import ChatResponse, Client
 
@@ -26,11 +27,11 @@ log = logging.getLogger(__name__)
 class OllamaEngine(BaseEngine):
 	"""Engine implementation for Ollama API integration."""
 
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 	}
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"image/png",
 		"image/jpeg",
 		"image/webp",

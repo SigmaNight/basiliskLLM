@@ -7,17 +7,15 @@ open them in the system browser.
 
 from __future__ import annotations
 
-from typing import Optional
-
 import wx
 
 from basilisk.presenters.enhanced_error_presenter import EnhancedErrorPresenter
 
 
 def show_enhanced_error_dialog(
-	parent: Optional[wx.Window],
+	parent: wx.Window | None,
 	message: str,
-	title: Optional[str] = None,
+	title: str | None = None,
 	is_completion_error: bool = False,
 ) -> int:
 	"""Show an enhanced error dialog that can handle URLs.
@@ -49,7 +47,7 @@ class EnhancedErrorDialog(wx.Dialog):
 
 	def __init__(
 		self,
-		parent: Optional[wx.Window],
+		parent: wx.Window | None,
 		message: str,
 		title: str,
 		urls: list[str],

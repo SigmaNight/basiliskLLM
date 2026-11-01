@@ -390,11 +390,13 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, "w+b") as f:
-			with zipfile.ZipFile(
+		with (
+			open(bskc_path, "w+b") as f,
+			zipfile.ZipFile(
 				f, mode="w", compression=zipfile.ZIP_STORED
-			) as zipf:
-				zipf.writestr("conversation.json", json.dumps(v0_data))
+			) as zipf,
+		):
+			zipf.writestr("conversation.json", json.dumps(v0_data))
 
 		# Open and verify migration to latest version
 		conversation = Conversation.open(bskc_path, storage_path)
@@ -429,11 +431,13 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, "w+b") as f:
-			with zipfile.ZipFile(
+		with (
+			open(bskc_path, "w+b") as f,
+			zipfile.ZipFile(
 				f, mode="w", compression=zipfile.ZIP_STORED
-			) as zipf:
-				zipf.writestr("conversation.json", json.dumps(v1_data))
+			) as zipf,
+		):
+			zipf.writestr("conversation.json", json.dumps(v1_data))
 
 		# Open and verify migration to latest version
 		conversation = Conversation.open(bskc_path, storage_path)
@@ -474,11 +478,13 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, "w+b") as f:
-			with zipfile.ZipFile(
+		with (
+			open(bskc_path, "w+b") as f,
+			zipfile.ZipFile(
 				f, mode="w", compression=zipfile.ZIP_STORED
-			) as zipf:
-				zipf.writestr("conversation.json", json.dumps(v2_data))
+			) as zipf,
+		):
+			zipf.writestr("conversation.json", json.dumps(v2_data))
 
 		# Open and verify migration to latest version
 		conversation = Conversation.open(bskc_path, storage_path)
@@ -540,12 +546,14 @@ class TestBSKCFileMigration:
 		img_bytes.seek(0)
 
 		# Save as BSKC file with attachment
-		with open(bskc_path, "w+b") as f:
-			with zipfile.ZipFile(
+		with (
+			open(bskc_path, "w+b") as f,
+			zipfile.ZipFile(
 				f, mode="w", compression=zipfile.ZIP_STORED
-			) as zipf:
-				zipf.writestr("conversation.json", json.dumps(v2_data))
-				zipf.writestr("attachments/test_image.png", img_bytes.read())
+			) as zipf,
+		):
+			zipf.writestr("conversation.json", json.dumps(v2_data))
+			zipf.writestr("attachments/test_image.png", img_bytes.read())
 
 		# Open and verify migration to latest version
 		conversation = Conversation.open(bskc_path, storage_path)
@@ -573,11 +581,13 @@ class TestBSKCFileMigration:
 		}
 
 		# Save as BSKC file
-		with open(bskc_path, "w+b") as f:
-			with zipfile.ZipFile(
+		with (
+			open(bskc_path, "w+b") as f,
+			zipfile.ZipFile(
 				f, mode="w", compression=zipfile.ZIP_STORED
-			) as zipf:
-				zipf.writestr("conversation.json", json.dumps(invalid_data))
+			) as zipf,
+		):
+			zipf.writestr("conversation.json", json.dumps(invalid_data))
 
 		# Open should raise ValueError for invalid version
 		with pytest.raises(ValueError, match="Invalid conversation version"):

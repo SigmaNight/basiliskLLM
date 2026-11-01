@@ -7,8 +7,9 @@ implementing capabilities for text, image, and audio generation/processing.
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar, Generator
+from typing import TYPE_CHECKING, ClassVar
 
 from openai import OpenAI
 from openai.types.responses import (
@@ -55,7 +56,7 @@ class OpenAIEngine(BaseEngine):
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
 		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 	)
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.IMAGE,
 		ProviderCapability.TEXT,
 		ProviderCapability.STT,
@@ -63,7 +64,7 @@ class OpenAIEngine(BaseEngine):
 		ProviderCapability.WEB_SEARCH,
 	}
 
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"image/gif",
 		"image/jpeg",
 		"image/png",
@@ -87,7 +88,6 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Configured OpenAI client instance.
 		"""
-		super().client
 		organization_key = (
 			self.account.active_organization_key.get_secret_value()
 			if self.account.active_organization_key
@@ -157,7 +157,7 @@ class OpenAIEngine(BaseEngine):
 		system_message: Message | None,
 		stop_block_index: int | None = None,
 		**kwargs,
-	) -> Response | Generator[ResponseStreamEvent, None, None]:
+	) -> Response | Generator[ResponseStreamEvent]:
 		"""Generates a chat completion using the OpenAI API.
 
 		Args:
@@ -212,7 +212,7 @@ class OpenAIEngine(BaseEngine):
 		return response
 
 	def completion_response_with_stream(
-		self, stream: Generator[ResponseStreamEvent, None, None]
+		self, stream: Generator[ResponseStreamEvent]
 	):
 		"""Processes a streaming completion response.
 
@@ -251,7 +251,7 @@ class OpenAIEngine(BaseEngine):
 					if isinstance(res_content, ResponseOutputText):
 						txt_parts.append(res_content.text)
 					elif isinstance(res_content, ResponseOutputRefusal):
-						raise ValueError(
+						raise ValueError(  # noqa: TRY004 - a refusal, not a type error
 							f"OpenAI refused to answer the question: {res_content.refusal}"
 						)
 			else:
@@ -277,9 +277,8 @@ class OpenAIEngine(BaseEngine):
 		Returns:
 			Transcription of the audio content.
 		"""
-		file = open(audio_file_path, "rb")
-		transcription = self.client.audio.transcriptions.create(
-			model="whisper-1", file=file, response_format=response_format
-		)
-		file.close()
+		with open(audio_file_path, "rb") as file:
+			transcription = self.client.audio.transcriptions.create(
+				model="whisper-1", file=file, response_format=response_format
+			)
 		return transcription

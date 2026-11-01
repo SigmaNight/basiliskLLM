@@ -12,11 +12,11 @@ import logging
 import os
 import sys
 import tempfile
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import wx
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation import ImageFile
 from basilisk.screen_capture_thread import CaptureMode, ScreenCaptureThread
 
@@ -100,10 +100,8 @@ class MainFramePresenter:
 		for index, tab in enumerate(self.view.tabs_panels):
 			try:
 				tab.cleanup_resources()
-			except Exception as e:
-				log.error(
-					"Error cleaning up tab %d: %s", index, e, exc_info=True
-				)
+			except Exception:
+				log.exception("Error cleaning up tab %d", index)
 		if self.view.conf.conversation.reopen_last_conversation:
 			current = self.view.current_tab
 			if current and current.db_conv_id is not None:
@@ -182,12 +180,7 @@ class MainFramePresenter:
 				_("Failed to open conversation file: '%s', error: %s")
 				% (file_path, e)
 			)
-			log.error(
-				"Failed to open conversation file: %s, error: %s",
-				file_path,
-				e,
-				exc_info=True,
-			)
+			log.exception("Failed to open conversation file: %s", file_path)
 
 	def open_from_db(self, conv_id: int):
 		"""Open a conversation from the database.
@@ -203,11 +196,7 @@ class MainFramePresenter:
 			)
 			self.view.add_conversation_tab(tab)
 		except Exception as e:
-			log.error(
-				"Failed to open conversation from database: %s",
-				e,
-				exc_info=True,
-			)
+			log.exception("Failed to open conversation from database")
 			self.view.show_error(
 				_("Failed to open conversation: %s") % str(e), _("Error")
 			)
@@ -223,10 +212,8 @@ class MainFramePresenter:
 		tab = self.view.tabs_panels[current_tab_index]
 		try:
 			tab.cleanup_resources()
-		except Exception as e:
-			log.error(
-				"Error cleaning up tab before close: %s", e, exc_info=True
-			)
+		except Exception:
+			log.exception("Error cleaning up tab before close")
 		self.view.notebook.DeletePage(current_tab_index)
 		self.view.tabs_panels.pop(current_tab_index)
 		current_tab_count = self.view.notebook.GetPageCount()
@@ -311,7 +298,7 @@ class MainFramePresenter:
 	def screen_capture(
 		self,
 		capture_mode: CaptureMode,
-		screen_coordinates: Optional[tuple[int, int, int, int]] = None,
+		screen_coordinates: tuple[int, int, int, int] | None = None,
 		name: str = "",
 	):
 		"""Capture a screenshot and add it to the current conversation.
@@ -331,8 +318,8 @@ class MainFramePresenter:
 				_("No screen coordinates provided"), _("Error")
 			)
 			return
-		now = datetime.datetime.now()
-		capture_name = f"capture_{now.isoformat(timespec='seconds')}.png"
+		now = datetime.datetime.now().astimezone()
+		capture_name = f"capture_{now.strftime('%Y-%m-%dT%H:%M:%S')}.png"
 		capture_path = (
 			conv_tab.conv_storage_path() / f"attachments/{capture_name}"
 		)
@@ -478,6 +465,6 @@ class MainFramePresenter:
 			log.debug("NVDA addon created")
 			if sys.platform == "win32":
 				os.startfile(tmp_nvda_addon_path)
-		except Exception as e:
-			log.error("Failed to create NVDA addon: %s", e)
+		except Exception:
+			log.exception("Failed to create NVDA addon")
 			self.view.show_error(_("Failed to create NVDA addon"), _("Error"))

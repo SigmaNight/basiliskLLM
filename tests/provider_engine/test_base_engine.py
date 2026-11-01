@@ -46,7 +46,7 @@ class DummyEngine(BaseEngine):
 
 	def completion(self, new_block, conversation, system_message, **kwargs):
 		"""Return placeholder completion for abstract interface compliance."""
-		return None
+		return
 
 	def completion_response_with_stream(self, stream, **kwargs):
 		"""Echo stream for abstract interface compliance."""

@@ -11,7 +11,7 @@ import logging
 import re
 from typing import TYPE_CHECKING
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation import (
 	URL_PATTERN,
 	AttachmentFile,
@@ -197,7 +197,7 @@ class PromptAttachmentPresenter:
 		Args:
 			image: A wx.Image (or compatible) object from the clipboard.
 		"""
-		dt_now = datetime.datetime.now()
+		dt_now = datetime.datetime.now().astimezone()
 		file_name = f"clipboard_{dt_now.strftime('%Y_%m_%d_%H_%M_%S')}.png"
 		path = self.conv_storage_path / file_name
 		with path.open("wb") as f:

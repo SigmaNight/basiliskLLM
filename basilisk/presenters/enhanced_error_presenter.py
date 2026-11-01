@@ -69,7 +69,7 @@ class EnhancedErrorPresenter:
 				if opened:
 					wx.TheClipboard.Close()
 		except Exception as e:
-			log.error("Failed to copy to clipboard: %s", e)
+			log.exception("Failed to copy to clipboard")
 			self.view.bell()
 			self.view.set_copy_state(_("Copy failed: %s") % e, False)
 
@@ -86,6 +86,7 @@ class EnhancedErrorPresenter:
 			if not webbrowser.open(url):
 				self.fail_open_browser(url)
 		except Exception:
+			log.warning("Failed to open URL: %s", url, exc_info=True)
 			self.fail_open_browser(url, True)
 
 	def fail_open_browser(self, url: str, exc_info: bool = False):

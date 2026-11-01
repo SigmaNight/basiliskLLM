@@ -12,9 +12,9 @@ import time
 from abc import ABC, abstractmethod
 from functools import cached_property
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.consts import APP_NAME, APP_SOURCE_URL
 from basilisk.conversation import Conversation, Message, MessageBlock
 from basilisk.model_catalog.sampling import (
@@ -57,8 +57,8 @@ class BaseEngine(ABC):
 			stripping; ``None`` means do not strip (e.g. Ollama).
 	"""
 
-	capabilities: set[ProviderCapability] = set()
-	supported_attachment_formats: set[str] = set()
+	capabilities: ClassVar[set[ProviderCapability]] = set()
+	supported_attachment_formats: ClassVar[set[str]] = set()
 	MODELS_JSON_URL: str | None = None
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = None
 
@@ -80,7 +80,6 @@ class BaseEngine(ABC):
 	@abstractmethod
 	def client(self):
 		"""Property to return the provider client object."""
-		pass
 
 	def _postprocess_models(
 		self, models: list[ProviderAIModel]
@@ -241,6 +240,7 @@ class BaseEngine(ABC):
 					"Failed to refresh models for %s: %s",
 					self.__class__.__name__,
 					exc,
+					exc_info=True,
 				)
 				with self._models_refresh_cv:
 					self._models_last_error = str(exc)
@@ -272,7 +272,7 @@ class BaseEngine(ABC):
 				self._models_refresh_in_progress = False
 				self._models_refresh_cv.notify_all()
 
-	def get_model(self, model_id: str) -> Optional[ProviderAIModel]:
+	def get_model(self, model_id: str) -> ProviderAIModel | None:
 		"""Retrieves a specific model by its ID.
 
 		Args:
@@ -343,7 +343,6 @@ class BaseEngine(ABC):
 		Returns:
 			The prepared response in Message format.
 		"""
-		pass
 
 	def get_messages(
 		self,
@@ -404,7 +403,6 @@ class BaseEngine(ABC):
 		Returns:
 			The generated content response from the provider.
 		"""
-		pass
 
 	@abstractmethod
 	def completion_response_with_stream(self, stream: Any, **kwargs) -> Any:
@@ -417,7 +415,6 @@ class BaseEngine(ABC):
 		Returns:
 			Stream response from the provider.
 		"""
-		pass
 
 	@abstractmethod
 	def completion_response_without_stream(
@@ -429,7 +426,6 @@ class BaseEngine(ABC):
 		traces are modeled as provider-agnostic metadata (not mixed into plain
 		response content), with a UI toggle to show/hide reasoning output.
 		"""
-		pass
 
 	@staticmethod
 	def get_user_agent() -> str:

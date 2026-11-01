@@ -22,18 +22,18 @@ from .main_config import BasiliskConfig
 from .main_config import get_basilisk_config as conf
 
 __all__ = [
+	"CUSTOM_BASE_URL_PATTERN",
 	"Account",
 	"AccountManager",
 	"AccountOrganization",
 	"AccountSource",
-	"accounts",
 	"AutomaticUpdateModeEnum",
 	"BasiliskConfig",
-	"conf",
 	"ConversationProfile",
-	"conversation_profiles",
-	"CUSTOM_BASE_URL_PATTERN",
 	"KeyStorageMethodEnum",
 	"LogLevelEnum",
 	"ReleaseChannelEnum",
+	"accounts",
+	"conf",
+	"conversation_profiles",
 ]

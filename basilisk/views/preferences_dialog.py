@@ -4,7 +4,7 @@ import logging
 
 import wx
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.config.main_config import (
 	MODEL_METADATA_CACHE_TTL_MAX_SECONDS,
 	MODEL_METADATA_CACHE_TTL_MIN_SECONDS,

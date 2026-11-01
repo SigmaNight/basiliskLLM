@@ -215,8 +215,6 @@ class AttachmentFileTypes(enum.StrEnum):
 class NotImageError(ValueError):
 	"""Exception raised when a URL does not point to an image file."""
 
-	pass
-
 
 class AttachmentFile(BaseModel):
 	"""Represents an attached file in a conversation."""
@@ -299,7 +297,7 @@ class AttachmentFile(BaseModel):
 				return root_path / value
 			return value
 		if not isinstance(value, UPath):
-			raise ValueError("Invalid location")
+			raise ValueError("Invalid location")  # noqa: TRY004 - pydantic validator
 		return value
 
 	def __init__(self, /, **kwargs: Any) -> None:
@@ -419,8 +417,8 @@ class AttachmentFile(BaseModel):
 		try:
 			fs = location.fs
 			fs.rm(location.path)
-		except Exception as e:
-			log.error("Error deleting file at '%s': %s", location, e)
+		except Exception:
+			log.exception("Error deleting file at '%s'", location)
 
 	def _read_file(self, mode: str):
 		"""Read the file content using the specified mode.
@@ -553,17 +551,19 @@ class ImageFile(AttachmentFile):
 		resize_folder = conv_folder.joinpath("optimized_images")
 		resize_folder.mkdir(parents=True, exist_ok=True)
 		resize_location = resize_folder / self.location.name
-		with self.location.open(mode="rb") as src_file:
-			with resize_location.open(mode="wb") as dst_file:
-				success = resize_image(
-					src_file,
-					max_width=max_width,
-					max_height=max_height,
-					quality=quality,
-					target=dst_file,
-					format=self.location.suffix[1:],
-				)
-				self.resize_location = resize_location if success else None
+		with (
+			self.location.open(mode="rb") as src_file,
+			resize_location.open(mode="wb") as dst_file,
+		):
+			success = resize_image(
+				src_file,
+				max_width=max_width,
+				max_height=max_height,
+				quality=quality,
+				target=dst_file,
+				format=self.location.suffix[1:],
+			)
+			self.resize_location = resize_location if success else None
 
 	@measure_time
 	def encode_base64(self) -> str:

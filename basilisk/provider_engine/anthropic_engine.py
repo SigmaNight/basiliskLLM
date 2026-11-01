@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections.abc import Iterator
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar, Iterator
+from typing import TYPE_CHECKING, ClassVar
 
 from anthropic import Anthropic
 from anthropic.types import Message as AnthropicMessage
@@ -55,14 +56,14 @@ class AnthropicEngine(BaseEngine):
 	catalog_strip_candidate_keys: ClassVar[frozenset[str] | None] = (
 		CHAT_CLIENT_TUNING_TOP_LEVEL_KEYS
 	)
-	capabilities: set[ProviderCapability] = {
+	capabilities: ClassVar[set[ProviderCapability]] = {
 		ProviderCapability.TEXT,
 		ProviderCapability.IMAGE,
 		ProviderCapability.DOCUMENT,
 		ProviderCapability.CITATION,
 		ProviderCapability.WEB_SEARCH,
 	}
-	supported_attachment_formats: set[str] = {
+	supported_attachment_formats: ClassVar[set[str]] = {
 		"image/gif",
 		"image/jpeg",
 		"image/png",
@@ -127,7 +128,6 @@ class AnthropicEngine(BaseEngine):
 		Returns:
 			The client object for the Anthropic API initialized with the account API key.
 		"""
-		super().client
 		return Anthropic(api_key=self.account.api_key.get_secret_value())
 
 	def get_attachment_source(

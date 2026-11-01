@@ -1,7 +1,6 @@
 """Dialog windows for managing conversation profiles in the BasiliskLLM application."""
 
 from logging import getLogger
-from typing import Optional
 
 import wx
 
@@ -111,7 +110,7 @@ class EditConversationProfileDialog(wx.Dialog, BaseConversation):
 		"""
 		super().apply_profile(profile, fall_back_default_account)
 		if not profile:
-			return None
+			return
 		self.profile_name_txt.SetValue(profile.name)
 		if profile.account or profile.ai_model_info:
 			self.include_account_checkbox.SetValue(profile.account is not None)
@@ -252,7 +251,7 @@ class ConversationProfileDialog(wx.Dialog):
 		self.update_ui()
 
 	@property
-	def current_profile_index(self) -> Optional[int]:
+	def current_profile_index(self) -> int | None:
 		"""Get the index of the currently selected profile.
 
 		Returns:
@@ -262,7 +261,7 @@ class ConversationProfileDialog(wx.Dialog):
 		return index if index != wx.NOT_FOUND else None
 
 	@property
-	def current_profile(self) -> Optional[ConversationProfile]:
+	def current_profile(self) -> ConversationProfile | None:
 		"""Get the currently selected conversation profile.
 
 		Returns:
@@ -277,7 +276,7 @@ class ConversationProfileDialog(wx.Dialog):
 	def update_ui(self):
 		"""Update the user interface to reflect the current profiles list."""
 		self.list_profile_ctrl.DeleteAllItems()
-		for profile_name in map(lambda x: x.name, self.profiles):
+		for profile_name in (x.name for x in self.profiles):
 			self.list_profile_ctrl.Append([profile_name])
 
 	def on_add(self, event: wx.Event | None):

@@ -8,9 +8,9 @@ recording thread, error-recovery state, and conversation model.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.completion_handler import CompletionHandler
 from basilisk.conversation import (
 	AttachmentFile,
@@ -61,7 +61,7 @@ class ConversationPresenter(DestroyGuardMixin):
 		service: ConversationService,
 		conversation: Conversation,
 		conv_storage_path,
-		bskc_path: Optional[str] = None,
+		bskc_path: str | None = None,
 	):
 		"""Initialize the conversation presenter.
 
@@ -77,13 +77,11 @@ class ConversationPresenter(DestroyGuardMixin):
 		self.conversation = conversation
 		self.conv_storage_path = conv_storage_path
 		self.bskc_path = bskc_path
-		self.recording_thread: Optional[RecordingThread] = None
+		self.recording_thread: RecordingThread | None = None
 
 		# Error recovery state
-		self._stored_prompt_text: Optional[str] = None
-		self._stored_attachments: Optional[list[AttachmentFile | ImageFile]] = (
-			None
-		)
+		self._stored_prompt_text: str | None = None
+		self._stored_attachments: list[AttachmentFile | ImageFile] | None = None
 
 		self.completion_handler = CompletionHandler(
 			on_completion_start=self._on_completion_start,
@@ -205,10 +203,8 @@ class ConversationPresenter(DestroyGuardMixin):
 			try:
 				self.recording_thread.abort()
 				self.recording_thread.join(timeout=0.5)
-			except Exception as e:
-				log.error(
-					"Error aborting recording thread: %s", e, exc_info=True
-				)
+			except Exception:
+				log.exception("Error aborting recording thread")
 			self.recording_thread = None
 		stop_sound()
 		self.flush_draft()
@@ -240,7 +236,7 @@ class ConversationPresenter(DestroyGuardMixin):
 
 	@_guard_destroying
 	def _on_stream_start(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+		self, new_block: MessageBlock, system_message: SystemMessage | None
 	):
 		"""Called when streaming starts."""
 		self.conversation.add_block(new_block, system_message)
@@ -256,7 +252,7 @@ class ConversationPresenter(DestroyGuardMixin):
 
 	@_guard_destroying
 	def _on_non_stream_finish(
-		self, new_block: MessageBlock, system_message: Optional[SystemMessage]
+		self, new_block: MessageBlock, system_message: SystemMessage | None
 	):
 		"""Called when non-streaming completion finishes."""
 		self.conversation.add_block(new_block, system_message)
@@ -341,7 +337,7 @@ class ConversationPresenter(DestroyGuardMixin):
 			self.view.toggle_record_btn.SetLabel(_("Record") + " (Ctrl+R)")
 			self.view.submit_btn.Enable()
 
-	def transcribe_audio_file(self, audio_file: str = None):
+	def transcribe_audio_file(self, audio_file: str | None = None):
 		"""Transcribe an audio file using the current provider's STT.
 
 		Args:

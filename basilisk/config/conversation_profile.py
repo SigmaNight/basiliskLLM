@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from functools import cache, cached_property
-from typing import Any, Iterable, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import (
@@ -37,11 +38,11 @@ class ConversationProfile(BaseModel):
 	id: UUID4 = Field(default_factory=uuid4)
 	name: str
 	system_prompt: str = Field(default="")
-	account_info: Optional[AccountInfo] = Field(default=None)
-	ai_model_info: Optional[AIModelInfo] = Field(default=None)
-	max_tokens: Optional[int] = Field(default=None)
-	temperature: Optional[float] = Field(default=None)
-	top_p: Optional[float] = Field(default=None)
+	account_info: AccountInfo | None = Field(default=None)
+	ai_model_info: AIModelInfo | None = Field(default=None)
+	max_tokens: int | None = Field(default=None)
+	temperature: float | None = Field(default=None)
+	top_p: float | None = Field(default=None)
 	stream_mode: bool = Field(default=True)
 
 	def __init__(self, **data: Any):
@@ -64,7 +65,7 @@ class ConversationProfile(BaseModel):
 				data.get("name", "unknown"),
 				exc_info=e,
 			)
-			raise e
+			raise
 
 	@field_validator("ai_model_info", mode="before")
 	@classmethod
@@ -229,11 +230,14 @@ class ConversationProfile(BaseModel):
 		Returns:
 			ConversationProfile: The current conversation profile instance if validation passes.
 		"""
-		if self.account is not None and self.ai_model_info is not None:
-			if self.ai_model_info.provider_id != self.account.provider.id:
-				raise ValueError(
-					"Model provider must be the same as account provider"
-				)
+		if (
+			self.account is not None
+			and self.ai_model_info is not None
+			and self.ai_model_info.provider_id != self.account.provider.id
+		):
+			raise ValueError(
+				"Model provider must be the same as account provider"
+			)
 		return self
 
 	@model_validator(mode="after")
@@ -267,7 +271,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 		default_factory=list
 	)
 
-	default_profile_id: Optional[UUID4] = Field(default=None)
+	default_profile_id: UUID4 | None = Field(default=None)
 
 	def get_profile(self, **kwargs: dict) -> ConversationProfile | None:
 		"""Retrieve a conversation profile based on the provided key-value pairs.
@@ -333,7 +337,7 @@ class ConversationProfileManager(BasiliskBaseSettings):
 				del self.__dict__["default_profile"]
 		return self
 
-	def __iter__(self) -> Iterable[ConversationProfile]:
+	def __iter__(self) -> Iterator[ConversationProfile]:
 		"""Iterate over the conversation profiles.
 
 		Returns:

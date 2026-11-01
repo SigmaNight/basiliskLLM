@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Iterable
 from functools import cache, cached_property
 from os import getenv
-from typing import Annotated, Any, Iterable, Optional, Union
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
 import keyring
@@ -26,7 +27,7 @@ from pydantic import (
 	model_validator,
 )
 
-import basilisk.global_vars as global_vars
+from basilisk import global_vars
 from basilisk.consts import APP_NAME
 from basilisk.provider import Provider, get_provider, providers
 from basilisk.provider_engine.model_cache_registry import (
@@ -61,9 +62,7 @@ class AccountOrganization(BaseModel):
 
 	@field_validator("key", mode="before")
 	@classmethod
-	def validate_key(
-		cls, value: Optional[Any], info: ValidationInfo
-	) -> SecretStr:
+	def validate_key(cls, value: Any | None, info: ValidationInfo) -> SecretStr:
 		"""Validate organization key and return a SecretStr instance.
 
 		Depending on the key storage method, the key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is retrieved using the account ID.
@@ -120,7 +119,7 @@ class AccountOrganization(BaseModel):
 
 
 AccountInfoStr = Annotated[str, Field(pattern="^env:[a-zA-Z]+")]
-AccountInfo = Union[UUID4, AccountInfoStr]
+AccountInfo = UUID4 | AccountInfoStr
 
 
 class Account(BaseModel):
@@ -132,14 +131,14 @@ class Account(BaseModel):
 	provider: Provider = Field(
 		validation_alias="provider_id", serialization_alias="provider_id"
 	)
-	api_key_storage_method: Optional[KeyStorageMethodEnum] = Field(
+	api_key_storage_method: KeyStorageMethodEnum | None = Field(
 		default=KeyStorageMethodEnum.PLAIN
 	)
-	api_key: Optional[SecretStr] = Field(default=None)
-	organizations: Optional[list[AccountOrganization]] = Field(default=None)
-	active_organization_id: Optional[UUID4] = Field(default=None)
+	api_key: SecretStr | None = Field(default=None)
+	organizations: list[AccountOrganization] | None = Field(default=None)
+	active_organization_id: UUID4 | None = Field(default=None)
 	source: AccountSource = Field(default=AccountSource.CONFIG, exclude=True)
-	custom_base_url: Optional[str] = Field(
+	custom_base_url: str | None = Field(
 		default=None,
 		pattern=CUSTOM_BASE_URL_PATTERN,
 		description="Custom base URL for the API provider. Must be a valid HTTP/HTTPS URL.",
@@ -155,7 +154,7 @@ class Account(BaseModel):
 				data.get("name", "Unknown"),
 				exc_info=e,
 			)
-			raise e
+			raise
 
 	@field_serializer("provider", when_used="always")
 	def serialize_provider(value: Provider) -> str:
@@ -172,8 +171,8 @@ class Account(BaseModel):
 	@field_validator("api_key", mode="before")
 	@classmethod
 	def validate_api_key(
-		cls, value: Optional[Any], info: ValidationInfo
-	) -> Optional[SecretStr]:
+		cls, value: Any | None, info: ValidationInfo
+	) -> SecretStr | None:
 		"""Validate the API key and return a SecretStr instance.
 
 		Depending on the key storage method, the API key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is retrieved using the account ID.
@@ -206,7 +205,7 @@ class Account(BaseModel):
 			raise ValueError("Invalid API key storage method")
 
 	@field_serializer("api_key", when_used="json")
-	def dump_secret(self, value: SecretStr) -> Optional[str]:
+	def dump_secret(self, value: SecretStr) -> str | None:
 		"""Serialize the API key to a string in case of JSON serialization.
 
 		Depending on the key storage method, the API key is either a plain string or stored in the system keyring. If the key is stored in the system keyring, it is saved using the account ID.
@@ -290,7 +289,7 @@ class Account(BaseModel):
 		return self
 
 	@cached_property
-	def active_organization(self) -> Optional[AccountOrganization]:
+	def active_organization(self) -> AccountOrganization | None:
 		"""Get the active organization for the account.
 
 		Returns:
@@ -314,7 +313,7 @@ class Account(BaseModel):
 			pass
 
 	@property
-	def active_organization_name(self) -> Optional[str]:
+	def active_organization_name(self) -> str | None:
 		"""Get the name of the active organization for the account.
 
 		Returns:
@@ -325,7 +324,7 @@ class Account(BaseModel):
 		)
 
 	@property
-	def active_organization_key(self) -> Optional[SecretStr]:
+	def active_organization_key(self) -> SecretStr | None:
 		"""Get the key of the active organization for the account.
 
 		Returns:
@@ -392,9 +391,9 @@ class AccountManager(BasiliskBaseSettings):
 
 	model_config = get_settings_config_dict(config_file_name)
 
-	accounts: list[OnErrorOmit[Account]] = Field(default=list())
+	accounts: list[OnErrorOmit[Account]] = Field(default=[])
 
-	default_account_info: Optional[AccountInfo] = Field(
+	default_account_info: AccountInfo | None = Field(
 		default=None, union_mode="left_to_right"
 	)
 
@@ -414,7 +413,7 @@ class AccountManager(BasiliskBaseSettings):
 			account = self[0]
 		return account
 
-	def get_account_from_info(self, value: AccountInfo) -> Optional[Account]:
+	def get_account_from_info(self, value: AccountInfo) -> Account | None:
 		"""Get an account instance from the account information.
 
 		Args:
@@ -444,7 +443,7 @@ class AccountManager(BasiliskBaseSettings):
 				return self.accounts[0]
 			return self.accounts[index]
 
-	def set_default_account(self, value: Optional[Account]):
+	def set_default_account(self, value: Account | None):
 		"""Set the default account for the configuration.
 
 		Args:
@@ -546,10 +545,10 @@ class AccountManager(BasiliskBaseSettings):
 			account: Account instance to add.
 
 		Raises:
-			ValueError: If the account is not an instance of Account.
+			TypeError: If the account is not an instance of Account.
 		"""
 		if not isinstance(account, Account):
-			raise ValueError("Account must be an instance of Account")
+			raise TypeError("Account must be an instance of Account")
 		self.accounts.append(account)
 		log.debug(
 			"Added account for %s (%s, source: %s)",
@@ -559,7 +558,7 @@ class AccountManager(BasiliskBaseSettings):
 		)
 
 	def get_accounts_by_provider(
-		self, provider_name: Optional[str] = None
+		self, provider_name: str | None = None
 	) -> Iterable[Account]:
 		"""Get accounts by provider name.
 
@@ -572,7 +571,7 @@ class AccountManager(BasiliskBaseSettings):
 		return filter(lambda x: x.provider.name == provider_name, self.accounts)
 
 	def get_accounts_by_provider_id(
-		self, provider_id: Optional[str] = None
+		self, provider_id: str | None = None
 	) -> Iterable[Account]:
 		"""Get accounts whose provider id matches (e.g. ``openai``, ``anthropic``).
 
@@ -604,6 +603,7 @@ class AccountManager(BasiliskBaseSettings):
 				"Failed to delete keyring password for account %s: %s",
 				account_id,
 				exc,
+				exc_info=True,
 			)
 		try:
 			remove_account_model_cache(account_id)
@@ -612,6 +612,7 @@ class AccountManager(BasiliskBaseSettings):
 				"Failed to remove model cache for account %s: %s",
 				account_id,
 				exc,
+				exc_info=True,
 			)
 		info = self.default_account_info
 		if isinstance(info, UUID) and info == account.id:

@@ -271,9 +271,11 @@ class ModelMetadataItem(BaseModel, extra="ignore"):
 			extra_info["Pricing"] = pricing_summary
 		if self.created_timestamp:
 			try:
-				extra_info["created"] = datetime.fromtimestamp(
-					self.created_timestamp
-				).strftime("%Y-%m-%d %H:%M:%S")
+				extra_info["created"] = (
+					datetime.fromtimestamp(self.created_timestamp)
+					.astimezone()
+					.strftime("%Y-%m-%d %H:%M:%S")
+				)
 			except (OSError, OverflowError, ValueError) as exc:
 				log.debug(
 					"Skipping extra_info created for model %s (timestamp=%r): %s",

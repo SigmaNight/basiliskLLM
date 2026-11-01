@@ -39,8 +39,9 @@ def _display_error_msg_macos(message: str):
 			[
 				"osascript",
 				"-e",
-				'display dialog "%s" with title "%s" with icon stop buttons {"OK"} default button "OK"'
-				% (message.replace('"', '\\"'), APP_NAME),
+				'display dialog "{}" with title "{}" with icon stop buttons {{"OK"}} default button "OK"'.format(
+					message.replace('"', '\\"'), APP_NAME
+				),
 			],
 			check=True,
 		)
@@ -137,7 +138,7 @@ def send_focus_signal() -> None:
 			logger.error("Failed to send focus signal via IPC")
 			display_signal_error_msg("focus")
 	except Exception as e:
-		logger.error("Failed to send focus signal via IPC: %s", e)
+		logger.exception("Failed to send focus signal via IPC")
 		display_signal_error_msg("focus", str(e))
 
 
@@ -162,5 +163,5 @@ def send_open_bskc_file_signal(bskc_file: str) -> None:
 			logger.error("Failed to send open BSKC signal via IPC")
 			display_signal_error_msg("open_file")
 	except Exception as e:
-		logger.error("Failed to send open BSKC signal via IPC: %s", e)
+		logger.exception("Failed to send open BSKC signal via IPC")
 		display_signal_error_msg("open_file", str(e))

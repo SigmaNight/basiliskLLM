@@ -10,11 +10,11 @@ import os
 import weakref
 from collections import namedtuple
 from functools import partialmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import wx
 
-import basilisk.config as config
+from basilisk import config
 from basilisk.conversation.conversation_model import (
 	MessageBlock,
 	MessageRoleEnum,
@@ -562,7 +562,7 @@ class HistoryMsgTextCtrl(wx.TextCtrl):
 		dlg.Destroy()
 
 	# goes here because we need all the methods to be defined before we can assign to the dict
-	key_actions = {
+	key_actions: ClassVar[dict] = {
 		(wx.MOD_SHIFT, wx.WXK_SPACE): on_toggle_speak_response,
 		(wx.MOD_NONE, wx.WXK_SPACE): on_read_current_message,
 		(wx.MOD_NONE, ord("J")): go_to_previous_message,

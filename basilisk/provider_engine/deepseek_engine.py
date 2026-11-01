@@ -4,7 +4,8 @@ This module provides the DeepSeekAIEngine class for interacting with the DeepSee
 implementing capabilities for text generation using various DeepSeek models.
 """
 
-from typing import Generator
+from collections.abc import Generator
+from typing import ClassVar
 
 from openai.types.chat import (
 	ChatCompletion,
@@ -34,12 +35,12 @@ class DeepSeekAIEngine(LegacyOpenAIEngine):
 		capabilities: Set of supported capabilities (currently text only).
 	"""
 
-	capabilities: set[ProviderCapability] = {ProviderCapability.TEXT}
+	capabilities: ClassVar[set[ProviderCapability]] = {ProviderCapability.TEXT}
 
 	MODELS_JSON_URL = sigma_night_data_file("deepseek.json")
 
 	def completion_response_with_stream(
-		self, stream: Generator[ChatCompletionChunk, None, None]
+		self, stream: Generator[ChatCompletionChunk]
 	):
 		"""Processes streaming response from DeepSeek API.
 

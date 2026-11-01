@@ -7,12 +7,15 @@ multiple instances of the application from running simultaneously:
 
 import errno
 import fcntl
+import logging
 import os
 import threading
 
 from basilisk.consts import FILE_LOCK_PATH
 
 from .abstract_singleton_instance import AbstractSingletonInstance
+
+log = logging.getLogger(__name__)
 
 
 class PosixSingletonInstance(AbstractSingletonInstance):
@@ -75,6 +78,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 						return True
 					return False
 			except Exception:
+				log.debug("Failed to acquire the singleton lock", exc_info=True)
 				return False
 
 	def _try_acquire_posix_lock(self) -> bool:
@@ -88,7 +92,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			os.makedirs(os.path.dirname(self.lock_file_path), exist_ok=True)
 
 			# Open the lock file for writing
-			self.lock_file_handle = open(self.lock_file_path, "w")
+			self.lock_file_handle = open(self.lock_file_path, "w")  # noqa: SIM115
 
 			# Try to acquire an exclusive lock (non-blocking)
 			fcntl.flock(
@@ -103,12 +107,12 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			self.register_release_on_exit()
 			return True
 
-		except IOError, OSError:
+		except OSError:
 			# Lock is already held by another process or other I/O error
 			self._cleanup_failed_lock_attempt()
 			return False
 		except Exception:
-			# Unexpected error
+			log.debug("Unexpected error acquiring the lock", exc_info=True)
 			self._cleanup_failed_lock_attempt()
 			return False
 
@@ -123,7 +127,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 				pid_str = f.read().strip()
 				if pid_str:
 					return int(pid_str)
-		except IOError, OSError, ValueError:
+		except OSError, ValueError:
 			pass
 		return None
 
@@ -151,7 +155,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 				# Other error, assume process exists
 				return True
 		except Exception:
-			# Unexpected error, assume process exists
+			log.debug("Cannot check process, assume it exists", exc_info=True)
 			return True
 
 	def _cleanup_failed_lock_attempt(self):
@@ -160,7 +164,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			try:
 				self.lock_file_handle.close()
 			except Exception:
-				pass
+				log.debug("Failed to close the lock file", exc_info=True)
 			finally:
 				self.lock_file_handle = None
 
@@ -170,7 +174,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			if os.path.exists(self.lock_file_path):
 				os.remove(self.lock_file_path)
 		except Exception:
-			pass
+			log.debug("Failed to remove the lock file", exc_info=True)
 		finally:
 			self._cleanup_failed_lock_attempt()
 
@@ -182,11 +186,12 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 				fcntl.flock(self.lock_file_handle.fileno(), fcntl.LOCK_UN)
 				self.lock_file_handle.close()
 			except Exception:
+				log.debug("Failed to unlock the lock file", exc_info=True)
 				# If unlocking fails, at least close the file handle
 				try:
 					self.lock_file_handle.close()
 				except Exception:
-					pass
+					log.debug("Failed to close the lock file", exc_info=True)
 			finally:
 				self.lock_file_handle = None
 
@@ -195,7 +200,7 @@ class PosixSingletonInstance(AbstractSingletonInstance):
 			if os.path.exists(self.lock_file_path):
 				os.remove(self.lock_file_path)
 		except Exception:
-			pass
+			log.debug("Failed to remove the lock file", exc_info=True)
 
 		# Release the process-level lock if we have it
 		if self._has_process_lock:

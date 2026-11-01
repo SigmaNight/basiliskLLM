@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
 	from basilisk.updater import BaseUpdater
@@ -27,7 +27,7 @@ class UpdatePresenter:
 		updater: The BaseUpdater instance (created lazily if None).
 	"""
 
-	def __init__(self, view, updater: Optional[BaseUpdater] = None) -> None:
+	def __init__(self, view, updater: BaseUpdater | None = None) -> None:
 		"""Initialise the presenter.
 
 		Args:
@@ -37,7 +37,7 @@ class UpdatePresenter:
 		"""
 		self.view = view
 		self.updater = updater
-		self._check_thread: Optional[threading.Thread] = None
+		self._check_thread: threading.Thread | None = None
 
 	def start(self) -> None:
 		"""Start the update process.
@@ -92,7 +92,7 @@ class UpdatePresenter:
 			else:
 				wx.CallAfter(self.view.show_no_updates)
 		except Exception as e:
-			log.error("Error checking for updates: %s", e, exc_info=True)
+			log.exception("Error checking for updates")
 			wx.CallAfter(self.view.show_error, str(e))
 			wx.CallAfter(self.view.close)
 
@@ -130,7 +130,7 @@ class DownloadPresenter:
 		"""
 		self.view = view
 		self.updater = updater
-		self._download_thread: Optional[threading.Thread] = None
+		self._download_thread: threading.Thread | None = None
 		self._stop_download = False
 
 	def start(self) -> None:
@@ -159,7 +159,7 @@ class DownloadPresenter:
 					bool(self.updater.release_notes),
 				)
 		except Exception as e:
-			log.error("Error downloading update: %s", e, exc_info=True)
+			log.exception("Error downloading update")
 			wx.CallAfter(self.view.show_error, str(e))
 
 	def _on_progress(self, downloaded_length: int, total_length: int) -> None:

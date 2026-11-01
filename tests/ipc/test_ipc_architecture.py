@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pytest
 
@@ -85,7 +85,7 @@ class TestBasiliskIpc:
 		time.sleep(0.1)
 
 		# Send signal using the low-level interface
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		result = ipc.send_signal(focus_signal.model_dump_json())
 		assert result is True
 
@@ -121,7 +121,7 @@ class TestBasiliskIpc:
 	def test_send_signal_no_receiver(self, ipc):
 		"""Test sending a signal when no receiver is running."""
 		# Don't start receiver
-		focus_signal = FocusSignal(timestamp=datetime.now())
+		focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 		result = ipc.send_signal(focus_signal.model_dump_json())
 		assert result is False
 
@@ -136,7 +136,7 @@ class TestBasiliskIpc:
 
 		# Send multiple signals
 		for i in range(3):
-			focus_signal = FocusSignal(timestamp=datetime.now())
+			focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 			result = ipc.send_signal(focus_signal.model_dump_json())
 			assert result is True
 			time.sleep(0.05)
@@ -159,7 +159,7 @@ class TestBasiliskIpc:
 
 		# Send multiple signals
 		for i in range(signal_count):
-			focus_signal = FocusSignal(timestamp=datetime.now())
+			focus_signal = FocusSignal(timestamp=datetime.now(UTC))
 			result = ipc.send_signal(focus_signal.model_dump_json())
 			assert result is True
 			time.sleep(0.05)

@@ -7,8 +7,9 @@ result/error handling. Delegates all UI to the IOCRView interface.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from multiprocessing import Queue, Value
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 from basilisk.process_helper import run_task
 from basilisk.provider_capability import ProviderCapability
@@ -64,7 +65,7 @@ class OCRPresenter:
 		self._get_log_level = get_log_level
 		self._check_attachments_valid = check_attachments_valid
 		self._scheduler = scheduler
-		self.process: Optional[Any] = None
+		self.process: Any | None = None
 
 	# ------------------------------------------------------------------
 	# Internal helpers
@@ -218,10 +219,8 @@ class OCRPresenter:
 			while not result_queue.empty():
 				message_type, data = result_queue.get(block=False)
 				self._handle_ocr_message(message_type, data, dialog)
-		except Exception as e:
-			log.error(
-				"Error processing queue messages: %s", str(e), exc_info=True
-			)
+		except Exception:
+			log.exception("Error processing queue messages")
 
 	def _handle_ocr_message(
 		self, message_type: str, data: Any, dialog: ProgressBarDialog
@@ -247,7 +246,7 @@ class OCRPresenter:
 					"Unknown message type in result queue: %s", message_type
 				)
 		except Exception as e:
-			log.error("Error handling message: %s", e, exc_info=True)
+			log.exception("Error handling message")
 			self.view.show_error(
 				_(
 					"An error occurred while processing OCR results."
@@ -290,8 +289,8 @@ class OCRPresenter:
 				log.warning("OCR process did not terminate, killing it")
 				self.process.kill()
 				self.process.join(timeout=0.5)
-		except Exception as e:
-			log.error("Error terminating OCR process: %s", e, exc_info=True)
+		except Exception:
+			log.exception("Error terminating OCR process")
 		self.process = None
 
 	def _cleanup_ocr_process(self, dialog: ProgressBarDialog) -> None:
@@ -312,8 +311,8 @@ class OCRPresenter:
 				if self.process.is_alive():
 					log.warning("Process did not terminate, killing it")
 					self.process.kill()
-			except Exception as e:
-				log.error("Error terminating process: %s", e, exc_info=True)
+			except Exception:
+				log.exception("Error terminating process")
 
 		self.view.destroy_progress_dialog(dialog)
 		self.view.set_ocr_button_enabled(True)

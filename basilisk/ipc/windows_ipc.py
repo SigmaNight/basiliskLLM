@@ -97,8 +97,8 @@ class WindowsIpc(AbstractIpc):
 				)
 				connection_thread.start()
 
-			except Exception as e:
-				logger.error("Error in named pipe server: %s", e)
+			except Exception:
+				logger.exception("Error in named pipe server")
 				time.sleep(0.1)  # Wait before retrying (reduced wait time)
 
 	def send_signal(self, data: str) -> bool:
@@ -154,4 +154,3 @@ class WindowsIpc(AbstractIpc):
 	def _cleanup_resources(self):
 		"""Clean up platform-specific resources."""
 		# No persistent pipe handle to clean up since we use per-connection handles
-		pass
