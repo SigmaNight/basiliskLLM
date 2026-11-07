@@ -166,7 +166,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1,<0.29.0" },
     { name = "keyring", specifier = ">=25.7.0,<25.8" },
     { name = "markdown2", specifier = ">=2.5.4,<2.6" },
-    { name = "mistralai", specifier = ">=2.6.0,<2.9.5" },
+    { name = "mistralai", specifier = ">=2.6.0,<3.7.1" },
     { name = "more-itertools", specifier = ">=11.1.0,<11.1.1" },
     { name = "numpy", specifier = ">=2.5.1,<2.6" },
     { name = "ollama", specifier = ">=0.6.2,<0.7" },
@@ -939,11 +939,11 @@ wheels = [
 
 [[package]]
 name = "mistralai"
-version = "2.9.4"
+version = "3.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
-    { name = "httpx" },
+    { name = "httpx2" },
     { name = "jsonpath-python" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-semantic-conventions" },
@@ -951,9 +951,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/52/51065b4b453b0cd410fbc9d659d9b43345d4cef74f610cf4cad3c2682e22/mistralai-2.9.4.tar.gz", hash = "sha256:e3607552d34cc38b6f81e80bf95201946eac119260259b0cc1094aac350dbb8e", size = 543545, upload-time = "2026-08-21T18:06:03.045Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/ca/10a0515ded34170e1ea451a6d1c7124361e4fab8ba5d5024db34db1fb9d3/mistralai-3.7.0.tar.gz", hash = "sha256:97cc525b8ddc96fb8b5bb08f466dd3d22f904f21ddfe45103da76c25fe601bf2", size = 773897, upload-time = "2026-11-01T20:07:28.894Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/c6/ce6371bd7a56e8c01a8f59baf4bc16d134eed4f3e2c593b5733087012936/mistralai-2.9.4-py3-none-any.whl", hash = "sha256:184f8ba3cffee6ffc379481340a67c1d5f6db145cf690b2ffd06d6a4cec92d2d", size = 1298804, upload-time = "2026-08-21T18:06:00.898Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/c3/428b852ffffcf6b35d046124121e75824827d222d8ada3cb19c32a47f92e/mistralai-3.7.0-py3-none-any.whl", hash = "sha256:23ceda7ae52557578427af5a9caffb2222cd11dd7d43eb1792ded35b2a84d939", size = 1818807, upload-time = "2026-11-01T20:07:26.562Z" },
 ]
 
 [[package]]
